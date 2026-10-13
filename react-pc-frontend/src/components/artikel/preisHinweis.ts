@@ -8,7 +8,7 @@ export type PreisHinweis = 'OK' | 'KEIN_AUFSCHLAG' | 'KEIN_PREIS' | 'KEIN_GEWICH
 
 export const preisHinweisText: Record<Exclude<PreisHinweis, 'OK'>, string> = {
     KEIN_AUFSCHLAG: 'Kein Aufschlag hinterlegt — der Preis entspricht dem Einkauf.',
-    KEIN_PREIS: 'Kein Preis hinterlegt — bitte selbst eintragen.',
+    KEIN_PREIS: 'Noch kein Einkaufspreis vorhanden — trage ihn weiter unten unter „Wer liefert das?“ ein.',
     KEIN_GEWICHT: 'Gewicht je Meter fehlt — bitte in den Artikel-Details pflegen.',
 };
 

@@ -8,6 +8,7 @@
 #   BUILD_REF     Branch, z. B. main
 #   DB_PASSWORD   Datenbank-Passwort (nicht den Standard lassen)
 #   APP_ADMIN_USER / APP_ADMIN_PASS   Zugang zur Oberflaeche
+#   MAIL_KEY      Schluessel fuer gespeicherte Passwoerter, genau 32 Zeichen (z. B. `openssl rand -hex 16`)
 #   ZEITERFASSUNG_URL   Adresse fuer den QR-Code der Handy-App, z. B. http://192.168.1.10:8080
 services:
   postgres:
@@ -43,6 +44,8 @@ services:
       APP_ADMIN_USER: ${APP_ADMIN_USER:-}
       APP_ADMIN_PASS: ${APP_ADMIN_PASS:-}
       ZEITERFASSUNG_URL: ${ZEITERFASSUNG_URL:-http://localhost:8080}
+      # Schluessel fuer gespeicherte Mail-/Telefon-Passwoerter: genau 16, 24 oder 32 Zeichen
+      MAIL_CREDENTIALS_ENCRYPTIONKEY: ${MAIL_KEY:?MAIL_KEY setzen (32 Zeichen)}
     volumes:
       - app_uploads:/app/uploads
       - app_logs:/app/logs

@@ -1,8 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save, X } from "lucide-react";
+import { Calculator, Loader2, Save, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
-import { InfoButton } from "../ui/info-button";
+import { InfoAbschnitt, InfoButton } from "../ui/info-button";
 import { Label } from "../ui/label";
 import { Select } from "../ui/select-custom";
 import { useToast } from "../ui/toast";
@@ -36,6 +36,7 @@ const eignungsOptionen = (werkstoffWert?: boolean) => [
 ];
 
 const zahlText = (w?: number | null) => (w == null ? "" : formatDecimalInput(w));
+const zahlAnzeige = (w?: number | null, stellen = 3) => (w == null ? "–" : new Intl.NumberFormat("de-DE", { maximumFractionDigits: stellen }).format(w));
 const einheitName = (e: Artikel["verrechnungseinheit"]) => (typeof e === "string" ? e : e?.name ?? "");
 
 /** Die Maße, die nur Halbzeug (Rohre, Profile, Bleche) hat. */
@@ -89,6 +90,12 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     }));
     const [laenge, setLaenge] = useState(zahlText(artikel.standardlaenge));
 
+    // Gewicht aus den Maßen: erst ansehen, beim Speichern wird es übernommen
+    const [berechnung, setBerechnung] = useState<{ text: string; hinweis?: string } | null>(null);
+    const [gewichtBerechnen, setGewichtBerechnen] = useState(false);
+    const [rechnet, setRechnet] = useState(false);
+    const berechnungVerwerfen = () => { setBerechnung(null); setGewichtBerechnen(false); };
+
     const [optionen, setOptionen] = useState<Filteroptionen | null>(null);
     const [werkstoffe, setWerkstoffe] = useState<{ id: number; name: string; verzinkungsgeeignet?: boolean; pulverbeschichtungsgeeignet?: boolean }[]>([]);
     const [zeigeKategorien, setZeigeKategorien] = useState(false);
@@ -117,6 +124,42 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     }, [werkstoffe, werkstoffId, artikel.werkstoffName]);
 
     const werkstoffEignung = useMemo(() => werkstoffe.find(w => String(w.id) === werkstoffId), [werkstoffe, werkstoffId]);
+
+    const gewichtBerechnenAnsehen = async () => {
+        setFehler("");
+        if (!profilform) { setFehler("Bitte zuerst die Form des Teils wählen, damit das Programm die passende Formel kennt."); return; }
+        const regeln: Record<string, { label: string; min?: number; max?: number; maxDecimalPlaces?: number }> = {};
+        for (const m of MASSE) regeln[m.schluessel] = { label: m.label.replace(" (mm)", ""), min: 0, max: 100000, maxDecimalPlaces: 2 };
+        const geprueft = validateNumberDrafts({ ...masse }, regeln);
+        if (!geprueft.valid) { setFehler(geprueft.message); return; }
+        const v = geprueft.values;
+        setRechnet(true);
+        try {
+            const res = await fetch("/api/artikel/profilrechner", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ profilform, werkstoffId: werkstoffId ? Number(werkstoffId) : null,
+                    durchmesser: v.durchmesser, hoehe: v.hoehe, breite: v.breite, wandstaerke: v.wandstaerke }),
+            });
+            const body = await res.json().catch(() => ({})) as { message?: string; kgProMeter?: number; kgProQm?: number; querschnittCm2?: number; mantelflaecheQm?: number; hinweis?: string };
+            if (!res.ok) throw new Error(body.message || "Das Gewicht konnte nicht berechnet werden.");
+            const teile = [
+                body.kgProMeter != null ? `${zahlAnzeige(body.kgProMeter, 4)} kg/m` : null,
+                body.kgProQm != null ? `${zahlAnzeige(body.kgProQm, 3)} kg/m²` : null,
+                body.querschnittCm2 != null ? `${zahlAnzeige(body.querschnittCm2)} cm² Querschnitt` : null,
+                body.mantelflaecheQm != null ? `${zahlAnzeige(body.mantelflaecheQm, 4)} m² Oberfläche je Meter` : null,
+            ].filter(Boolean);
+            setBerechnung({ text: teile.join(" · "), hinweis: body.hinweis });
+            setGewichtBerechnen(true);
+        } catch (e) {
+            const text = e instanceof Error ? e.message : "Das Gewicht konnte nicht berechnet werden.";
+            setFehler(text);
+            toast.error(text);
+            berechnungVerwerfen();
+        } finally {
+            setRechnet(false);
+        }
+    };
 
     const speichern = async () => {
         setFehler("");
@@ -158,6 +201,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     durchmesser: v.durchmesser, hoehe: v.hoehe, breite: v.breite,
                     wandstaerke: v.wandstaerke, stegdicke: v.stegdicke, flanschdicke: v.flanschdicke,
                     standardlaenge: v.laenge,
+                    gewichtBerechnen,
                 }),
             });
             if (!res.ok) {
@@ -252,7 +296,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     <div className="space-y-1.5">
                         {/* Gleicher Aufbau wie bei der Einheit (Flex-Zeile), damit beide Auswahlfelder auf einer Höhe mit den Eingabefeldern stehen */}
                         <div className="flex items-center gap-1"><Label>Werkstoff</Label></div>
-                        <Select options={werkstoffOptionen} value={werkstoffId} onChange={setWerkstoffId} />
+                        <Select options={werkstoffOptionen} value={werkstoffId} onChange={v => { berechnungVerwerfen(); setWerkstoffId(v); }} />
                     </div>
                 </div>
 
@@ -278,7 +322,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                     <div className="space-y-1.5">
                         <Label>Form</Label>
-                        <Select options={alsOptionen(optionen?.profilform)} value={profilform} onChange={setProfilform} />
+                        <Select options={alsOptionen(optionen?.profilform)} value={profilform} onChange={v => { berechnungVerwerfen(); setProfilform(v); }} />
                     </div>
                     <div className="space-y-1.5">
                         <Label>Herstellverfahren</Label>
@@ -306,13 +350,33 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                                 <div key={m.schluessel} className="space-y-1.5">
                                     <Label htmlFor={`sd-${m.schluessel}`}>{m.label}</Label>
                                     <Input id={`sd-${m.schluessel}`} value={masse[m.schluessel]} inputMode="decimal"
-                                        onChange={e => setMasse(alt => ({ ...alt, [m.schluessel]: e.target.value }))} />
+                                        onChange={e => { berechnungVerwerfen(); setMasse(alt => ({ ...alt, [m.schluessel]: e.target.value })); }} />
                                 </div>
                             ))}
                             <div className="space-y-1.5">
                                 <Label htmlFor="sd-laenge">Übliche Länge (mm)</Label>
                                 <Input id="sd-laenge" value={laenge} inputMode="numeric" onChange={e => setLaenge(e.target.value)} placeholder="z. B. 6000" />
                             </div>
+                        </div>
+                        <div className="mt-3 flex flex-wrap items-center gap-3" data-testid="gewicht-berechnen">
+                            <Button type="button" variant="outline" size="sm" onClick={gewichtBerechnenAnsehen} disabled={rechnet}>
+                                {rechnet ? <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Calculator className="w-4 h-4 mr-2" aria-hidden="true" />}
+                                Gewicht aus den Maßen berechnen
+                            </Button>
+                            <InfoButton titel="Gewicht berechnen">
+                                <InfoAbschnitt titel="Was passiert im Hintergrund?">
+                                    <p>Das Programm rechnet aus Form, Maßen und der Dichte des Werkstoffs den Querschnitt, das Gewicht und die Oberfläche je Meter aus. Bei Rohren gelten die Eckenradien nach EN 10219. Träger wie IPE, HEA, HEB und U kommen aus der Normtabelle.</p>
+                                </InfoAbschnitt>
+                                <InfoAbschnitt titel="Was bewirkt das?">
+                                    <p>Erst nach „Speichern“ gelten die berechneten Werte am Artikel; sie ersetzen dann die bisherigen. Ohne Werkstoff rechnet das Programm mit Stahl (7,85).</p>
+                                </InfoAbschnitt>
+                            </InfoButton>
+                            {berechnung && (
+                                <p className="text-sm text-slate-700" role="status">
+                                    <span className="font-medium">Berechnet:</span> {berechnung.text}. Wird beim Speichern übernommen.
+                                    {berechnung.hinweis && <span className="block text-xs text-slate-500">{berechnung.hinweis}</span>}
+                                </p>
+                            )}
                         </div>
                     </div>
                 )}

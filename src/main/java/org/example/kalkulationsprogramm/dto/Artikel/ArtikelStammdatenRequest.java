@@ -51,4 +51,7 @@ public class ArtikelStammdatenRequest {
     private BigDecimal stegdicke;
     private BigDecimal flanschdicke;
     private Integer standardlaenge;
+
+    /** Gewicht, Querschnitt und Oberfläche beim Speichern aus den Maßen berechnen (ersetzt die bisherigen Werte). Standard: nein. */
+    private Boolean gewichtBerechnen;
 }

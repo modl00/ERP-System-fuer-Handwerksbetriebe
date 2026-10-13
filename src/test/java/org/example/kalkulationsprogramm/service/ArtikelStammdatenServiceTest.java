@@ -37,6 +37,7 @@ class ArtikelStammdatenServiceTest {
     @Mock ArtikelRepository artikelRepository;
     @Mock KategorieRepository kategorieRepository;
     @Mock WerkstoffRepository werkstoffRepository;
+    @org.mockito.Spy ProfilRechner profilRechner = new ProfilRechner();
     @InjectMocks ArtikelService service;
 
     private ArtikelWerkstoffe artikel;
@@ -303,6 +304,48 @@ class ArtikelStammdatenServiceTest {
         abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.BAD_REQUEST, "Standardlänge");
         r.setStandardlaenge(30_001);
         abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.BAD_REQUEST, "Standardlänge");
+    }
+
+    @Test
+    void gewichtBerechnenUebernimmtWerteAusDenMassenUndDerWerkstoffDichte() {
+        gefunden();
+        speichernAktiv();
+        ArtikelStammdatenRequest r = anfrage();
+        r.setProfilform(org.example.kalkulationsprogramm.domain.Profilform.RUNDROHR);
+        r.setDurchmesser(new BigDecimal("42.4"));
+        r.setWandstaerke(new BigDecimal("2"));
+        r.setGewichtBerechnen(true);
+
+        ArtikelWerkstoffe e = (ArtikelWerkstoffe) service.aktualisiereStammdaten(7L, r);
+
+        assertThat(e.getMasse()).isEqualByComparingTo("1.9926");
+        assertThat(e.getQuerschnittsflaeche()).isEqualByComparingTo("2.538");
+        assertThat(e.getMantelflaeche()).isEqualByComparingTo("0.1332");
+    }
+
+    @Test
+    void ohneGewichtBerechnenBleibenGewichtswerteUnberuehrt() {
+        artikel.setMasse(new BigDecimal("9.9"));
+        gefunden();
+        speichernAktiv();
+        ArtikelStammdatenRequest r = anfrage();
+        r.setProfilform(org.example.kalkulationsprogramm.domain.Profilform.RUNDROHR);
+        r.setDurchmesser(new BigDecimal("42.4"));
+        r.setWandstaerke(new BigDecimal("2"));
+
+        ArtikelWerkstoffe e = (ArtikelWerkstoffe) service.aktualisiereStammdaten(7L, r);
+
+        assertThat(e.getMasse()).isEqualByComparingTo("9.9");
+    }
+
+    @Test
+    void gewichtBerechnenOhneMasseMeldetWasFehlt() {
+        gefunden();
+        ArtikelStammdatenRequest r = anfrage();
+        r.setProfilform(org.example.kalkulationsprogramm.domain.Profilform.RUNDROHR);
+        r.setGewichtBerechnen(true);
+
+        abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.BAD_REQUEST, "Durchmesser");
     }
 
     @Test

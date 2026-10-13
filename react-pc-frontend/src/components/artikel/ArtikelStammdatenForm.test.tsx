@@ -28,6 +28,11 @@ beforeEach(() => {
     fetcher = vi.fn(async (url: string, init?: RequestInit) => {
         if (url.endsWith('/filteroptionen')) return antwort({ profilform: [{ wert: 'RUNDROHR', name: 'Rundrohr' }], herstellverfahren: [], fertigungszustand: [] });
         if (url.endsWith('/werkstoffe/details')) return antwort([{ id: 4, name: 'Baustahl', verzinkungsgeeignet: true, pulverbeschichtungsgeeignet: false }]);
+        if (url.endsWith('/profilrechner')) {
+            const b = JSON.parse(String(init?.body));
+            if (!b.wandstaerke) return antwort({ message: 'Für Rundrohr fehlt die Wandstärke. Bitte bei den Maßen eintragen.' }, false, 400);
+            return antwort({ kgProMeter: 1.9926, querschnittCm2: 2.538, mantelflaecheQm: 0.1332, herkunft: 'BERECHNET', hinweis: null });
+        }
         if (init?.method === 'PUT') return antwort({ id: 7 });
         return antwort({});
     });
@@ -214,5 +219,50 @@ describe('ArtikelStammdatenForm', () => {
         render(<ToastProvider><ArtikelStammdatenForm artikel={festgelegt} onGespeichert={vi.fn()} onAbbrechen={vi.fn()} /></ToastProvider>);
         expect(await screen.findByRole('combobox', { name: 'Feuerverzinken' })).toHaveTextContent('Nicht geeignet');
         expect(screen.getByRole('combobox', { name: 'Pulverbeschichten' })).toHaveTextContent('Geeignet');
+    });
+
+    describe('Gewicht aus den Maßen berechnen', () => {
+        it('zeigt das Ergebnis und sendet beim Speichern gewichtBerechnen', async () => {
+            const user = userEvent.setup();
+            zeige();
+            await screen.findByLabelText('Produktname *');
+
+            await user.click(screen.getByRole('button', { name: 'Gewicht aus den Maßen berechnen' }));
+
+            expect(await screen.findByRole('status')).toHaveTextContent('1,9926 kg/m · 2,538 cm² Querschnitt · 0,1332 m² Oberfläche je Meter');
+            const anfrage = fetcher.mock.calls.find(([u]) => String(u).endsWith('/profilrechner'))!;
+            expect(JSON.parse(String(anfrage[1].body))).toMatchObject({ profilform: 'RUNDROHR', werkstoffId: 4, durchmesser: 42.4, wandstaerke: 2 });
+
+            await user.click(screen.getByRole('button', { name: 'Speichern' }));
+            await waitFor(() => expect(puts()).toHaveLength(1));
+            expect(sendeBody().gewichtBerechnen).toBe(true);
+        });
+
+        it('sendet ohne Berechnung gewichtBerechnen=false und verwirft die Vorschau bei geänderten Maßen', async () => {
+            const user = userEvent.setup();
+            zeige();
+            const wand = await screen.findByLabelText('Wandstärke (mm)');
+            await user.click(screen.getByRole('button', { name: 'Gewicht aus den Maßen berechnen' }));
+            await screen.findByRole('status');
+
+            await user.type(wand, '5');
+
+            expect(screen.queryByRole('status')).not.toBeInTheDocument();
+            await user.click(screen.getByRole('button', { name: 'Speichern' }));
+            await waitFor(() => expect(puts()).toHaveLength(1));
+            expect(sendeBody().gewichtBerechnen).toBe(false);
+        });
+
+        it('zeigt die Meldung des Servers, wenn Maße fehlen, und merkt sich nichts', async () => {
+            const user = userEvent.setup();
+            zeige();
+            const wand = await screen.findByLabelText('Wandstärke (mm)');
+            await user.clear(wand);
+
+            await user.click(screen.getByRole('button', { name: 'Gewicht aus den Maßen berechnen' }));
+
+            expect(await screen.findAllByText(/fehlt die Wandstärke/)).not.toHaveLength(0);
+            expect(screen.queryByRole('status')).not.toBeInTheDocument();
+        });
     });
 });

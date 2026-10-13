@@ -35,6 +35,8 @@ Auf der Artikelseite (Klick auf eine Zeile in **Vorlagen & Stammdaten → Artike
 - „Feuerverzinken“ und „Pulverbeschichten“: ob das Teil dafür **geeignet** ist. Standard ist „Vom Werkstoff übernehmen“; für diesen einen Artikel lässt sich „Geeignet“ oder „Nicht geeignet“ festlegen. Die Artikelseite zeigt dahinter, woher die Eignung kommt,
 - bei Rohren, Profilen und Blechen die Maße (Durchmesser, Höhe, Breite, Wandstärke, Stegdicke, Flanschdicke) und die „Übliche Länge (mm)“.
 
+**Gewicht aus den Maßen berechnen:** Unter den Maßen rechnet „Gewicht aus den Maßen berechnen“ Querschnitt, Gewicht und Oberfläche je Meter aus (Bleche: Gewicht je Quadratmeter). Das Ergebnis erscheint zur Ansicht; erst „Speichern“ übernimmt es und ersetzt die bisherigen Werte. Das Programm rechnet mit der Dichte des Werkstoffs, ohne Werkstoff mit Stahl (7,85). Es gibt Formeln für Rund-, Quadrat- und Rechteckrohr (mit Eckenradien nach EN 10219), Rund-, Vierkant-, Sechskant- und Flachstahl, Winkel (Näherung ohne Abrundungen) und Blech. IPE, HEA, HEB und U-Profile kommen aus der Normtabelle: Als „Höhe“ die Nenngröße eintragen, zum Beispiel 200 für IPE 200; die Oberfläche wird dort nicht berechnet. Die Werte dieser Tabellen bitte bei Bedarf mit dem Datenblatt des Lieferanten vergleichen. Fehlt ein Maß, nennt das Programm es.
+
 Gut zu wissen:
 
 - Speichern ersetzt alle diese Angaben. Was man leert, ist danach leer; nur der Produktname muss bleiben.

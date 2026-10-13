@@ -650,7 +650,7 @@ Rechnungsabruf bei Händlern (Microsoft, Amazon). Ganzer Pfad nur für Admins.
 | `GET` | `/` | Artikel suchen und filtern (seitenweise, sortierbar) |
 | `POST` | `/{id}/externe-nummer` | Artikelnummer eines Lieferanten hinterlegen |
 | `PATCH` | `/{id}/dokumenttexte` | Kurzbeschreibung, Kundentext und Verkaufsaufschlag ändern |
-| `PUT` | `/{id}/stammdaten` | Stammdaten ersetzen (Name, Nummern, EAN, Einheit, Kategorie, Werkstoff, Normen, Maße); 400 bei ungültigen Werten, 409 bei doppelter Nummer/EAN oder veraltetem Stand (`version`) |
+| `PUT` | `/{id}/stammdaten` | Stammdaten ersetzen (Name, Nummern, EAN, Einheit, Kategorie, Werkstoff, Normen, Maße; mit `gewichtBerechnen: true` werden Gewicht, Querschnitt und Oberfläche aus den Maßen gesetzt); 400 bei ungültigen Werten, 409 bei doppelter Nummer/EAN oder veraltetem Stand (`version`) |
 | `GET` | `/{id}/detail` | Artikel mit allen Lieferantenpreisen und Preisverlauf |
 | `POST` | `/{id}/dokumente` | Vorschaubild oder Zusatzdokument (Zulassung, Zeichnung, Datenblatt …) hochladen |
 | `GET` | `/{id}/dokumente` | Dokumente eines Artikels |
@@ -679,6 +679,14 @@ Rechnungsabruf bei Händlern (Microsoft, Amazon). Ganzer Pfad nur für Admins.
 | `POST` | `/` | Werkstoff anlegen (Name Pflicht und eindeutig, Dichte 0,1 bis 25 kg/dm³); 400 bei ungültigen Werten, 409 bei doppeltem Namen |
 | `PUT` | `/{id}` | Werkstoff ändern; 400 bei ungültigen Werten, 404 bei unbekannter ID, 409 bei doppeltem Namen |
 | `DELETE` | `/{id}` | Werkstoff löschen; 409, solange Artikel ihn benutzen |
+
+### ProfilRechnerController
+
+**Basis-URL:** `/api/artikel/profilrechner`
+
+| Methode | Pfad | Beschreibung |
+|---|---|---|
+| `POST` | `/` | Querschnitt (cm²), Gewicht (kg/m bzw. kg/m² bei Blech) und Oberfläche (m² je Meter) aus Form und Maßen (mm) berechnen; Dichte vom Werkstoff (`werkstoffId`), sonst Stahl 7,85. Nur Vorschau, nichts wird gespeichert; 400 mit Klartext, wenn Maße fehlen oder die Form nicht berechenbar ist |
 
 ### ArtikelKategorieController
 

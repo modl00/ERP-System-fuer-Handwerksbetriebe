@@ -78,6 +78,7 @@ public class ArtikelService implements ArtikelServiceContract {
     private static final Pattern GEFAEHRLICHES_CSS_MUSTER = Pattern.compile(
             "url\\(|expression\\(|position|@import|javascript:", Pattern.CASE_INSENSITIVE);
 
+    private final ProfilRechner profilRechner;
     private final ArtikelRepository artikelRepository;
     private final KategorieRepository kategorieRepository;
     private final WerkstoffRepository werkstoffRepository;
@@ -270,9 +271,23 @@ public class ArtikelService implements ArtikelServiceContract {
                 throw ungueltig("Die Standardlänge muss zwischen 1 und " + MAX_STANDARDLAENGE + " mm liegen.");
             }
             aw.setStandardlaenge(laenge);
+            if (Boolean.TRUE.equals(r.getGewichtBerechnen())) {
+                uebernehmeBerechnung(aw);
+            }
         }
         artikel.setSuchtext(ArtikelSuchtext.aufbauen(artikel));
         return artikelRepository.save(artikel);
+    }
+
+    /** Setzt Gewicht, Querschnitt und Oberfläche aus den Maßen und der Dichte des Werkstoffs; fehlende Maße melden sich als 400. */
+    private void uebernehmeBerechnung(ArtikelWerkstoffe aw) {
+        BigDecimal dichte = aw.getWerkstoff() != null ? aw.getWerkstoff().getDichte() : null;
+        ProfilRechner.Ergebnis e = profilRechner.berechne(aw.getProfilform(),
+                new ProfilRechner.Masse(aw.getDurchmesser(), aw.getHoehe(), aw.getBreite(), aw.getWandstaerke()), dichte);
+        aw.setMasse(e.kgProMeter());
+        aw.setMassePerQm(e.kgProQm());
+        aw.setQuerschnittsflaeche(e.querschnittCm2());
+        aw.setMantelflaeche(e.mantelflaecheQm());
     }
 
     /** Kategorie zur ID; eine unbekannte oder zu große ID ist ein Eingabefehler (400), kein Serverfehler. */

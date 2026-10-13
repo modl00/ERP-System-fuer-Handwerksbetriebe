@@ -11,7 +11,7 @@ function json(route: Route, body: unknown, status = 200) {
     return route.fulfill({ status, contentType: 'application/json', body: JSON.stringify(body) });
 }
 
-interface Mitschrift { stammdaten: Record<string, unknown>[] }
+interface Mitschrift { stammdaten: Record<string, unknown>[]; rechner: Record<string, unknown>[] }
 
 const ARTIKEL = {
     id: 1, version: 3, produktname: 'Rundrohr 42,4 x 2', artikelnummer: 'ST-RR-042', werkstoffId: 4, werkstoffName: 'Baustahl S235JR',
@@ -23,7 +23,7 @@ const ARTIKEL = {
 
 
 async function stubApi(page: Page, optionen: { doppelteNummer?: boolean } = {}): Promise<Mitschrift> {
-    const mit: Mitschrift = { stammdaten: [] };
+    const mit: Mitschrift = { stammdaten: [], rechner: [] };
     await page.route('**/api/**', (route) => {
         const pfad = new URL(route.request().url()).pathname;
         const methode = route.request().method();
@@ -37,6 +37,10 @@ async function stubApi(page: Page, optionen: { doppelteNummer?: boolean } = {}):
             if (optionen.doppelteNummer && e.artikelnummer === 'ST-DOPPELT') return json(route, { message: 'Die Artikelnummer ST-DOPPELT gibt es schon bei einem anderen Artikel.' }, 409);
             mit.stammdaten.push(e);
             return json(route, { ...ARTIKEL, ...e, version: 4 });
+        }
+        if (pfad === '/api/artikel/profilrechner' && methode === 'POST') {
+            mit.rechner.push(route.request().postDataJSON() as Record<string, unknown>);
+            return json(route, { kgProMeter: 1.9926, querschnittCm2: 2.538, mantelflaecheQm: 0.1332, herkunft: 'BERECHNET', hinweis: null });
         }
         return json(route, []);
     });
@@ -84,4 +88,20 @@ test('Artikelseite: Stammdaten ändern und Fehler vom Server verstehen', async (
     expect(mit.stammdaten[0]).toMatchObject({
         version: 3, produktname: 'Rundrohr 48,3 x 2,6', artikelnummer: 'ST-RR-048', ean: '4006381333931', durchmesser: 48.3, stegdicke: null, werkstoffId: 4, verzinkungsgeeignet: false, pulverbeschichtungsgeeignet: null,
     });
+});
+
+test('Artikelseite: Gewicht aus den Maßen berechnen und beim Speichern übernehmen', async ({ page }) => {
+    const mit = await stubApi(page);
+    await page.goto('/artikel/1');
+    await page.getByRole('button', { name: 'Stammdaten bearbeiten' }).click();
+    const form = page.getByTestId('artikel-stammdaten-form');
+
+    await form.getByRole('button', { name: 'Gewicht aus den Maßen berechnen' }).click();
+
+    await expect(form.getByRole('status')).toContainText('1,9926 kg/m');
+    expect(mit.rechner[0]).toMatchObject({ profilform: 'RUNDROHR', werkstoffId: 4, durchmesser: 42.4, wandstaerke: 2 });
+
+    await form.getByRole('button', { name: /^Speichern/ }).click();
+    await expect(page.getByText('Die Stammdaten sind gespeichert.')).toBeVisible();
+    expect(mit.stammdaten[0]).toMatchObject({ gewichtBerechnen: true });
 });

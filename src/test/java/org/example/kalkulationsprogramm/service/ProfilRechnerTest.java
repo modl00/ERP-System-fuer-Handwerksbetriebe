@@ -116,12 +116,37 @@ class ProfilRechnerTest {
 
     @Test
     void formenOhneFormelWerdenAbgelehnt() {
-        assertThat(rechner.kannBerechnen(Profilform.LOCHBLECH)).isFalse();
-        assertThat(rechner.kannBerechnen(Profilform.SONSTIGES)).isFalse();
-        assertThat(rechner.kannBerechnen(Profilform.QUADRATROHR)).isTrue();
-        assertThat(rechner.kannBerechnen(Profilform.IPE_PROFIL)).isTrue();
-        assertThat(rechner.kannBerechnen(null)).isFalse();
         assertThatThrownBy(() -> rechner.berechne(Profilform.Z_PROFIL, masse(null, "100", "50", "4"), null))
                 .hasMessageContaining("keine Berechnung");
+        assertThatThrownBy(() -> rechner.berechne(Profilform.LOCHBLECH, masse(null, null, null, "2"), null))
+                .hasMessageContaining("keine Berechnung");
+        assertThatThrownBy(() -> rechner.berechne(Profilform.SONSTIGES, masse(null, null, null, "2"), null))
+                .hasMessageContaining("keine Berechnung");
+    }
+
+    @Test
+    void riesigeMasseGebenKlarenFehlerStattUeberlauf() {
+        assertThatThrownBy(() -> rechner.berechne(Profilform.RUNDSTAB, masse("1e200", null, null, null), null))
+                .isInstanceOf(ResponseStatusException.class).hasMessageContaining("zu groß");
+        assertThatThrownBy(() -> rechner.berechne(Profilform.IPE_PROFIL, masse(null, "4294967496", null, null), null))
+                .hasMessageContaining("zu groß");
+        // erlaubtes Maß, aber das Ergebnis passt nicht mehr in die Datenbankspalten
+        assertThatThrownBy(() -> rechner.berechne(Profilform.RUNDSTAB, masse("100000", null, null, null), null))
+                .hasMessageContaining("Die Maße sind zu groß");
+        assertThatThrownBy(() -> rechner.berechne(Profilform.BLECH, masse(null, null, null, "100000"), d("25")))
+                .hasMessageContaining("Die Maße sind zu groß");
+    }
+
+    @Test
+    void hohlprofilMitZuGrosserWandHatKeinePassendeEcke() {
+        assertThatThrownBy(() -> rechner.berechne(Profilform.QUADRATROHR, masse(null, "15", null, "4"), null))
+                .hasMessageContaining("Ecken");
+        assertThat(rechner.berechne(Profilform.QUADRATROHR, masse(null, "20", null, "2"), null).kgProMeter().doubleValue()).isCloseTo(1.05, within(0.03));
+    }
+
+    @Test
+    void kleineUndGrosseUProfileSindInDerTabelle() {
+        assertThat(rechner.berechne(Profilform.U_PROFIL, masse(null, "50", null, null), null).kgProMeter().doubleValue()).isEqualTo(5.59);
+        assertThat(rechner.berechne(Profilform.U_PROFIL, masse(null, "400", null, null), null).kgProMeter().doubleValue()).isEqualTo(71.8);
     }
 }

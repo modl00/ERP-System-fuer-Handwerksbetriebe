@@ -324,6 +324,40 @@ class ArtikelStammdatenServiceTest {
     }
 
     @Test
+    void gewichtBerechnenNimmtDieDichteDesWerkstoffs() {
+        org.example.kalkulationsprogramm.domain.Werkstoff alu = new org.example.kalkulationsprogramm.domain.Werkstoff();
+        alu.setDichte(new BigDecimal("2.700"));
+        gefunden();
+        speichernAktiv();
+        when(werkstoffRepository.findById(5L)).thenReturn(Optional.of(alu));
+        ArtikelStammdatenRequest r = anfrage();
+        r.setWerkstoffId(5L);
+        r.setProfilform(org.example.kalkulationsprogramm.domain.Profilform.RUNDSTAB);
+        r.setDurchmesser(new BigDecimal("20"));
+        r.setGewichtBerechnen(true);
+
+        ArtikelWerkstoffe e = (ArtikelWerkstoffe) service.aktualisiereStammdaten(7L, r);
+
+        assertThat(e.getMasse()).isEqualByComparingTo("0.8482");
+    }
+
+    @Test
+    void gewichtBerechnenLaesstEineGepflegteOberflaecheBeiTraegernStehen() {
+        artikel.setMantelflaeche(new BigDecimal("0.7680"));
+        gefunden();
+        speichernAktiv();
+        ArtikelStammdatenRequest r = anfrage();
+        r.setProfilform(org.example.kalkulationsprogramm.domain.Profilform.IPE_PROFIL);
+        r.setHoehe(new BigDecimal("200"));
+        r.setGewichtBerechnen(true);
+
+        ArtikelWerkstoffe e = (ArtikelWerkstoffe) service.aktualisiereStammdaten(7L, r);
+
+        assertThat(e.getMasse()).isEqualByComparingTo("22.4");
+        assertThat(e.getMantelflaeche()).isEqualByComparingTo("0.7680");
+    }
+
+    @Test
     void ohneGewichtBerechnenBleibenGewichtswerteUnberuehrt() {
         artikel.setMasse(new BigDecimal("9.9"));
         gefunden();

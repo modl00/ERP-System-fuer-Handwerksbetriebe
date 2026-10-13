@@ -360,7 +360,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                         </div>
                         <div className="mt-3 flex flex-wrap items-center gap-3" data-testid="gewicht-berechnen">
                             <Button type="button" variant="outline" size="sm" onClick={gewichtBerechnenAnsehen} disabled={rechnet}>
-                                {rechnet ? <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Calculator className="w-4 h-4 mr-2" aria-hidden="true" />}
+                                {rechnet ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Calculator className="w-4 h-4" aria-hidden="true" />}
                                 Gewicht aus den Maßen berechnen
                             </Button>
                             <InfoButton titel="Gewicht berechnen">

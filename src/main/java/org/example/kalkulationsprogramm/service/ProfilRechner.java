@@ -26,6 +26,8 @@ public class ProfilRechner {
     /** Dichte von Stahl, wenn der Artikel keinen Werkstoff mit Dichte hat. */
     public static final BigDecimal STAHL_DICHTE = new BigDecimal("7.85");
 
+    /** Größtes erlaubtes Maß in mm, wie beim Speichern der Stammdaten. */
+    static final double MAX_MASS = 100_000;
     private static final double PI = Math.PI;
     private static final double MM2_PRO_CM2 = 100.0;
 
@@ -54,8 +56,8 @@ public class ProfilRechner {
         {100, 20.4}, {120, 26.7}, {140, 33.7}, {160, 42.6}, {180, 51.2}, {200, 61.3}, {220, 71.5}, {240, 83.2}, {260, 93.0}, {280, 103},
         {300, 117}, {320, 127}, {340, 134}, {360, 142}, {400, 155}, {450, 171}, {500, 187}, {550, 199}, {600, 212}});
     private static final Map<Integer, Double> U_STAHL = tabelle(new double[][] {
-        {80, 8.64}, {100, 10.6}, {120, 13.4}, {140, 16.0}, {160, 18.8}, {180, 22.0}, {200, 25.3}, {220, 29.4}, {240, 33.2}, {260, 37.9},
-        {280, 41.8}, {300, 46.2}});
+        {50, 5.59}, {65, 7.09}, {80, 8.64}, {100, 10.6}, {120, 13.4}, {140, 16.0}, {160, 18.8}, {180, 22.0}, {200, 25.3}, {220, 29.4}, {240, 33.2}, {260, 37.9},
+        {280, 41.8}, {300, 46.2}, {320, 59.5}, {350, 60.6}, {400, 71.8}});
 
     private static Map<Integer, Double> tabelle(double[][] zeilen) {
         Map<Integer, Double> m = new TreeMap<>();
@@ -63,16 +65,6 @@ public class ProfilRechner {
             m.put((int) z[0], z[1]);
         }
         return Map.copyOf(m);
-    }
-
-    /** Ob für die Form eine Berechnung vorgesehen ist. */
-    public boolean kannBerechnen(Profilform form) {
-        return form != null && (form.istHohlprofil() || form.istBlech() && form != Profilform.RIFFELBLECH && form != Profilform.LOCHBLECH
-                || tabelleFuer(form) != null
-                || switch (form) {
-                    case RUNDSTAB, VIERKANTSTAB, SECHSKANTSTAB, FLACHSTAB, BREITFLACHSTAHL, WINKEL_GLEICHSCHENKLIG, WINKEL_UNGLEICHSCHENKLIG -> true;
-                    default -> false;
-                });
     }
 
     /**
@@ -109,6 +101,9 @@ public class ProfilRechner {
                     throw ungueltig("Die Wandstärke ist zu groß für die Kantenlänge.");
                 }
                 double ro = aussenradius(t);
+                if (2 * ro > Math.min(a, b)) {
+                    throw ungueltig("Die Wandstärke ist zu groß für diese Kantenlänge: Die Rundungen in den Ecken passen nicht mehr hinein.");
+                }
                 double ri = ro - t;
                 flaeche = 2 * t * (a + b) - 4 * t * t - (4 - PI) * (ro * ro - ri * ri);
                 umfang = 2 * (a + b) - 8 * ro + 2 * PI * ro;
@@ -148,11 +143,12 @@ public class ProfilRechner {
             }
             case BLECH -> {
                 double t = wert(masse.wandstaerke(), "die Blechdicke (Wandstärke)", form);
-                return new Ergebnis(null, null, runde(t * rho, 3), null, Herkunft.BERECHNET, "Gewicht je Quadratmeter bei glattem Blech.");
+                return new Ergebnis(null, null, runde(passt(t * rho, 1e6), 3), null, Herkunft.BERECHNET, "Gewicht je Quadratmeter bei glattem Blech.");
             }
             default -> throw ungueltig("Für " + form.getAnzeigename() + " gibt es keine Berechnung. Das Gewicht bitte von Hand eintragen.");
         }
-        return new Ergebnis(runde(flaeche / MM2_PRO_CM2, 3), runde(flaeche * rho / 1000.0, 4), null, runde(umfang / 1000.0, 4), Herkunft.BERECHNET, hinweis);
+        return new Ergebnis(runde(passt(flaeche / MM2_PRO_CM2, 1e7), 3), runde(passt(flaeche * rho / 1000.0, 1e8), 4), null,
+                runde(passt(umfang / 1000.0, 1e8), 4), Herkunft.BERECHNET, hinweis);
     }
 
     private Ergebnis ausTabelle(Profilform form, Map<Integer, Double> tab, double hoehe, double rho) {
@@ -162,7 +158,7 @@ public class ProfilRechner {
                     + kurz(form) + " 200.");
         }
         double kgMeter = kg * rho / STAHL_DICHTE.doubleValue();
-        return new Ergebnis(runde(kgMeter / rho * 10, 3), runde(kgMeter, 4), null, null, Herkunft.NORMTABELLE,
+        return new Ergebnis(runde(kgMeter / rho * 10, 2), runde(kgMeter, 4), null, null, Herkunft.NORMTABELLE,
                 "Normwert aus der Tabelle (bitte mit dem Datenblatt des Lieferanten vergleichen); Oberfläche wird nicht berechnet.");
     }
 
@@ -194,7 +190,18 @@ public class ProfilRechner {
         if (w == null || w.signum() <= 0) {
             throw ungueltig("Für " + form.getAnzeigename() + " fehlt " + was + ". Bitte bei den Maßen eintragen.");
         }
+        if (w.doubleValue() > MAX_MASS) {
+            throw ungueltig("Für " + form.getAnzeigename() + " ist " + was + " zu groß (höchstens 100.000 mm).");
+        }
         return w.doubleValue();
+    }
+
+    /** Wert muss in die Datenbankspalte passen (kleiner als {@code grenze}); sonst sind die Maße unsinnig groß. */
+    private static double passt(double wert, double grenze) {
+        if (!(wert < grenze)) {
+            throw ungueltig("Die Maße sind zu groß für eine Berechnung.");
+        }
+        return wert;
     }
 
     private static BigDecimal runde(double wert, int stellen) {

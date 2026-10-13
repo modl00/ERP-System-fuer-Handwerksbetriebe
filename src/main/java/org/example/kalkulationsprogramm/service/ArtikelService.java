@@ -284,10 +284,19 @@ public class ArtikelService implements ArtikelServiceContract {
         BigDecimal dichte = aw.getWerkstoff() != null ? aw.getWerkstoff().getDichte() : null;
         ProfilRechner.Ergebnis e = profilRechner.berechne(aw.getProfilform(),
                 new ProfilRechner.Masse(aw.getDurchmesser(), aw.getHoehe(), aw.getBreite(), aw.getWandstaerke()), dichte);
-        aw.setMasse(e.kgProMeter());
-        aw.setMassePerQm(e.kgProQm());
-        aw.setQuerschnittsflaeche(e.querschnittCm2());
-        aw.setMantelflaeche(e.mantelflaecheQm());
+        // Nur setzen, was berechnet wurde: Eine von Hand gepflegte Oberfläche (zum Beispiel bei Trägern) bleibt erhalten
+        if (e.kgProMeter() != null) {
+            aw.setMasse(e.kgProMeter());
+        }
+        if (e.kgProQm() != null) {
+            aw.setMassePerQm(e.kgProQm());
+        }
+        if (e.querschnittCm2() != null) {
+            aw.setQuerschnittsflaeche(e.querschnittCm2());
+        }
+        if (e.mantelflaecheQm() != null) {
+            aw.setMantelflaeche(e.mantelflaecheQm());
+        }
     }
 
     /** Kategorie zur ID; eine unbekannte oder zu große ID ist ein Eingabefehler (400), kein Serverfehler. */

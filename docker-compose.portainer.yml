@@ -1,0 +1,57 @@
+# Compose-Datei fuer mehrere ERP-Staende nebeneinander in Portainer.
+# Keine festen container_name-Eintraege, kein Host-Port fuer die Datenbank:
+# Namen kommen vom Stack-Namen, der Port der App kommt aus APP_PORT.
+#
+# Pro Stack setzen (Portainer: Environment variables):
+#   APP_PORT      Port am Server, z. B. 8080 (eigen) und 8081 (original)
+#   BUILD_REPO    Git-Adresse des Quellcodes
+#   BUILD_REF     Branch, z. B. main
+#   DB_PASSWORD   Datenbank-Passwort (nicht den Standard lassen)
+#   APP_ADMIN_USER / APP_ADMIN_PASS   Zugang zur Oberflaeche
+#   ZEITERFASSUNG_URL   Adresse fuer den QR-Code der Handy-App, z. B. http://192.168.1.10:8080
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kalkulationsprogramm_db
+      POSTGRES_USER: ${DB_USER:-erp_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD setzen}
+      POSTGRES_INITDB_ARGS: --encoding=UTF8
+      TZ: Europe/Berlin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  app:
+    build:
+      context: ${BUILD_REPO:-https://github.com/modl00/ERP-System-fuer-Handwerksbetriebe.git}#${BUILD_REF:-main}
+      dockerfile: Dockerfile
+    ports:
+      - "${APP_PORT:-8080}:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      TZ: Europe/Berlin
+      APP_DB_URL: jdbc:postgresql://postgres:5432/kalkulationsprogramm_db
+      APP_DB_USER: ${DB_USER:-erp_user}
+      APP_DB_PASS: ${DB_PASSWORD:?DB_PASSWORD setzen}
+      APP_ADMIN_USER: ${APP_ADMIN_USER:-}
+      APP_ADMIN_PASS: ${APP_ADMIN_PASS:-}
+      ZEITERFASSUNG_URL: ${ZEITERFASSUNG_URL:-http://localhost:8080}
+    volumes:
+      - app_uploads:/app/uploads
+      - app_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  app_uploads:
+  app_logs:

@@ -23,6 +23,9 @@ public class FirmeninformationDto {
     private String iban;
     private String bic;
     private String logoDateiname;
+    private String briefpapierDateiname;
+    /** Wenn true, enthält das Briefpapier bereits Kopf (Logo, Firma) – Vorlage blendet Logo-Block aus. */
+    private boolean briefpapierEnthaeltKopf;
     private String geschaeftsfuehrer;
     private String fusszeileText;
     private String googleBewertungsLink;

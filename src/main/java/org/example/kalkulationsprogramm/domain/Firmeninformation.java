@@ -55,6 +55,17 @@ public class Firmeninformation {
     // Logo als Datei-Referenz
     private String logoDateiname;
 
+    // Firmenweites Briefpapier-Bild (Datei-Referenz)
+    @Column(name = "briefpapier_dateiname")
+    private String briefpapierDateiname;
+
+    /**
+     * Wenn true, enthält das Briefpapier bereits einen Kopfbereich (Logo, Firmendaten).
+     * Der Formular-Editor blendet dann das Logo-Feld in der Vorlage aus.
+     */
+    @Column(name = "briefpapier_enthaelt_kopf", nullable = false)
+    private boolean briefpapierEnthaeltKopf = false;
+
     // Geschäftsführer / Inhaber
     private String geschaeftsfuehrer;
 

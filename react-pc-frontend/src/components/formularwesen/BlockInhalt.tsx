@@ -1,9 +1,7 @@
 import type { CSSProperties } from 'react';
-import { ImageOff } from 'lucide-react';
-import { useState } from 'react';
 import type { FormBlock } from '../../types';
-import { sichereBildQuelle } from './bildQuelle';
 import { replacePlaceholders } from './constants';
+import { LogoBild } from './LogoBild';
 import { pdfStil } from './pdfStil';
 // Schriften wie im PDF (Open Sans für Brieftext, Montserrat für den Betreff) –
 // sonst brechen Zeilen im Editor anders um als im Druck.
@@ -112,15 +110,3 @@ export function BlockInhalt({ item, daten, imEditor = false }: BlockInhaltProps)
     return <div style={textStil}>{replacePlaceholders(roh, daten)}</div>;
 }
 
-function LogoBild({ quelle }: { quelle: string }) {
-    const [fehler, setFehler] = useState(false);
-    const sicher = sichereBildQuelle(quelle);
-    if (!sicher || fehler) {
-        return (
-            <div role="img" aria-label="Bild nicht gefunden" className="flex h-full w-full items-center justify-center rounded bg-slate-100">
-                <ImageOff aria-hidden="true" className="h-6 w-6 text-slate-400" />
-            </div>
-        );
-    }
-    return <img src={sicher} alt="Logo" draggable={false} onError={() => setFehler(true)} className="h-full w-full object-contain" />;
-}

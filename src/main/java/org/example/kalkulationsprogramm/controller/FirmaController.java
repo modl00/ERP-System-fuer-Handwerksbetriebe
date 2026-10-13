@@ -1,6 +1,8 @@
 package org.example.kalkulationsprogramm.controller;
 
 import lombok.RequiredArgsConstructor;
+import jakarta.validation.Valid;
+import org.example.kalkulationsprogramm.dto.BriefpapierEinstellungenRequest;
 import org.example.kalkulationsprogramm.dto.FirmeninformationDto;
 import org.example.kalkulationsprogramm.dto.KostenstelleDto;
 import org.example.kalkulationsprogramm.dto.SteuerberaterKontaktDto;
@@ -80,6 +82,52 @@ public class FirmaController {
     @DeleteMapping("/logo")
     public ResponseEntity<FirmeninformationDto> deleteLogo() {
         return ResponseEntity.ok(firmeninformationService.loescheLogoDatei());
+    }
+
+    // ==================== FIRMENBRIEFPAPIER ====================
+
+    /**
+     * Laedt das firmenweite Briefpapier hoch (multipart). Whitelist: PNG, JPEG, WebP, max. 5 MB.
+     * Dateiname wird server-seitig gesetzt ({@code briefpapier.<ext>}).
+     */
+    @PostMapping(value = "/briefpapier", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadBriefpapier(@RequestParam("datei") MultipartFile datei) {
+        try {
+            FirmeninformationDto dto = firmeninformationService.speichereBriefpapierDatei(datei);
+            return ResponseEntity.ok(dto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (IOException e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Speichern fehlgeschlagen"));
+        }
+    }
+
+    /**
+     * Liefert das firmenweite Briefpapier als Binary-Response. 404, falls keins hinterlegt.
+     */
+    @GetMapping("/briefpapier")
+    public ResponseEntity<byte[]> downloadBriefpapier() {
+        byte[] bytes = firmeninformationService.loadBriefpapierBytes();
+        if (bytes == null) {
+            return ResponseEntity.notFound().build();
+        }
+        String contentType = firmeninformationService.ermittleBriefpapierContentType();
+        MediaType mediaType = contentType != null
+                ? MediaType.parseMediaType(contentType)
+                : MediaType.APPLICATION_OCTET_STREAM;
+        return ResponseEntity.ok().contentType(mediaType).body(bytes);
+    }
+
+    @DeleteMapping("/briefpapier")
+    public ResponseEntity<FirmeninformationDto> deleteBriefpapier() {
+        return ResponseEntity.ok(firmeninformationService.loescheBriefpapierDatei());
+    }
+
+    /** Setzt nur das briefpapierEnthaeltKopf-Flag. */
+    @PatchMapping("/briefpapier/einstellungen")
+    public ResponseEntity<FirmeninformationDto> patchBriefpapierEinstellungen(
+            @Valid @RequestBody BriefpapierEinstellungenRequest body) {
+        return ResponseEntity.ok(firmeninformationService.setBriefpapierEnthaeltKopf(body.getBriefpapierEnthaeltKopf()));
     }
 
     // ==================== KOSTENSTELLEN ====================

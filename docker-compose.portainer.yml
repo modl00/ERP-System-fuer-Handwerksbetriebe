@@ -46,6 +46,7 @@ services:
       ZEITERFASSUNG_URL: ${ZEITERFASSUNG_URL:-http://localhost:8080}
       # Schluessel fuer gespeicherte Mail-/Telefon-Passwoerter: genau 16, 24 oder 32 Zeichen
       MAIL_CREDENTIALS_ENCRYPTIONKEY: ${MAIL_KEY:?MAIL_KEY setzen (32 Zeichen)}
+      MAIL_CREDENTIALS_ENCRYPTION_KEY: ${MAIL_KEY:?MAIL_KEY setzen (32 Zeichen)}
     volumes:
       - app_uploads:/app/uploads
       - app_logs:/app/logs

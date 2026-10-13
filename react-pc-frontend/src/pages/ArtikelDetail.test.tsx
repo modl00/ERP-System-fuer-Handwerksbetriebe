@@ -353,7 +353,8 @@ describe('ArtikelDetail', () => {
             preisverlauf: [],
         });
         render(<ArtikelDetail />, { wrapper: Wrapper });
-        expect(await screen.findByLabelText('Aufschlag auf den Einkaufspreis')).toHaveValue(40);
+        const feld = await screen.findByLabelText('Aufschlag auf den Einkaufspreis');
+        await waitFor(() => expect(feld).toHaveValue(40));
         expect(screen.queryByTestId('aufschlag-wirksam')).not.toBeInTheDocument();
     });
 

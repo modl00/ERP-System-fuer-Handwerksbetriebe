@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ArrowLeft, CheckCircle2, Eye, FileText, Loader2, Pencil, Redo2, Save, Undo2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Eye, FileText, Loader2, Pencil, Redo2, Save, Settings2, Undo2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { cn } from '../../lib/utils';
 
@@ -16,6 +16,7 @@ interface EditorToolbarProps {
     onVorschau: () => void;
     onSpeichern: () => void;
     onStandardTexte: () => void;
+    onLayoutEinstellungen: () => void;
 }
 
 const symbolKnopf = 'inline-flex h-9 w-9 items-center justify-center rounded-lg text-slate-600 transition-colors hover:bg-slate-100 hover:text-slate-900 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 disabled:cursor-not-allowed disabled:text-slate-300 disabled:hover:bg-transparent';
@@ -24,7 +25,7 @@ const symbolKnopf = 'inline-flex h-9 w-9 items-center justify-center rounded-lg 
 export default function EditorToolbar({
     vorlagenName, ungespeichert, speichert, onZurueck, onUmbenennen,
     onRueckgaengig, onWiederholen, kannRueckgaengig, kannWiederholen,
-    onVorschau, onSpeichern, onStandardTexte,
+    onVorschau, onSpeichern, onStandardTexte, onLayoutEinstellungen,
 }: EditorToolbarProps) {
     const [bearbeiten, setBearbeiten] = useState(false);
     const [entwurf, setEntwurf] = useState('');
@@ -107,6 +108,9 @@ export default function EditorToolbar({
                     title={vorlagenName ? 'Standard-Texte je Dokumenttyp festlegen' : 'Vorlage zuerst speichern, um Standard-Texte festzulegen'}
                 >
                     <FileText aria-hidden="true" className="mr-1.5 h-4 w-4" />Standard-Texte
+                </Button>
+                <Button variant="outline" size="sm" onClick={onLayoutEinstellungen} aria-label="Layout-Einstellungen">
+                    <Settings2 aria-hidden="true" className="mr-1.5 h-4 w-4" />Layout
                 </Button>
                 <Button variant="outline" size="sm" onClick={onVorschau}>
                     <Eye aria-hidden="true" className="mr-1.5 h-4 w-4" />Vorschau

@@ -17,6 +17,7 @@ import { useToast } from '../components/ui/toast';
 import { useConfirm } from '../components/ui/confirm-dialog';
 import { SteuerpruefungExport } from '../components/firma/SteuerpruefungExport';
 import { LohnStammdatenPanel } from '../components/firma/LohnStammdatenPanel';
+import { BriefpapierBereich } from '../components/firma/BriefpapierBereich';
 
 // Types
 interface Firmeninformation {
@@ -37,6 +38,9 @@ interface Firmeninformation {
     iban: string;
     bic: string;
     logoDateiname: string;
+    briefpapierDateiname: string | null;
+    /** Wenn true, enthält das Briefpapier bereits Kopf (Logo, Firmendaten). */
+    briefpapierEnthaeltKopf: boolean;
     geschaeftsfuehrer: string;
     fusszeileText: string;
     googleBewertungsLink: string;
@@ -623,6 +627,14 @@ export default function FirmaEditor() {
                                     </div>
                                 </div>
                             </div>
+
+                            <BriefpapierBereich
+                                briefpapierDateiname={firma.briefpapierDateiname ?? null}
+                                briefpapierEnthaeltKopf={firma.briefpapierEnthaeltKopf ?? false}
+                                onGeaendert={({ briefpapierDateiname, briefpapierEnthaeltKopf }) =>
+                                    setFirma(prev => prev ? { ...prev, briefpapierDateiname, briefpapierEnthaeltKopf } : prev)
+                                }
+                            />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Allgemeine Daten */}

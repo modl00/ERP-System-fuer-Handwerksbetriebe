@@ -899,7 +899,8 @@ export type FormBlockType =
   | 'datum'
   | 'seitenzahl'
   | 'logo'
-  | 'table';
+  | 'table'
+  | 'linie';
 
 export interface FormBlockStyles {
   fontSize?: number;

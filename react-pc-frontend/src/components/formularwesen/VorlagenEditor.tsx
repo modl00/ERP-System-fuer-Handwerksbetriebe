@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { FormBlock } from '../../types';
 import { useToast } from '../ui/toast';
 import { useConfirm } from '../ui/confirm-dialog';
@@ -11,6 +11,7 @@ import VorlagenEinstellungen from './VorlagenEinstellungen';
 import PreviewModal from './PreviewModal';
 import TextbausteinDefaultsModal from './TextbausteinDefaultsModal';
 import VorlageSpeichernDialog from './VorlageSpeichernDialog';
+import LayoutEinstellungenDialog from './LayoutEinstellungenDialog';
 import { NormSchalter } from './NormSchalter';
 import { ZoomRegler } from './ZoomRegler';
 import { uid, PAGE_FORMATS } from './constants';
@@ -21,6 +22,7 @@ import { useVorschauDaten } from './useVorschauDaten';
 import { leseVorlage, serialisiereVorlage, standardBloecke, type VorlagenStand } from './vorlagenFormat';
 import { neuerBaustein, type BausteinArt } from './bausteinVorlagen';
 import { anschriftInsFenster, findeAnschriftBlock, pruefeAnschrift, STANDARD_BRIEFFORM, type Briefform } from './normMasse';
+import { type FirmaBriefpapierInfo, blöckeOhneLogoWennKopfVorhanden } from './vorlagenEinstellungen';
 
 /** Was der Editor zum Öffnen braucht. `html: null` = neue Vorlage mit Standard-Layout. */
 export interface OffeneVorlage {
@@ -73,20 +75,57 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
     const [vorschau, setVorschau] = useState(false);
     const [namensDialog, setNamensDialog] = useState(false);
     const [standardTexte, setStandardTexte] = useState(false);
+    const [layoutDialog, setLayoutDialog] = useState(false);
     const [speichert, setSpeichert] = useState(false);
+
+    // Firmenweites Briefpapier: einmalig laden, dann im Editor verfügbar
+    const [firmaInfo, setFirmaInfo] = useState<FirmaBriefpapierInfo>({
+        briefpapierDateiname: null,
+        briefpapierEnthaeltKopf: false,
+    });
+    const [firmaBriefpapierVersion, setFirmaBriefpapierVersion] = useState(0);
 
     const bereichRef = useRef<HTMLDivElement>(null);
     const zoom = useSeitenZoom(bereichRef, { breite: PAGE_FORMATS.A4.width, hoehe: PAGE_FORMATS.A4.height });
     const daten = useVorschauDaten();
+
+    useEffect(() => {
+        fetch('/api/firma')
+            .then(r => r.ok ? r.json() : null)
+            .then((d: { briefpapierDateiname?: string | null; briefpapierEnthaeltKopf?: boolean } | null) => {
+                if (d) {
+                    setFirmaInfo({
+                        briefpapierDateiname: d.briefpapierDateiname ?? null,
+                        briefpapierEnthaeltKopf: d.briefpapierEnthaeltKopf ?? false,
+                    });
+                    if (d.briefpapierDateiname) setFirmaBriefpapierVersion(v => v + 1);
+                }
+            })
+            .catch(() => { /* kein Briefpapier – Vorlage bleibt ohne Hintergrund */ });
+    }, []);
 
     const form = briefform ?? STANDARD_BRIEFFORM;
     const stand: VorlagenStand = useMemo(
         () => ({ items, backgroundImage: hintergrund1, backgroundImagePage2: hintergrund2, briefform }),
         [items, hintergrund1, hintergrund2, briefform],
     );
+
+    // Firmenweites Briefpapier als Fallback, wenn die Vorlage kein eigenes hat.
+    const firmaBriefpapierUrl = firmaInfo.briefpapierDateiname
+        ? `/api/firma/briefpapier?v=${firmaBriefpapierVersion}`
+        : null;
+    const aktiveBriefpapierSeite1 = hintergrund1 ?? firmaBriefpapierUrl;
+    const aktiveBriefpapierSeite2 = hintergrund2 ?? firmaBriefpapierUrl;
     const ungespeichert = useMemo(() => fingerabdruck(stand, dokumenttypen) !== gespeichert, [stand, dokumenttypen, gespeichert]);
     const anschriftStatus = useMemo(() => pruefeAnschrift(items, form), [items, form]);
     const ausgewaehlt = items.find(i => i.id === ausgewaehltId) ?? null;
+    // Logo ausblenden, wenn das firmenweite Briefpapier auf der ersten Seite aktiv ist
+    // (kein vorlagenspezifisches Briefpapier) und es bereits einen Kopfbereich enthält.
+    const firmenBriefpapierAktiv = hintergrund1 == null && !!firmaInfo.briefpapierDateiname;
+    const anzeigeItems = useMemo(
+        () => blöckeOhneLogoWennKopfVorhanden(items, firmaInfo, firmenBriefpapierAktiv),
+        [items, firmaInfo, firmenBriefpapierAktiv],
+    );
 
     const setNormAn = (an: boolean) => {
         setNormAnRoh(an);
@@ -259,6 +298,7 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
                 onVorschau={() => setVorschau(true)}
                 onSpeichern={speichern}
                 onStandardTexte={() => setStandardTexte(true)}
+                onLayoutEinstellungen={() => setLayoutDialog(true)}
             />
 
             <div className="flex min-h-0 flex-1 gap-3">
@@ -290,12 +330,12 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
                     </div>
 
                     <EditorCanvas
-                        items={items}
+                        items={anzeigeItems}
                         seite={seite}
                         ausgewaehltId={ausgewaehltId}
                         zoom={zoom.zoom}
                         bereichRef={bereichRef}
-                        briefpapier={seite === 1 ? hintergrund1 : hintergrund2}
+                        briefpapier={seite === 1 ? aktiveBriefpapierSeite1 : aktiveBriefpapierSeite2}
                         daten={daten}
                         normAn={normAn}
                         normForm={form}
@@ -334,9 +374,9 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
 
             {vorschau && (
                 <PreviewModal
-                    items={items}
-                    backgroundImage={hintergrund1}
-                    backgroundImagePage2={hintergrund2}
+                    items={anzeigeItems}
+                    backgroundImage={aktiveBriefpapierSeite1}
+                    backgroundImagePage2={aktiveBriefpapierSeite2}
                     liveData={daten}
                     form={form}
                     onForm={setBriefform}
@@ -354,6 +394,24 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
                     assignedDokumenttypen={dokumenttypen}
                     onClose={() => setStandardTexte(false)}
                     onSaved={() => toast.success('Standard-Texte gespeichert.')}
+                />
+            )}
+
+            {layoutDialog && (
+                <LayoutEinstellungenDialog
+                    firmaInfo={firmaInfo}
+                    onFirmaInfoAendern={info => {
+                        const vorherigeInfo = firmaInfo;
+                        setFirmaInfo(info);
+                        fetch('/api/firma/briefpapier/einstellungen', {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({ briefpapierEnthaeltKopf: info.briefpapierEnthaeltKopf }),
+                        }).then(res => {
+                            if (!res.ok) setFirmaInfo(vorherigeInfo);
+                        }).catch(() => setFirmaInfo(vorherigeInfo));
+                    }}
+                    onSchliessen={() => setLayoutDialog(false)}
                 />
             )}
         </div>

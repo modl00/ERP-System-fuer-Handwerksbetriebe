@@ -292,7 +292,7 @@ export function ArtikelAuswahlDialog({ offen, onSchliessen, onUebernehmen }: Art
                     Zeilenklick wirft den Dokument-Editor samt ungespeicherter
                     Arbeit weg. Im Auswahlfenster bedeutet der Klick auf die
                     Zeile dasselbe wie die Checkbox: an- bzw. abwaehlen. */}
-                <ArtikelSuche urlSync={false} seitenGroesse={20}
+                <ArtikelSuche urlSync={false} seitenGroesse={20} ohneGrundartikel
                               zeilenAktion={zeilenAktion} onZeilenKlick={umschalten} />
             </div>
 

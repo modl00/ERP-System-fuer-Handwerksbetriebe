@@ -140,6 +140,8 @@ export interface ArtikelSucheProps {
      * sie liesse sich die Position gar nicht buchen.
      */
     nurMitLieferantenpreis?: boolean;
+    /** Grundartikel (Vorlagen für Varianten) ausblenden: Im Auswahlfenster für Angebote kommen nur echte Artikel in Frage. */
+    ohneGrundartikel?: boolean;
     /** Meldet den Ladezustand nach aussen - fuer den Spinner im Aktualisieren-Knopf der Seite. */
     onLadezustand?: (laedt: boolean) => void;
     /** Zugriff auf {@link ArtikelSucheHandle}. */
@@ -156,6 +158,7 @@ export function ArtikelSuche({
     seitenGroesse = STANDARD_SEITENGROESSE,
     seitenGroesseAusHoehe = false,
     nurMitLieferantenpreis = false,
+    ohneGrundartikel = false,
     onLadezustand,
     ref,
 }: ArtikelSucheProps) {
@@ -241,6 +244,7 @@ export function ArtikelSuche({
             params.set("sort", sortColumn);
             params.set("dir", sortDirection);
             if (nurMitLieferantenpreis) params.set("nurMitLieferantenpreis", "true");
+            if (ohneGrundartikel) params.set("ohneGrundartikel", "true");
 
             if (filters.q) params.set("q", filters.q);
             if (filters.lieferant) params.set("lieferant", filters.lieferant);
@@ -270,7 +274,7 @@ export function ArtikelSuche({
                 setErsteAntwortDa(true);
             }
         }
-    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis]);
+    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis, ohneGrundartikel]);
 
     useEffect(() => {
         loadArtikel();
@@ -672,6 +676,14 @@ export function ArtikelSuche({
                                             </div>
                                             {artikel.massnorm && (
                                                 <div className="text-xs text-slate-400">{artikel.massnorm}</div>
+                                            )}
+                                            {artikel.grundartikel && (
+                                                <span className="mt-1 inline-block rounded bg-rose-50 px-1.5 py-0.5 text-xs font-medium text-rose-700">
+                                                    Grundartikel · {artikel.variantenAnzahl ?? 0} {artikel.variantenAnzahl === 1 ? "Variante" : "Varianten"}
+                                                </span>
+                                            )}
+                                            {artikel.grundartikelName && (
+                                                <div className="text-xs text-slate-400">Variante von {artikel.grundartikelName}</div>
                                             )}
                                         </td>
                                         <td className="px-4 py-3 text-slate-600">{artikel.werkstoffName || '-'}</td>

@@ -101,6 +101,31 @@ describe('ArtikelSuche', () => {
         expect(letzterListenRequest().get('nurMitLieferantenpreis')).toBe('true');
     });
 
+    it('blendet Grundartikel nur auf Wunsch aus (Auswahl für Angebote)', async () => {
+        zeigeSuche(<ArtikelSuche />);
+        await waitFor(() => expect(fetch).toHaveBeenCalled());
+        expect(letzterListenRequest().get('ohneGrundartikel')).toBeNull();
+
+        zeigeSuche(<ArtikelSuche ohneGrundartikel />);
+        await waitFor(() => expect(letzterListenRequest().get('ohneGrundartikel')).toBe('true'));
+    });
+
+    it('kennzeichnet Grundartikel mit Zahl der Varianten und Varianten mit ihrem Grundartikel', async () => {
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+            if (url.includes('/filteroptionen') || url.includes('/werkstoffe')) return filteroptionen();
+            return antwort([
+                { id: 1, produktname: 'Quadratrohr', grundartikel: true, variantenAnzahl: 28 },
+                { id: 2, produktname: 'Rundrohr', grundartikel: true, variantenAnzahl: 1 },
+                { id: 3, produktname: 'QH 40x40x2', grundartikelId: 1, grundartikelName: 'Quadratrohr' },
+            ]);
+        }));
+        zeigeSuche(<ArtikelSuche />);
+
+        expect(await screen.findByText('Grundartikel · 28 Varianten')).toBeVisible();
+        expect(screen.getByText('Grundartikel · 1 Variante')).toBeVisible();
+        expect(screen.getByText('Variante von Quadratrohr')).toBeVisible();
+    });
+
     // Die Zeile meldet sich als Schalter ("an- oder abwaehlen"). Ein Schalter,
     // der seinen Zustand verschweigt, laesst Screenreader-Nutzer nach dem
     // Klick im Unklaren, ob die Position nun drin ist oder nicht.

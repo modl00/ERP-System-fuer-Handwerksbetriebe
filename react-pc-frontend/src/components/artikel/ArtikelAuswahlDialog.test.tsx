@@ -50,6 +50,14 @@ describe('ArtikelAuswahlDialog', () => {
         expect(container).toBeEmptyDOMElement();
     });
 
+    it('zeigt keine Grundartikel: Sie sind nur Vorlagen und gehören in kein Angebot', async () => {
+        render(<ArtikelAuswahlDialog offen onSchliessen={() => {}} onUebernehmen={() => {}} />, { wrapper: MemoryRouter });
+
+        await screen.findByLabelText('T-Stahl auswählen');
+        const abfrage = (fetch as unknown as ReturnType<typeof vi.fn>).mock.calls.map(c => String(c[0])).find(u => u.startsWith('/api/artikel?'));
+        expect(new URLSearchParams(abfrage!.split('?')[1]).get('ohneGrundartikel')).toBe('true');
+    });
+
     it('übernimmt einen Artikel mit Menge, Einheit und Preis', async () => {
         const onUebernehmen = vi.fn();
         render(

@@ -1,5 +1,6 @@
 import { useRef, useState } from "react";
-import { RefreshCw, FolderPlus, Plus, Percent, Cuboid } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { RefreshCw, FolderPlus, Plus, Percent, Cuboid, Layers } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { cn } from "../lib/utils";
@@ -10,6 +11,7 @@ import { ArtikelSuche, type ArtikelSucheHandle } from "../components/artikel/Art
 import { AufschlagPflege } from "../components/artikel/AufschlagPflege";
 import { useDarfAufschlaegeAendern } from "../features/aufschlaege/useDarfAufschlaegeAendern";
 import { WerkstoffPflege } from "../components/artikel/WerkstoffPflege";
+import { GrundartikelAnlegen } from "../components/artikel/GrundartikelAnlegen";
 
 // ==================== MAIN COMPONENT ====================
 
@@ -17,6 +19,9 @@ export default function ArtikelEditor() {
     // Filterleiste und Trefferliste stecken in ArtikelSuche - dieselbe Suche nutzt
     // das Auswahlfenster im Dokument-Editor. Hier bleibt nur das Seitengeruest.
     const sucheRef = useRef<ArtikelSucheHandle>(null);
+    const navigate = useNavigate();
+    // Ein Grundartikel ist die Vorlage für viele Größen (Varianten) und wird in einem eigenen Fenster angelegt
+    const [showGrundartikel, setShowGrundartikel] = useState(false);
     const aufschlaegeGeaendert = useRef(false);
     // Der Aktualisieren-Knopf steht in der Kopfzeile, die Liste eine Ebene tiefer:
     // Damit sein Spinner mitlaeuft, meldet die Suche ihren Ladezustand herauf.
@@ -56,6 +61,15 @@ export default function ArtikelEditor() {
                     <Button size="sm" className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => setShowCreateModal(true)}>
                         <Plus className="w-4 h-4 mr-2" />
                         Neu
+                    </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                        onClick={() => setShowGrundartikel(true)}
+                    >
+                        <Layers className="w-4 h-4 mr-2" aria-hidden="true" />
+                        Grundartikel anlegen
                     </Button>
                     <Button
                         variant="outline"
@@ -110,6 +124,20 @@ export default function ArtikelEditor() {
                     onClose={() => setShowCategoryManagerModal(false)}
                 />
             )}
+            <Dialog open={showGrundartikel} onOpenChange={setShowGrundartikel} className="w-full max-w-3xl max-h-[90vh]" aria-labelledby="artikel-grundartikel-titel">
+                <DialogContent>
+                    <DialogHeader>
+                        <DialogTitle id="artikel-grundartikel-titel">Grundartikel anlegen</DialogTitle>
+                        <DialogDescription>Die Vorlage für viele Größen, zum Beispiel Quadratrohr in allen Kantenlängen und Wandstärken.</DialogDescription>
+                    </DialogHeader>
+                    <div className="min-h-0 flex-1 overflow-y-auto -m-1 p-1">
+                        {showGrundartikel && (
+                            <GrundartikelAnlegen onAbbrechen={() => setShowGrundartikel(false)}
+                                onAngelegt={id => { setShowGrundartikel(false); navigate(`/artikel/${encodeURIComponent(String(id))}`); }} />
+                        )}
+                    </div>
+                </DialogContent>
+            </Dialog>
             {darfAufschlaegeAendern && (
                 <Dialog open={showAufschlaege} onOpenChange={schliesseAufschlaege} className="w-full max-w-5xl max-h-[90vh]" aria-labelledby="artikel-aufschlaege-titel">
                     <DialogContent>

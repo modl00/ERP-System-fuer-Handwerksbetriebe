@@ -14,6 +14,7 @@ import { TiptapEditor } from "../components/TiptapEditor";
 import { preisHinweisText, type PreisHinweis } from "../components/artikel/preisHinweis";
 import { ArtikelDokumente } from "../components/artikel/ArtikelDokumente";
 import { ArtikelStammdatenForm } from "../components/artikel/ArtikelStammdatenForm";
+import { ArtikelVarianten, VarianteHinweis } from "../components/artikel/ArtikelVarianten";
 // Dieselbe Waehrungsformatierung wie in der Trefferliste - inklusive der
 // zusaetzlichen Nachkommastellen bei Kleinstpreisen (Schrauben, Muttern).
 import { formatCurrency as formatEuro } from "../components/artikel/formatCurrency";
@@ -296,6 +297,11 @@ export default function ArtikelDetail() {
                 />
             )}
 
+            {artikel.grundartikelId != null && <VarianteHinweis grundartikelId={artikel.grundartikelId} grundartikelName={artikel.grundartikelName} />}
+
+            {/* ============ Varianten (nur Grundartikel) ============ */}
+            {artikel.grundartikel && <ArtikelVarianten artikelId={artikel.id} onGeaendert={() => void laden()} />}
+
             {/* ============ Was ist das für ein Teil? ============ */}
             <section className="bg-white border border-slate-200 rounded-lg p-5">
                 <h2 className="text-lg font-semibold text-slate-900 mb-4">Was ist das für ein Teil?</h2>
@@ -415,7 +421,8 @@ export default function ArtikelDetail() {
                 </div>
             </section>
 
-            {/* ============ Wer liefert das? ============ */}
+            {/* ============ Wer liefert das? (ein Grundartikel hat keine Preise) ============ */}
+            {!artikel.grundartikel && (<>
             <section className="bg-white border border-slate-200 rounded-lg p-5">
                 <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
                     <div>
@@ -537,6 +544,7 @@ export default function ArtikelDetail() {
                 </p>
                 <Preisverlauf staende={daten.preisverlauf} />
             </section>
+            </>)}
 
             {zeigeLieferantenWahl && (
                 <SupplierSelectModal

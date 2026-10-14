@@ -72,6 +72,24 @@ Der „Werkstoff“ am Artikel kommt aus einer eigenen Liste. Sie lässt sich in
 - Der technische Name wird beim Artikel-Import benutzt, um Werkstoffe wiederzuerkennen. Wird er geändert, legt der nächste Import den alten Namen als neuen Werkstoff an.
 - Die Dichte wird beim Werkstoff gespeichert. Das Programm rechnet damit im Moment noch nichts aus; an Artikeln, Preisen und Angeboten ändert sich dadurch nichts.
 
+## Varianten: viele Größen auf einmal anlegen
+
+Hat man zum Beispiel ein Quadratrohr in vielen Größen, legt man es nicht 28-mal einzeln an. Stattdessen gibt es einen **Grundartikel** (zum Beispiel „QH Quadratrohr“) und seine **Varianten** („QH 40x40x2“, „QH 40x40x3“ …).
+
+1. **Vorlagen & Stammdaten → Artikel → „Grundartikel anlegen“.** „Kurzbezeichnung“ (zum Beispiel QH), „Name“ und „Form“ sind Pflicht; dazu optional „Werkstoff“, „Kategorie“, „Verrechnungseinheit“ und „Aufschlag in Prozent“.
+2. Auf der Seite des Grundartikels im Abschnitt „Varianten“ auf **„Varianten anlegen“** klicken.
+3. Die Maße als Reihe eintragen, getrennt durch Leerzeichen, zum Beispiel „Kantenlänge“ `20 25 30 35 40 45 50` und „Wandstärke“ `1,5 2 3 4`. Bei Rechteckrohr und ungleichschenkligen Winkeln schreibt man die zwei Maße eines Eintrags so: `60x40`.
+4. „Vorschau“ zeigt alle Kombinationen mit Name, Artikelnummer und berechnetem Gewicht. „Gibt es schon“ und „nicht möglich“ (zum Beispiel eine Wand, die für die Kantenlänge zu dick ist) legt das Programm nicht an. Mit dem Häkchen lässt sich jede neue Variante abwählen.
+5. „… Varianten anlegen“ erzeugt alle gewählten Artikel in einem Zug (höchstens 400 auf einmal).
+
+Gut zu wissen:
+
+- Jede Variante ist ein **ganz normaler Artikel** mit eigenen Lieferantenpreisen, Preisverlauf, Aufschlag und Texten. Sie übernimmt Werkstoff, Kategorie, Aufschlag, Texte, Normen und die Eignung zum Verzinken und Pulverbeschichten **nur beim Anlegen** vom Grundartikel. Spätere Änderungen am Grundartikel ändern bestehende Varianten nicht.
+- Name und Artikelnummer entstehen aus der Kurzbezeichnung und den Maßen („QH 40x40x2“, „QH-40x40x2“). Das Gewicht rechnet das Programm wie unter „Gewicht aus den Maßen berechnen“ (siehe oben) mit der Dichte des Werkstoffs.
+- Der Grundartikel selbst hat keine Preise und kommt in **kein Angebot und keine Rechnung**: Im Fenster „Material auswählen“ erscheinen nur seine Varianten. In der Artikelliste trägt er die Marke „Grundartikel · 28 Varianten“, jede Variante „Variante von …“.
+- Die Kurzbezeichnung lässt sich über „Stammdaten bearbeiten“ ändern; bestehende Varianten behalten ihren Namen.
+- Varianten gibt es für Rohre, Stäbe, Flachstahl, Winkel, Blech sowie IPE, HEA, HEB und U-Profile (dort als „Nenngröße“, zum Beispiel `200`).
+
 ## Ordner für Artikel anlegen
 
 In **Vorlagen & Stammdaten → Artikel** öffnet „Kategorien anlegen“ das Fenster „Kategorien verwalten“. Links steht die Ordnerstruktur. Ohne Auswahl entsteht mit „Hauptkategorie anlegen“ ein neuer Hauptordner; ist links ein Ordner gewählt, entsteht mit „Unterkategorie anlegen“ ein Unterordner darin. Umbenennen oder löschen lassen sich Ordner nicht.

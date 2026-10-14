@@ -369,6 +369,15 @@ export interface Artikel {
   artikelnummer?: string;
   /** Strichcode (EAN-8, UPC-A, EAN-13, GTIN-14), nur bei einem Teil der Artikel vorhanden. */
   ean?: string | null;
+  /** Grundartikel = Vorlage für Varianten (kommt in kein Angebot). */
+  grundartikel?: boolean;
+  /** Kurzbezeichnung eines Grundartikels für die Namen seiner Varianten, z. B. „QH“. */
+  kurzbezeichnung?: string | null;
+  /** Bei Varianten: der Grundartikel, zu dem sie gehören. */
+  grundartikelId?: number | null;
+  grundartikelName?: string | null;
+  /** Bei Grundartikeln: Zahl der Varianten. */
+  variantenAnzahl?: number | null;
   /** Stand des Datensatzes: Beim Ändern der Stammdaten mitschicken, damit parallele Änderungen auffallen. */
   version?: number | null;
   profilform?: Merkmal;

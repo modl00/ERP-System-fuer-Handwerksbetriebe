@@ -45,6 +45,21 @@ class ArtikelMatchingServiceTest {
     }
 
     @Test
+    void grundartikelSchlagenSichNieAlsTrefferVor() {
+        Artikel grund = new Artikel();
+        grund.setProduktname("Quadratrohr");
+        grund.setGrundartikel(true);
+        artikelRepository.save(grund);
+        Artikel variante = new Artikel();
+        variante.setProduktname("Quadratrohr 40x40x2");
+        artikelRepository.save(variante);
+
+        List<Artikel> treffer = artikelMatchingService.findeBesteTreffer("Quadratrohr", null);
+
+        assertThat(treffer).extracting(Artikel::getProduktname).containsExactly("Quadratrohr 40x40x2");
+    }
+
+    @Test
     void findetLieferantNachDomainUndSpeichertNeueAdresse() {
         Lieferanten l = new Lieferanten();
         l.setLieferantenname("Beispiel Stahl");

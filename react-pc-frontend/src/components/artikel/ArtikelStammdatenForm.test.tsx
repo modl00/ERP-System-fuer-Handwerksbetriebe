@@ -265,4 +265,43 @@ describe('ArtikelStammdatenForm', () => {
             expect(screen.queryByRole('status')).not.toBeInTheDocument();
         });
     });
+
+    describe('Grundartikel', () => {
+        const grund = { ...artikel, grundartikel: true, kurzbezeichnung: 'QH' } as Artikel;
+        const zeigeGrund = () => {
+            render(<ToastProvider><ArtikelStammdatenForm artikel={grund} onGespeichert={vi.fn()} onAbbrechen={vi.fn()} /></ToastProvider>);
+        };
+
+        it('zeigt und sendet die Kurzbezeichnung', async () => {
+            const user = userEvent.setup();
+            zeigeGrund();
+            const feld = await screen.findByLabelText('Kurzbezeichnung *');
+            expect(feld).toHaveValue('QH');
+
+            await user.clear(feld);
+            await user.type(feld, ' RR ');
+            await user.click(screen.getByRole('button', { name: 'Speichern' }));
+
+            await waitFor(() => expect(puts()).toHaveLength(1));
+            expect(sendeBody().kurzbezeichnung).toBe('RR');
+        });
+
+        it('verlangt eine Kurzbezeichnung', async () => {
+            const user = userEvent.setup();
+            zeigeGrund();
+            await user.clear(await screen.findByLabelText('Kurzbezeichnung *'));
+
+            await user.click(screen.getByRole('button', { name: 'Speichern' }));
+
+            expect(await screen.findByText(/braucht eine Kurzbezeichnung/)).toBeVisible();
+            expect(puts()).toHaveLength(0);
+        });
+
+        it('bei normalen Artikeln gibt es das Feld nicht', async () => {
+            zeige();
+            await screen.findByLabelText('Produktname *');
+
+            expect(screen.queryByLabelText('Kurzbezeichnung *')).not.toBeInTheDocument();
+        });
+    });
 });

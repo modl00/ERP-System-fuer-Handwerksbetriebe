@@ -688,6 +688,21 @@ Rechnungsabruf bei Händlern (Microsoft, Amazon). Ganzer Pfad nur für Admins.
 |---|---|---|
 | `POST` | `/` | Querschnitt (cm²), Gewicht (kg/m bzw. kg/m² bei Blech) und Oberfläche (m² je Meter) aus Form und Maßen (mm) berechnen; Dichte vom Werkstoff (`werkstoffId`), sonst Stahl 7,85. Nur Vorschau, nichts wird gespeichert; 400 mit Klartext, wenn Maße fehlen oder die Form nicht berechenbar ist |
 
+### ArtikelVariantenController
+
+**Basis-URL:** `/api/artikel`
+
+| Methode | Pfad | Beschreibung |
+|---|---|---|
+| `POST` | `/grundartikel` | Grundartikel anlegen (`kurzbezeichnung`, `produktname`, `profilform` Pflicht; Werkstoff, Kategorie, Einheit, Aufschlag, Länge optional); 400 bei ungültigen Werten oder einer Form ohne Raster, 409 bei doppelter Kurzbezeichnung |
+| `GET` | `/grundartikel/formen` | Formen, für die es Varianten gibt, mit Beschriftung der Maßreihen |
+| `GET` | `/{id}/varianten` | Varianten eines Grundartikels mit Maßen, Gewicht und bestem Preis, nach Maßen sortiert |
+| `GET` | `/{id}/varianten/raster` | Welche Maßreihen die Form dieses Grundartikels braucht |
+| `POST` | `/{id}/varianten/vorschau` | Alle Kombinationen aus den Reihen `a` und `b` mit Name, Artikelnummer, Gewicht und Status (`NEU`, `SCHON_DA`, `NICHT_MOEGLICH`); Schlüssel je Kombination `a|b` |
+| `POST` | `/{id}/varianten` | Neue Varianten anlegen (Reihen wie Vorschau, `ausgeschlossen` = abgewählte Schlüssel); 400 bei schlechten Maßen, mehr als 400 Kombinationen oder wenn nichts Neues entsteht |
+
+`GET /api/artikel` kennt zusätzlich `ohneGrundartikel=true` (Grundartikel ausblenden, für die Auswahl in Angeboten) und `grundartikelId` (nur die Varianten dieses Grundartikels).
+
 ### ArtikelKategorieController
 
 **Basis-URL:** `/api/artikel/kategorien`

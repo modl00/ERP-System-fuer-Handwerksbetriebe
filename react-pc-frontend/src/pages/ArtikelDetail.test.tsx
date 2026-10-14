@@ -358,6 +358,39 @@ describe('ArtikelDetail', () => {
         expect(screen.queryByTestId('aufschlag-wirksam')).not.toBeInTheDocument();
     });
 
+    it('zeigt bei einem Grundartikel die Varianten statt der Preise', async () => {
+        mockFetchDetail({
+            artikel: { id: 7, produktname: 'Quadratrohr', grundartikel: true, kurzbezeichnung: 'QH', variantenAnzahl: 2 },
+            lieferanten: [],
+            preisverlauf: [],
+        });
+        const mitVarianten = fetchMock.getMockImplementation()!;
+        fetchMock.mockImplementation((url: string, options?: RequestInit) => (url.endsWith('/varianten')
+            ? Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve([{ id: 11, produktname: 'QH 20x20x2', artikelnummer: 'QH-20x20x2', abmessung: '20 x 20 x 2', kgProMeter: 1.05, kgProQm: null, guenstigsterPreis: null }]) })
+            : mitVarianten(url, options)));
+
+        render(<ArtikelDetail />, { wrapper: Wrapper });
+
+        expect(await screen.findByTestId('artikel-varianten')).toBeInTheDocument();
+        expect(await screen.findByRole('link', { name: 'QH 20x20x2' })).toBeInTheDocument();
+        expect(screen.queryByText('Wer liefert das?')).not.toBeInTheDocument();
+        expect(screen.queryByText('Preisverlauf')).not.toBeInTheDocument();
+    });
+
+    it('zeigt bei einer Variante den Weg zurück zum Grundartikel', async () => {
+        mockFetchDetail({
+            artikel: { id: 11, produktname: 'QH 20x20x2', grundartikelId: 7, grundartikelName: 'Quadratrohr' },
+            lieferanten: [],
+            preisverlauf: [],
+        });
+
+        render(<ArtikelDetail />, { wrapper: Wrapper });
+
+        expect(await screen.findByTestId('variante-hinweis')).toHaveTextContent('Variante von Quadratrohr');
+        expect(screen.queryByTestId('artikel-varianten')).not.toBeInTheDocument();
+        expect(screen.getByText('Wer liefert das?')).toBeInTheDocument();
+    });
+
     it('speichert die Angebotsfelder über den PATCH-Endpunkt', async () => {
         mockFetchDetail({
             artikel: { id: 7, produktname: 'T-Stahl', preisHinweis: 'KEIN_AUFSCHLAG' },

@@ -70,6 +70,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     const [produkttext, setProdukttext] = useState(artikel.produkttext ?? "");
     const [artikelnummer, setArtikelnummer] = useState(artikel.artikelnummer ?? "");
     const [ean, setEan] = useState(artikel.ean ?? "");
+    const [kurzbezeichnung, setKurzbezeichnung] = useState(artikel.kurzbezeichnung ?? "");
     const [einheit, setEinheit] = useState(einheitName(artikel.verrechnungseinheit));
     const [verpackung, setVerpackung] = useState(zahlText(artikel.verpackungseinheit));
     const [preiseinheit, setPreiseinheit] = useState(artikel.preiseinheit ?? "");
@@ -164,6 +165,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     const speichern = async () => {
         setFehler("");
         if (!produktname.trim()) { setFehler("Bitte einen Produktnamen eingeben."); return; }
+        if (artikel.grundartikel && !kurzbezeichnung.trim()) { setFehler("Ein Grundartikel braucht eine Kurzbezeichnung, zum Beispiel QH."); return; }
         const entwuerfe: Record<string, string> = { verpackung, laenge, ...masse };
         const regeln: Record<string, { label: string; min?: number; max?: number; integer?: boolean; maxDecimalPlaces?: number }> = {
             verpackung: { label: "die Verpackungseinheit", min: 0, integer: true },
@@ -186,6 +188,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     produkttext: produkttext.trim() || null,
                     artikelnummer: artikelnummer.trim() || null,
                     ean: ean.replace(/\s+/g, "") || null,
+                    kurzbezeichnung: artikel.grundartikel ? kurzbezeichnung.trim() : null,
                     verrechnungseinheit: einheit || null,
                     verpackungseinheit: v.verpackung,
                     preiseinheit: preiseinheit.trim() || null,
@@ -261,6 +264,13 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                         <Label htmlFor="sd-ean">EAN / Strichcode</Label>
                         <Input id="sd-ean" value={ean} inputMode="numeric" maxLength={20} onChange={e => setEan(e.target.value)} placeholder="nur wenn vorhanden" className="font-mono" />
                     </div>
+                    {artikel.grundartikel && (
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sd-kurz">Kurzbezeichnung *</Label>
+                            <Input id="sd-kurz" value={kurzbezeichnung} maxLength={32} onChange={e => setKurzbezeichnung(e.target.value)} placeholder="z. B. QH" />
+                            <p className="text-xs text-slate-500">Steht vor den Namen neuer Varianten. Bestehende Varianten behalten ihren Namen.</p>
+                        </div>
+                    )}
                     <div className="space-y-1.5">
                         <Label>Kategorie</Label>
                         <KategorieAuswahlFeld name={kategorieName} gewaehlt={kategorieId != null} onOeffnen={() => setZeigeKategorien(true)}

@@ -38,6 +38,8 @@ public class ArtikelVariantenService {
     static final int MAX_KOMBINATIONEN = 400;
     private static final int MAX_NAME = 255;
     private static final int MAX_KURZ = 32;
+    private static final int MAX_EINGABE_ZEICHEN = 2_000;
+    private static final int MAX_WERT_ZEICHEN = 24;
 
     private final ArtikelRepository artikel;
     private final KategorieRepository kategorien;
@@ -96,13 +98,7 @@ public class ArtikelVariantenService {
 
     @Transactional
     public Artikel legeGrundartikelAn(GrundartikelEingabe e) {
-        String kurz = text(e.kurzbezeichnung(), MAX_KURZ, "Die Kurzbezeichnung");
-        if (kurz == null) {
-            throw ungueltig("Bitte eine Kurzbezeichnung eingeben, zum Beispiel QH.");
-        }
-        if (!kurz.chars().allMatch(c -> Character.isLetterOrDigit(c) || c == '-' || c == '_')) {
-            throw ungueltig("Die Kurzbezeichnung darf nur Buchstaben, Ziffern und Bindestriche enthalten.");
-        }
+        String kurz = pruefeKurzbezeichnung(e.kurzbezeichnung());
         String name = text(e.produktname(), MAX_NAME, "Der Name");
         if (name == null) {
             throw ungueltig("Bitte einen Namen eingeben, zum Beispiel Quadratrohr.");
@@ -136,6 +132,18 @@ public class ArtikelVariantenService {
         }
         g.setSuchtext(ArtikelSuchtext.aufbauen(g));
         return artikel.save(g);
+    }
+
+    /** Die Kurzbezeichnung eines Grundartikels: Pflicht, höchstens 32 Zeichen, nur Buchstaben, Ziffern und Bindestriche (sie steckt in Namen und Artikelnummern). */
+    public static String pruefeKurzbezeichnung(String roh) {
+        String kurz = text(roh, MAX_KURZ, "Die Kurzbezeichnung");
+        if (kurz == null) {
+            throw ungueltig("Bitte eine Kurzbezeichnung eingeben, zum Beispiel QH.");
+        }
+        if (!kurz.chars().allMatch(c -> Character.isLetterOrDigit(c) || c == '-' || c == '_')) {
+            throw ungueltig("Die Kurzbezeichnung darf nur Buchstaben, Ziffern und Bindestriche enthalten.");
+        }
+        return kurz;
     }
 
     // ---------------------------------------------------------------- Vorschau und Anlegen
@@ -198,6 +206,15 @@ public class ArtikelVariantenService {
         BigDecimal dichte = g.getWerkstoff() != null ? g.getWerkstoff().getDichte() : null;
         List<Plan> plaene = new ArrayList<>();
         Set<String> vergeben = new LinkedHashSet<>();
+        // Vorhandene Artikelnummern in einem Zug holen statt je Kombination einzeln nachzufragen
+        Set<String> vorhanden = new java.util.HashSet<>();
+        List<String> alleNummern = new ArrayList<>();
+        for (BigDecimal[] a : as) {
+            for (BigDecimal[] b : bs) {
+                alleNummern.add(g.getKurzbezeichnung() + "-" + String.join("x", namensteile(g.getProfilform(), a, b)));
+            }
+        }
+        artikel.findByArtikelnummerIn(alleNummern).forEach(x -> vorhanden.add(x.getArtikelnummer()));
         for (BigDecimal[] a : as) {
             for (BigDecimal[] b : bs) {
                 BigDecimal[] masse = zuMasse(form, a, b);
@@ -213,7 +230,7 @@ public class ArtikelVariantenService {
                 if (!vergeben.add(nummer)) {
                     continue;
                 }
-                if (artikel.findByArtikelnummer(nummer).isPresent()) {
+                if (vorhanden.contains(nummer)) {
                     plaene.add(plan(schluessel, name, nummer, Status.SCHON_DA, "Gibt es schon.", masse, null, teile));
                     continue;
                 }
@@ -328,14 +345,24 @@ public class ArtikelVariantenService {
                 if (s == null) {
                     continue;
                 }
+                // Vor dem Zerlegen kappen: Eine riesige Eingabe soll nicht erst komplett verarbeitet werden
+                if (s.length() > MAX_EINGABE_ZEICHEN) {
+                    throw ungueltig("Die Eingabe bei „" + was + "“ ist zu lang.");
+                }
                 for (String teil : s.split("[\\s;]+")) {
                     // "1,5, 2": Das Komma am Ende trennt nur, die Dezimalstelle bleibt
                     String wert = teil.strip();
                     while (wert.endsWith(",")) {
                         wert = wert.substring(0, wert.length() - 1);
                     }
+                    if (wert.length() > MAX_WERT_ZEICHEN) {
+                        throw ungueltig("„" + wert.substring(0, 12) + "…“ ist kein gültiges Maß für „" + was + "“.");
+                    }
                     if (!wert.isBlank()) {
                         eintraege.add(wert);
+                    }
+                    if (eintraege.size() > 2 * max) {
+                        throw ungueltig("Zu viele Werte bei „" + was + "“ (höchstens " + max + ").");
                     }
                 }
             }
@@ -367,11 +394,11 @@ public class ArtikelVariantenService {
 
     private static BigDecimal zahlLesen(String s, String ganz, String was) {
         try {
-            BigDecimal d = new BigDecimal(s.strip().replace(',', '.'));
+            BigDecimal d = new BigDecimal(s.strip().replace(',', '.')).stripTrailingZeros();
             if (d.signum() <= 0 || d.compareTo(new BigDecimal("100000")) > 0 || d.scale() > 2) {
                 throw new NumberFormatException();
             }
-            return d.stripTrailingZeros().scale() < 0 ? d.setScale(0) : d.stripTrailingZeros();
+            return d.scale() < 0 ? d.setScale(0) : d;
         } catch (NumberFormatException ex) {
             throw ungueltig("„" + ganz + "“ ist kein gültiges Maß für „" + was + "“ (erlaubt: Zahl über 0 mit höchstens zwei Nachkommastellen).");
         }

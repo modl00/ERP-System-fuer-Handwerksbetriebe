@@ -65,11 +65,17 @@ class ArtikelVariantenServiceTest {
 
     private void gefunden() {
         when(artikel.findById(1L)).thenReturn(Optional.of(grundartikel));
-        lenient().when(artikel.findByArtikelnummer(any())).thenReturn(Optional.empty());
+        lenient().when(artikel.findByArtikelnummerIn(any())).thenReturn(List.of());
     }
 
     private static Reihen reihen(List<String> a, List<String> b) {
         return new Reihen(a, b, null);
+    }
+
+    private static Artikel mitNummer(String nummer) {
+        Artikel a = new Artikel();
+        a.setArtikelnummer(nummer);
+        return a;
     }
 
     private static void abgelehnt(Runnable r, HttpStatus status, String teil) {
@@ -97,7 +103,7 @@ class ArtikelVariantenServiceTest {
     @Test
     void vorhandeneArtikelnummerIstSchonDa() {
         gefunden();
-        when(artikel.findByArtikelnummer("QH-40x40x2")).thenReturn(Optional.of(new Artikel()));
+        when(artikel.findByArtikelnummerIn(any())).thenReturn(List.of(mitNummer("QH-40x40x2")));
 
         List<Kombination> k = service.vorschau(1L, reihen(List.of("40"), List.of("2", "3")));
 
@@ -169,6 +175,29 @@ class ArtikelVariantenServiceTest {
     }
 
     @Test
+    void riesigeEingabenWerdenVorDemParsenAbgelehnt() {
+        gefunden();
+        abgelehnt(() -> service.vorschau(1L, reihen(List.of("1".repeat(2_001)), List.of("2"))), HttpStatus.BAD_REQUEST, "zu lang");
+        abgelehnt(() -> service.vorschau(1L, reihen(List.of("1".repeat(25)), List.of("2"))), HttpStatus.BAD_REQUEST, "kein gültiges Maß");
+        String viele = String.join(" ", java.util.Collections.nCopies(500, "40"));
+        abgelehnt(() -> service.vorschau(1L, reihen(List.of(viele), List.of("2"))), HttpStatus.BAD_REQUEST, "Zu viele Werte");
+    }
+
+    @Test
+    void nachkommanullenSindErlaubt() {
+        gefunden();
+
+        assertThat(service.vorschau(1L, reihen(List.of("40,00"), List.of("2,500")))).extracting(Kombination::name).containsExactly("QH 40x40x2,5");
+    }
+
+    @Test
+    void kurzbezeichnungWirdGemeinsamGeprueft() {
+        assertThat(ArtikelVariantenService.pruefeKurzbezeichnung(" QH-2 ")).isEqualTo("QH-2");
+        abgelehnt(() -> ArtikelVariantenService.pruefeKurzbezeichnung(" "), HttpStatus.BAD_REQUEST, "Kurzbezeichnung");
+        abgelehnt(() -> ArtikelVariantenService.pruefeKurzbezeichnung("Q/H"), HttpStatus.BAD_REQUEST, "Buchstaben");
+    }
+
+    @Test
     void keinGrundartikelOderUnbekannteIdWirdAbgelehnt() {
         when(artikel.findById(2L)).thenReturn(Optional.of(new ArtikelWerkstoffe()));
         when(artikel.findById(3L)).thenReturn(Optional.empty());
@@ -213,7 +242,7 @@ class ArtikelVariantenServiceTest {
     @SuppressWarnings("unchecked")
     void abgewaehlteUndVorhandeneVariantenWerdenNichtAngelegt() {
         gefunden();
-        when(artikel.findByArtikelnummer("QH-25x25x2")).thenReturn(Optional.of(new Artikel()));
+        when(artikel.findByArtikelnummerIn(any())).thenReturn(List.of(mitNummer("QH-25x25x2")));
 
         List<Kombination> ergebnis = service.legeVariantenAn(1L, new Reihen(List.of("20 25 30"), List.of("2"), List.of("20|2")));
 
@@ -227,7 +256,7 @@ class ArtikelVariantenServiceTest {
     @Test
     void ohneAlleNeuenVariantenGibtEsEineVerstaendlicheMeldung() {
         gefunden();
-        when(artikel.findByArtikelnummer("QH-40x40x2")).thenReturn(Optional.of(new Artikel()));
+        when(artikel.findByArtikelnummerIn(any())).thenReturn(List.of(mitNummer("QH-40x40x2")));
 
         abgelehnt(() -> service.legeVariantenAn(1L, reihen(List.of("40"), List.of("2"))), HttpStatus.BAD_REQUEST, "nichts Neues");
         verify(artikel, org.mockito.Mockito.never()).saveAll(anyList());

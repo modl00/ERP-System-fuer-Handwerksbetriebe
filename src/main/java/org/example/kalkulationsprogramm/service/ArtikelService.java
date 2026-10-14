@@ -153,6 +153,9 @@ public class ArtikelService implements ArtikelServiceContract {
     @Transactional
     public void fuegeExterneNummerHinzu(Long artikelId, Lieferanten lieferant, String nummer) {
         artikelRepository.findById(artikelId).ifPresent(a -> {
+            if (a.isGrundartikel()) {
+                throw ungueltig("Ein Grundartikel hat keine Lieferantennummern. Bitte bei einer Variante eintragen.");
+            }
             a.addExterneArtikelnummer(lieferant, nummer);
             artikelRepository.save(a);
         });
@@ -244,9 +247,9 @@ public class ArtikelService implements ArtikelServiceContract {
         artikel.setArtikelnummer(nummer);
         artikel.setEan(ean);
         if (artikel.isGrundartikel()) {
-            String kurz = text(r.getKurzbezeichnung(), 32, "Die Kurzbezeichnung");
-            if (kurz == null) {
-                throw ungueltig("Ein Grundartikel braucht eine Kurzbezeichnung, zum Beispiel QH.");
+            String kurz = ArtikelVariantenService.pruefeKurzbezeichnung(r.getKurzbezeichnung());
+            if (artikelRepository.existsByGrundartikelTrueAndKurzbezeichnungIgnoreCaseAndIdNot(kurz, id)) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, "Es gibt schon einen Grundartikel mit der Kurzbezeichnung " + kurz + ".");
             }
             artikel.setKurzbezeichnung(kurz);
         }

@@ -43,6 +43,7 @@ import org.example.kalkulationsprogramm.dto.Kunde.KundeListItemDto;
 import org.example.kalkulationsprogramm.dto.Lieferant.LieferantArtikelpreisDto;
 import org.example.kalkulationsprogramm.mapper.KundeMapper;
 import org.example.kalkulationsprogramm.service.ArtikelPositionsPreisService;
+import org.example.kalkulationsprogramm.service.ProfilRechner;
 import org.example.kalkulationsprogramm.service.ArtikelService;
 import org.example.kalkulationsprogramm.service.KategorieService;
 import org.example.kalkulationsprogramm.service.LieferantArtikelpreisMapper;
@@ -92,7 +93,7 @@ import jakarta.persistence.EntityManager;
         "spring.flyway.validate-on-migrate=false", "spring.jpa.show-sql=false" })
 @AutoConfigureTestDatabase(replace = AutoConfigureTestDatabase.Replace.NONE)
 @Import({ FlywayStartSetupConfig.class, KundeMapper.class, ArtikelService.class, KategorieService.class,
-        ArtikelPositionsPreisService.class, LieferantArtikelpreisMapper.class, LieferantArtikelpreisService.class })
+        ArtikelPositionsPreisService.class, ProfilRechner.class, LieferantArtikelpreisMapper.class, LieferantArtikelpreisService.class })
 @Transactional(propagation = Propagation.NOT_SUPPORTED)
 @EnabledIfSystemProperty(named = "kompat.db.url", matches = "jdbc:postgresql:.*")
 class DatenbankKompatibilitaetSucheTest {

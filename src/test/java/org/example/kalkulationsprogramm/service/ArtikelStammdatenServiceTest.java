@@ -383,6 +383,44 @@ class ArtikelStammdatenServiceTest {
     }
 
     @Test
+    void grundartikelBrauchtEineGueltigeEindeutigeKurzbezeichnung() {
+        artikel.setGrundartikel(true);
+        artikel.setKurzbezeichnung("QH");
+        gefunden();
+        speichernAktiv();
+        ArtikelStammdatenRequest r = anfrage();
+
+        abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.BAD_REQUEST, "Kurzbezeichnung");
+        r.setKurzbezeichnung("Q H");
+        abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.BAD_REQUEST, "Buchstaben");
+
+        r.setKurzbezeichnung("RR");
+        when(artikelRepository.existsByGrundartikelTrueAndKurzbezeichnungIgnoreCaseAndIdNot("RR", 7L)).thenReturn(true);
+        abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.CONFLICT, "schon einen Grundartikel");
+
+        when(artikelRepository.existsByGrundartikelTrueAndKurzbezeichnungIgnoreCaseAndIdNot("RR", 7L)).thenReturn(false);
+        assertThat(service.aktualisiereStammdaten(7L, r).getKurzbezeichnung()).isEqualTo("RR");
+    }
+
+    @Test
+    void normaleArtikelIgnorierenDieKurzbezeichnung() {
+        gefunden();
+        speichernAktiv();
+        ArtikelStammdatenRequest r = anfrage();
+        r.setKurzbezeichnung("QH");
+
+        assertThat(service.aktualisiereStammdaten(7L, r).getKurzbezeichnung()).isNull();
+    }
+
+    @Test
+    void einGrundartikelNimmtKeineLieferantennummerAn() {
+        artikel.setGrundartikel(true);
+        gefunden();
+
+        abgelehnt(() -> service.fuegeExterneNummerHinzu(7L, null, "X-1"), HttpStatus.BAD_REQUEST, "Grundartikel");
+    }
+
+    @Test
     void negativeVerpackungseinheitWirdAbgelehnt() {
         gefunden();
         ArtikelStammdatenRequest r = anfrage();

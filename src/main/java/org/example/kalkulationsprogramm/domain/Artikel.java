@@ -15,6 +15,8 @@ import java.util.Optional;
 @Setter
 @Entity
 @Inheritance(strategy = InheritanceType.JOINED)
+// Auf einer Trefferseite werden Grundartikel und Varianten gesammelt nachgeladen statt einzeln (N+1)
+@org.hibernate.annotations.BatchSize(size = 50)
 public class Artikel
 {
     @Id
@@ -247,6 +249,7 @@ public class Artikel
 
     /** Die Varianten dieses Grundartikels (leer bei allen anderen Artikeln). */
     @OneToMany(mappedBy = "grundartikelRef")
+    @org.hibernate.annotations.BatchSize(size = 50)
     private List<Artikel> varianten = new ArrayList<>();
 
     /** Vom System mitgelieferter Stammdatensatz - wird beim CSV-Import nicht ueberschrieben. */

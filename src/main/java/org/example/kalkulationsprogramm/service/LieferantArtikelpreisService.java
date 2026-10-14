@@ -82,6 +82,11 @@ public class LieferantArtikelpreisService {
         if (lieferantId == null || artikelId == null) {
             return Optional.empty();
         }
+        // Ein Grundartikel ist nur die Vorlage für Varianten und nimmt keine Preise an
+        if (artikelRepository.existsByIdAndGrundartikelTrue(artikelId)) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Ein Grundartikel hat keine Preise. Bitte den Preis bei einer Variante eintragen.");
+        }
 
         String nummer = normalizeExterneArtikelnummer(externeArtikelnummer);
         Optional<LieferantenArtikelPreise> bisher =

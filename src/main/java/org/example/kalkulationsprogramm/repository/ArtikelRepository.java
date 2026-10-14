@@ -44,5 +44,11 @@ public interface ArtikelRepository extends JpaRepository<Artikel, Long>, JpaSpec
 
     boolean existsByGrundartikelTrueAndKurzbezeichnungIgnoreCase(String kurzbezeichnung);
 
+    boolean existsByGrundartikelTrueAndKurzbezeichnungIgnoreCaseAndIdNot(String kurzbezeichnung, Long id);
+
+    boolean existsByIdAndGrundartikelTrue(Long id);
+
+    java.util.List<Artikel> findByArtikelnummerIn(java.util.Collection<String> artikelnummern);
+
     java.util.List<Artikel> findByGrundartikelRef(Artikel grundartikel);
 }

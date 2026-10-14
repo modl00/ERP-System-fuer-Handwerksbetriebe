@@ -56,6 +56,16 @@ class LieferantArtikelpreisServiceTest {
         return artikel;
     }
 
+    @Test
+    void einGrundartikelNimmtKeinenPreisAn() {
+        when(artikelRepository.existsByIdAndGrundartikelTrue(ARTIKEL_ID)).thenReturn(true);
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.anlegen(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("5.00"), "X-1"))
+                .isInstanceOf(org.springframework.web.server.ResponseStatusException.class)
+                .hasMessageContaining("Grundartikel");
+        org.mockito.Mockito.verifyNoInteractions(artikelPreiseRepository);
+    }
+
     /**
      * Das Massen-Update leert den Persistence Context. Werden Artikel und
      * Lieferant vorher geladen, sind sie danach abgehaengt und der Mapper laeuft

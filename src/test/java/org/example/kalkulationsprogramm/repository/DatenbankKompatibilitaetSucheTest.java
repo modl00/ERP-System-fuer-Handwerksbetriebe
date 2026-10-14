@@ -205,7 +205,7 @@ class DatenbankKompatibilitaetSucheTest {
                 pruefen(fehler, "Artikel sort=" + spalte + "&dir=" + richtung, () -> {
                     artikelAnlegen();
                     List<String> treffer = artikelSuche(k -> k.sucheArtikel("RUNDROHR " + kennung.toUpperCase(Locale.ROOT),
-                            null, null, null, null, false, null, null, null, null, null, false, null, 0, 50, spalte, richtung));
+                            null, null, null, null, false, null, null, null, null, null, false, null, false, 0, 50, spalte, richtung));
                     List<String> erwartet = erwartet(spalte.equals("produktname"), richtung, "Rundrohr A", "Rundrohr B");
                     if (spalte.equals("preis")) {
                         // Nach Preis sortiert der Controller die Seite selbst nach
@@ -217,14 +217,15 @@ class DatenbankKompatibilitaetSucheTest {
         }
         pruefen(fehler, "Artikel ohne Grundartikel und je Grundartikel", () -> {
             artikelAnlegen();
-            List<String> ohne = artikelSuche(k -> k.sucheArtikel("rundrohr " + kennung, null, null, null, null, false, null, null, null, null, null, true, null, 0, 50, "produktname", "asc"));
-            List<String> keine = artikelSuche(k -> k.sucheArtikel("rundrohr " + kennung, null, null, null, null, false, null, null, null, null, null, false, Long.MAX_VALUE, 0, 50, "produktname", "asc"));
-            return ohne.containsAll(List.of("Rundrohr A", "Rundrohr B")) && keine.isEmpty() ? null : "ohne " + ohne + ", je Grundartikel " + keine;
+            List<String> ohne = artikelSuche(k -> k.sucheArtikel("rundrohr " + kennung, null, null, null, null, false, null, null, null, null, null, true, null, false, 0, 50, "produktname", "asc"));
+            List<String> keine = artikelSuche(k -> k.sucheArtikel("rundrohr " + kennung, null, null, null, null, false, null, null, null, null, null, false, Long.MAX_VALUE, false, 0, 50, "produktname", "asc"));
+            List<String> archiv = artikelSuche(k -> k.sucheArtikel("rundrohr " + kennung, null, null, null, null, false, null, null, null, null, null, false, null, true, 0, 50, "produktname", "asc"));
+            return ohne.containsAll(List.of("Rundrohr A", "Rundrohr B")) && keine.isEmpty() && archiv.isEmpty() ? null : "ohne " + ohne + ", je Grundartikel " + keine + ", Archiv " + archiv;
         });
         pruefen(fehler, "Artikel mit allen Filtern", () -> {
             artikelAnlegen();
             List<String> treffer = artikelSuche(k -> k.sucheArtikel("rundrohr " + kennung, "WÜRTH " + kennung.toUpperCase(Locale.ROOT),
-                    "rohr", "s235jr " + kennung, null, true, null, null, null, false, false, false, null, 0, 50, "werkstoffName", "desc"));
+                    "rohr", "s235jr " + kennung, null, true, null, null, null, false, false, false, null, false, 0, 50, "werkstoffName", "desc"));
             return treffer.equals(List.of("Rundrohr A")) ? null : "gefunden " + treffer;
         });
         assertThat(fehler).as("Artikelsuchen, die auf dieser Datenbank scheitern oder anders sortieren").isEmpty();

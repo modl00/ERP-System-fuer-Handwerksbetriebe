@@ -208,6 +208,7 @@ public class ArtikelController {
             @RequestParam(value = "pulverbeschichtbar", required = false) Boolean pulverbeschichtbar,
             @RequestParam(value = "ohneGrundartikel", defaultValue = "false") boolean ohneGrundartikel,
             @RequestParam(value = "grundartikelId", required = false) Long grundartikelId,
+            @RequestParam(value = "archiv", defaultValue = "false") boolean archiv,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size,
             @RequestParam(value = "sort", defaultValue = "produktname") String sort,
@@ -218,6 +219,10 @@ public class ArtikelController {
         Specification<Artikel> specification = buildArtikelSpecification(query, lieferant, produktlinie, werkstoff,
             kategorieId, kategorieIds, nurMitLieferantenpreis,
             herstellverfahren, fertigungszustand, profilform, verzinkbar, pulverbeschichtbar);
+        // Normale Liste: nur aktive Artikel. Archiv: nur archivierte (endgültig gelöschte Platzhalter sieht niemand)
+        specification = specification.and((root, cq, cb) -> archiv
+                ? cb.and(cb.isNotNull(root.get("archiviertAm")), cb.isNull(root.get("geloeschtAm")))
+                : cb.isNull(root.get("archiviertAm")));
         if (ohneGrundartikel) {
             // Grundartikel sind nur Vorlagen: Im Auswahlfenster für Angebote haben sie nichts zu suchen
             specification = specification.and((root, cq, cb) -> cb.isFalse(root.get("grundartikel")));
@@ -353,6 +358,9 @@ public class ArtikelController {
         dto.setKurzbeschreibung(artikel.getKurzbeschreibung());
         dto.setBeschreibung(artikel.getBeschreibung());
         dto.setVerkaufsaufschlagProzent(artikel.getVerkaufsaufschlagProzent());
+        dto.setArchiviert(artikel.getArchiviertAm() != null);
+        dto.setArchiviertAm(artikel.getArchiviertAm());
+        dto.setArchiviertVon(artikel.getArchiviertVon());
         dto.setGrundartikel(artikel.isGrundartikel());
         dto.setKurzbezeichnung(artikel.getKurzbezeichnung());
         if (artikel.isGrundartikel()) {

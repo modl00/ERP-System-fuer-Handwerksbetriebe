@@ -19,6 +19,8 @@ public interface ArtikelInProjektRepository extends JpaRepository<ArtikelInProje
 
     List<ArtikelInProjekt> findByProjekt_Id(Long projektId);
 
+    List<ArtikelInProjekt> findByArtikel_Id(Long artikelId);
+
     @Query("SELECT new org.example.kalkulationsprogramm.dto.Projekt.MaterialKilogrammDto(w.name, SUM(aip.kilogramm)) " +
             "FROM ArtikelInProjekt aip " +
             "JOIN aip.artikel a " +

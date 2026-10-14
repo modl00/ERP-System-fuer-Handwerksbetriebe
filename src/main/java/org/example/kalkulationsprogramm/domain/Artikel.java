@@ -247,6 +247,21 @@ public class Artikel
     @JoinColumn(name = "grundartikel_id")
     private Artikel grundartikelRef;
 
+    /** Wann der Artikel ins Archiv kam; leer = aktiv. Archivierte Artikel erscheinen weder in der Suche noch in der Auswahl für Angebote. */
+    @Column(name = "archiviert_am")
+    private java.time.LocalDateTime archiviertAm;
+
+    /** Wer ihn archiviert hat (Benutzername). */
+    @Column(name = "archiviert_von", length = 100)
+    private String archiviertVon;
+
+    /**
+     * Gesetzt, wenn der Artikel endgültig gelöscht wurde, aber in Projekten steckt: Er bleibt dann als unsichtbarer Platzhalter bestehen,
+     * damit die Projekte weiter Namen und Preis zeigen (Stücklisten, Bestellungen und Nachkalkulation hängen an ihm).
+     */
+    @Column(name = "geloescht_am")
+    private java.time.LocalDateTime geloeschtAm;
+
     /** Die Varianten dieses Grundartikels (leer bei allen anderen Artikeln). */
     @OneToMany(mappedBy = "grundartikelRef")
     @org.hibernate.annotations.BatchSize(size = 50)

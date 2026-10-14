@@ -23,6 +23,8 @@ public interface LieferantenArtikelPreiseRepository
         JpaSpecificationExecutor<LieferantenArtikelPreise> {
 
     /** Der derzeit gueltige Preis eines Lieferanten fuer einen Artikel. */
+    long countByArtikel_Id(Long artikelId);
+
     Optional<LieferantenArtikelPreise> findByArtikel_IdAndLieferant_IdAndAktuellTrue(Long artikelId, Long lieferantId);
 
     /** Der derzeit gueltige Eintrag zu einer Lieferanten-Artikelnummer. */

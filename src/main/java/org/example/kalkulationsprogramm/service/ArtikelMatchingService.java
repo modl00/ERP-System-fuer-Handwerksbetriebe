@@ -31,10 +31,10 @@ public class ArtikelMatchingService {
      */
     @Transactional(readOnly = true)
     public List<Artikel> findeBesteTreffer(String produktname, String produktlinie) {
-        // Ein Grundartikel ist nur die Vorlage für Varianten und nimmt keine Preise an: Er schlägt sich nie als Treffer vor
+        // Ein Grundartikel ist nur die Vorlage für Varianten und nimmt keine Preise an, ein archivierter ist aus dem Verkehr gezogen: beide schlagen sich nie als Treffer vor
         List<Artikel> kandidaten = artikelRepository.findAll();
         return kandidaten.stream()
-                .filter(a -> !a.isGrundartikel())
+                .filter(a -> !a.isGrundartikel() && a.getArchiviertAm() == null)
                 .sorted(Comparator.comparingDouble(
                         a -> -score(produktname, produktlinie, a.getProduktname(), a.getProduktlinie())))
                 .limit(5)

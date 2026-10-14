@@ -51,4 +51,6 @@ public interface ArtikelRepository extends JpaRepository<Artikel, Long>, JpaSpec
     java.util.List<Artikel> findByArtikelnummerIn(java.util.Collection<String> artikelnummern);
 
     java.util.List<Artikel> findByGrundartikelRef(Artikel grundartikel);
+
+    long countByGrundartikelRef(Artikel grundartikel);
 }

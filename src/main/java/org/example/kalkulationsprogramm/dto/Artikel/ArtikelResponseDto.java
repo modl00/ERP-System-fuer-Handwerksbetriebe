@@ -85,6 +85,13 @@ public class ArtikelResponseDto {
     /** Aufschlag auf den Einkaufspreis in Prozent. */
     private BigDecimal verkaufsaufschlagProzent;
 
+    /** Im Archiv: erscheint nicht mehr in Suche und Auswahl. */
+    private boolean archiviert;
+
+    private java.time.LocalDateTime archiviertAm;
+
+    private String archiviertVon;
+
     /** Grundartikel = Vorlage für Varianten; kommt in kein Angebot. */
     private boolean grundartikel;
 

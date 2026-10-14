@@ -17,6 +17,8 @@ public interface ArtikelDokumentRepository extends JpaRepository<ArtikelDokument
     @Query("SELECT d FROM ArtikelDokument d WHERE d.artikel.id = :artikelId ORDER BY d.sortierung ASC NULLS FIRST, d.id ASC")
     List<ArtikelDokument> findByArtikelIdOrderBySortierungAscIdAsc(@Param("artikelId") Long artikelId);
 
+    long countByArtikelId(Long artikelId);
+
     Optional<ArtikelDokument> findFirstByArtikelIdAndTyp(Long artikelId, ArtikelDokumentTyp typ);
 
     /**

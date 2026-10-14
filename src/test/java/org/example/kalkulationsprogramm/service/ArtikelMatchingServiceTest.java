@@ -60,6 +60,21 @@ class ArtikelMatchingServiceTest {
     }
 
     @Test
+    void archivierteArtikelSchlagenSichNieAlsTrefferVor() {
+        Artikel archiviert = new Artikel();
+        archiviert.setProduktname("Rundrohr 42,4 x 2");
+        archiviert.setArchiviertAm(java.time.LocalDateTime.now());
+        artikelRepository.save(archiviert);
+        Artikel aktiv = new Artikel();
+        aktiv.setProduktname("Rundrohr 48,3 x 2");
+        artikelRepository.save(aktiv);
+
+        List<Artikel> treffer = artikelMatchingService.findeBesteTreffer("Rundrohr 42,4 x 2", null);
+
+        assertThat(treffer).extracting(Artikel::getProduktname).containsExactly("Rundrohr 48,3 x 2");
+    }
+
+    @Test
     void findetLieferantNachDomainUndSpeichertNeueAdresse() {
         Lieferanten l = new Lieferanten();
         l.setLieferantenname("Beispiel Stahl");

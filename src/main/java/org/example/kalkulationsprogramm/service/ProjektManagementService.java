@@ -809,6 +809,10 @@ ProjektManagementService {
                 if (artikel == null) {
                     continue;
                 }
+                if (artikel.getArchiviertAm() != null || artikel.getGeloeschtAm() != null) {
+                    throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.CONFLICT,
+                            "„" + artikel.getProduktname() + "“ liegt im Archiv und lässt sich nicht mehr in ein Projekt übernehmen. Bitte zuerst wiederherstellen.");
+                }
                 // Nur gueltige Preisstaende - die Tabelle enthaelt seit V338 auch
                 // vergangene Staende, die hier nicht kalkuliert werden duerfen.
                 LieferantenArtikelPreise lap = artikel.getArtikelpreis().stream()

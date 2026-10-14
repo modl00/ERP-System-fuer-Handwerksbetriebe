@@ -61,6 +61,103 @@ class ArtikelDokumentServiceTest {
     }
 
     @Nested
+    @DisplayName("loescheAlleDokumenteNachCommit")
+    class LoescheAlleNachCommit {
+
+        private ArtikelDokument dokument(long id, String dateiname) {
+            ArtikelDokument d = new ArtikelDokument();
+            d.setId(id);
+            d.setArtikel(artikel(1L));
+            d.setGespeicherterDateiname(dateiname);
+            return d;
+        }
+
+        @Test
+        @DisplayName("Ohne laufende Transaktion: Zeilen, Dateien und der leere Ordner sind sofort weg")
+        void loeschtZeilenDateienUndOrdner(@TempDir Path tempDir) throws IOException {
+            ReflectionTestUtils.setField(service, "uploadPath", tempDir.toString());
+            Path ordner = tempDir.resolve("artikel").resolve("1");
+            Files.createDirectories(ordner);
+            Files.writeString(ordner.resolve("a.pdf"), "x");
+            Files.writeString(ordner.resolve("b.png"), "y");
+            List<ArtikelDokument> liste = List.of(dokument(1, "a.pdf"), dokument(2, "b.png"));
+            given(dokumentRepository.findByArtikelIdOrderBySortierungAscIdAsc(1L)).willReturn(liste);
+
+            service.loescheAlleDokumenteNachCommit(1L);
+
+            verify(dokumentRepository).deleteAll(liste);
+            assertThat(ordner).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("Mit laufender Transaktion bleiben die Dateien bis zum Abschluss liegen, bei einem Rollback für immer")
+        void dateienWartenAufDenCommit(@TempDir Path tempDir) throws IOException {
+            ReflectionTestUtils.setField(service, "uploadPath", tempDir.toString());
+            Path ordner = tempDir.resolve("artikel").resolve("1");
+            Files.createDirectories(ordner);
+            Path datei = ordner.resolve("a.pdf");
+            Files.writeString(datei, "x");
+            given(dokumentRepository.findByArtikelIdOrderBySortierungAscIdAsc(1L)).willReturn(List.of(dokument(1, "a.pdf")));
+
+            org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+            try {
+                service.loescheAlleDokumenteNachCommit(1L);
+                assertThat(datei).exists();
+
+                var synchronisationen = org.springframework.transaction.support.TransactionSynchronizationManager.getSynchronizations();
+                synchronisationen.forEach(org.springframework.transaction.support.TransactionSynchronization::afterCommit);
+            } finally {
+                org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+            }
+            assertThat(datei).doesNotExist();
+        }
+
+        @Test
+        @DisplayName("Ein Rollback löscht keine Datei")
+        void rollbackBehaeltDateien(@TempDir Path tempDir) throws IOException {
+            ReflectionTestUtils.setField(service, "uploadPath", tempDir.toString());
+            Path ordner = tempDir.resolve("artikel").resolve("1");
+            Files.createDirectories(ordner);
+            Path datei = ordner.resolve("a.pdf");
+            Files.writeString(datei, "x");
+            given(dokumentRepository.findByArtikelIdOrderBySortierungAscIdAsc(1L)).willReturn(List.of(dokument(1, "a.pdf")));
+
+            org.springframework.transaction.support.TransactionSynchronizationManager.initSynchronization();
+            try {
+                service.loescheAlleDokumenteNachCommit(1L);
+                // kein afterCommit: Die Transaktion wurde zurückgerollt
+            } finally {
+                org.springframework.transaction.support.TransactionSynchronizationManager.clearSynchronization();
+            }
+            assertThat(datei).exists();
+        }
+
+        @Test
+        @DisplayName("Ein Dateiname, der aus dem Ordner herauswill, wird nie gelöscht")
+        void pfadAusserhalbWirdIgnoriert(@TempDir Path tempDir) throws IOException {
+            ReflectionTestUtils.setField(service, "uploadPath", tempDir.toString());
+            Path fremd = tempDir.resolve("fremd.txt");
+            Files.writeString(fremd, "wichtig");
+            Files.createDirectories(tempDir.resolve("artikel").resolve("1"));
+            given(dokumentRepository.findByArtikelIdOrderBySortierungAscIdAsc(1L)).willReturn(List.of(dokument(1, "../../fremd.txt")));
+
+            service.loescheAlleDokumenteNachCommit(1L);
+
+            assertThat(fremd).exists();
+        }
+
+        @Test
+        @DisplayName("Ohne Dokumente passiert nichts")
+        void ohneDokumente() {
+            given(dokumentRepository.findByArtikelIdOrderBySortierungAscIdAsc(1L)).willReturn(List.of());
+
+            service.loescheAlleDokumenteNachCommit(1L);
+
+            verify(dokumentRepository, never()).deleteAll(anyList());
+        }
+    }
+
+    @Nested
     @DisplayName("ladeHoch")
     class LadeHoch {
 

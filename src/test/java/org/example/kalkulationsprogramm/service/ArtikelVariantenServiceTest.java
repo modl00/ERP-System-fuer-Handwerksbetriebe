@@ -254,6 +254,15 @@ class ArtikelVariantenServiceTest {
     }
 
     @Test
+    void unterEinemArchiviertenGrundartikelEntstehenKeineVarianten() {
+        grundartikel.setArchiviertAm(java.time.LocalDateTime.now());
+        gefunden();
+
+        abgelehnt(() -> service.legeVariantenAn(1L, reihen(List.of("40"), List.of("2"))), HttpStatus.CONFLICT, "im Archiv");
+        verify(artikel, org.mockito.Mockito.never()).saveAll(anyList());
+    }
+
+    @Test
     void ohneAlleNeuenVariantenGibtEsEineVerstaendlicheMeldung() {
         gefunden();
         when(artikel.findByArtikelnummerIn(any())).thenReturn(List.of(mitNummer("QH-40x40x2")));
@@ -313,8 +322,11 @@ class ArtikelVariantenServiceTest {
         ArtikelWerkstoffe c = variante("QH 40x40x2", "40", "2");
         when(artikel.findByGrundartikelRef(grundartikel)).thenReturn(List.of(a, b, c));
 
+        b.setArchiviertAm(java.time.LocalDateTime.now());
+
         assertThat(service.varianten(1L)).extracting(ArtikelVariantenService.VarianteZeile::produktname)
                 .containsExactly("QH 20x20x2", "QH 40x40x2", "QH 40x40x3");
+        assertThat(service.varianten(1L)).extracting(ArtikelVariantenService.VarianteZeile::archiviert).containsExactly(true, false, false);
     }
 
     private static ArtikelWerkstoffe variante(String name, String kante, String wand) {

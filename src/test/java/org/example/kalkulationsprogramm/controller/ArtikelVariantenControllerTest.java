@@ -68,9 +68,9 @@ class ArtikelVariantenControllerTest {
 
     @Test
     void variantenListe() throws Exception {
-        when(service.varianten(1L)).thenReturn(List.of(new VarianteZeile(9L, "QH 40x40x2", "QH-40x40x2", "40 x 40 x 2", new BigDecimal("2.3"), null, null)));
+        when(service.varianten(1L)).thenReturn(List.of(new VarianteZeile(9L, "QH 40x40x2", "QH-40x40x2", "40 x 40 x 2", new BigDecimal("2.3"), null, null, true)));
 
-        mvc.perform(get("/api/artikel/1/varianten")).andExpect(status().isOk()).andExpect(jsonPath("$[0].artikelnummer").value("QH-40x40x2"));
+        mvc.perform(get("/api/artikel/1/varianten")).andExpect(status().isOk()).andExpect(jsonPath("$[0].artikelnummer").value("QH-40x40x2")).andExpect(jsonPath("$[0].archiviert").value(true));
     }
 
     @Test

@@ -421,6 +421,39 @@ class ArtikelStammdatenServiceTest {
     }
 
     @Test
+    void einEndgueltigGeloeschterArtikelIstFuerAlleAnderenNichtMehrDa() {
+        artikel.setGeloeschtAm(java.time.LocalDateTime.now());
+        gefunden();
+        ArtikelStammdatenRequest r = anfrage();
+
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.aktualisiereStammdaten(7L, r))
+                .isInstanceOf(org.example.kalkulationsprogramm.exception.NotFoundException.class);
+        org.assertj.core.api.Assertions.assertThatThrownBy(() -> service.aktualisiereDokumenttexte(7L, new org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumenttexteRequest()))
+                .isInstanceOf(org.example.kalkulationsprogramm.exception.NotFoundException.class);
+        assertThat(service.findeById(7L)).isEmpty();
+        service.fuegeExterneNummerHinzu(7L, null, "X-1");
+        assertThat(artikel.getArtikelpreis()).isEmpty();
+    }
+
+    @Test
+    void belegteNummerImArchivNenntDasArchiv() {
+        gefunden();
+        Artikel archiviert = new Artikel();
+        ReflectionTestUtils.setField(archiviert, "id", 99L);
+        archiviert.setArchiviertAm(java.time.LocalDateTime.now());
+        ArtikelStammdatenRequest r = anfrage();
+        r.setArtikelnummer("RR-1");
+        when(artikelRepository.findByArtikelnummer("RR-1")).thenReturn(Optional.of(archiviert));
+
+        abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.CONFLICT, "(er liegt im Archiv)");
+
+        r.setArtikelnummer(null);
+        r.setEan("4006381333931");
+        when(artikelRepository.findByEan("4006381333931")).thenReturn(Optional.of(archiviert));
+        abgelehnt(() -> service.aktualisiereStammdaten(7L, r), HttpStatus.CONFLICT, "(er liegt im Archiv)");
+    }
+
+    @Test
     void negativeVerpackungseinheitWirdAbgelehnt() {
         gefunden();
         ArtikelStammdatenRequest r = anfrage();

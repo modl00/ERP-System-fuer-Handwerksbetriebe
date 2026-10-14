@@ -23,6 +23,8 @@ import org.example.kalkulationsprogramm.exception.NotFoundException;
 import org.example.kalkulationsprogramm.repository.ArtikelDokumentRepository;
 import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.MediaType;
@@ -215,6 +217,49 @@ public class ArtikelDokumentService {
         ArtikelDokument dokument = dokumentRepository.findById(dokumentId)
                 .orElseThrow(() -> new NotFoundException("Dieses Dokument gibt es nicht."));
         loescheDatenbankUndDatei(dokument);
+    }
+
+    /**
+     * Entfernt alle Dokumente eines Artikels: die Datenbankzeilen sofort, die Dateien erst nach dem erfolgreichen Abschluss der Transaktion
+     * (bei einem Rollback bleiben die Dateien so erhalten). Danach verschwindet auch der leere Ordner des Artikels.
+     */
+    @Transactional
+    public void loescheAlleDokumenteNachCommit(Long artikelId) {
+        List<ArtikelDokument> liste = dokumentRepository.findByArtikelIdOrderBySortierungAscIdAsc(artikelId);
+        if (liste.isEmpty()) {
+            return;
+        }
+        Path artikelDir = artikelVerzeichnis(artikelId);
+        List<Path> dateien = liste.stream()
+                .map(d -> artikelDir.resolve(d.getGespeicherterDateiname()).normalize())
+                .filter(p -> p.startsWith(artikelDir))
+                .toList();
+        dokumentRepository.deleteAll(liste);
+        Runnable dateienLoeschen = () -> {
+            for (Path datei : dateien) {
+                try {
+                    Files.deleteIfExists(datei);
+                } catch (IOException e) {
+                    log.warn("Eine Datei zu einem gelöschten Artikel konnte nicht gelöscht werden: {}", datei.getFileName(), e);
+                }
+            }
+            try {
+                Files.deleteIfExists(artikelDir);
+            } catch (IOException e) {
+                // Ordner nicht leer oder gesperrt: harmlos, bleibt einfach stehen
+                log.debug("Ordner zu einem gelöschten Artikel bleibt bestehen: {}", artikelDir.getFileName());
+            }
+        };
+        if (TransactionSynchronizationManager.isSynchronizationActive()) {
+            TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    dateienLoeschen.run();
+                }
+            });
+        } else {
+            dateienLoeschen.run();
+        }
     }
 
     /**

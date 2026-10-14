@@ -90,6 +90,6 @@ public interface LieferantenArtikelPreiseRepository
     int markiereBisherigeAlsVeraltet(@Param("artikelId") Long artikelId, @Param("lieferantId") Long lieferantId);
 
     /** Anzahl verschiedener Artikel, für die es von diesem Lieferanten Preise gibt. */
-    @Query("SELECT COUNT(DISTINCT p.artikel.id) FROM LieferantenArtikelPreise p WHERE p.lieferant.id = :lieferantId")
+    @Query("SELECT COUNT(DISTINCT p.artikel.id) FROM LieferantenArtikelPreise p WHERE p.lieferant.id = :lieferantId AND p.artikel.archiviertAm IS NULL")
     long zaehleArtikelVonLieferant(@Param("lieferantId") Long lieferantId);
 }

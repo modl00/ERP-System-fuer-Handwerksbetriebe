@@ -13,8 +13,8 @@ import java.util.List;
 import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
-import org.example.kalkulationsprogramm.domain.ArtikelDokument;
 import org.example.kalkulationsprogramm.domain.ArtikelInProjekt;
+import org.example.kalkulationsprogramm.domain.LieferantenArtikelPreise;
 import org.example.kalkulationsprogramm.domain.Projekt;
 import org.example.kalkulationsprogramm.repository.ArtikelDokumentRepository;
 import org.example.kalkulationsprogramm.repository.ArtikelInProjektRepository;
@@ -50,6 +50,7 @@ class ArtikelArchivServiceTest {
         ReflectionTestUtils.setField(a, "id", id);
         a.setProduktname(name);
         when(artikel.findById(id)).thenReturn(Optional.of(a));
+        org.mockito.Mockito.lenient().when(artikel.findByIdForUpdate(id)).thenReturn(Optional.of(a));
         return a;
     }
 
@@ -210,21 +211,32 @@ class ArtikelArchivServiceTest {
     void ohneProjektverwendungEntfaelltDerArtikelMitDokumenten() {
         Artikel a = artikel(1, "Rundrohr");
         a.setArchiviertAm(LocalDateTime.now());
-        ArtikelDokument d = new ArtikelDokument();
-        ReflectionTestUtils.setField(d, "id", 55L);
-        when(dokumente.findByArtikelIdOrderBySortierungAscIdAsc(1L)).thenReturn(List.of(d));
         when(projektZeilen.findByArtikel_Id(1L)).thenReturn(List.of());
 
         ArtikelArchivService.Geloescht g = service.loesche(1L);
 
         assertThat(g.alsPlatzhalter()).isFalse();
-        verify(dokumentService).loescheDokument(55L);
+        verify(dokumentService).loescheAlleDokumenteNachCommit(1L);
         verify(artikel).delete(a);
+    }
+
+    @Test
+    void einBereitsGeloeschterArtikelLaesstSichNichtNochmalLoeschen() {
+        Artikel weg = artikel(7, "Platzhalter");
+        weg.setGeloeschtAm(LocalDateTime.now());
+        weg.setArchiviertAm(LocalDateTime.now());
+
+        abgelehnt(() -> service.loesche(7L), HttpStatus.NOT_FOUND, "gibt es nicht");
+        abgelehnt(() -> service.loesche(null), HttpStatus.NOT_FOUND, "gibt es nicht");
+        verify(artikel, never()).delete(any(Artikel.class));
     }
 
     @Test
     void ausProjektenWirdEinPlatzhalterMitNamenUndPreisen() {
         Artikel g = new Artikel();
+        LieferantenArtikelPreise preis = new LieferantenArtikelPreise();
+        preis.setExterneArtikelnummer("EXT-77");
+        preis.setAktuell(true);
         Artikel a = artikel(1, "Rundrohr");
         a.setArchiviertAm(LocalDateTime.now());
         a.setArtikelnummer("RR-1");
@@ -232,6 +244,7 @@ class ArtikelArchivServiceTest {
         a.setSuchtext("rundrohr");
         a.setGrundartikelRef(g);
         a.setKurzbezeichnung("RR");
+        a.getArtikelpreis().add(preis);
         when(projektZeilen.findByArtikel_Id(1L)).thenReturn(List.of(zeile(9, "Geländer", 1, null), zeile(10, "Treppe", 2, null)));
 
         ArtikelArchivService.Geloescht ergebnis = service.loesche(1L);
@@ -244,6 +257,9 @@ class ArtikelArchivServiceTest {
         assertThat(a.getSuchtext()).isNull();
         assertThat(a.getGrundartikelRef()).isNull();
         assertThat(a.getKurzbezeichnung()).isNull();
+        // vom Lieferantenabgleich abgekoppelt: Import und Preisübernahme finden ihn nicht mehr
+        assertThat(preis.getExterneArtikelnummer()).isNull();
+        assertThat(preis.isAktuell()).isFalse();
         verify(artikel).save(a);
         verify(artikel, never()).delete(any(Artikel.class));
     }

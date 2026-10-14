@@ -143,7 +143,9 @@ public class LieferantArtikelpreisService {
     // einmal, doppelte Zeilen entstehen nicht. Mit DISTINCT scheiterte die Sortierung nach
     // Artikelname/Werkstoff (Spalten anderer Tabellen) auf PostgreSQL (42P10) und MySQL 8.
     private Specification<LieferantenArtikelPreise> byLieferant(Long lieferantId) {
-        return (root, query, cb) -> cb.equal(root.get("lieferant").get("id"), lieferantId);
+        // Archivierte und endgültig gelöschte Artikel stehen nicht mehr in der Preisliste des Lieferanten
+        return (root, query, cb) -> cb.and(cb.equal(root.get("lieferant").get("id"), lieferantId),
+                cb.isNull(root.get("artikel").get("archiviertAm")));
     }
 
     private Specification<LieferantenArtikelPreise> buildSuchkriterium(String search) {

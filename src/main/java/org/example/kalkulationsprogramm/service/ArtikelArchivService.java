@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Locale;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
-import org.example.kalkulationsprogramm.domain.ArtikelDokument;
 import org.example.kalkulationsprogramm.domain.ArtikelInProjekt;
 import org.example.kalkulationsprogramm.repository.ArtikelDokumentRepository;
 import org.example.kalkulationsprogramm.repository.ArtikelInProjektRepository;
@@ -90,7 +89,11 @@ public class ArtikelArchivService {
     /** Löscht einen archivierten Artikel endgültig; steckt er in Projekten, bleibt er als unsichtbarer Platzhalter bestehen. */
     @Transactional
     public Geloescht loesche(Long id) {
-        Artikel a = aktiver(id);
+        // Zeile sperren: Eine Projektzeile, die gleichzeitig auf den Artikel zeigt, wartet, bis hier entschieden ist (sonst würde sie mitgelöscht)
+        Artikel a = id == null ? null : artikel.findByIdForUpdate(id).filter(x -> x.getGeloeschtAm() == null).orElse(null);
+        if (a == null) {
+            throw unbekannt();
+        }
         if (a.getArchiviertAm() == null) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Bitte den Artikel zuerst archivieren. Endgültig gelöscht wird nur aus dem Archiv.");
         }
@@ -101,9 +104,8 @@ public class ArtikelArchivService {
                         + ". Bitte zuerst die Varianten löschen.");
             }
         }
-        for (ArtikelDokument d : dokumente.findByArtikelIdOrderBySortierungAscIdAsc(id)) {
-            dokumentService.loescheDokument(d.getId());
-        }
+        // Datenbankzeilen jetzt, die Dateien erst nach dem erfolgreichen Abschluss (sonst wären sie bei einem Rollback verloren)
+        dokumentService.loescheAlleDokumenteNachCommit(id);
         int inProjekten = projektZeilen.findByArtikel_Id(id).size();
         if (inProjekten == 0) {
             artikel.delete(a);
@@ -117,6 +119,12 @@ public class ArtikelArchivService {
         a.setSuchtext(null);
         a.setGrundartikelRef(null);
         a.setKurzbezeichnung(null);
+        // Vom Lieferantenabgleich abkoppeln: Weder CSV-Import noch Preisübernahme aus Angeboten und Rechnungen dürfen den Platzhalter wiederfinden.
+        // Die Preisstände selbst bleiben, die Projektzeilen verweisen auf sie.
+        a.getArtikelpreis().forEach(p -> {
+            p.setExterneArtikelnummer(null);
+            p.setAktuell(false);
+        });
         artikel.save(a);
         LOG.info("Artikel {} endgültig gelöscht, bleibt als Platzhalter für {} Projektzeilen", id, inProjekten);
         return new Geloescht(true, inProjekten);

@@ -82,7 +82,7 @@ public class ArtikelVariantenService {
             Verrechnungseinheit verrechnungseinheit, BigDecimal verkaufsaufschlagProzent, Integer standardlaenge) { }
 
     /** Eine Variante in der Liste am Grundartikel. */
-    public record VarianteZeile(Long id, String produktname, String artikelnummer, String abmessung, BigDecimal kgProMeter, BigDecimal kgProQm, BigDecimal guenstigsterPreis) { }
+    public record VarianteZeile(Long id, String produktname, String artikelnummer, String abmessung, BigDecimal kgProMeter, BigDecimal kgProQm, BigDecimal guenstigsterPreis, boolean archiviert) { }
 
     /** Die Eingabevorgabe für das Raster dieses Grundartikels. */
     @Transactional(readOnly = true)
@@ -158,6 +158,9 @@ public class ArtikelVariantenService {
     @Transactional
     public List<Kombination> legeVariantenAn(Long grundartikelId, Reihen reihen) {
         ArtikelWerkstoffe g = grundartikel(grundartikelId);
+        if (g.getArchiviertAm() != null) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Dieser Grundartikel liegt im Archiv. Bitte zuerst wiederherstellen, dann lassen sich Varianten anlegen.");
+        }
         Set<String> aus = reihen.ausgeschlossen() == null ? Set.of() : new LinkedHashSet<>(reihen.ausgeschlossen());
         List<Plan> plaene = plane(g, reihen);
         List<ArtikelWerkstoffe> neu = new ArrayList<>();
@@ -181,7 +184,7 @@ public class ArtikelVariantenService {
                 .map(a -> {
                     ArtikelWerkstoffe w = a instanceof ArtikelWerkstoffe x ? x : null;
                     return new VarianteZeile(a.getId(), a.getProduktname(), a.getArtikelnummer(), w == null ? null : w.getAbmessungText(), w == null ? null : w.getMasse(),
-                            w == null ? null : w.getMassePerQm(), a.getGuenstigsterPreis().map(p -> p.getPreis()).orElse(null));
+                            w == null ? null : w.getMassePerQm(), a.getGuenstigsterPreis().map(p -> p.getPreis()).orElse(null), a.getArchiviertAm() != null);
                 }).toList();
     }
 

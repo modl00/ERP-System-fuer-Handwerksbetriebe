@@ -146,6 +146,33 @@ class ProjektManagementServiceTest {
     }
 
     @Test
+    void archivierteUndGeloeschteArtikelLassenSichNichtInEinProjektUebernehmen() {
+        Projekt projekt = new Projekt();
+        projekt.setArtikelInProjekt(new ArrayList<>());
+        when(projektRepository.findById(1L)).thenReturn(Optional.of(projekt));
+
+        ArtikelWerkstoffe archiviert = new ArtikelWerkstoffe();
+        archiviert.setProduktname("Rundrohr");
+        archiviert.setArchiviertAm(java.time.LocalDateTime.now());
+        when(artikelRepository.findById(2L)).thenReturn(Optional.of(archiviert));
+        ArtikelMengeDto dto = new ArtikelMengeDto();
+        dto.setArtikelId(2L);
+        dto.setEinheit("STUECK");
+        dto.setStueckzahl(1);
+
+        org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.fuegeArtikelMaterialkosten(1L, List.of(dto)), "liegt im Archiv");
+
+        ArtikelWerkstoffe weg = new ArtikelWerkstoffe();
+        weg.setGeloeschtAm(java.time.LocalDateTime.now());
+        when(artikelRepository.findById(3L)).thenReturn(Optional.of(weg));
+        dto.setArtikelId(3L);
+        org.junit.jupiter.api.Assertions.assertThrows(org.springframework.web.server.ResponseStatusException.class,
+                () -> service.fuegeArtikelMaterialkosten(1L, List.of(dto)));
+        assertEquals(0, projekt.getArtikelInProjekt().size());
+    }
+
+    @Test
     void calculatesPricePerMeterForKgArticle() {
         Projekt projekt = new Projekt();
         projekt.setArtikelInProjekt(new ArrayList<>());

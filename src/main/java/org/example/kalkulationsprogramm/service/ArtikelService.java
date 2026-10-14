@@ -132,7 +132,8 @@ public class ArtikelService implements ArtikelServiceContract {
         if (id == null) {
             return Optional.empty();
         }
-        return artikelRepository.findById(id);
+        // Ein endgültig gelöschter Artikel (Platzhalter für Projekte) ist für alle anderen nicht mehr da
+        return artikelRepository.findById(id).filter(a -> a.getGeloeschtAm() == null);
     }
 
     /**
@@ -152,7 +153,7 @@ public class ArtikelService implements ArtikelServiceContract {
 
     @Transactional
     public void fuegeExterneNummerHinzu(Long artikelId, Lieferanten lieferant, String nummer) {
-        artikelRepository.findById(artikelId).ifPresent(a -> {
+        artikelRepository.findById(artikelId).filter(a -> a.getGeloeschtAm() == null).ifPresent(a -> {
             if (a.isGrundartikel()) {
                 throw ungueltig("Ein Grundartikel hat keine Lieferantennummern. Bitte bei einer Variante eintragen.");
             }
@@ -178,7 +179,7 @@ public class ArtikelService implements ArtikelServiceContract {
     @Override
     @Transactional
     public Artikel aktualisiereDokumenttexte(Long id, ArtikelDokumenttexteRequest request) {
-        Artikel artikel = artikelRepository.findById(id)
+        Artikel artikel = artikelRepository.findById(id).filter(a -> a.getGeloeschtAm() == null)
                 .orElseThrow(() -> new NotFoundException("Artikel " + id + " nicht gefunden"));
 
         if (request.isKurzbeschreibungGesetzt()) {
@@ -220,7 +221,7 @@ public class ArtikelService implements ArtikelServiceContract {
     @Override
     @Transactional
     public Artikel aktualisiereStammdaten(Long id, ArtikelStammdatenRequest r) {
-        Artikel artikel = artikelRepository.findById(id)
+        Artikel artikel = artikelRepository.findById(id).filter(a -> a.getGeloeschtAm() == null)
                 .orElseThrow(() -> new NotFoundException("Artikel " + id + " nicht gefunden"));
         // Der Stand ist Pflicht, sonst würde ein vollständiges Ersetzen still fremde Änderungen überschreiben
         if (artikel.getVersion() != null && !artikel.getVersion().equals(r.getVersion())) {
@@ -232,8 +233,9 @@ public class ArtikelService implements ArtikelServiceContract {
             throw ungueltig("Bitte einen Produktnamen eingeben.");
         }
         String nummer = text(r.getArtikelnummer(), 64, "Die Artikelnummer");
-        if (nummer != null && artikelRepository.findByArtikelnummer(nummer).filter(a -> !a.getId().equals(id)).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Die Artikelnummer " + nummer + " gibt es schon bei einem anderen Artikel.");
+        Optional<Artikel> belegt = nummer == null ? Optional.empty() : artikelRepository.findByArtikelnummer(nummer).filter(a -> !a.getId().equals(id));
+        if (belegt.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Die Artikelnummer " + nummer + " gibt es schon bei einem anderen Artikel" + imArchivHinweis(belegt.get()) + ".");
         }
         String ean = EanPruefung.normalisiert(r.getEan());
         pruefeEan(ean, id);
@@ -322,13 +324,19 @@ public class ArtikelService implements ArtikelServiceContract {
     }
 
     /** Prüft Prüfziffer und Eindeutigkeit einer EAN; {@code eigeneId} ist der Artikel, der sie schon tragen darf. */
+    /** Liegt der Artikel, der die Nummer belegt, im Archiv, sagt die Meldung es (sonst sucht man ihn vergeblich in der Liste). */
+    private static String imArchivHinweis(Artikel a) {
+        return a.getArchiviertAm() != null ? " (er liegt im Archiv)" : "";
+    }
+
     private void pruefeEan(String ean, Long eigeneId) {
         String fehler = EanPruefung.fehler(ean);
         if (fehler != null) {
             throw ungueltig(fehler);
         }
-        if (ean != null && artikelRepository.findByEan(ean).filter(a -> !a.getId().equals(eigeneId)).isPresent()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT, "Die EAN " + ean + " gehört schon zu einem anderen Artikel.");
+        Optional<Artikel> belegt = ean == null ? Optional.empty() : artikelRepository.findByEan(ean).filter(a -> !a.getId().equals(eigeneId));
+        if (belegt.isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Die EAN " + ean + " gehört schon zu einem anderen Artikel" + imArchivHinweis(belegt.get()) + ".");
         }
     }
 

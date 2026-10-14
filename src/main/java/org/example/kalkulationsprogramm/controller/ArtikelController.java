@@ -28,6 +28,7 @@ import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDetailDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumentDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumenttexteRequest;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelResponseDto;
+import org.example.kalkulationsprogramm.dto.Artikel.ArtikelStammdatenRequest;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelSearchResponseDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ExterneNummerDto;
 import org.example.kalkulationsprogramm.dto.Artikel.LieferantPreisDto;
@@ -56,6 +57,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -173,6 +175,8 @@ public class ArtikelController {
                     map.put("id", w.getId());
                     map.put("name", w.getName());
                     map.put("werkstattname", w.getWerkstattname());
+                    map.put("verzinkungsgeeignet", w.isVerzinkungsgeeignet());
+                    map.put("pulverbeschichtungsgeeignet", w.isPulverbeschichtungsgeeignet());
                     return map;
                 })
                 .sorted(Comparator.comparing(m -> (String) m.get("name"), String.CASE_INSENSITIVE_ORDER))
@@ -273,6 +277,8 @@ public class ArtikelController {
             dto.setHoehe(aw.getHoehe());
             dto.setBreite(aw.getBreite());
             dto.setWandstaerke(aw.getWandstaerke());
+            dto.setStegdicke(aw.getStegdicke());
+            dto.setFlanschdicke(aw.getFlanschdicke());
             dto.setStandardlaenge(aw.getStandardlaenge());
             dto.setAbmessung(aw.getAbmessungText());
         }
@@ -281,6 +287,8 @@ public class ArtikelController {
         // damit die Oberflaeche "geschweisst, kaltgefertigt" anzeigen kann statt
         // nur "EN 10219-2" - danach laesst sich ausserdem filtern.
         dto.setArtikelnummer(artikel.getArtikelnummer());
+        dto.setEan(artikel.getEan());
+        dto.setVersion(artikel.getVersion());
         dto.setProfilform(artikel.getProfilform());
         dto.setHerstellverfahren(artikel.getHerstellverfahren());
         dto.setFertigungszustand(artikel.getFertigungszustand());
@@ -288,8 +296,12 @@ public class ArtikelController {
         dto.setWerkstoffnorm(artikel.getWirksameWerkstoffnorm());
         dto.setVerzinkungsgeeignet(artikel.istVerzinkungsgeeignet());
         dto.setPulverbeschichtungsgeeignet(artikel.istPulverbeschichtungsgeeignet());
+        dto.setVerzinkungsgeeignetEigen(artikel.getVerzinkungsgeeignet());
+        dto.setPulverbeschichtungsgeeignetEigen(artikel.getPulverbeschichtungsgeeignet());
         if (artikel.getWerkstoff() != null) {
             dto.setBeschichtungshinweis(artikel.getWerkstoff().getBeschichtungshinweis());
+            dto.setWerkstoffVerzinkungsgeeignet(artikel.getWerkstoff().isVerzinkungsgeeignet());
+            dto.setWerkstoffPulverbeschichtungsgeeignet(artikel.getWerkstoff().isPulverbeschichtungsgeeignet());
         }
         if (preis != null) {
             dto.setPreis(preis.getPreis());
@@ -331,6 +343,12 @@ public class ArtikelController {
         dto.setKurzbeschreibung(artikel.getKurzbeschreibung());
         dto.setBeschreibung(artikel.getBeschreibung());
         dto.setVerkaufsaufschlagProzent(artikel.getVerkaufsaufschlagProzent());
+        var wirksam = artikelPositionsPreisService.geltenderAufschlag(artikel);
+        if (wirksam != null) {
+            dto.setWirksamProzent(wirksam.prozent());
+            dto.setWirksamQuelle(wirksam.quelle().name());
+            dto.setWirksamVon(wirksam.quellenName());
+        }
 
         // Derselbe Preis, der oben in der Preisspalte steht - nicht irgendeiner.
         // mappeArtikelZuDto hat ihn unter Beruecksichtigung des
@@ -387,6 +405,19 @@ public class ArtikelController {
             // Unzulaessige Eingabe (Grenzwerte, Aufschlag ausserhalb des Bereichs).
             return ResponseEntity.badRequest().build();
         }
+    }
+
+    /**
+     * Ändert alle Stammdaten eines Artikels (vollständiges Ersetzen). Fehler kommen mit Klartext: 400 bei ungültigen Werten, 404 bei
+     * unbekannter ID, 409 bei doppelter Artikelnummer/EAN oder wenn der Artikel zwischendurch geändert wurde.
+     */
+    @PutMapping("/{id}/stammdaten")
+    @Transactional
+    public ResponseEntity<ArtikelResponseDto> aktualisiereStammdaten(
+            @PathVariable Long id,
+            @RequestBody ArtikelStammdatenRequest request) {
+        Artikel aktualisiert = artikelService.aktualisiereStammdaten(id, request);
+        return ResponseEntity.ok(mappeArtikelZuDto(aktualisiert, null));
     }
 
     /**

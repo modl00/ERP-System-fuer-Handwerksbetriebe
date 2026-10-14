@@ -110,6 +110,15 @@ describe('ArtikelSuche', () => {
         await waitFor(() => expect(letzterListenRequest().get('ohneGrundartikel')).toBe('true'));
     });
 
+    it('fragt nur auf Wunsch das Archiv ab', async () => {
+        zeigeSuche(<ArtikelSuche />);
+        await waitFor(() => expect(fetch).toHaveBeenCalled());
+        expect(letzterListenRequest().get('archiv')).toBeNull();
+
+        zeigeSuche(<ArtikelSuche archiv />);
+        await waitFor(() => expect(letzterListenRequest().get('archiv')).toBe('true'));
+    });
+
     it('kennzeichnet Grundartikel mit Zahl der Varianten und Varianten mit ihrem Grundartikel', async () => {
         vi.stubGlobal('fetch', vi.fn(async (url: string) => {
             if (url.includes('/filteroptionen') || url.includes('/werkstoffe')) return filteroptionen();

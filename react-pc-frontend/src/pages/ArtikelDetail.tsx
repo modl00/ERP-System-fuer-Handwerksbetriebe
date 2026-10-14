@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-    ArrowLeft, Minus, Package, Pencil, RefreshCw, Save, ShieldCheck, ShieldX,
+    Archive, ArchiveRestore, ArrowLeft, Minus, Package, Pencil, RefreshCw, Save, ShieldCheck, ShieldX,
     TrendingDown, TrendingUp
 } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -10,6 +10,8 @@ import { Label } from "../components/ui/label";
 import { PageLayout } from "../components/layout/PageLayout";
 import { SupplierSelectModal } from "../components/SupplierSelectModal";
 import { useToast } from "../components/ui/toast";
+import { useConfirm } from "../components/ui/confirm-dialog";
+import { archiviereArtikel, stelleArtikelWiederHer } from "../components/artikel/artikelArchivApi";
 import { TiptapEditor } from "../components/TiptapEditor";
 import { preisHinweisText, type PreisHinweis } from "../components/artikel/preisHinweis";
 import { ArtikelDokumente } from "../components/artikel/ArtikelDokumente";
@@ -107,6 +109,8 @@ export default function ArtikelDetail() {
     const [speichern, setSpeichern] = useState(false);
     // Stammdaten bearbeiten (Name, Nummern, Einheit, Kategorie, Maße ...)
     const [stammdatenBearbeiten, setStammdatenBearbeiten] = useState(false);
+    const bestaetigen = useConfirm();
+    const [archivArbeitet, setArchivArbeitet] = useState(false);
 
     const laden = useCallback(async () => {
         if (!id) return;
@@ -232,6 +236,53 @@ export default function ArtikelDetail() {
         }
     };
 
+    /** Artikel ins Archiv legen; bei einem Grundartikel mit Varianten wird gefragt, ob sie mitgehen. */
+    const archivieren = async () => {
+        if (!daten) return;
+        const a = daten.artikel;
+        const ja = await bestaetigen({
+            title: "Artikel archivieren?",
+            message: `„${a.produktname}“ verschwindet aus Artikelliste und Auswahl. Bestehende Angebote und Projekte bleiben unverändert, und der Artikel lässt sich im Archiv jederzeit wiederherstellen.`,
+            confirmLabel: "Archivieren",
+            variant: "warning",
+        });
+        if (!ja) return;
+        let mitVarianten = false;
+        if (a.grundartikel && (a.variantenAnzahl ?? 0) > 0) {
+            mitVarianten = await bestaetigen({
+                title: "Varianten auch archivieren?",
+                message: `Dieser Grundartikel hat ${a.variantenAnzahl} ${a.variantenAnzahl === 1 ? "Variante" : "Varianten"}. Sollen sie mit ins Archiv?`,
+                confirmLabel: "Ja, auch die Varianten",
+                cancelLabel: "Nein, nur den Grundartikel",
+                variant: "info",
+            });
+        }
+        setArchivArbeitet(true);
+        try {
+            const n = await archiviereArtikel(a.id, mitVarianten);
+            toast.success(n > 1 ? `${n} Artikel sind im Archiv.` : `„${a.produktname}“ ist im Archiv.`);
+            await laden();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Der Artikel konnte nicht archiviert werden.");
+        } finally {
+            setArchivArbeitet(false);
+        }
+    };
+
+    const wiederherstellen = async () => {
+        if (!daten) return;
+        setArchivArbeitet(true);
+        try {
+            await stelleArtikelWiederHer(daten.artikel.id);
+            toast.success(`„${daten.artikel.produktname}“ ist wiederhergestellt.`);
+            await laden();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Der Artikel konnte nicht wiederhergestellt werden.");
+        } finally {
+            setArchivArbeitet(false);
+        }
+    };
+
     if (loading) {
         return (
             <PageLayout ribbonCategory="Stammdaten" title="Artikel">
@@ -278,6 +329,17 @@ export default function ArtikelDetail() {
                         <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
                         Aktualisieren
                     </Button>
+                    {artikel.archiviert ? (
+                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" onClick={wiederherstellen} disabled={archivArbeitet}>
+                            <ArchiveRestore className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Wiederherstellen
+                        </Button>
+                    ) : (
+                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" onClick={archivieren} disabled={archivArbeitet}>
+                            <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Archivieren
+                        </Button>
+                    )}
                     {!stammdatenBearbeiten && (
                         <Button size="sm" onClick={() => setStammdatenBearbeiten(true)}>
                             <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
@@ -295,6 +357,13 @@ export default function ArtikelDetail() {
                     onAbbrechen={() => setStammdatenBearbeiten(false)}
                     onGespeichert={() => { setStammdatenBearbeiten(false); void laden(); }}
                 />
+            )}
+
+            {artikel.archiviert && (
+                <p className="flex items-center gap-2 rounded-lg border border-amber-200 bg-amber-50 px-4 py-2 text-sm text-amber-800" data-testid="archiv-hinweis">
+                    <Archive className="w-4 h-4 shrink-0" aria-hidden="true" />
+                    Dieser Artikel ist im Archiv und erscheint nicht in Artikelliste und Auswahl.
+                </p>
             )}
 
             {artikel.grundartikelId != null && <VarianteHinweis grundartikelId={artikel.grundartikelId} grundartikelName={artikel.grundartikelName} />}

@@ -12,6 +12,7 @@ import { AufschlagPflege } from "../components/artikel/AufschlagPflege";
 import { useDarfAufschlaegeAendern } from "../features/aufschlaege/useDarfAufschlaegeAendern";
 import { WerkstoffPflege } from "../components/artikel/WerkstoffPflege";
 import { GrundartikelAnlegen } from "../components/artikel/GrundartikelAnlegen";
+import { ArtikelArchiv, type ArtikelArchivHandle } from "../components/artikel/ArtikelArchiv";
 
 // ==================== MAIN COMPONENT ====================
 
@@ -19,6 +20,9 @@ export default function ArtikelEditor() {
     // Filterleiste und Trefferliste stecken in ArtikelSuche - dieselbe Suche nutzt
     // das Auswahlfenster im Dokument-Editor. Hier bleibt nur das Seitengeruest.
     const sucheRef = useRef<ArtikelSucheHandle>(null);
+    const archivRef = useRef<ArtikelArchivHandle>(null);
+    // Reiter: die aktiven Artikel oder das Archiv (archivierte Artikel, wiederherstellbar)
+    const [ansicht, setAnsicht] = useState<"artikel" | "archiv">("artikel");
     const navigate = useNavigate();
     // Ein Grundartikel ist die Vorlage für viele Größen (Varianten) und wird in einem eigenen Fenster angelegt
     const [showGrundartikel, setShowGrundartikel] = useState(false);
@@ -100,7 +104,7 @@ export default function ArtikelEditor() {
                         <Cuboid className="w-4 h-4 mr-2" aria-hidden="true" />
                         Werkstoffe pflegen
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => sucheRef.current?.neuLaden()}>
+                    <Button variant="outline" size="sm" onClick={() => (ansicht === "archiv" ? archivRef.current : sucheRef.current)?.neuLaden()}>
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
                         Aktualisieren
                     </Button>
@@ -109,7 +113,22 @@ export default function ArtikelEditor() {
         >
             {/* Die Artikelverwaltung haelt ihre Suche in der Adresszeile: Filter
                 ueberleben einen Reload und lassen sich als Link weitergeben. */}
-            <ArtikelSuche key={sucheSchluessel} ref={sucheRef} urlSync onLadezustand={setLoading} />
+            <div className="mb-4 flex gap-1 border-b border-slate-200" role="tablist" aria-label="Artikel oder Archiv">
+                {([["artikel", "Artikel"], ["archiv", "Archiv"]] as const).map(([wert, text]) => (
+                    <button key={wert} type="button" role="tab" id={`artikel-reiter-${wert}`} aria-selected={ansicht === wert} aria-controls="artikel-reiter-inhalt"
+                        onClick={() => setAnsicht(wert)}
+                        className={`-mb-px border-b-2 px-4 py-2 text-sm font-medium focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-500 ${ansicht === wert
+                            ? "border-rose-600 text-rose-700"
+                            : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+                        {text}
+                    </button>
+                ))}
+            </div>
+            <div id="artikel-reiter-inhalt" role="tabpanel" aria-labelledby={`artikel-reiter-${ansicht}`}>
+                {ansicht === "artikel"
+                    ? <ArtikelSuche key={sucheSchluessel} ref={sucheRef} urlSync onLadezustand={setLoading} />
+                    : <ArtikelArchiv ref={archivRef} onLadezustand={setLoading} />}
+            </div>
 
             {/* Modals */}
             {showCreateModal && (

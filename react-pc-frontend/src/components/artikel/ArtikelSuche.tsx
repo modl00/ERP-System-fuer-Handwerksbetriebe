@@ -142,6 +142,8 @@ export interface ArtikelSucheProps {
     nurMitLieferantenpreis?: boolean;
     /** Grundartikel (Vorlagen für Varianten) ausblenden: Im Auswahlfenster für Angebote kommen nur echte Artikel in Frage. */
     ohneGrundartikel?: boolean;
+    /** Statt der aktiven Artikel die archivierten zeigen (Reiter „Archiv“). */
+    archiv?: boolean;
     /** Meldet den Ladezustand nach aussen - fuer den Spinner im Aktualisieren-Knopf der Seite. */
     onLadezustand?: (laedt: boolean) => void;
     /** Zugriff auf {@link ArtikelSucheHandle}. */
@@ -159,6 +161,7 @@ export function ArtikelSuche({
     seitenGroesseAusHoehe = false,
     nurMitLieferantenpreis = false,
     ohneGrundartikel = false,
+    archiv = false,
     onLadezustand,
     ref,
 }: ArtikelSucheProps) {
@@ -245,6 +248,7 @@ export function ArtikelSuche({
             params.set("dir", sortDirection);
             if (nurMitLieferantenpreis) params.set("nurMitLieferantenpreis", "true");
             if (ohneGrundartikel) params.set("ohneGrundartikel", "true");
+            if (archiv) params.set("archiv", "true");
 
             if (filters.q) params.set("q", filters.q);
             if (filters.lieferant) params.set("lieferant", filters.lieferant);
@@ -274,7 +278,7 @@ export function ArtikelSuche({
                 setErsteAntwortDa(true);
             }
         }
-    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis, ohneGrundartikel]);
+    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis, ohneGrundartikel, archiv]);
 
     useEffect(() => {
         loadArtikel();

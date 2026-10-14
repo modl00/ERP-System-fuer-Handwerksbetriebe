@@ -22,7 +22,7 @@ Die Liste zeigt 12 Artikel pro Seite mit Bild, „Artikel-Nr.“, „Bezeichnung
 4. Den Einkaufspreis mit „Preis (€)“, „Lieferant (Optional)“ und „Artikelnummer (Extern)“ (die Nummer beim Lieferanten) eintragen. Preis und Lieferanten-Nummer immer zusammen mit dem Lieferanten eintragen – nur dann erscheinen sie in der Liste und beim Artikel.
 5. „Artikel anlegen“.
 
-Name, Einheit, Werkstoff und Kategorie lassen sich danach über „Stammdaten bearbeiten“ (siehe unten) bearbeiten. Artikel lassen sich nicht löschen.
+Name, Einheit, Werkstoff und Kategorie lassen sich danach über „Stammdaten bearbeiten“ (siehe unten) bearbeiten. Wer einen Artikel nicht mehr braucht, legt ihn ins Archiv (siehe „Artikel archivieren und löschen“).
 
 ## Stammdaten bearbeiten
 
@@ -89,6 +89,19 @@ Gut zu wissen:
 - Der Grundartikel selbst hat keine Preise und kommt in **kein Angebot und keine Rechnung**: Im Fenster „Material auswählen“ erscheinen nur seine Varianten. In der Artikelliste trägt er die Marke „Grundartikel · 28 Varianten“, jede Variante „Variante von …“.
 - Die Kurzbezeichnung lässt sich über „Stammdaten bearbeiten“ ändern; bestehende Varianten behalten ihren Namen.
 - Varianten gibt es für Rohre, Stäbe, Flachstahl, Winkel, Blech sowie IPE, HEA, HEB und U-Profile (dort als „Nenngröße“, zum Beispiel `200`).
+
+## Artikel archivieren und löschen
+
+**Archivieren** (jeder Benutzer): Auf der Artikelseite „Archivieren“ klicken und bestätigen. Der Artikel verschwindet aus der Artikelliste und aus dem Fenster „Material auswählen“. Bestehende Angebote, Rechnungen und Projekte bleiben unverändert. Bei einem Grundartikel mit Varianten fragt das Programm, ob die Varianten mit ins Archiv sollen.
+
+**Archiv:** In **Vorlagen & Stammdaten → Artikel** zeigt der Reiter **„Archiv“** alle archivierten Artikel. „Wiederherstellen“ holt einen Artikel zurück in die Liste, jeder Benutzer darf das.
+
+**Endgültig löschen** (nur Administratoren, nur aus dem Archiv): „Löschen“ zeigt zuerst, **wo der Artikel verwendet wird**: in welchen Projekten mit welcher Menge, dazu die Zahl der Lieferantenpreise und Dokumente. Erst danach folgt die Bestätigung.
+
+- Wird der Artikel in **keinem Projekt** verwendet, entfällt er samt Lieferantenpreisen, Preisverlauf und Dokumenten.
+- Steckt er in **Projekten**, bleibt er dort mit Namen und Preis als Text stehen, damit Stückliste, Bestellung und Nachkalkulation stimmen. Er taucht sonst nirgends mehr auf und lässt sich nicht zurückholen.
+- Ein Grundartikel lässt sich erst löschen, wenn alle seine Varianten gelöscht sind.
+- Bereits erstellte Angebote und Rechnungen ändern sich nie, sie enthalten nur eine Kopie der Angaben.
 
 ## Ordner für Artikel anlegen
 

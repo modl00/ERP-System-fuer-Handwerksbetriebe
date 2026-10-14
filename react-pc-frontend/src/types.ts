@@ -369,6 +369,10 @@ export interface Artikel {
   artikelnummer?: string;
   /** Strichcode (EAN-8, UPC-A, EAN-13, GTIN-14), nur bei einem Teil der Artikel vorhanden. */
   ean?: string | null;
+  /** Im Archiv: nicht mehr in Liste und Auswahl, aber wiederherstellbar. */
+  archiviert?: boolean;
+  archiviertAm?: string | null;
+  archiviertVon?: string | null;
   /** Grundartikel = Vorlage für Varianten (kommt in kein Angebot). */
   grundartikel?: boolean;
   /** Kurzbezeichnung eines Grundartikels für die Namen seiner Varianten, z. B. „QH“. */

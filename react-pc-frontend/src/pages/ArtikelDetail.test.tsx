@@ -391,6 +391,70 @@ describe('ArtikelDetail', () => {
         expect(screen.getByText('Wer liefert das?')).toBeInTheDocument();
     });
 
+    describe('Archiv', () => {
+        const posts = () => fetchMock.mock.calls.filter(([, o]) => o?.method === 'POST').map(([u]) => String(u));
+        const mitArchivAntwort = (antwort: Record<string, unknown>) => {
+            mockFetchDetail({ artikel: antwort, lieferanten: [], preisverlauf: [] });
+            const roh = fetchMock.getMockImplementation()!;
+            fetchMock.mockImplementation((url: string, options?: RequestInit) => {
+                if (options?.method === 'POST' && url.includes('/archivieren')) return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({ anzahl: 1 }) });
+                if (options?.method === 'POST' && url.includes('/wiederherstellen')) return Promise.resolve({ ok: true, status: 204, json: () => Promise.resolve({}) });
+                return roh(url, options);
+            });
+        };
+
+        it('archiviert nach Rückfrage und lädt den Artikel neu', async () => {
+            const user = userEvent.setup();
+            mitArchivAntwort({ id: 7, produktname: 'Rundrohr' });
+            render(<ArtikelDetail />, { wrapper: Wrapper });
+
+            await user.click(await screen.findByRole('button', { name: 'Archivieren' }));
+            expect(await screen.findByRole('dialog', { name: 'Artikel archivieren?' })).toHaveTextContent('verschwindet aus Artikelliste und Auswahl');
+            expect(posts()).toHaveLength(0);
+            await user.click(within(screen.getByRole('dialog', { name: 'Artikel archivieren?' })).getByRole('button', { name: 'Archivieren' }));
+
+            await waitFor(() => expect(posts()).toEqual(['/api/artikel/7/archivieren?mitVarianten=false']));
+            expect(await screen.findByText('„Rundrohr“ ist im Archiv.')).toBeInTheDocument();
+        });
+
+        it('fragt bei einem Grundartikel mit Varianten, ob sie mit ins Archiv sollen', async () => {
+            const user = userEvent.setup();
+            mitArchivAntwort({ id: 7, produktname: 'Quadratrohr', grundartikel: true, variantenAnzahl: 28 });
+            render(<ArtikelDetail />, { wrapper: Wrapper });
+
+            await user.click(await screen.findByRole('button', { name: 'Archivieren' }));
+            await user.click(within(await screen.findByRole('dialog', { name: 'Artikel archivieren?' })).getByRole('button', { name: 'Archivieren' }));
+            expect(await screen.findByText(/hat 28 Varianten/)).toBeInTheDocument();
+            await user.click(screen.getByRole('button', { name: 'Ja, auch die Varianten' }));
+
+            await waitFor(() => expect(posts()).toEqual(['/api/artikel/7/archivieren?mitVarianten=true']));
+        });
+
+        it('ein Abbruch in der Rückfrage archiviert nichts', async () => {
+            const user = userEvent.setup();
+            mitArchivAntwort({ id: 7, produktname: 'Rundrohr' });
+            render(<ArtikelDetail />, { wrapper: Wrapper });
+
+            await user.click(await screen.findByRole('button', { name: 'Archivieren' }));
+            await user.click(within(await screen.findByRole('dialog', { name: 'Artikel archivieren?' })).getByRole('button', { name: 'Abbrechen' }));
+
+            expect(posts()).toHaveLength(0);
+        });
+
+        it('zeigt bei einem archivierten Artikel den Hinweis und den Knopf zum Wiederherstellen', async () => {
+            const user = userEvent.setup();
+            mitArchivAntwort({ id: 7, produktname: 'Rundrohr', archiviert: true, archiviertAm: '2026-10-14T10:00:00' });
+            render(<ArtikelDetail />, { wrapper: Wrapper });
+
+            expect(await screen.findByTestId('archiv-hinweis')).toHaveTextContent('Dieser Artikel ist im Archiv');
+            expect(screen.queryByRole('button', { name: 'Archivieren' })).not.toBeInTheDocument();
+
+            await user.click(screen.getByRole('button', { name: 'Wiederherstellen' }));
+
+            await waitFor(() => expect(posts()).toEqual(['/api/artikel/7/wiederherstellen']));
+        });
+    });
+
     it('speichert die Angebotsfelder über den PATCH-Endpunkt', async () => {
         mockFetchDetail({
             artikel: { id: 7, produktname: 'T-Stahl', preisHinweis: 'KEIN_AUFSCHLAG' },

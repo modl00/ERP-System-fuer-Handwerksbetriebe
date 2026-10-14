@@ -703,6 +703,19 @@ Rechnungsabruf bei Händlern (Microsoft, Amazon). Ganzer Pfad nur für Admins.
 
 `GET /api/artikel` kennt zusätzlich `ohneGrundartikel=true` (Grundartikel ausblenden, für die Auswahl in Angeboten) und `grundartikelId` (nur die Varianten dieses Grundartikels).
 
+### ArtikelArchivController
+
+**Basis-URL:** `/api/artikel`
+
+| Methode | Pfad | Beschreibung |
+|---|---|---|
+| `POST` | `/{id}/archivieren` | Artikel ins Archiv legen (`mitVarianten=true` nimmt bei einem Grundartikel die Varianten mit); `{"anzahl": n}` = neu archivierte Artikel; 404 bei unbekannter ID |
+| `POST` | `/{id}/wiederherstellen` | Artikel aus dem Archiv holen (204) |
+| `GET` | `/{id}/verwendungen` | Wo der Artikel verwendet wird: Projekte mit Menge, Zahl der Lieferantenpreise, Dokumente und Varianten |
+| `DELETE` | `/{id}` | Endgültig löschen *(nur ADMIN)*: nur archivierte Artikel (sonst 409), ein Grundartikel erst ohne Varianten (409); ohne Projektverwendung entfällt der Artikel samt Preisen und Dokumenten, sonst bleibt er als unsichtbarer Platzhalter für die Projekte. Antwort `{"alsPlatzhalter": bool, "projekte": n}` |
+
+`GET /api/artikel` zeigt nur aktive Artikel; `archiv=true` zeigt stattdessen die archivierten.
+
 ### ArtikelKategorieController
 
 **Basis-URL:** `/api/artikel/kategorien`

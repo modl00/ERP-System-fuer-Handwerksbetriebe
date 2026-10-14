@@ -96,7 +96,7 @@ test('Administrator löscht endgültig, sieht vorher die Verweise und bestätigt
     expect(mit.aufrufe.filter(a => a.startsWith('DELETE'))).toHaveLength(0);
     await frage.getByRole('button', { name: 'Endgültig löschen', exact: true }).click();
 
-    await expect(page.getByText('„Rundrohr 42,4 x 2“ ist gelöscht.')).toBeVisible();
+    await expect(page.getByText(/„Rundrohr 42,4 x 2“ ist gelöscht\. In 1 Projektzeile bleibt er als Text mit Preis stehen/)).toBeVisible();
     expect(mit.aufrufe.at(-1)).toBe('DELETE /api/artikel/5');
     await expect(page.getByTestId('artikel-archiv').getByText('Rundrohr 42,4 x 2')).toHaveCount(0);
 });

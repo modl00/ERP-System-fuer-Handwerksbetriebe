@@ -56,8 +56,10 @@ export function ArtikelLoeschen({ artikelId, name, onGeloescht, onAbbrechen }: P
         if (!ja) return;
         setLoescht(true);
         try {
-            await loescheArtikelEndgueltig(artikelId);
-            toast.success(`„${name}“ ist gelöscht.`);
+            const ergebnis = await loescheArtikelEndgueltig(artikelId);
+            toast.success(ergebnis.alsPlatzhalter
+                ? `„${name}“ ist gelöscht. In ${mehrzahl(ergebnis.projekte, "Projektzeile", "Projektzeilen")} bleibt er als Text mit Preis stehen.`
+                : `„${name}“ ist gelöscht.`);
             onGeloescht();
         } catch (e) {
             const text = e instanceof Error ? e.message : "Der Artikel konnte nicht gelöscht werden.";

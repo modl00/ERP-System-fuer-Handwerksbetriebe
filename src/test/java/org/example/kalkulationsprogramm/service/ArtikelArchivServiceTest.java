@@ -49,7 +49,7 @@ class ArtikelArchivServiceTest {
         Artikel a = new Artikel();
         ReflectionTestUtils.setField(a, "id", id);
         a.setProduktname(name);
-        when(artikel.findById(id)).thenReturn(Optional.of(a));
+        org.mockito.Mockito.lenient().when(artikel.findById(id)).thenReturn(Optional.of(a));
         org.mockito.Mockito.lenient().when(artikel.findByIdForUpdate(id)).thenReturn(Optional.of(a));
         return a;
     }

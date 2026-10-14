@@ -60,6 +60,7 @@ describe('ArtikelLoeschen', () => {
 
         await waitFor(() => expect(onGeloescht).toHaveBeenCalled());
         expect(aufrufe.filter(a => a.methode === 'DELETE')).toEqual([{ url: '/api/artikel/5', methode: 'DELETE' }]);
+        expect(await screen.findByText(/In 2 Projektzeilen bleibt er als Text mit Preis stehen/)).toBeVisible();
     });
 
     it('sagt ohne Projektverwendung, dass der Artikel samt Preisen entfernt wird', async () => {

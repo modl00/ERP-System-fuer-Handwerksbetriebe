@@ -32,8 +32,8 @@ public class FirmeninformationService {
     /** Maximal zulaessige Logo-Dateigroesse in Bytes (2 MB). */
     static final long MAX_LOGO_BYTES = 2L * 1024 * 1024;
 
-    /** Maximal zulaessige Briefpapier-Dateigroesse in Bytes (5 MB). */
-    static final long MAX_BRIEFPAPIER_BYTES = 5L * 1024 * 1024;
+    /** Maximal zulaessige Briefpapier-Dateigroesse in Bytes (30 MB). */
+    static final long MAX_BRIEFPAPIER_BYTES = 30L * 1024 * 1024;
 
     /** Erlaubte MIME-Types fuer Firmenlogo (Whitelist). */
     static final List<String> ERLAUBTE_MIME_TYPES = List.of(
@@ -41,11 +41,17 @@ public class FirmeninformationService {
             MediaType.IMAGE_JPEG_VALUE,
             "image/webp");
 
-    /** MIME-Type -> Standard-Dateiendung (lowercase, ohne Punkt). */
+    /** MIME-Type -> Standard-Dateiendung fuer Logo (lowercase, ohne Punkt). */
     private static final Map<String, String> MIME_ZU_ENDUNG = Map.of(
             MediaType.IMAGE_PNG_VALUE, "png",
             MediaType.IMAGE_JPEG_VALUE, "jpg",
             "image/webp", "webp");
+
+    /** MIME-Type -> Standard-Dateiendung fuer Briefpapier (PNG, JPEG, PDF). */
+    private static final Map<String, String> BRIEFPAPIER_MIME_ZU_ENDUNG = Map.of(
+            MediaType.IMAGE_PNG_VALUE, "png",
+            MediaType.IMAGE_JPEG_VALUE, "jpg",
+            "application/pdf", "pdf");
 
     private final FirmeninformationRepository repository;
     private final GewerkRepository gewerkRepository;
@@ -200,8 +206,9 @@ public class FirmeninformationService {
     /**
      * Speichert eine hochgeladene Briefpapier-Datei und aktualisiert
      * {@link Firmeninformation#getBriefpapierDateiname()}.
-     * Sicherheits-Regeln: MIME-Whitelist, 5-MB-Limit, server-seitiger Dateiname,
-     * Pfad-Traversal-Pruefung – analog zur Logo-Logik.
+     * Sicherheits-Regeln: MIME-Whitelist (PNG, JPEG, PDF), 30-MB-Limit,
+     * server-seitiger Dateiname, Pfad-Traversal-Pruefung.
+     * Bilder werden bei Bedarf auf A4/300dpi verkleinert; PDFs werden validiert.
      */
     @Transactional
     public FirmeninformationDto speichereBriefpapierDatei(MultipartFile datei) throws IOException {
@@ -213,9 +220,23 @@ public class FirmeninformationService {
                     "Datei zu groß (maximal " + (MAX_BRIEFPAPIER_BYTES / 1024 / 1024) + " MB)");
         }
         String contentType = datei.getContentType();
-        String endung = MIME_ZU_ENDUNG.get(contentType != null ? contentType.toLowerCase(Locale.ROOT) : "");
+        String endung = BRIEFPAPIER_MIME_ZU_ENDUNG.get(contentType != null ? contentType.toLowerCase(Locale.ROOT) : "");
         if (endung == null) {
-            throw new IllegalArgumentException("Ungültiger Dateityp – erlaubt sind PNG, JPEG und WebP");
+            throw new IllegalArgumentException("Ungültiger Dateityp – erlaubt sind PNG, JPEG und PDF");
+        }
+
+        byte[] rohdaten = datei.getBytes();
+        byte[] zuSpeichern;
+        if ("pdf".equals(endung)) {
+            pruefePdf(rohdaten);
+            zuSpeichern = rohdaten;
+        } else {
+            BriefpapierBild.Ergebnis ergebnis = BriefpapierBild.aufbereiten(rohdaten, endung);
+            zuSpeichern = ergebnis.bytes();
+            endung = ergebnis.endung();
+            if (ergebnis.verkleinert()) {
+                log.info("Briefpapier auf {}x{} Pixel verkleinert", ergebnis.breite(), ergebnis.hoehe());
+            }
         }
 
         Path basis = Path.of(briefpapierUploadDir).toAbsolutePath().normalize();
@@ -233,14 +254,21 @@ public class FirmeninformationService {
             loescheDateiFallsVorhanden(basis, alterDateiname);
         }
 
-        try (var in = datei.getInputStream()) {
-            Files.copy(in, ziel, StandardCopyOption.REPLACE_EXISTING);
-        }
+        Files.write(ziel, zuSpeichern);
 
         fi.setBriefpapierDateiname(neuerDateiname);
         fi = repository.save(fi);
-        log.info("Firmenbriefpapier gespeichert: dateiname={} groesse={}B", neuerDateiname, datei.getSize());
+        log.info("Firmenbriefpapier gespeichert: dateiname={} groesse={}B", neuerDateiname, zuSpeichern.length);
         return toDto(fi);
+    }
+
+    private static void pruefePdf(byte[] daten) {
+        try {
+            new com.lowagie.text.pdf.PdfReader(daten).close();
+        } catch (Exception e) {
+            log.debug("PDF-Validierung fehlgeschlagen", e);
+            throw new IllegalArgumentException("Die Datei ist kein gültiges PDF.");
+        }
     }
 
     /**
@@ -292,7 +320,7 @@ public class FirmeninformationService {
         String name = fi.getBriefpapierDateiname().toLowerCase(Locale.ROOT);
         if (name.endsWith(".png")) return MediaType.IMAGE_PNG_VALUE;
         if (name.endsWith(".jpg") || name.endsWith(".jpeg")) return MediaType.IMAGE_JPEG_VALUE;
-        if (name.endsWith(".webp")) return "image/webp";
+        if (name.endsWith(".pdf")) return MediaType.APPLICATION_PDF_VALUE;
         return MediaType.APPLICATION_OCTET_STREAM_VALUE;
     }
 

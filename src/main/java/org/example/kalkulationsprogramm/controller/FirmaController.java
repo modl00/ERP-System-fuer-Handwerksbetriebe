@@ -87,7 +87,7 @@ public class FirmaController {
     // ==================== FIRMENBRIEFPAPIER ====================
 
     /**
-     * Laedt das firmenweite Briefpapier hoch (multipart). Whitelist: PNG, JPEG, WebP, max. 5 MB.
+     * Laedt das firmenweite Briefpapier hoch (multipart). Whitelist: PNG, JPEG, PDF, max. 30 MB.
      * Dateiname wird server-seitig gesetzt ({@code briefpapier.<ext>}).
      */
     @PostMapping(value = "/briefpapier", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)

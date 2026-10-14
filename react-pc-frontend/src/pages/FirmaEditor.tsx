@@ -17,6 +17,7 @@ import { useToast } from '../components/ui/toast';
 import { useConfirm } from '../components/ui/confirm-dialog';
 import { SteuerpruefungExport } from '../components/firma/SteuerpruefungExport';
 import { LohnStammdatenPanel } from '../components/firma/LohnStammdatenPanel';
+import { BriefpapierBereich } from '../components/firma/BriefpapierBereich';
 
 // Types
 interface Firmeninformation {
@@ -337,14 +338,6 @@ export default function FirmaEditor() {
         [firma?.logoDateiname, logoVersion]
     );
 
-    // Briefpapier-Upload-State
-    const [briefpapierVersion, setBriefpapierVersion] = useState(0);
-    const [briefpapierUploading, setBriefpapierUploading] = useState(false);
-    const briefpapierSrc = useMemo(
-        () => (firma?.briefpapierDateiname ? `/api/firma/briefpapier?v=${briefpapierVersion}` : null),
-        [firma?.briefpapierDateiname, briefpapierVersion]
-    );
-
     const uploadLogo = async (file: File) => {
         const erlaubt = ['image/png', 'image/jpeg', 'image/webp'];
         if (!erlaubt.includes(file.type)) {
@@ -400,63 +393,6 @@ export default function FirmaEditor() {
             }
         } catch (e) {
             console.error('Fehler beim Löschen des Logos', e);
-            toast.error('Netzwerkfehler beim Löschen.');
-        }
-    };
-
-    const uploadBriefpapier = async (file: File) => {
-        const erlaubt = ['image/png', 'image/jpeg', 'image/webp'];
-        if (!erlaubt.includes(file.type)) {
-            toast.error('Ungültiger Dateityp – erlaubt sind PNG, JPEG und WebP.');
-            return;
-        }
-        if (file.size > 5 * 1024 * 1024) {
-            toast.error('Datei zu groß – maximal 5 MB.');
-            return;
-        }
-        setBriefpapierUploading(true);
-        try {
-            const form = new FormData();
-            form.append('datei', file);
-            const res = await fetch('/api/firma/briefpapier', { method: 'POST', body: form });
-            if (res.ok) {
-                const aktualisiert = await res.json();
-                setFirma(prev => (prev ? { ...prev, briefpapierDateiname: aktualisiert.briefpapierDateiname } : prev));
-                setBriefpapierVersion(v => v + 1);
-                toast.success('Briefpapier gespeichert.');
-            } else {
-                const text = await res.text();
-                try {
-                    const json = JSON.parse(text);
-                    toast.error(json.message || 'Upload fehlgeschlagen.');
-                } catch {
-                    toast.error('Upload fehlgeschlagen.');
-                }
-            }
-        } catch {
-            toast.error('Netzwerkfehler beim Hochladen.');
-        } finally {
-            setBriefpapierUploading(false);
-        }
-    };
-
-    const deleteBriefpapier = async () => {
-        if (!await confirmDialog({
-            title: 'Briefpapier löschen',
-            message: 'Das hinterlegte Briefpapier wirklich entfernen?',
-            variant: 'danger',
-            confirmLabel: 'Löschen'
-        })) return;
-        try {
-            const res = await fetch('/api/firma/briefpapier', { method: 'DELETE' });
-            if (res.ok) {
-                setFirma(prev => (prev ? { ...prev, briefpapierDateiname: '' } : prev));
-                setBriefpapierVersion(v => v + 1);
-                toast.success('Briefpapier entfernt.');
-            } else {
-                toast.error('Löschen fehlgeschlagen.');
-            }
-        } catch {
             toast.error('Netzwerkfehler beim Löschen.');
         }
     };
@@ -692,88 +628,13 @@ export default function FirmaEditor() {
                                 </div>
                             </div>
 
-                            {/* Firmenweites Briefpapier */}
-                            <div className="mb-8 pb-6 border-b">
-                                <div className="flex items-center gap-2 mb-1">
-                                    <h3 className="text-lg font-semibold text-slate-900">Firmenweites Briefpapier</h3>
-                                </div>
-                                <p className="text-sm text-slate-500 mb-4">
-                                    Dieses Bild wird im Formular-Editor als Seitenhintergrund angezeigt, wenn eine Vorlage
-                                    kein eigenes Briefpapier hat. Vorlagen mit eigenem Briefpapier behalten ihres.
-                                    Formate: PNG, JPEG oder WebP, maximal 5&nbsp;MB.
-                                </p>
-                                <div className="flex items-start gap-6">
-                                    <div className="w-28 h-40 rounded-lg border-2 border-dashed border-slate-200 bg-slate-50 flex items-center justify-center overflow-hidden shrink-0">
-                                        {briefpapierSrc ? (
-                                            <img
-                                                src={briefpapierSrc}
-                                                alt="Briefpapier Vorschau"
-                                                className="max-w-full max-h-full object-contain"
-                                            />
-                                        ) : (
-                                            <span className="text-xs text-slate-400 text-center px-2">
-                                                Kein Briefpapier hinterlegt
-                                            </span>
-                                        )}
-                                    </div>
-                                    <div className="flex-1 space-y-3">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <label className={cn(
-                                                'inline-flex items-center gap-2 px-4 py-2 text-sm font-medium rounded-lg cursor-pointer transition',
-                                                briefpapierUploading
-                                                    ? 'bg-slate-200 text-slate-500 cursor-not-allowed'
-                                                    : 'bg-rose-600 text-white hover:bg-rose-700'
-                                            )}>
-                                                {briefpapierUploading ? (
-                                                    <RefreshCw className="w-4 h-4 animate-spin" />
-                                                ) : (
-                                                    <Plus className="w-4 h-4" />
-                                                )}
-                                                {firma.briefpapierDateiname ? 'Briefpapier ersetzen' : 'Briefpapier hochladen'}
-                                                <input
-                                                    type="file"
-                                                    accept="image/png,image/jpeg,image/webp"
-                                                    className="hidden"
-                                                    disabled={briefpapierUploading}
-                                                    onChange={e => {
-                                                        const file = e.target.files?.[0];
-                                                        if (file) void uploadBriefpapier(file);
-                                                        e.target.value = '';
-                                                    }}
-                                                />
-                                            </label>
-                                            {firma.briefpapierDateiname && (
-                                                <Button
-                                                    type="button"
-                                                    variant="outline"
-                                                    size="sm"
-                                                    onClick={deleteBriefpapier}
-                                                    disabled={briefpapierUploading}
-                                                >
-                                                    <Trash2 className="w-4 h-4 mr-1" />
-                                                    Entfernen
-                                                </Button>
-                                            )}
-                                        </div>
-                                        {firma.briefpapierDateiname && (
-                                            <label className="flex items-start gap-2 cursor-pointer select-none">
-                                                <input
-                                                    type="checkbox"
-                                                    className="mt-0.5 accent-rose-600"
-                                                    checked={firma.briefpapierEnthaeltKopf ?? false}
-                                                    onChange={e => setFirma({ ...firma, briefpapierEnthaeltKopf: e.target.checked })}
-                                                />
-                                                <span className="text-sm text-slate-700">
-                                                    Briefpapier enthält bereits Kopfbereich (Logo, Firmendaten)
-                                                    <span className="block text-xs text-slate-500 mt-0.5">
-                                                        Der Formular-Editor blendet dann das separate Logo-Feld aus.
-                                                    </span>
-                                                </span>
-                                            </label>
-                                        )}
-                                    </div>
-                                </div>
-                            </div>
+                            <BriefpapierBereich
+                                briefpapierDateiname={firma.briefpapierDateiname ?? null}
+                                briefpapierEnthaeltKopf={firma.briefpapierEnthaeltKopf ?? false}
+                                onGeaendert={({ briefpapierDateiname, briefpapierEnthaeltKopf }) =>
+                                    setFirma(prev => prev ? { ...prev, briefpapierDateiname, briefpapierEnthaeltKopf } : prev)
+                                }
+                            />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Allgemeine Daten */}

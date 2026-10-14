@@ -85,7 +85,7 @@ export default function LayoutEinstellungenDialog({
                                     }
                                 />
                                 <span className="text-sm text-slate-700">
-                                    Briefpapier enthält bereits Logo und Firmendaten
+                                    Briefpapier enthält schon Briefkopf und Fußzeile
                                     <span className="block text-xs text-slate-500 mt-0.5">
                                         Logo-Baustein wird in der Vorschau ausgeblendet
                                     </span>

@@ -74,7 +74,8 @@ export const SIZE_DEFAULTS: Record<FormBlockType, { width: number; height: numbe
     datum: { width: 120, height: 48 },
     seitenzahl: { width: 120, height: 48 },
     logo: { width: 200, height: 120 },
-    table: { width: 560, height: 220 }
+    table: { width: 560, height: 220 },
+    linie: { width: 560, height: 20 }
 };
 
 export const STYLE_DEFAULTS: Partial<Record<FormBlockType, FormBlockStyles>> = {
@@ -102,7 +103,8 @@ export const BLOCK_LABELS: Record<FormBlockType, string> = {
     datum: 'Datum',
     seitenzahl: 'Seitenzahl',
     logo: 'Logo',
-    table: 'Leistungstabelle'
+    table: 'Leistungstabelle',
+    linie: 'Trennlinie'
 };
 
 export const DEFAULT_TABLE_COLUMNS = {

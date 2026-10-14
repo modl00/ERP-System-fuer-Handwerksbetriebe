@@ -1,6 +1,8 @@
 import type { CSSProperties } from 'react';
 import type { FormBlock } from '../../types';
 import { replacePlaceholders } from './constants';
+import { LinieInhalt } from './TextBlockInhalt';
+import { zerlegeInfoblockZeilen } from './infoblockZeilen';
 import { LogoBild } from './LogoBild';
 import { pdfStil } from './pdfStil';
 // Schriften wie im PDF (Open Sans für Brieftext, Montserrat für den Betreff) –
@@ -57,6 +59,8 @@ export function BlockInhalt({ item, daten, imEditor = false }: BlockInhaltProps)
 
     if (item.type === 'logo') return <LogoBild quelle={item.content || '/image001.png'} />;
 
+    if (item.type === 'linie') return <LinieInhalt farbe={item.styles?.color} />;
+
     if (item.type === 'table') {
         return (
             <div className="relative h-full w-full">
@@ -107,6 +111,20 @@ export function BlockInhalt({ item, daten, imEditor = false }: BlockInhaltProps)
     if (!roh.trim()) {
         return imEditor ? <div style={{ ...textStil, color: '#94a3b8' }}>Text eingeben …</div> : null;
     }
-    return <div style={textStil}>{replacePlaceholders(roh, daten)}</div>;
+    const filled = replacePlaceholders(roh, daten);
+    if (filled.includes('\t')) {
+        const zeilen = zerlegeInfoblockZeilen(filled);
+        return (
+            <div style={{ ...textStil, whiteSpace: 'normal', lineHeight: 1.4 }}>
+                {zeilen.map((z, i) => (
+                    <div key={i} className="flex justify-between gap-3">
+                        <span>{z.bezeichnung}</span>
+                        {z.wert !== null && <span className="text-right">{z.wert}</span>}
+                    </div>
+                ))}
+            </div>
+        );
+    }
+    return <div style={textStil}>{filled}</div>;
 }
 

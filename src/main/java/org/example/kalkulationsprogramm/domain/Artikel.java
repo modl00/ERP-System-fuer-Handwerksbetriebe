@@ -229,6 +229,26 @@ public class Artikel
     @Column(name = "pulverbeschichtungsgeeignet")
     private Boolean pulverbeschichtungsgeeignet;
 
+    /**
+     * Ein Grundartikel (z. B. "QH Quadratrohr") ist nur die Vorlage für seine Varianten: Er hat keine Preise und kommt in kein Angebot.
+     * Seine Varianten sind normale Artikel, die auf ihn zeigen.
+     */
+    @Column(name = "ist_grundartikel", nullable = false)
+    private boolean grundartikel;
+
+    /** Kurzbezeichnung des Grundartikels für die Namen seiner Varianten, z. B. "QH". */
+    @Column(name = "kurzbezeichnung", length = 32)
+    private String kurzbezeichnung;
+
+    /** Der Grundartikel, zu dem dieser Artikel als Variante gehört; leer bei allen anderen. */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "grundartikel_id")
+    private Artikel grundartikelRef;
+
+    /** Die Varianten dieses Grundartikels (leer bei allen anderen Artikeln). */
+    @OneToMany(mappedBy = "grundartikelRef")
+    private List<Artikel> varianten = new ArrayList<>();
+
     /** Vom System mitgelieferter Stammdatensatz - wird beim CSV-Import nicht ueberschrieben. */
     @Column(name = "system_stammdaten", nullable = false)
     private boolean systemStammdaten;

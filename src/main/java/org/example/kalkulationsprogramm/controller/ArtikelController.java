@@ -206,6 +206,8 @@ public class ArtikelController {
             @RequestParam(value = "profilform", required = false) String profilform,
             @RequestParam(value = "verzinkbar", required = false) Boolean verzinkbar,
             @RequestParam(value = "pulverbeschichtbar", required = false) Boolean pulverbeschichtbar,
+            @RequestParam(value = "ohneGrundartikel", defaultValue = "false") boolean ohneGrundartikel,
+            @RequestParam(value = "grundartikelId", required = false) Long grundartikelId,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size,
             @RequestParam(value = "sort", defaultValue = "produktname") String sort,
@@ -216,6 +218,14 @@ public class ArtikelController {
         Specification<Artikel> specification = buildArtikelSpecification(query, lieferant, produktlinie, werkstoff,
             kategorieId, kategorieIds, nurMitLieferantenpreis,
             herstellverfahren, fertigungszustand, profilform, verzinkbar, pulverbeschichtbar);
+        if (ohneGrundartikel) {
+            // Grundartikel sind nur Vorlagen: Im Auswahlfenster für Angebote haben sie nichts zu suchen
+            specification = specification.and((root, cq, cb) -> cb.isFalse(root.get("grundartikel")));
+        }
+        if (grundartikelId != null) {
+            final Long gid = grundartikelId;
+            specification = specification.and((root, cq, cb) -> cb.equal(root.get("grundartikelRef").get("id"), gid));
+        }
         Page<Artikel> result = artikelService.suche(specification,
                 PageRequest.of(pageIndex, pageSize, buildSort(sort, direction)));
 
@@ -343,6 +353,15 @@ public class ArtikelController {
         dto.setKurzbeschreibung(artikel.getKurzbeschreibung());
         dto.setBeschreibung(artikel.getBeschreibung());
         dto.setVerkaufsaufschlagProzent(artikel.getVerkaufsaufschlagProzent());
+        dto.setGrundartikel(artikel.isGrundartikel());
+        dto.setKurzbezeichnung(artikel.getKurzbezeichnung());
+        if (artikel.isGrundartikel()) {
+            dto.setVariantenAnzahl(artikel.getVarianten().size());
+        }
+        if (artikel.getGrundartikelRef() != null) {
+            dto.setGrundartikelId(artikel.getGrundartikelRef().getId());
+            dto.setGrundartikelName(artikel.getGrundartikelRef().getProduktname());
+        }
         var wirksam = artikelPositionsPreisService.geltenderAufschlag(artikel);
         if (wirksam != null) {
             dto.setWirksamProzent(wirksam.prozent());

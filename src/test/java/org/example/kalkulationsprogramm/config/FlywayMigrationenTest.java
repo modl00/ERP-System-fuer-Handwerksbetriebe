@@ -71,7 +71,8 @@ class FlywayMigrationenTest {
             Map.entry("V427__urlaub_uebertrag.sql", 483432275),
             Map.entry("V428__artikel_ean.sql", 368622790),
             Map.entry("V429__abteilung_darf_aufschlaege_aendern.sql", -1027148804),
-            Map.entry("V430__kategorie_aufschlag.sql", 361623221));
+            Map.entry("V430__kategorie_aufschlag.sql", 361623221),
+            Map.entry("V431__artikel_varianten.sql", 1613886149));
 
     private static final char BOM = 0xFEFF;
 

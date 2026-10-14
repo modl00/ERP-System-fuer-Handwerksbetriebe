@@ -27,6 +27,8 @@ public class ArtikelStammdatenRequest {
     private String produkttext;
     private String artikelnummer;
     private String ean;
+    /** Nur bei Grundartikeln: die Kurzbezeichnung für die Namen der Varianten (bei anderen Artikeln ignoriert). */
+    private String kurzbezeichnung;
     private Long verpackungseinheit;
     private String preiseinheit;
     private Verrechnungseinheit verrechnungseinheit;

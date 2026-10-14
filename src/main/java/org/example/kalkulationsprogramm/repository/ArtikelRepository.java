@@ -41,5 +41,8 @@ public interface ArtikelRepository extends JpaRepository<Artikel, Long>, JpaSpec
 
     @Query("select distinct a.produktlinie from Artikel a left join a.artikelpreis ap where (ap is null or ap.lieferant.id <> :lieferantId) and a.produktlinie is not null")
     List<String> findDistinctProduktlinieExcludingLieferant(@Param("lieferantId") Long lieferantId);
-}
 
+    boolean existsByGrundartikelTrueAndKurzbezeichnungIgnoreCase(String kurzbezeichnung);
+
+    java.util.List<Artikel> findByGrundartikelRef(Artikel grundartikel);
+}

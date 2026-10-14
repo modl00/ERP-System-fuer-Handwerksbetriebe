@@ -85,6 +85,19 @@ public class ArtikelResponseDto {
     /** Aufschlag auf den Einkaufspreis in Prozent. */
     private BigDecimal verkaufsaufschlagProzent;
 
+    /** Grundartikel = Vorlage für Varianten; kommt in kein Angebot. */
+    private boolean grundartikel;
+
+    private String kurzbezeichnung;
+
+    /** Bei Varianten: der Grundartikel, zu dem sie gehören. */
+    private Long grundartikelId;
+
+    private String grundartikelName;
+
+    /** Bei Grundartikeln: wie viele Varianten es gibt. */
+    private Integer variantenAnzahl;
+
     /** Der Aufschlag, der tatsaechlich gilt (Artikel, sonst Kategorie, sonst allgemein); {@code null} = keiner. */
     private BigDecimal wirksamProzent;
 

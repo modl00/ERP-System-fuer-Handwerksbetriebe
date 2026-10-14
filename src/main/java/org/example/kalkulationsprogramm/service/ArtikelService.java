@@ -243,6 +243,13 @@ public class ArtikelService implements ArtikelServiceContract {
         artikel.setProdukttext(text(r.getProdukttext(), MAX_PRODUKTTEXT, "Die Beschreibung"));
         artikel.setArtikelnummer(nummer);
         artikel.setEan(ean);
+        if (artikel.isGrundartikel()) {
+            String kurz = text(r.getKurzbezeichnung(), 32, "Die Kurzbezeichnung");
+            if (kurz == null) {
+                throw ungueltig("Ein Grundartikel braucht eine Kurzbezeichnung, zum Beispiel QH.");
+            }
+            artikel.setKurzbezeichnung(kurz);
+        }
         artikel.setVerpackungseinheit(r.getVerpackungseinheit());
         artikel.setPreiseinheit(text(r.getPreiseinheit(), 255, "Die Preiseinheit"));
         artikel.setVerrechnungseinheit(r.getVerrechnungseinheit());

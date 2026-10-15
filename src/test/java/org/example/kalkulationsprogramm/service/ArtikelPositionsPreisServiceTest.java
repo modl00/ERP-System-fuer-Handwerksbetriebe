@@ -24,6 +24,20 @@ class ArtikelPositionsPreisServiceTest {
     }
 
     @Test
+    void literwareFuehrtDieEinheitLUndRechnetMitAufschlag() {
+        Artikel oel = new Artikel();
+        oel.setVerrechnungseinheit(Verrechnungseinheit.LITER);
+        oel.setVerkaufsaufschlagProzent(new BigDecimal("25"));
+        mitPreis(oel, "3.20");
+
+        var vorschlag = service.berechne(oel);
+
+        assertThat(vorschlag.einheit()).isEqualTo("l");
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("4.00");
+        assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.OK);
+    }
+
+    @Test
     void meterwareUebernimmtDenMeterpreisUnveraendert() {
         Artikel rohr = new Artikel();
         rohr.setVerrechnungseinheit(Verrechnungseinheit.LAUFENDE_METER);
@@ -227,5 +241,124 @@ class ArtikelPositionsPreisServiceTest {
         assertThat(vorschlag.einheit()).isEqualTo("Stk");
         assertThat(vorschlag.einzelpreis()).isNull();
         assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.KEIN_PREIS);
+    }
+
+    @Test
+    void mitAufschlagsregelnZaehltDerWirksameAufschlagUndKilopreisUndAufschlagGehenZusammen() {
+        var regeln = org.mockito.Mockito.mock(AufschlagService.class);
+        var mitRegeln = new ArtikelPositionsPreisService(regeln);
+        // IPE-Träger: Einkauf je kg, Verkauf je Meter, Aufschlag aus der Kategorie
+        ArtikelWerkstoffe traeger = new ArtikelWerkstoffe();
+        traeger.setVerrechnungseinheit(Verrechnungseinheit.KILOGRAMM);
+        traeger.setMasse(new BigDecimal("10.0000"));
+        mitPreis(traeger, "1.20");
+        org.mockito.Mockito.when(regeln.wirksamer(traeger)).thenReturn(new AufschlagService.Wirksam(new BigDecimal("25"), AufschlagService.Quelle.KATEGORIE, "Träger"));
+
+        var vorschlag = mitRegeln.berechne(traeger);
+
+        // 1,20 je kg x 10 kg/m = 12,00 je m, +25 % = 15,00
+        assertThat(vorschlag.einheit()).isEqualTo("lfm");
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("15.00");
+        assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.OK);
+    }
+
+    @Test
+    void ohneJedenAufschlagBleibtEsBeimHinweisKeinAufschlag() {
+        var regeln = org.mockito.Mockito.mock(AufschlagService.class);
+        var mitRegeln = new ArtikelPositionsPreisService(regeln);
+        Artikel rohr = new Artikel();
+        rohr.setVerrechnungseinheit(Verrechnungseinheit.LAUFENDE_METER);
+        mitPreis(rohr, "6.00");
+        org.mockito.Mockito.when(regeln.wirksamer(rohr)).thenReturn(new AufschlagService.Wirksam(null, AufschlagService.Quelle.KEINER, null));
+
+        var vorschlag = mitRegeln.berechne(rohr);
+
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("6.00");
+        assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.KEIN_AUFSCHLAG);
+    }
+
+    @Test
+    void stueckwareMitKilopreisRechnetUeberDasGewichtJeStueck() {
+        ArtikelWerkstoffe konsole = new ArtikelWerkstoffe();
+        konsole.setVerrechnungseinheit(Verrechnungseinheit.KILOGRAMM);
+        konsole.setKgJeStueck(new BigDecimal("2.5000"));
+        konsole.setVerkaufsaufschlagProzent(BigDecimal.ZERO);
+        mitPreis(konsole, "2.00");
+
+        var vorschlag = service.berechne(konsole);
+
+        // 2,00 je kg × 2,5 kg je Stück = 5,00 je Stück
+        assertThat(vorschlag.einheit()).isEqualTo("Stk");
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("5.00");
+        assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.OK);
+    }
+
+    @Test
+    void meterwareMitStueckgewichtBleibtBeimMeter() {
+        ArtikelWerkstoffe traeger = new ArtikelWerkstoffe();
+        traeger.setVerrechnungseinheit(Verrechnungseinheit.KILOGRAMM);
+        traeger.setMasse(new BigDecimal("3.5000"));
+        traeger.setKgJeStueck(new BigDecimal("9.0000"));
+        traeger.setVerkaufsaufschlagProzent(BigDecimal.ZERO);
+        mitPreis(traeger, "2.00");
+
+        var vorschlag = service.berechne(traeger);
+
+        assertThat(vorschlag.einheit()).isEqualTo("lfm");
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("7.00");
+    }
+
+    @Test
+    void zuschnittMitKilopreisRechnetMitDemGewichtAusDerFormel() {
+        ArtikelWerkstoffe blech = new ArtikelWerkstoffe();
+        blech.setVerrechnungseinheit(Verrechnungseinheit.KILOGRAMM);
+        blech.setVerkaufsaufschlagProzent(new BigDecimal("10"));
+        mitPreis(blech, "2.00");
+
+        var v = service.berechneZuschnitt(blech, new BigDecimal("39.25"), new BigDecimal("1"));
+
+        // 2,00 je kg × 39,25 kg = 78,50, plus 10 % = 86,35 je Stück
+        assertThat(v.einheit()).isEqualTo("Stk");
+        assertThat(v.einzelpreis()).isEqualByComparingTo("86.35");
+        assertThat(v.hinweis()).isEqualTo(ArtikelPreisHinweis.OK);
+    }
+
+    @Test
+    void zuschnittMitPreisJeQuadratmeterRechnetMitDerFlaecheAusDerFormel() {
+        ArtikelWerkstoffe blech = new ArtikelWerkstoffe();
+        blech.setVerrechnungseinheit(Verrechnungseinheit.QUADRATMETER);
+        blech.setVerkaufsaufschlagProzent(BigDecimal.ZERO);
+        mitPreis(blech, "40.00");
+
+        var v = service.berechneZuschnitt(blech, new BigDecimal("39.25"), new BigDecimal("0.5"));
+
+        assertThat(v.einheit()).isEqualTo("Stk");
+        assertThat(v.einzelpreis()).isEqualByComparingTo("20.00");
+    }
+
+    @Test
+    void zuschnittMitStueckpreisBleibtBeimStueckpreis() {
+        ArtikelWerkstoffe teil = new ArtikelWerkstoffe();
+        teil.setVerrechnungseinheit(Verrechnungseinheit.STUECK);
+        teil.setVerkaufsaufschlagProzent(BigDecimal.ZERO);
+        mitPreis(teil, "7.50");
+
+        var v = service.berechneZuschnitt(teil, null, null);
+
+        assertThat(v.einheit()).isEqualTo("Stk");
+        assertThat(v.einzelpreis()).isEqualByComparingTo("7.50");
+    }
+
+    @Test
+    void zuschnittOhneBerechenbaresGewichtMeldetKeinGewicht() {
+        ArtikelWerkstoffe blech = new ArtikelWerkstoffe();
+        blech.setVerrechnungseinheit(Verrechnungseinheit.KILOGRAMM);
+        mitPreis(blech, "2.00");
+
+        var v = service.berechneZuschnitt(blech, null, null);
+
+        assertThat(v.einheit()).isEqualTo("Stk");
+        assertThat(v.einzelpreis()).isNull();
+        assertThat(v.hinweis()).isEqualTo(ArtikelPreisHinweis.KEIN_GEWICHT);
     }
 }

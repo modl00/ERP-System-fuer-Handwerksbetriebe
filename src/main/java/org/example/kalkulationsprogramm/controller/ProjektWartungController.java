@@ -1,6 +1,5 @@
 package org.example.kalkulationsprogramm.controller;
 
-import org.example.kalkulationsprogramm.config.ClientIpResolver;
 import org.example.kalkulationsprogramm.config.FrontendUserPrincipal;
 import org.example.kalkulationsprogramm.service.AusgangsGeschaeftsDokumentService;
 import org.example.kalkulationsprogramm.service.AusgangsGeschaeftsDokumentService.PreisNachtragErgebnis;
@@ -29,7 +28,6 @@ import lombok.AllArgsConstructor;
 public class ProjektWartungController {
 
     private final AusgangsGeschaeftsDokumentService ausgangsGeschaeftsDokumentService;
-    private final ClientIpResolver clientIpResolver;
 
     /**
      * Trägt bei allen Projekten ohne Auftragspreis den Preis aus den Dokumenten nach
@@ -61,7 +59,11 @@ public class ProjektWartungController {
             Authentication authentication, HttpServletRequest request) {
         // GoBD: Der Lauf fasst festgeschriebene Belege an — der ausloesende Benutzer
         // gehoert in den Audit-Eintrag, nicht nur "system".
+        Long bearbeiterId = authentication != null
+                && authentication.getPrincipal() instanceof FrontendUserPrincipal p
+                        ? p.getId()
+                        : null;
         return ResponseEntity.ok(ausgangsGeschaeftsDokumentService
-                .korrigiereRabattBetraege(FrontendUserPrincipal.idAus(authentication), clientIpResolver.resolve(request)));
+                .korrigiereRabattBetraege(bearbeiterId, request.getRemoteAddr()));
     }
 }

@@ -35,6 +35,41 @@ public class ArtikelWerkstoffe extends Artikel
     @Column(name = "mantelflaeche", precision = 12, scale = 4)
     private BigDecimal mantelflaeche;
 
+    /**
+     * Oberflaeche in m2 je m2 Blech. Leer = beide Seiten (2). Grundlage fuer Pulverbeschichten von Blechen
+     * (ein Lochblech hat weniger, ein Riffelblech etwas mehr).
+     */
+    @Column(name = "flaeche_je_qm", precision = 10, scale = 4)
+    private BigDecimal flaecheJeQm;
+
+    /** Gewicht je Stueck in kg - fuer Artikel, die in Stueck gefuehrt werden (Zuschnitte, Konsolen). */
+    @Column(name = "kg_je_stueck", precision = 12, scale = 4)
+    private BigDecimal kgJeStueck;
+
+    /** Aussenflaeche je Stueck in m2 (zum Pulverbeschichten). */
+    @Column(name = "m2_je_stueck", precision = 12, scale = 4)
+    private BigDecimal m2JeStueck;
+
+    /** Woher das Gewicht kommt: {@code TABELLE}, {@code BERECHNET} oder {@code HAND}; leer = unbekannt (aeltere Artikel). */
+    @Column(name = "gewicht_herkunft", length = 12)
+    private String gewichtHerkunft;
+
+    /** Dichte in kg/dm3, mit der ein berechnetes Gewicht entstand. Aendert sich der Werkstoff, ist das Gewicht veraltet. */
+    @Column(name = "gewicht_dichte", precision = 8, scale = 4)
+    private BigDecimal gewichtDichte;
+
+    /** Zuschnitt-Formel (#228): Eingabefelder als JSON (Name, Bezeichnung, Einheit, Standardwert). */
+    @Column(name = "formel_felder_json", length = 4000)
+    private String formelFelderJson;
+
+    /** Formel fuer das Gewicht in kg je Stueck (Verzinken); leer = keine Formel. */
+    @Column(name = "formel_gewicht", length = 500)
+    private String formelGewicht;
+
+    /** Formel fuer die Aussenflaeche in m2 je Stueck (Pulverbeschichten); leer = keine Formel. */
+    @Column(name = "formel_flaeche", length = 500)
+    private String formelFlaeche;
+
     /** Oberflaeche geschliffen (z.B. Korn 240) - bei Edelstahl im Sichtbereich ueblich. */
     @Column(name = "geschliffen", nullable = false)
     private boolean geschliffen;

@@ -1,0 +1,24 @@
+# Gitea Actions Runner – baut Docker-Images bei jedem Push auf main
+# Einmalig registrieren – Token aus Gitea: Settings → Actions → Runners → "New Runner"
+# oder API: POST /api/v1/repos/M/ERP-Handwerk/actions/runners/registration-token
+#
+# Token in runner.env eintragen (wird nicht eingecheckt), dann:
+#   docker compose up -d
+
+services:
+  runner:
+    image: gitea/act_runner:latest
+    container_name: gitea-runner
+    restart: unless-stopped
+    env_file:
+      - runner.env
+    volumes:
+      - runner-data:/data
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      GITEA_INSTANCE_URL: http://192.168.178.21:3050
+      GITEA_RUNNER_NAME: erp-runner
+      GITEA_RUNNER_LABELS: docker
+
+volumes:
+  runner-data:

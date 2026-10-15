@@ -1,0 +1,21 @@
+name: Docker Image bauen
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  build:
+    runs-on: docker
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Image bauen und taggen
+        run: |
+          docker build -t erp-handwerk:main -t erp-handwerk:${{ gitea.sha }} .
+          echo "✓ Image erp-handwerk:main gebaut"
+
+      - name: Build-Info ausgeben
+        run: |
+          docker images erp-handwerk

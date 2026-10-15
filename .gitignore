@@ -146,3 +146,4 @@ previewConfig.json
 
 # Python (scripts/basis-schema)
 __pycache__/
+deployment/gitea-runner/runner.env

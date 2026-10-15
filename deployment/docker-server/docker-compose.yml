@@ -51,9 +51,9 @@ services:
       # Das ERP selbst verbindet sich mit einer eigenen Rolle ohne Superuser-
       # Rechte (postgres-init/01-app-rolle.sh legt sie beim ersten Start an).
       POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:?DB_ROOT_PASSWORD fehlt in .env - zuerst einrichten}
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:-CHANGE_ME_ROOT_PW}
       ERP_DB_USER: ${DB_USER:-erp_user}
-      ERP_DB_PASSWORD: ${DB_PASSWORD:?DB_PASSWORD fehlt in .env - zuerst einrichten}
+      ERP_DB_PASSWORD: ${DB_PASSWORD:-CHANGE_ME_DB_PW}
       POSTGRES_INITDB_ARGS: --encoding=UTF8
       TZ: Europe/Berlin
     volumes:
@@ -104,7 +104,7 @@ services:
       # Version mehr zurueckkommen kann.
       SPRING_PROFILES_ACTIVE: docker,postgres
       APP_DB_USER: ${DB_USER:-erp_user}
-      APP_DB_PASS: ${DB_PASSWORD}
+      APP_DB_PASS: ${DB_PASSWORD:-CHANGE_ME_DB_PW}
       APP_ADMIN_USER: ${APP_ADMIN_USER:-}
       APP_ADMIN_PASS: ${APP_ADMIN_PASS:-}
       ZEITERFASSUNG_URL: ${ZEITERFASSUNG_URL:-http://localhost:8080}

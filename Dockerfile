@@ -16,8 +16,9 @@ COPY react-pc-frontend react-pc-frontend
 COPY react-zeiterfassung react-zeiterfassung
 
 # Beide Builds schreiben nach ../src/main/resources/static (siehe vite.config.ts)
-RUN npm run build --prefix react-pc-frontend \
- && npm run build --prefix react-zeiterfassung
+# NODE_OPTIONS begrenzt den Heap auf 512 MB damit der Build auch auf NAS-Hardware durchläuft
+RUN NODE_OPTIONS=--max-old-space-size=512 npm run build --prefix react-pc-frontend \
+ && NODE_OPTIONS=--max-old-space-size=512 npm run build --prefix react-zeiterfassung
 
 # ===== Stage 2: Build the Spring Boot JAR =====
 FROM eclipse-temurin:23-jdk AS builder

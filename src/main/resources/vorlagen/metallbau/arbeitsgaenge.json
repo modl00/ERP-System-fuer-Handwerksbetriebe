@@ -1,0 +1,288 @@
+{
+  "hinweis": "Mitgelieferte Arbeitsgänge für Metallbau. Die Formeln folgen den üblichen Zeitformeln der Fertigungstechnik (Hauptzeit = Weg durch Geschwindigkeit, dazu Nebenzeit). Die Standardwerte in den Feldern sind grobe Richtwerte und gehören an Ihre Maschinen und Erfahrungswerte angepasst. Stundensätze gehören nicht dazu: Sie kommen aus Ihrer Kostenrechnung.",
+  "arbeitsgaenge": [
+    {
+      "name": "Sägen (Band- oder Kreissäge)",
+      "abteilung": "Werkstatt",
+      "einheit": "je Schnitt",
+      "erklaerung": "Zeit je Schnitt = Schnittfläche durch Schnittleistung des Sägebands plus Nebenzeit (Einlegen, Anschlag, Entnehmen). Rüsten: Maschine und Anschlag einstellen.",
+      "felder": [
+        {"name": "schnittflaeche", "bezeichnung": "Schnittfläche des Profils", "einheit": "cm²", "standard": "15"},
+        {"name": "schnittleistung", "bezeichnung": "Schnittleistung der Säge", "einheit": "cm²/min", "standard": "25"},
+        {"name": "nebenzeit", "bezeichnung": "Nebenzeit je Schnitt (Einlegen, Anschlag)", "einheit": "min", "standard": "0,5"}
+      ],
+      "bearbeitung": "schnittflaeche/schnittleistung+nebenzeit",
+      "ruest": "5"
+    },
+    {
+      "name": "Brennschneiden / Plasmaschneiden",
+      "abteilung": "Werkstatt",
+      "einheit": "je Teil",
+      "erklaerung": "Zeit je Teil = Schnittlänge durch Schneidgeschwindigkeit plus Zeit für das Einstechen und Positionieren.",
+      "felder": [
+        {"name": "laenge", "bezeichnung": "Schnittlänge", "einheit": "mm", "standard": "600"},
+        {"name": "geschwindigkeit", "bezeichnung": "Schneidgeschwindigkeit (nach Blechdicke)", "einheit": "mm/min", "standard": "1500"},
+        {"name": "einstiche", "bezeichnung": "Anzahl Einstiche", "einheit": "Stück", "standard": "1"},
+        {"name": "positionieren", "bezeichnung": "Auflegen und Ausrichten", "einheit": "min", "standard": "2"}
+      ],
+      "bearbeitung": "laenge/geschwindigkeit+einstiche*0,15+positionieren",
+      "ruest": "10"
+    },
+    {
+      "name": "Bohren (Ständerbohrmaschine)",
+      "abteilung": "Werkstatt",
+      "einheit": "je Bohrung",
+      "erklaerung": "Hauptzeit = (Bohrtiefe + Anlaufweg ca. 0,3 mal Durchmesser) durch (Vorschub mal Drehzahl). Drehzahl = Schnittgeschwindigkeit mal 1000 durch (pi mal Durchmesser). Vorschub je Umdrehung = Faktor mal Durchmesser (Richtwert 0,01 bis 0,02). Dazu Nebenzeit zum Anreißen und Positionieren.",
+      "felder": [
+        {"name": "durchmesser", "bezeichnung": "Bohrerdurchmesser", "einheit": "mm", "standard": "10"},
+        {"name": "tiefe", "bezeichnung": "Bohrtiefe (Materialdicke)", "einheit": "mm", "standard": "8"},
+        {"name": "schnittgeschw", "bezeichnung": "Schnittgeschwindigkeit (Baustahl, HSS ca. 20 bis 30)", "einheit": "m/min", "standard": "25"},
+        {"name": "vorschubfaktor", "bezeichnung": "Vorschub je Umdrehung geteilt durch Durchmesser", "einheit": "", "standard": "0,015"},
+        {"name": "nebenzeit", "bezeichnung": "Nebenzeit je Bohrung (Positionieren, Spänen)", "einheit": "min", "standard": "0,4"}
+      ],
+      "bearbeitung": "(tiefe+0,3*durchmesser)/((vorschubfaktor*durchmesser)*(schnittgeschw*1000/(pi*durchmesser)))+nebenzeit",
+      "ruest": "3"
+    },
+    {
+      "name": "Gewinde schneiden",
+      "abteilung": "Werkstatt",
+      "einheit": "je Gewinde",
+      "erklaerung": "Zeit = zweimal Gewindetiefe (vor und zurück) durch (Steigung mal Drehzahl) plus Nebenzeit zum Ansetzen und Entgraten.",
+      "felder": [
+        {"name": "tiefe", "bezeichnung": "Gewindetiefe", "einheit": "mm", "standard": "12"},
+        {"name": "steigung", "bezeichnung": "Steigung (M8 = 1,25; M10 = 1,5; M12 = 1,75)", "einheit": "mm", "standard": "1,25"},
+        {"name": "drehzahl", "bezeichnung": "Drehzahl beim Gewindeschneiden", "einheit": "1/min", "standard": "150"},
+        {"name": "nebenzeit", "bezeichnung": "Nebenzeit je Gewinde", "einheit": "min", "standard": "0,5"}
+      ],
+      "bearbeitung": "2*tiefe/(steigung*drehzahl)+nebenzeit",
+      "ruest": "3"
+    },
+    {
+      "name": "Abkanten (Kantbank)",
+      "abteilung": "Werkstatt",
+      "einheit": "je Teil",
+      "erklaerung": "Zeit je Teil = Anzahl Kantungen mal Zeit je Kantung (Anlegen, Biegen, Entnehmen) plus Zuschlag für lange Teile je Meter Kantlänge.",
+      "felder": [
+        {"name": "kantungen", "bezeichnung": "Anzahl Kantungen", "einheit": "Stück", "standard": "2"},
+        {"name": "zeitkantung", "bezeichnung": "Zeit je Kantung", "einheit": "min", "standard": "0,6"},
+        {"name": "kantlaenge", "bezeichnung": "Kantlänge", "einheit": "m", "standard": "1"},
+        {"name": "zuschlagmeter", "bezeichnung": "Zuschlag je Meter Kantlänge", "einheit": "min/m", "standard": "0,3"}
+      ],
+      "bearbeitung": "kantungen*(zeitkantung+kantlaenge*zuschlagmeter)",
+      "ruest": "15"
+    },
+    {
+      "name": "Rohr oder Profil biegen",
+      "abteilung": "Werkstatt",
+      "einheit": "je Teil",
+      "erklaerung": "Zeit je Teil = Anzahl Biegungen mal Zeit je Biegung (Einlegen, Biegen, Prüfen mit Schablone).",
+      "felder": [
+        {"name": "biegungen", "bezeichnung": "Anzahl Biegungen", "einheit": "Stück", "standard": "1"},
+        {"name": "zeitbiegung", "bezeichnung": "Zeit je Biegung", "einheit": "min", "standard": "3"}
+      ],
+      "bearbeitung": "biegungen*zeitbiegung",
+      "ruest": "15"
+    },
+    {
+      "name": "Zusammenbau und Heften",
+      "abteilung": "Werkstatt",
+      "einheit": "je Baugruppe",
+      "erklaerung": "Zeit je Baugruppe = Anzahl Einzelteile mal Zeit je Teil (anlegen, ausrichten, heften) plus Zeit für das Messen und Prüfen der Maße.",
+      "felder": [
+        {"name": "teile", "bezeichnung": "Anzahl Einzelteile", "einheit": "Stück", "standard": "4"},
+        {"name": "zeitteil", "bezeichnung": "Zeit je Teil", "einheit": "min", "standard": "3"},
+        {"name": "messen", "bezeichnung": "Maße messen und prüfen", "einheit": "min", "standard": "5"}
+      ],
+      "bearbeitung": "teile*zeitteil+messen",
+      "ruest": "10"
+    },
+    {
+      "name": "Schweißen (MAG)",
+      "abteilung": "Werkstatt",
+      "einheit": "je Baugruppe",
+      "erklaerung": "Hauptzeit = Nahtlänge durch Schweißgeschwindigkeit (Lichtbogenzeit). Dazu ein Zuschlag für Nebenzeiten wie Positionieren, Schlacke und Spritzer entfernen, Drahtwechsel (üblich 30 bis 50 Prozent). Die Schweißgeschwindigkeit hängt von Naht, Position und Verfahren ab; im Zweifel aus der Schweißanweisung (WPS) übernehmen.",
+      "felder": [
+        {"name": "nahtlaenge", "bezeichnung": "Gesamte Nahtlänge", "einheit": "cm", "standard": "100"},
+        {"name": "geschwindigkeit", "bezeichnung": "Schweißgeschwindigkeit (Kehlnaht a3, MAG)", "einheit": "cm/min", "standard": "30"},
+        {"name": "zuschlag", "bezeichnung": "Zuschlag für Nebenzeiten", "einheit": "%", "standard": "40"}
+      ],
+      "bearbeitung": "nahtlaenge/geschwindigkeit*(1+zuschlag/100)",
+      "ruest": "10"
+    },
+    {
+      "name": "Schweißnähte verschleifen",
+      "abteilung": "Werkstatt",
+      "einheit": "je Baugruppe",
+      "erklaerung": "Zeit = Nahtlänge durch Schleifgeschwindigkeit plus Nebenzeit (Scheibenwechsel, Absaugen, Prüfen).",
+      "felder": [
+        {"name": "nahtlaenge", "bezeichnung": "Zu verschleifende Nahtlänge", "einheit": "cm", "standard": "100"},
+        {"name": "geschwindigkeit", "bezeichnung": "Schleifgeschwindigkeit", "einheit": "cm/min", "standard": "25"},
+        {"name": "nebenzeit", "bezeichnung": "Nebenzeit", "einheit": "min", "standard": "2"}
+      ],
+      "bearbeitung": "nahtlaenge/geschwindigkeit+nebenzeit",
+      "ruest": "2"
+    },
+    {
+      "name": "Flächen schleifen",
+      "abteilung": "Werkstatt",
+      "einheit": "je Teil",
+      "erklaerung": "Zeit = Fläche durch Flächenleistung (Fächerscheibe, Bandschleifer) plus Nebenzeit.",
+      "felder": [
+        {"name": "flaeche", "bezeichnung": "Zu schleifende Fläche", "einheit": "dm²", "standard": "20"},
+        {"name": "leistung", "bezeichnung": "Flächenleistung", "einheit": "dm²/min", "standard": "2"},
+        {"name": "nebenzeit", "bezeichnung": "Nebenzeit", "einheit": "min", "standard": "2"}
+      ],
+      "bearbeitung": "flaeche/leistung+nebenzeit",
+      "ruest": "2"
+    },
+    {
+      "name": "Entgraten",
+      "abteilung": "Werkstatt",
+      "einheit": "je Teil",
+      "erklaerung": "Zeit = Anzahl Kanten mal Zeit je Kante.",
+      "felder": [
+        {"name": "kanten", "bezeichnung": "Anzahl Kanten und Bohrungen", "einheit": "Stück", "standard": "6"},
+        {"name": "zeitkante", "bezeichnung": "Zeit je Kante", "einheit": "min", "standard": "0,3"}
+      ],
+      "bearbeitung": "kanten*zeitkante",
+      "ruest": null
+    },
+    {
+      "name": "Richten",
+      "abteilung": "Werkstatt",
+      "einheit": "je Baugruppe",
+      "erklaerung": "Verzug nach dem Schweißen beseitigen. Zeit = Anzahl Richtstellen mal Zeit je Stelle plus Messen.",
+      "felder": [
+        {"name": "stellen", "bezeichnung": "Anzahl Richtstellen", "einheit": "Stück", "standard": "3"},
+        {"name": "zeitstelle", "bezeichnung": "Zeit je Stelle", "einheit": "min", "standard": "4"},
+        {"name": "messen", "bezeichnung": "Messen und Prüfen", "einheit": "min", "standard": "3"}
+      ],
+      "bearbeitung": "stellen*zeitstelle+messen",
+      "ruest": null
+    },
+    {
+      "name": "Beschichtung vorbereiten (Aufhängen, Abkleben)",
+      "abteilung": "Werkstatt",
+      "einheit": "je Teil",
+      "erklaerung": "Zeit = Anzahl Teile mal Zeit je Teil für das Aufhängen, Verschließen von Gewinden und Abkleben. Verzinken und Pulverbeschichten selbst sind Leistungen des Veredlers (Fremdleistung).",
+      "felder": [
+        {"name": "teile", "bezeichnung": "Anzahl Teile", "einheit": "Stück", "standard": "1"},
+        {"name": "zeitteil", "bezeichnung": "Zeit je Teil", "einheit": "min", "standard": "2"}
+      ],
+      "bearbeitung": "teile*zeitteil",
+      "ruest": null
+    },
+    {
+      "name": "Grundieren / Streichen",
+      "abteilung": "Werkstatt",
+      "einheit": "je Teil",
+      "erklaerung": "Zeit = Fläche mal Zeit je Quadratmeter (Rollen oder Spritzen) plus Zeit zum Abdecken und Aufräumen. Trocknungszeit ist keine Arbeitszeit und steht nicht darin.",
+      "felder": [
+        {"name": "flaeche", "bezeichnung": "Zu streichende Fläche", "einheit": "m²", "standard": "2"},
+        {"name": "zeitm2", "bezeichnung": "Zeit je Quadratmeter", "einheit": "min/m²", "standard": "6"},
+        {"name": "nebenzeit", "bezeichnung": "Abdecken und Aufräumen", "einheit": "min", "standard": "5"}
+      ],
+      "bearbeitung": "flaeche*zeitm2+nebenzeit",
+      "ruest": null
+    },
+    {
+      "name": "Montage in der Werkstatt",
+      "abteilung": "Werkstatt",
+      "einheit": "je Stück",
+      "erklaerung": "Zusammenbau von Schlosserei-Teilen (Schrauben, Beschläge, Füllungen einsetzen). Zeit = Anzahl Verbindungen mal Zeit je Verbindung.",
+      "felder": [
+        {"name": "verbindungen", "bezeichnung": "Anzahl Verbindungen (Schrauben, Beschläge)", "einheit": "Stück", "standard": "8"},
+        {"name": "zeitverbindung", "bezeichnung": "Zeit je Verbindung", "einheit": "min", "standard": "1,5"}
+      ],
+      "bearbeitung": "verbindungen*zeitverbindung",
+      "ruest": null
+    },
+    {
+      "name": "Montage auf der Baustelle",
+      "abteilung": "Montage",
+      "einheit": "je Stück",
+      "erklaerung": "Zeit = Anzahl Befestigungspunkte mal Zeit je Punkt (Anzeichnen, Bohren, Dübel, Verschrauben) plus Ausrichten und Prüfen. Wege und Fahrzeit sind eigene Arbeitsgänge.",
+      "felder": [
+        {"name": "punkte", "bezeichnung": "Anzahl Befestigungspunkte", "einheit": "Stück", "standard": "4"},
+        {"name": "zeitpunkt", "bezeichnung": "Zeit je Befestigungspunkt", "einheit": "min", "standard": "10"},
+        {"name": "ausrichten", "bezeichnung": "Ausrichten und Prüfen", "einheit": "min", "standard": "15"}
+      ],
+      "bearbeitung": "punkte*zeitpunkt+ausrichten",
+      "ruest": "20"
+    },
+    {
+      "name": "Fahrt zur Baustelle",
+      "abteilung": "Montage",
+      "einheit": "je Fahrt",
+      "erklaerung": "Zeit = Entfernung durch Durchschnittsgeschwindigkeit mal 60, hin und zurück (mal 2).",
+      "felder": [
+        {"name": "entfernung", "bezeichnung": "Entfernung einfach", "einheit": "km", "standard": "30"},
+        {"name": "tempo", "bezeichnung": "Durchschnittsgeschwindigkeit", "einheit": "km/h", "standard": "50"}
+      ],
+      "bearbeitung": "entfernung/tempo*60*2",
+      "ruest": null
+    },
+    {
+      "name": "Verladen und Transport",
+      "abteilung": "Montage",
+      "einheit": "je Ladung",
+      "erklaerung": "Zeit = Anzahl Teile mal Zeit je Teil zum Verladen und Sichern, einmal zum Laden und einmal zum Entladen.",
+      "felder": [
+        {"name": "teile", "bezeichnung": "Anzahl Teile", "einheit": "Stück", "standard": "6"},
+        {"name": "zeitteil", "bezeichnung": "Zeit je Teil (Laden und Sichern)", "einheit": "min", "standard": "3"}
+      ],
+      "bearbeitung": "teile*zeitteil*2",
+      "ruest": null
+    },
+    {
+      "name": "Aufmaß",
+      "abteilung": "Montage",
+      "einheit": "je Termin",
+      "erklaerung": "Zeit = Anzahl Messstellen mal Zeit je Stelle plus Zeichnen der Skizze und Fotos.",
+      "felder": [
+        {"name": "stellen", "bezeichnung": "Anzahl Messstellen", "einheit": "Stück", "standard": "8"},
+        {"name": "zeitstelle", "bezeichnung": "Zeit je Messstelle", "einheit": "min", "standard": "4"},
+        {"name": "skizze", "bezeichnung": "Skizze und Fotos", "einheit": "min", "standard": "20"}
+      ],
+      "bearbeitung": "stellen*zeitstelle+skizze",
+      "ruest": null
+    },
+    {
+      "name": "Konstruktion und Zeichnen",
+      "abteilung": "Büro",
+      "einheit": "je Auftrag",
+      "erklaerung": "Zeit = Anzahl Bauteile mal Zeit je Bauteil für die Werkstattzeichnung plus Abstimmung und Freigabe.",
+      "felder": [
+        {"name": "bauteile", "bezeichnung": "Anzahl verschiedener Bauteile", "einheit": "Stück", "standard": "5"},
+        {"name": "zeitteil", "bezeichnung": "Zeit je Bauteil", "einheit": "min", "standard": "20"},
+        {"name": "abstimmung", "bezeichnung": "Abstimmung und Freigabe", "einheit": "min", "standard": "30"}
+      ],
+      "bearbeitung": "bauteile*zeitteil+abstimmung",
+      "ruest": null
+    },
+    {
+      "name": "Arbeitsvorbereitung und Stückliste",
+      "abteilung": "Büro",
+      "einheit": "je Auftrag",
+      "erklaerung": "Zeit = Anzahl Positionen der Stückliste mal Zeit je Position (Material, Zuschnittliste, Bestellung).",
+      "felder": [
+        {"name": "positionen", "bezeichnung": "Anzahl Positionen der Stückliste", "einheit": "Stück", "standard": "12"},
+        {"name": "zeitposition", "bezeichnung": "Zeit je Position", "einheit": "min", "standard": "4"}
+      ],
+      "bearbeitung": "positionen*zeitposition",
+      "ruest": null
+    },
+    {
+      "name": "Kontrolle und Dokumentation",
+      "abteilung": "Werkstatt",
+      "einheit": "je Auftrag",
+      "erklaerung": "Zeit = Sichtprüfung der Nähte und Maße plus Fotos und Protokoll (zum Beispiel für die Werkseigene Produktionskontrolle).",
+      "felder": [
+        {"name": "pruefung", "bezeichnung": "Sicht- und Maßprüfung", "einheit": "min", "standard": "15"},
+        {"name": "protokoll", "bezeichnung": "Fotos und Protokoll", "einheit": "min", "standard": "10"}
+      ],
+      "bearbeitung": "pruefung+protokoll",
+      "ruest": null
+    }
+  ]
+}

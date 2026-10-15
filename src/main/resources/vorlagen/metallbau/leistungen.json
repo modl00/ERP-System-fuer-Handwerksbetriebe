@@ -1,0 +1,354 @@
+{
+  "hinweis": "Fertige Leistungen für Metallbau mit erfundenen Zeiten und Mengen als Ausgangspunkt. Sie sind vollständig verschachtelt: Leistungen benutzen Baugruppen, Baugruppen benutzen Artikel aus dem Artikelstamm (Stahlprofile und Bleche), Arbeitsgänge mit ihren Maschinen und Fremdleistungen (Verzinken, Pulverbeschichten). Zeiten in Minuten, Mengen je Einheit der Leistung. Alle Zahlen sind Beispielwerte und gehören an Ihre Werkstatt angepasst. Es werden keine Preise, Stundensätze und keine echten Lieferanten angelegt: Die Lieferanten tragen den Zusatz (Beispiel) und lassen sich umbenennen.",
+  "kategorien": [
+    { "name": "Geländer und Handläufe", "unter": ["Geländer", "Handläufe"] },
+    { "name": "Treppen", "unter": [] },
+    { "name": "Tore und Zäune", "unter": ["Tore", "Zäune"] },
+    { "name": "Vordächer und Überdachungen", "unter": [] },
+    { "name": "Gitter und Sicherungen", "unter": [] },
+    { "name": "Stahlbau und Konstruktion", "unter": [] },
+    { "name": "Baugruppen (Bauteile)", "unter": [] }
+  ],
+  "maschinen": [
+    { "name": "Bandsäge (Beispiel)", "satz": "18.00", "bemerkung": "Beispielwert: Kostensatz je Betriebsstunde, bitte an Ihre Maschine anpassen.", "arbeitsgaenge": ["Sägen (Band- oder Kreissäge)"] },
+    { "name": "Plasmaschneidanlage (Beispiel)", "satz": "42.00", "bemerkung": "Beispielwert", "arbeitsgaenge": ["Brennschneiden / Plasmaschneiden"] },
+    { "name": "Ständerbohrmaschine (Beispiel)", "satz": "9.00", "bemerkung": "Beispielwert", "arbeitsgaenge": ["Bohren (Ständerbohrmaschine)", "Gewinde schneiden"] },
+    { "name": "Abkantpresse (Beispiel)", "satz": "35.00", "bemerkung": "Beispielwert", "arbeitsgaenge": ["Abkanten (Kantbank)"] },
+    { "name": "Rohrbiegemaschine (Beispiel)", "satz": "22.00", "bemerkung": "Beispielwert", "arbeitsgaenge": ["Rohr oder Profil biegen"] },
+    { "name": "MAG-Schweißanlage (Beispiel)", "satz": "15.00", "bemerkung": "Beispielwert", "arbeitsgaenge": ["Schweißen (MAG)"] },
+    { "name": "Schleifmaschinen (Beispiel)", "satz": "6.00", "bemerkung": "Beispielwert", "arbeitsgaenge": ["Schweißnähte verschleifen", "Flächen schleifen"] }
+  ],
+  "fremdleistungen": [
+    {
+      "lieferant": "Feuerverzinkerei (Beispiel)", "rolle": "BESCHICHTUNG_VERZINKEN", "lieferzeitTage": 8,
+      "bezeichnung": "Feuerverzinken", "einheit": "KG", "preis": "0.62", "mindestpreis": "95", "einmal": null, "anteil": "90", "charge": "600",
+      "transportArt": "KEINE", "transportBetrag": null,
+      "erklaerung": "Verzinkt wird in Ladungen (Chargen): Der Veredler taucht mehrere Aufträge gemeinsam in einem Durchgang. Kosten je Ladung (hier 90 Euro) teilen sich auf die Menge der Ladung (hier 600 kg) auf."
+    },
+    {
+      "lieferant": "Pulverbeschichtung (Beispiel)", "rolle": "LACKIERER", "lieferzeitTage": 6,
+      "bezeichnung": "Pulverbeschichten, einschichtig", "einheit": "QUADRATMETER", "preis": "13.50", "mindestpreis": "85", "einmal": "15", "anteil": null, "charge": null,
+      "transportArt": "KEINE", "transportBetrag": null,
+      "erklaerung": "Abgerechnet wird nach Fläche. Einmalig je Auftrag kommen 15 Euro für Aufhängen und Rüsten dazu."
+    }
+  ],
+  "leistungen": [
+    {
+      "name": "Geländerpfosten, Quadratrohr 40x3, mit Fußplatte", "einheit": "STUECK", "kategorie": "Baugruppen (Bauteile)", "baugruppe": true, "losgroesse": 10,
+      "beschreibung": "Pfosten 1,1 m aus Quadratrohr 40x40x3 mit Fußplatte 150x150x8 und vier Bohrungen.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-QR-40x3", "menge": "1.1", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-BL-8", "menge": "0.0225", "verschnitt": "10" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "1.5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Brennschneiden / Plasmaschneiden", "ruest": "10", "bearbeitung": "2.5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Bohren (Ständerbohrmaschine)", "ruest": "3", "bearbeitung": "0.8", "anzahl": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "10", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "8" },
+        { "typ": "ARBEIT", "arbeitsgang": "Entgraten", "bearbeitung": "1.5" }
+      ]
+    },
+    {
+      "name": "Handlauf, Rundrohr 42,4x2,6, gebogen", "einheit": "LAUFENDE_METER", "kategorie": "Baugruppen (Bauteile)", "baugruppe": true, "losgroesse": 10,
+      "beschreibung": "Handlauf aus Rundrohr 42,4 mm; gesägt, gebogen und entgratet.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-RR-42.4x2.6", "menge": "1", "verschnitt": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "1.2", "anzahl": "0.5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Rohr oder Profil biegen", "ruest": "15", "bearbeitung": "4", "anzahl": "0.3" },
+        { "typ": "ARBEIT", "arbeitsgang": "Entgraten", "bearbeitung": "0.6" }
+      ]
+    },
+    {
+      "name": "Füllstäbe, Rundstahl 12, je Meter Geländer", "einheit": "LAUFENDE_METER", "kategorie": "Baugruppen (Bauteile)", "baugruppe": true, "losgroesse": 10,
+      "beschreibung": "Neun senkrechte Stäbe je Meter Geländer, 0,95 m lang, an den Enden geheftet.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-RS-12", "menge": "8.6", "verschnitt": "3" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "0.4", "anzahl": "9" },
+        { "typ": "ARBEIT", "arbeitsgang": "Entgraten", "bearbeitung": "0.2", "anzahl": "9" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "0", "bearbeitung": "0.7", "anzahl": "18" }
+      ]
+    },
+    {
+      "name": "Treppenwange, Flachstahl 150x10, 3,2 m", "einheit": "STUECK", "kategorie": "Baugruppen (Bauteile)", "baugruppe": true, "losgroesse": 2,
+      "beschreibung": "Wange einer geraden Treppe: zugeschnitten, mit zwölf Bohrungen für die Stufenwinkel.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-FS-150x10", "menge": "3.2", "verschnitt": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Brennschneiden / Plasmaschneiden", "ruest": "10", "bearbeitung": "14" },
+        { "typ": "ARBEIT", "arbeitsgang": "Bohren (Ständerbohrmaschine)", "ruest": "3", "bearbeitung": "0.9", "anzahl": "12" },
+        { "typ": "ARBEIT", "arbeitsgang": "Flächen schleifen", "ruest": "2", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Entgraten", "bearbeitung": "4" }
+      ]
+    },
+    {
+      "name": "Treppenstufe, Blech 4 mm, abgekantet, 1000x280", "einheit": "STUECK", "kategorie": "Baugruppen (Bauteile)", "baugruppe": true, "losgroesse": 12,
+      "beschreibung": "Stufe aus Blech 4 mm, vorne und hinten abgekantet, mit vier Bohrungen.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-BL-4", "menge": "0.3", "verschnitt": "12" },
+        { "typ": "ARBEIT", "arbeitsgang": "Brennschneiden / Plasmaschneiden", "ruest": "10", "bearbeitung": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Abkanten (Kantbank)", "ruest": "15", "bearbeitung": "3" },
+        { "typ": "ARBEIT", "arbeitsgang": "Bohren (Ständerbohrmaschine)", "ruest": "3", "bearbeitung": "0.8", "anzahl": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Entgraten", "bearbeitung": "2.5" }
+      ]
+    },
+    {
+      "name": "Torrahmen, Rechteckrohr 60x40x3, 1,0 x 2,0 m", "einheit": "STUECK", "kategorie": "Baugruppen (Bauteile)", "baugruppe": true, "losgroesse": 1,
+      "beschreibung": "Rahmen eines Drehtors aus Rechteckrohr, geschweißt, verschliffen und gerichtet.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-RHR-60x40x3", "menge": "6.2", "verschnitt": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "1.5", "anzahl": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "10", "bearbeitung": "25" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "35" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "15" },
+        { "typ": "ARBEIT", "arbeitsgang": "Richten", "bearbeitung": "10" }
+      ]
+    },
+    {
+      "name": "Wandkonsole, Winkelstahl 80x8", "einheit": "STUECK", "kategorie": "Baugruppen (Bauteile)", "baugruppe": true, "losgroesse": 4,
+      "beschreibung": "Konsole aus zwei Stücken Winkelstahl, verschweißt, mit vier Befestigungsbohrungen.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-WG-80x8", "menge": "0.7", "verschnitt": "5" },
+        { "typ": "ARTIKEL", "artikel": "VL-FS-80x8", "menge": "0.25", "verschnitt": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "2", "anzahl": "3" },
+        { "typ": "ARBEIT", "arbeitsgang": "Bohren (Ständerbohrmaschine)", "ruest": "3", "bearbeitung": "0.9", "anzahl": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "8" },
+        { "typ": "ARBEIT", "arbeitsgang": "Entgraten", "bearbeitung": "2" }
+      ]
+    },
+
+    {
+      "name": "Geländer, Stahl, gestrichen", "einheit": "LAUFENDE_METER", "kategorie": "Geländer", "losgroesse": 10, "zuschlag": "15",
+      "beschreibung": "Geländer aus Quadratrohrpfosten, Rundrohrhandlauf und senkrechten Rundstahlstäben; grundiert und gestrichen, mit Montage.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Geländerpfosten, Quadratrohr 40x3, mit Fußplatte", "menge": "0.5" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Handlauf, Rundrohr 42,4x2,6, gebogen", "menge": "1" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Füllstäbe, Rundstahl 12, je Meter Geländer", "menge": "1" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "90", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "30", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "20", "bearbeitung": "25" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "15", "bearbeitung": "30" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "18" },
+        { "typ": "ARBEIT", "arbeitsgang": "Richten", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Grundieren / Streichen", "bearbeitung": "22" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "35" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "10", "bearbeitung": "0" }
+      ]
+    },
+    {
+      "name": "Geländer, Stahl, feuerverzinkt", "einheit": "LAUFENDE_METER", "kategorie": "Geländer", "losgroesse": 10, "zuschlag": "15",
+      "beschreibung": "Wie das gestrichene Geländer, aber beim Veredler feuerverzinkt statt gestrichen.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Geländerpfosten, Quadratrohr 40x3, mit Fußplatte", "menge": "0.5" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Handlauf, Rundrohr 42,4x2,6, gebogen", "menge": "1" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Füllstäbe, Rundstahl 12, je Meter Geländer", "menge": "1" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "90", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "30", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "20", "bearbeitung": "25" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "15", "bearbeitung": "30" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "18" },
+        { "typ": "ARBEIT", "arbeitsgang": "Richten", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "10" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Feuerverzinken", "mengeAus": "GEWICHT" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "35" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "10", "bearbeitung": "0" }
+      ]
+    },
+    {
+      "name": "Geländer, Stahl, pulverbeschichtet", "einheit": "LAUFENDE_METER", "kategorie": "Geländer", "losgroesse": 10, "zuschlag": "15",
+      "beschreibung": "Wie das gestrichene Geländer, aber beim Veredler pulverbeschichtet.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Geländerpfosten, Quadratrohr 40x3, mit Fußplatte", "menge": "0.5" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Handlauf, Rundrohr 42,4x2,6, gebogen", "menge": "1" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Füllstäbe, Rundstahl 12, je Meter Geländer", "menge": "1" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "90", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "30", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "20", "bearbeitung": "25" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "15", "bearbeitung": "30" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "18" },
+        { "typ": "ARBEIT", "arbeitsgang": "Richten", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "10" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Pulverbeschichten, einschichtig", "mengeAus": "OBERFLAECHE" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "35" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "10", "bearbeitung": "0" }
+      ]
+    },
+    {
+      "name": "Handlauf an der Wand, Rundrohr, gebogen", "einheit": "LAUFENDE_METER", "kategorie": "Handläufe", "losgroesse": 10, "zuschlag": "15",
+      "beschreibung": "Wandhandlauf aus Rundrohr mit Wandkonsolen im Abstand von 1,2 m.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Handlauf, Rundrohr 42,4x2,6, gebogen", "menge": "1" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Wandkonsole, Winkelstahl 80x8", "menge": "0.85" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "30", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "10", "bearbeitung": "8" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "10" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Grundieren / Streichen", "bearbeitung": "10" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "20" }
+      ]
+    },
+    {
+      "name": "Stahltreppe, gerade, 12 Stufen, feuerverzinkt", "einheit": "STUECK", "kategorie": "Treppen", "losgroesse": 1, "zuschlag": "15",
+      "beschreibung": "Gerade Treppe mit zwei Wangen und zwölf abgekanteten Blechstufen, an den Enden mit Anschlusswinkeln; feuerverzinkt, mit Montage.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Treppenwange, Flachstahl 150x10, 3,2 m", "menge": "2" },
+        { "typ": "BAUGRUPPE", "baugruppe": "Treppenstufe, Blech 4 mm, abgekantet, 1000x280", "menge": "12" },
+        { "typ": "ARTIKEL", "artikel": "VL-WG-50x5", "menge": "2.4", "verschnitt": "5" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "180", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "45", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "20", "bearbeitung": "90" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "15", "bearbeitung": "150" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "60" },
+        { "typ": "ARBEIT", "arbeitsgang": "Richten", "bearbeitung": "30" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "25" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Feuerverzinken", "mengeAus": "GEWICHT" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "30" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "240" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "15", "bearbeitung": "10" }
+      ]
+    },
+    {
+      "name": "Drehtor, einflügelig, 1,0 x 2,0 m, pulverbeschichtet", "einheit": "STUECK", "kategorie": "Tore", "losgroesse": 1, "zuschlag": "15",
+      "beschreibung": "Einflügeliges Drehtor mit Rahmen aus Rechteckrohr und senkrechten Rundstahlstäben; pulverbeschichtet, mit Montage.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Torrahmen, Rechteckrohr 60x40x3, 1,0 x 2,0 m", "menge": "1" },
+        { "typ": "ARTIKEL", "artikel": "VL-RS-12", "menge": "17", "verschnitt": "3" },
+        { "typ": "ARTIKEL", "artikel": "VL-FS-40x5", "menge": "2.2", "verschnitt": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "90", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "30", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "0.4", "anzahl": "19" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "10", "bearbeitung": "0.7", "anzahl": "34" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "45" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "25" },
+        { "typ": "ARBEIT", "arbeitsgang": "Richten", "bearbeitung": "15" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "15" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Pulverbeschichten, einschichtig", "mengeAus": "OBERFLAECHE" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "15" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "120" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "10", "bearbeitung": "5" }
+      ]
+    },
+    {
+      "name": "Schiebetor, 4,0 x 1,8 m, feuerverzinkt", "einheit": "STUECK", "kategorie": "Tore", "losgroesse": 1, "zuschlag": "15",
+      "beschreibung": "Freitragendes Schiebetor: Rahmen aus Rechteckrohr 80x40x4, Füllung aus Quadratrohr 25 mm; feuerverzinkt, mit Montage.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-RHR-80x40x4", "menge": "20", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-QR-25x2", "menge": "28", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-BL-8", "menge": "0.12", "verschnitt": "10" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "180", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "45", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "1.5", "anzahl": "32" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "20", "bearbeitung": "120" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "15", "bearbeitung": "180" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "60" },
+        { "typ": "ARBEIT", "arbeitsgang": "Richten", "bearbeitung": "40" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "30" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Feuerverzinken", "mengeAus": "GEWICHT" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "45" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "360" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "15", "bearbeitung": "15" }
+      ]
+    },
+    {
+      "name": "Zaunfeld, Stabgitter, 2,0 m, feuerverzinkt", "einheit": "LAUFENDE_METER", "kategorie": "Zäune", "losgroesse": 10, "zuschlag": "15",
+      "beschreibung": "Zaun aus Rechteckrohrpfosten, Flachstahlriegeln und Rundstahlstäben; feuerverzinkt, mit Montage.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-RHR-60x40x3", "menge": "0.65", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-FS-40x5", "menge": "2", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-RS-10", "menge": "7", "verschnitt": "3" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "0.4", "anzahl": "8" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "15", "bearbeitung": "0.7", "anzahl": "16" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "12" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "5" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Feuerverzinken", "mengeAus": "GEWICHT" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "6" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "25" }
+      ]
+    },
+    {
+      "name": "Vordach, Stahl, 2,0 x 1,0 m, pulverbeschichtet", "einheit": "STUECK", "kategorie": "Vordächer und Überdachungen", "losgroesse": 1, "zuschlag": "15",
+      "beschreibung": "Vordach mit zwei Wandkonsolen, Rahmen aus Rechteckrohr und Glasauflage aus Winkelstahl; pulverbeschichtet, mit Montage. Glas liefert die Glaserei.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Wandkonsole, Winkelstahl 80x8", "menge": "2" },
+        { "typ": "ARTIKEL", "artikel": "VL-RHR-100x50x4", "menge": "2.2", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-RHR-60x40x3", "menge": "4", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-WG-60x6", "menge": "4", "verschnitt": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "120", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "30", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "1.5", "anzahl": "8" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "15", "bearbeitung": "45" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "60" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "25" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "15" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Pulverbeschichten, einschichtig", "mengeAus": "OBERFLAECHE" },
+        { "typ": "ARBEIT", "arbeitsgang": "Verladen und Transport", "bearbeitung": "15" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "180" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "10", "bearbeitung": "5" }
+      ]
+    },
+    {
+      "name": "Fenstergitter, Flachstahl und Rundstahl, bis 1,0 x 1,2 m", "einheit": "STUECK", "kategorie": "Gitter und Sicherungen", "losgroesse": 4, "zuschlag": "15",
+      "beschreibung": "Einbruchhemmendes Fenstergitter aus Flachstahlrahmen und Rundstahlstäben; pulverbeschichtet, mit Montage.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-FS-30x5", "menge": "4.4", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-RS-12", "menge": "6", "verschnitt": "3" },
+        { "typ": "ARBEIT", "arbeitsgang": "Aufmaß", "bearbeitung": "20" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "0.5", "anzahl": "10" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "10", "bearbeitung": "0.7", "anzahl": "14" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "15" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "8" },
+        { "typ": "ARBEIT", "arbeitsgang": "Beschichtung vorbereiten (Aufhängen, Abkleben)", "bearbeitung": "5" },
+        { "typ": "FREMDLEISTUNG", "fremdleistung": "Pulverbeschichten, einschichtig", "mengeAus": "OBERFLAECHE" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "45" }
+      ]
+    },
+    {
+      "name": "Podest, Stahlbau, 1,5 x 1,5 m", "einheit": "STUECK", "kategorie": "Stahlbau und Konstruktion", "losgroesse": 1, "zuschlag": "15",
+      "beschreibung": "Podest aus Rechteckrohrrahmen mit Blechabdeckung 3 mm und Anschlusswinkeln; grundiert, mit Montage.",
+      "positionen": [
+        { "typ": "ARTIKEL", "artikel": "VL-RHR-80x40x4", "menge": "8", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-WG-50x5", "menge": "3", "verschnitt": "4" },
+        { "typ": "ARTIKEL", "artikel": "VL-BL-3", "menge": "2.4", "verschnitt": "8" },
+        { "typ": "ARBEIT", "arbeitsgang": "Konstruktion und Zeichnen", "ruest": "120", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Arbeitsvorbereitung und Stückliste", "ruest": "30", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Sägen (Band- oder Kreissäge)", "ruest": "5", "bearbeitung": "1.5", "anzahl": "12" },
+        { "typ": "ARBEIT", "arbeitsgang": "Brennschneiden / Plasmaschneiden", "ruest": "10", "bearbeitung": "12" },
+        { "typ": "ARBEIT", "arbeitsgang": "Zusammenbau und Heften", "ruest": "15", "bearbeitung": "60" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißen (MAG)", "ruest": "10", "bearbeitung": "90" },
+        { "typ": "ARBEIT", "arbeitsgang": "Schweißnähte verschleifen", "ruest": "2", "bearbeitung": "30" },
+        { "typ": "ARBEIT", "arbeitsgang": "Grundieren / Streichen", "bearbeitung": "40" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "60", "bearbeitung": "0" },
+        { "typ": "ARBEIT", "arbeitsgang": "Montage auf der Baustelle", "bearbeitung": "120" }
+      ]
+    },
+    {
+      "name": "Wandkonsole als Einzelteil, Winkelstahl 80x8", "einheit": "STUECK", "kategorie": "Stahlbau und Konstruktion", "losgroesse": 4, "zuschlag": "15",
+      "beschreibung": "Einzelne Wandkonsole für Regale, Vordächer oder Rohrleitungen; benutzt die gleichnamige Baugruppe.",
+      "positionen": [
+        { "typ": "BAUGRUPPE", "baugruppe": "Wandkonsole, Winkelstahl 80x8", "menge": "1" },
+        { "typ": "ARBEIT", "arbeitsgang": "Grundieren / Streichen", "bearbeitung": "4" },
+        { "typ": "ARBEIT", "arbeitsgang": "Kontrolle und Dokumentation", "ruest": "5", "bearbeitung": "1" }
+      ]
+    },
+    {
+      "name": "Aufmaß vor Ort", "einheit": "STUECK", "kategorie": "Stahlbau und Konstruktion", "losgroesse": 1, "zuschlag": "0",
+      "beschreibung": "Aufmaß beim Kunden mit Fahrt und Skizze.",
+      "positionen": [
+        { "typ": "ARBEIT", "arbeitsgang": "Aufmaß", "ruest": "0", "bearbeitung": "60" },
+        { "typ": "ARBEIT", "arbeitsgang": "Fahrt zur Baustelle", "ruest": "0", "bearbeitung": "60" }
+      ]
+    }
+  ]
+}

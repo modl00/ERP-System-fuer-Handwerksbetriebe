@@ -14,6 +14,11 @@ export function useToast() {
     return toast;
 }
 
+/** Wie {@link useToast}, aber ohne Fehler, wenn kein ToastProvider da ist (dann {@code null}). Für Bausteine, die auch ohne Meldungsfläche laufen müssen. */
+export function useOptionalToast(): ToastApi | null {
+    return useContext(ToastContext);
+}
+
 const icons = { success: CheckCircle, error: XCircle, warning: AlertTriangle, info: Info };
 const colors = {
     success: 'border-emerald-200 bg-emerald-50 text-emerald-800',

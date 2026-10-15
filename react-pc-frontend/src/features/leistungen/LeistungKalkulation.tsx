@@ -9,7 +9,7 @@ import { DecimalInput } from '../../components/ui/decimal-input';
 import { SearchableSelect } from '../../components/ui/searchable-select';
 import { useToast } from '../../components/ui/toast';
 import { formatDecimalInput, validateDecimalInput } from '../../lib/numberInput';
-import { minutenText } from '../../components/ArbeitsgangZeitenModal';
+import { minutenText } from '../../components/minutenUtils';
 import type { Arbeitsgang, ArbeitsgangFormelFeld } from '../../types';
 import { FormelEingabe } from './FormelEingabe';
 import { MassEingabe } from './MassEingabe';

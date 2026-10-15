@@ -384,6 +384,10 @@ export interface Artikel {
   verzinkungsgeeignet?: boolean;
   pulverbeschichtungsgeeignet?: boolean;
   beschichtungshinweis?: string;
+  /** Zuschnitt-Formel (#228): Eingabefelder und Formeln für Gewicht (kg) und Außenfläche (m²) je Stück; leer = keine Formel. */
+  formelFelder?: ArbeitsgangFormelFeld[] | null;
+  formelGewicht?: string | null;
+  formelFlaeche?: string | null;
 
   // Angebotsfelder - was der Kunde auf Angebot/Rechnung liest
   /** Innensicht: hilft beim Wiederfinden im DocumentEditor, steht nicht auf dem Kundendokument. */
@@ -491,11 +495,40 @@ export interface Mitarbeiter {
 
 export interface Arbeitsgang {
   id: number;
+  /** Ausgeblendet (#235): erscheint nicht mehr in der Auswahl; Bestehendes bleibt. */
+  archiviert?: boolean;
+  /** Woher der Kalkulationssatz kommt: von Hand (EIGEN) oder dem Verrechnungssatz folgend (VERRECHNUNG). */
+  satzQuelle?: 'EIGEN' | 'VERRECHNUNG';
+  /** Bei VERRECHNUNG: Qualifikation (AUSZUBILDENDER, FACHARBEITER, MEISTER); leer = ganzer Betrieb. */
+  satzGruppe?: string | null;
   beschreibung: string;
   abteilungId: number | null;
   abteilungName: string | null;
   stundensatz: number | null;
   stundensatzJahr: number | null;
+  /** Rüstzeit je Los in Minuten (einmalig); leer = keine Angabe */
+  ruestzeitMinuten?: number | null;
+  /** Bearbeitungszeit je Einheit in Minuten; leer = keine Angabe */
+  bearbeitungszeitMinuten?: number | null;
+  /** Kosten der Maschine je Stunde in Euro; leer = keine Maschine */
+  maschinenStundensatz?: number | null;
+  maschinenBezeichnung?: string | null;
+  /** Die Maschine aus der Maschinenliste (Kostenrechnung), falls der Arbeitsgang eine nutzt; dann gilt deren Satz */
+  maschineId?: number | null;
+  /** Eingabefelder der Formel (Durchmesser, Länge ...); leer oder fehlend = Arbeitsgang ohne Formel */
+  formelFelder?: ArbeitsgangFormelFeld[] | null;
+  /** Formel für die Bearbeitungszeit je Einheit in Minuten, zum Beispiel (V2*V3)/(V5*V4)+V6 */
+  formelBearbeitung?: string | null;
+  /** Formel für die Rüstzeit je Los in Minuten */
+  formelRuest?: string | null;
+}
+
+/** Ein Eingabefeld der Formel eines Arbeitsgangs: name wie in der Formel (V1), bezeichnung für die Eingabemaske */
+export interface ArbeitsgangFormelFeld {
+  name: string;
+  bezeichnung: string;
+  einheit: string;
+  standard: number | null;
 }
 
 export type VerrechnungseinheitName = 'LAUFENDE_METER' | 'QUADRATMETER' | 'KILOGRAMM' | 'STUECK';

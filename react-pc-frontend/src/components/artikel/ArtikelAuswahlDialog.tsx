@@ -9,7 +9,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { cn } from '../../lib/utils';
 import { stripHtmlTags } from '../../lib/htmlSanitizer';
-import type { Artikel } from '../../types';
+import type { Artikel, ArbeitsgangFormelFeld } from '../../types';
 
 export interface ArtikelAuswahl {
     artikelId: number;
@@ -25,6 +25,8 @@ export interface ArtikelAuswahl {
     einheit: string;
     /** 0, wenn kein Preis ermittelbar war — der Bediener traegt ihn im Editor nach. */
     einzelpreis: number;
+    /** Zuschnitt-Formel (#228): Eingabefelder für Maße; leer = kein Zuschnitt. */
+    formelFelder?: ArbeitsgangFormelFeld[] | null;
 }
 
 /**
@@ -67,6 +69,7 @@ const zuAuswahl = (artikel: Artikel, menge: number): ArtikelAuswahl => ({
     // und traegt den Wert nach - eine leere Zahl wuerde die Summenrechnung
     // durcheinanderbringen.
     einzelpreis: artikel.positionsEinzelpreis ?? 0,
+    formelFelder: artikel.formelFelder ?? undefined,
 });
 
 export function ArtikelAuswahlDialog({ offen, onSchliessen, onUebernehmen }: ArtikelAuswahlDialogProps) {

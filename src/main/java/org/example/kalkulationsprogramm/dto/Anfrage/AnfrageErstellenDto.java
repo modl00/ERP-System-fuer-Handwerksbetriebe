@@ -18,4 +18,5 @@ public class AnfrageErstellenDto {
     private String projektOrt;
     private String kurzbeschreibung;
     private Boolean abgeschlossen;
+    private java.math.BigDecimal betrag;
 }

@@ -98,4 +98,7 @@ public class Lieferanten {
     @Column(nullable = false)
     private Boolean vorauskasse = false;
 
+    @Column(name = "standard_lieferzeit_tage")
+    private Integer standardLieferzeitTage;
+
 }

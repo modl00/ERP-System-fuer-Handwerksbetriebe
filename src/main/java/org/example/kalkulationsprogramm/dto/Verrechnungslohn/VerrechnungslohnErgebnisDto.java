@@ -37,6 +37,11 @@ public class VerrechnungslohnErgebnisDto {
     private BigDecimal gemeinkostenGesamt = BigDecimal.ZERO;
     private BigDecimal selbstkostenProStunde = BigDecimal.ZERO;
 
+    private BigDecimal gemeinkostenIst = BigDecimal.ZERO;
+    private BigDecimal gemeinkostenSchaetzung;
+    private boolean schaetzungGilt;
+    private boolean enthaeltSchaetzwerte;
+
     /**
      * Anteil der Arbeitszeit, der fuer interne Arbeiten (Werkstatt, Wartung,
      * Buero) angesetzt wurde -- in Prozent. Die Oberflaeche spiegelt diesen
@@ -107,6 +112,9 @@ public class VerrechnungslohnErgebnisDto {
         private String bezeichnung;
         private BigDecimal jahresbetrag = BigDecimal.ZERO;
         private boolean gestreckt;
+        private BigDecimal soll;
+        private BigDecimal verwendet = BigDecimal.ZERO;
+        private boolean sollGilt;
     }
 
     @Getter

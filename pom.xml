@@ -40,6 +40,17 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
     <dependencies>
+        <!-- SMB-Netzwerkfreigaben (Modul smb-abgleich) -->
+        <dependency>
+            <groupId>com.hierynomus</groupId>
+            <artifactId>smbj</artifactId>
+            <version>0.12.2</version>
+        </dependency>
+        <dependency>
+            <groupId>com.rapid7.client</groupId>
+            <artifactId>dcerpc</artifactId>
+            <version>0.12.13</version>
+        </dependency>
         <dependency>
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-data-jpa</artifactId>

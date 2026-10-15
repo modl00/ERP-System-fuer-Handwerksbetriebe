@@ -125,6 +125,12 @@ public class Zeitbuchung {
     @Column(nullable = false)
     private boolean automatischBeendet = false;
 
+    @Column(name = "verrechnungssatz_wert", precision = 10, scale = 2)
+    private java.math.BigDecimal verrechnungssatzWert;
+
+    public java.math.BigDecimal getVerrechnungssatzWert() { return verrechnungssatzWert; }
+    public void setVerrechnungssatzWert(java.math.BigDecimal v) { this.verrechnungssatzWert = v; }
+
     /**
      * Erhöht die Version und setzt Änderungs-Metadaten.
      */

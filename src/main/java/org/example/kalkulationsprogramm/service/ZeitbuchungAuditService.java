@@ -34,12 +34,17 @@ public class ZeitbuchungAuditService {
      */
     @Transactional
     public void protokolliereErstellung(Zeitbuchung buchung, Mitarbeiter bearbeiter, ErfassungsQuelle quelle) {
+        protokolliereErstellung(buchung, bearbeiter, quelle, "Initiale Erfassung");
+    }
+
+    @Transactional
+    public void protokolliereErstellung(Zeitbuchung buchung, Mitarbeiter bearbeiter, ErfassungsQuelle quelle, String grund) {
         ZeitbuchungAudit audit = ZeitbuchungAudit.fromZeitbuchung(
                 buchung,
                 AuditAktion.ERSTELLT,
                 bearbeiter,
                 quelle,
-                "Initiale Erfassung");
+                grund);
         auditRepository.save(audit);
     }
 

@@ -104,6 +104,24 @@ public class KostenstelleService {
         dto.setIstInvestition(ks.isIstInvestition());
         dto.setAktiv(ks.isAktiv());
         dto.setSortierung(ks.getSortierung());
+        dto.setJahresSoll(ks.getJahresSoll());
         return dto;
+    }
+
+    public static final java.math.BigDecimal MAX_SOLL = new java.math.BigDecimal("100000000");
+
+    static java.math.BigDecimal pruefeSoll(java.math.BigDecimal soll, boolean istFixkosten) {
+        if (soll == null) return null;
+        if (soll.signum() < 0) throw new IllegalArgumentException("Der geschätzte Jahresbetrag darf nicht negativ sein.");
+        if (soll.compareTo(MAX_SOLL) > 0) throw new IllegalArgumentException("Der geschätzte Jahresbetrag ist zu hoch (höchstens 100.000.000 Euro im Jahr).");
+        if (!istFixkosten) throw new IllegalArgumentException("Einen geschätzten Jahresbetrag gibt es nur für Gemeinkosten (Fixkosten).");
+        return soll.setScale(2, java.math.RoundingMode.HALF_UP);
+    }
+
+    @org.springframework.transaction.annotation.Transactional
+    public KostenstelleDto setzeSoll(Long id, java.math.BigDecimal soll) {
+        Kostenstelle ks = repository.findById(id).orElseThrow(() -> new IllegalArgumentException("Kostenstelle nicht gefunden: " + id));
+        ks.setJahresSoll(pruefeSoll(soll, ks.isIstFixkosten()));
+        return toDto(repository.save(ks));
     }
 }

@@ -59,4 +59,7 @@ public class Kostenstelle {
      * Sortierreihenfolge für UI-Anzeige.
      */
     private Integer sortierung = 0;
+
+    @Column(name = "jahres_soll", precision = 14, scale = 2)
+    private java.math.BigDecimal jahresSoll;
 }

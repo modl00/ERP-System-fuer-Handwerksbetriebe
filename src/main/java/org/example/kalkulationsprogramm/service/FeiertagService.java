@@ -4,7 +4,9 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
 import org.example.kalkulationsprogramm.domain.Feiertag;
+import org.example.kalkulationsprogramm.domain.SystemSetting;
 import org.example.kalkulationsprogramm.repository.FeiertagRepository;
+import org.example.kalkulationsprogramm.repository.SystemSettingRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -27,9 +29,42 @@ public class FeiertagService {
 
     private static final Logger log = LoggerFactory.getLogger(FeiertagService.class);
     private static final String API_URL = "https://get.api-feiertage.de/?years=%d&states=by";
+    public static final String STANDARD_BUNDESLAND = "BY";
+    static final String EINSTELLUNG = "feiertage.bundesland";
+    public static final java.util.Map<String, String> BUNDESLAENDER = java.util.Collections.unmodifiableMap(new java.util.LinkedHashMap<String, String>() {{
+        put("BW", "Baden-Württemberg"); put("BY", "Bayern"); put("BE", "Berlin"); put("BB", "Brandenburg");
+        put("HB", "Bremen"); put("HH", "Hamburg"); put("HE", "Hessen"); put("MV", "Mecklenburg-Vorpommern");
+        put("NI", "Niedersachsen"); put("NW", "Nordrhein-Westfalen"); put("RP", "Rheinland-Pfalz"); put("SL", "Saarland");
+        put("SN", "Sachsen"); put("ST", "Sachsen-Anhalt"); put("SH", "Schleswig-Holstein"); put("TH", "Thüringen");
+    }});
+
+    public static String bundeslandAus(SystemSettingRepository settingRepository) {
+        return settingRepository.findById(EINSTELLUNG)
+                .map(SystemSetting::getValue)
+                .map(String::trim)
+                .map(String::toUpperCase)
+                .filter(BUNDESLAENDER::containsKey)
+                .orElse(STANDARD_BUNDESLAND);
+    }
 
     private final FeiertagRepository feiertagRepository;
+    private final SystemSettingRepository settingRepository;
     private final ObjectMapper objectMapper = new ObjectMapper();
+
+    public String bundesland() {
+        return bundeslandAus(settingRepository);
+    }
+
+    @Transactional
+    public String setzeBundesland(String kuerzel) {
+        String k = kuerzel == null ? "" : kuerzel.trim().toUpperCase();
+        if (!BUNDESLAENDER.containsKey(k)) throw new IllegalArgumentException("Unbekanntes Bundesland: " + kuerzel);
+        SystemSetting einstellung = settingRepository.findById(EINSTELLUNG).orElse(new SystemSetting());
+        einstellung.setKey(EINSTELLUNG);
+        einstellung.setValue(k);
+        settingRepository.save(einstellung);
+        return k;
+    }
 
     /** Tracks years where save was already attempted (success or duplicate) to avoid retries */
     private final java.util.Set<Integer> attemptedYears = java.util.concurrent.ConcurrentHashMap.newKeySet();

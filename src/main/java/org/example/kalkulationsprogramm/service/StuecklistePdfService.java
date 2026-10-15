@@ -443,6 +443,7 @@ public class StuecklistePdfService {
             case KILOGRAMM -> aip.getKilogramm() != null ? stripZeros(aip.getKilogramm()) + " kg" : "";
             case LAUFENDE_METER, QUADRATMETER -> aip.getMeter() != null ? stripZeros(aip.getMeter()) + " m" : "";
             case STUECK -> aip.getStueckzahl() != null ? aip.getStueckzahl() + " Stk" : "";
+            case LITER -> aip.getMeter() != null ? stripZeros(aip.getMeter()) + " l" : "";
         };
     }
 }

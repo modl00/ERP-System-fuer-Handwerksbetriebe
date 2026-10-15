@@ -16,7 +16,8 @@ public enum Dokumenttyp
     ERSTE_MAHNUNG("1. Mahnung"),
     ZWEITE_MAHNUNG("2. Mahnung"),
     STORNORECHNUNG("Stornorechnung"),
-    GUTSCHRIFT("Gutschrift");
+    GUTSCHRIFT("Gutschrift"),
+    LIEFERSCHEIN("Lieferschein");
 
 
     private final String label;

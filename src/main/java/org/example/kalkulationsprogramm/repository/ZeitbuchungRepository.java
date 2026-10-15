@@ -141,4 +141,12 @@ public interface ZeitbuchungRepository extends JpaRepository<Zeitbuchung, Long> 
                         @Param("von") LocalDateTime von,
                         @Param("bis") LocalDateTime bis,
                         @Param("arten") List<ProjektArt> arten);
+
+        @Query("SELECT z.projekt.id, z.arbeitsgang.id, SUM(z.anzahlInStunden) FROM Zeitbuchung z WHERE z.projekt.id IN :projektIds AND z.arbeitsgang IS NOT NULL "
+                        + "AND z.anzahlInStunden IS NOT NULL AND z.typ = org.example.kalkulationsprogramm.domain.BuchungsTyp.ARBEIT GROUP BY z.projekt.id, z.arbeitsgang.id")
+        List<Object[]> arbeitsstundenJeProjektUndArbeitsgang(@Param("projektIds") java.util.Collection<Long> projektIds);
+
+        @Query("SELECT z.mitarbeiter.id, SUM(z.anzahlInStunden) FROM Zeitbuchung z WHERE z.startZeit >= :von AND z.startZeit < :bis AND z.anzahlInStunden IS NOT NULL "
+                        + "AND z.typ = org.example.kalkulationsprogramm.domain.BuchungsTyp.ARBEIT AND z.mitarbeiter.id IN :mitarbeiterIds GROUP BY z.mitarbeiter.id")
+        List<Object[]> arbeitsstundenJeMitarbeiter(@Param("mitarbeiterIds") java.util.Collection<Long> mitarbeiterIds, @Param("von") LocalDateTime von, @Param("bis") LocalDateTime bis);
 }

@@ -7,6 +7,7 @@ import org.example.kalkulationsprogramm.domain.Artikel;
 import org.example.kalkulationsprogramm.domain.Lieferanten;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelCreateDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumenttexteRequest;
+import org.example.kalkulationsprogramm.dto.Artikel.ArtikelStammdatenRequest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -34,4 +35,6 @@ public interface ArtikelServiceContract {
      * @throws IllegalArgumentException bei unzulaessigen Werten
      */
     Artikel aktualisiereDokumenttexte(Long id, ArtikelDokumenttexteRequest request);
+
+    Artikel aktualisiereStammdaten(Long id, ArtikelStammdatenRequest r);
 }

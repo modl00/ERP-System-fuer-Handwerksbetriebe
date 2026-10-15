@@ -10,7 +10,8 @@ public enum Verrechnungseinheit {
     LAUFENDE_METER("Laufende Meter"),
     QUADRATMETER("Quadratmeter"),
     KILOGRAMM("Kilogramm"),
-    STUECK ("Stück");
+    STUECK ("Stück"),
+    LITER ("Liter");
 
     private final String anzeigename;
 

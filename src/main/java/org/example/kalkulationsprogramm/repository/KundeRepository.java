@@ -6,12 +6,19 @@ import java.util.Optional;
 import org.example.kalkulationsprogramm.domain.Kunde;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+
+import jakarta.persistence.LockModeType;
 
 public interface KundeRepository extends JpaRepository<Kunde, Long>, JpaSpecificationExecutor<Kunde>
 {
     Optional<Kunde> findByKundennummerIgnoreCase(String kundennummer);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT k FROM Kunde k WHERE k.id = :id")
+    Optional<Kunde> findMitSperre(@Param("id") Long id);
 
     @Query("SELECT k.kundennummer FROM Kunde k WHERE k.kundennummer IS NOT NULL")
     List<String> findAlleKundennummern();
@@ -84,4 +91,8 @@ public interface KundeRepository extends JpaRepository<Kunde, Long>, JpaSpecific
     @Query("SELECT k.id, k.name, k.kundennummer, k.ort, k.telefon, k.mobiltelefon FROM Kunde k "
             + "WHERE (k.telefon IS NOT NULL AND k.telefon <> '') OR (k.mobiltelefon IS NOT NULL AND k.mobiltelefon <> '')")
     List<Object[]> findeTelefonverzeichnis();
+
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Kunde k SET k.ansprechspartner = :name WHERE k.id = :id")
+    void setzeAnsprechspartnerName(@Param("id") Long id, @Param("name") String name);
 }

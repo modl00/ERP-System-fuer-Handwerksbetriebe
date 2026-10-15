@@ -9,8 +9,12 @@ import java.util.regex.Pattern;
 import org.example.kalkulationsprogramm.domain.Artikel;
 import org.example.kalkulationsprogramm.domain.Lieferanten;
 import org.example.kalkulationsprogramm.domain.LieferantenArtikelPreise;
+import org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelCreateDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumenttexteRequest;
+import org.example.kalkulationsprogramm.dto.Artikel.ArtikelStammdatenRequest;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.example.kalkulationsprogramm.exception.NotFoundException;
 import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.example.kalkulationsprogramm.repository.KategorieRepository;
@@ -243,5 +247,135 @@ public class ArtikelService implements ArtikelServiceContract {
         String eigenschaft = deklaration.substring(0, trenner).trim().toLowerCase(Locale.ROOT);
         String wert = deklaration.substring(trenner + 1).trim();
         return ERLAUBTE_CSS_EIGENSCHAFTEN.contains(eigenschaft) && !GEFAEHRLICHES_CSS_MUSTER.matcher(wert).find();
+    }
+
+    private static final BigDecimal MAX_MASS = new BigDecimal("100000");
+    private static final java.util.Set<String> HERKUENFTE_GEWICHT = java.util.Set.of("TABELLE", "BERECHNET", "HAND");
+
+    @Override
+    @Transactional
+    public Artikel aktualisiereStammdaten(Long id, ArtikelStammdatenRequest r) {
+        Artikel artikel = artikelRepository.findById(id).orElseThrow(() -> new org.example.kalkulationsprogramm.exception.NotFoundException("Artikel " + id + " nicht gefunden"));
+        if (r.getVersion() != null && artikel.getVersion() != null && !r.getVersion().equals(artikel.getVersion())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Der Artikel wurde inzwischen von jemand anderem geändert. Bitte die Seite neu laden und noch einmal versuchen.");
+        }
+        if (!(artikel instanceof ArtikelWerkstoffe) && hatHalbzeugAngaben(r)) {
+            artikelRepository.legeWerkstoffDatenAn(id);
+            artikel = artikelRepository.findById(id).orElseThrow(() -> new org.example.kalkulationsprogramm.exception.NotFoundException("Artikel " + id + " nicht gefunden"));
+        }
+        String name = stammdatenText(r.getProduktname(), 255, "Der Produktname");
+        if (name == null) throw stammdatenUngueltig("Bitte einen Produktnamen eingeben.");
+        String nummer = stammdatenText(r.getArtikelnummer(), 64, "Die Artikelnummer");
+        if (nummer != null && artikelRepository.findByArtikelnummer(nummer).filter(a -> !a.getId().equals(id)).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Die Artikelnummer " + nummer + " gibt es schon bei einem anderen Artikel.");
+        }
+        String ean = EanPruefung.normalisiert(r.getEan());
+        pruefeEan(ean, id);
+        artikel.setProduktname(name);
+        artikel.setProduktlinie(stammdatenText(r.getProduktlinie(), 255, "Die Produktlinie"));
+        artikel.setProdukttext(stammdatenText(r.getProdukttext(), 10_000, "Der Produkttext"));
+        artikel.setArtikelnummer(nummer);
+        artikel.setEan(ean);
+        if (r.getVerpackungseinheit() != null && r.getVerpackungseinheit() < 0) throw stammdatenUngueltig("Die Verpackungseinheit darf nicht negativ sein.");
+        artikel.setVerpackungseinheit(r.getVerpackungseinheit());
+        artikel.setPreiseinheit(stammdatenText(r.getPreiseinheit(), 255, "Die Preiseinheit"));
+        artikel.setVerrechnungseinheit(r.getVerrechnungseinheit());
+        artikel.setKategorie(r.getKategorieId() == null ? null : kategorieRepository.findById(Math.toIntExact(r.getKategorieId())).orElseThrow(() -> stammdatenUngueltig("Die gewählte Kategorie gibt es nicht.")));
+        artikel.setWerkstoff(r.getWerkstoffId() == null ? null : werkstoffRepository.findById(r.getWerkstoffId()).orElseThrow(() -> stammdatenUngueltig("Der gewählte Werkstoff gibt es nicht.")));
+        artikel.setProfilform(r.getProfilform());
+        artikel.setHerstellverfahren(r.getHerstellverfahren());
+        artikel.setFertigungszustand(r.getFertigungszustand());
+        artikel.setMassnorm(stammdatenText(r.getMassnorm(), 64, "Die Maßnorm"));
+        artikel.setWerkstoffnorm(stammdatenText(r.getWerkstoffnorm(), 64, "Die Werkstoffnorm"));
+        artikel.setVerzinkungsgeeignet(r.getVerzinkungsgeeignet());
+        artikel.setPulverbeschichtungsgeeignet(r.getPulverbeschichtungsgeeignet());
+        if (artikel instanceof ArtikelWerkstoffe aw) {
+            aw.setDurchmesser(stammdatenMass(r.getDurchmesser(), "Der Durchmesser"));
+            aw.setHoehe(stammdatenMass(r.getHoehe(), "Die Höhe"));
+            aw.setBreite(stammdatenMass(r.getBreite(), "Die Breite"));
+            aw.setWandstaerke(stammdatenMass(r.getWandstaerke(), "Die Wandstärke"));
+            aw.setStegdicke(stammdatenMass(r.getStegdicke(), "Die Stegdicke"));
+            aw.setFlanschdicke(stammdatenMass(r.getFlanschdicke(), "Die Flanschdicke"));
+            Integer laenge = r.getStandardlaenge();
+            if (laenge != null && (laenge < 1 || laenge > 30_000)) throw stammdatenUngueltig("Die Standardlänge muss zwischen 1 und 30000 mm liegen.");
+            aw.setStandardlaenge(laenge);
+            setzeGewichtUndFlaeche(aw, r);
+            setzeArtikelFormel(aw, r);
+        }
+        artikel.setSuchtext(ArtikelSuchtext.aufbauen(artikel));
+        return artikelRepository.save(artikel);
+    }
+
+    private static void setzeArtikelFormel(ArtikelWerkstoffe aw, ArtikelStammdatenRequest r) {
+        try {
+            var geprueft = org.example.kalkulationsprogramm.service.formel.ArtikelFormeln.pruefe(
+                    new org.example.kalkulationsprogramm.service.formel.ArtikelFormeln.Formel(r.getFormelFelder(), r.getFormelGewicht(), r.getFormelFlaeche()));
+            aw.setFormelFelderJson(org.example.kalkulationsprogramm.service.formel.ArtikelFormeln.felderAlsJson(geprueft.felder()));
+            aw.setFormelGewicht(geprueft.gewicht());
+            aw.setFormelFlaeche(geprueft.flaeche());
+        } catch (org.example.kalkulationsprogramm.service.formel.FormelException e) {
+            throw stammdatenUngueltig("Formel: " + e.getMessage());
+        }
+    }
+
+    private static boolean hatHalbzeugAngaben(ArtikelStammdatenRequest r) {
+        return r.getKgProMeter() != null || r.getKgProQm() != null || r.getMantelflaeche() != null || r.getFlaecheJeQm() != null
+                || r.getKgJeStueck() != null || r.getM2JeStueck() != null || r.getDurchmesser() != null || r.getHoehe() != null
+                || r.getBreite() != null || r.getWandstaerke() != null || r.getStegdicke() != null || r.getFlanschdicke() != null
+                || r.getStandardlaenge() != null || (r.getFormelGewicht() != null && !r.getFormelGewicht().isBlank())
+                || (r.getFormelFlaeche() != null && !r.getFormelFlaeche().isBlank());
+    }
+
+    private static void setzeGewichtUndFlaeche(ArtikelWerkstoffe aw, ArtikelStammdatenRequest r) {
+        BigDecimal kgMeter = stammdatenGewicht(r.getKgProMeter(), "Das Gewicht je Meter");
+        BigDecimal m2Meter = stammdatenGewicht(r.getMantelflaeche(), "Die Außenfläche je Meter");
+        BigDecimal kgQm = stammdatenGewicht(r.getKgProQm(), "Das Gewicht je m²");
+        BigDecimal m2Qm = stammdatenGewicht(r.getFlaecheJeQm(), "Die Fläche je m² Blech");
+        if (m2Qm != null && m2Qm.compareTo(new BigDecimal("10")) > 0) throw stammdatenUngueltig("Die Fläche je m² Blech darf höchstens 10 sein.");
+        if (aw.getProfilform() != null && aw.getProfilform().istBlech()) { kgMeter = null; m2Meter = null; }
+        else if (kgMeter != null && kgQm != null) throw stammdatenUngueltig("Bitte entweder das Gewicht je Meter oder das Gewicht je m² angeben, nicht beides.");
+        aw.setMasse(kgMeter);
+        aw.setMantelflaeche(m2Meter);
+        aw.setMassePerQm(kgQm);
+        aw.setFlaecheJeQm(m2Qm);
+        aw.setKgJeStueck(stammdatenGewicht(r.getKgJeStueck(), "Das Gewicht je Stück"));
+        aw.setM2JeStueck(stammdatenGewicht(r.getM2JeStueck(), "Die Außenfläche je Stück"));
+        String herkunft = r.getGewichtHerkunft() == null || r.getGewichtHerkunft().isBlank() ? null : r.getGewichtHerkunft().strip().toUpperCase(Locale.ROOT);
+        if (herkunft != null && !HERKUENFTE_GEWICHT.contains(herkunft)) throw stammdatenUngueltig("Die Herkunft des Gewichts ist unbekannt.");
+        boolean hatGewicht = aw.getMasse() != null || aw.getMassePerQm() != null || aw.getKgJeStueck() != null;
+        aw.setGewichtHerkunft(hatGewicht ? herkunft : null);
+        BigDecimal dichte = r.getGewichtDichte();
+        if (dichte != null && (dichte.signum() <= 0 || dichte.compareTo(new BigDecimal("30")) > 0)) throw stammdatenUngueltig("Die Dichte muss größer als 0 und höchstens 30 kg/dm³ sein.");
+        aw.setGewichtDichte(hatGewicht && "BERECHNET".equals(herkunft) && dichte != null ? dichte.setScale(4, java.math.RoundingMode.HALF_UP) : null);
+    }
+
+    private void pruefeEan(String ean, Long eigeneId) {
+        String fehler = EanPruefung.fehler(ean);
+        if (fehler != null) throw stammdatenUngueltig(fehler);
+        if (ean != null && artikelRepository.findByEan(ean).filter(a -> !a.getId().equals(eigeneId)).isPresent()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Die EAN " + ean + " gehört schon zu einem anderen Artikel.");
+        }
+    }
+
+    private static String stammdatenText(String wert, int max, String name) {
+        if (wert == null || wert.isBlank()) return null;
+        String t = wert.strip();
+        if (t.length() > max) throw stammdatenUngueltig(name + " darf höchstens " + max + " Zeichen lang sein.");
+        return t;
+    }
+
+    private static BigDecimal stammdatenGewicht(BigDecimal wert, String name) {
+        if (wert == null) return null;
+        if (wert.signum() <= 0 || wert.compareTo(new BigDecimal("100000")) > 0) throw stammdatenUngueltig(name + " muss größer als 0 und höchstens 100.000 sein.");
+        return wert.setScale(4, java.math.RoundingMode.HALF_UP);
+    }
+
+    private static BigDecimal stammdatenMass(BigDecimal wert, String name) {
+        if (wert != null && (wert.signum() < 0 || wert.compareTo(MAX_MASS) > 0)) throw stammdatenUngueltig(name + " muss zwischen 0 und 100000 liegen.");
+        return wert;
+    }
+
+    private static ResponseStatusException stammdatenUngueltig(String text) {
+        return new ResponseStatusException(HttpStatus.BAD_REQUEST, text);
     }
 }

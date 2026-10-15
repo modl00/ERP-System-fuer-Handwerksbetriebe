@@ -253,8 +253,19 @@ public class BelegDto {
     @NoArgsConstructor
     @AllArgsConstructor
     public static class PermissionResponse {
+        public static final String KEIN_MITARBEITER = "KEIN_MITARBEITER";
+        public static final String KEINE_ABTEILUNG = "KEINE_ABTEILUNG";
+        public static final String KEIN_RECHT = "KEIN_RECHT";
+
         private boolean darfScannen;
         private boolean darfSehen;
+        private String grund;
+        private boolean kannMitarbeiterAnlegen;
+
+        public String getGrund() { return grund; }
+        public void setGrund(String grund) { this.grund = grund; }
+        public boolean isKannMitarbeiterAnlegen() { return kannMitarbeiterAnlegen; }
+        public void setKannMitarbeiterAnlegen(boolean v) { this.kannMitarbeiterAnlegen = v; }
     }
 
     /**

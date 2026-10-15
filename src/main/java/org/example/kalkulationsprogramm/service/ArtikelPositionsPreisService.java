@@ -5,28 +5,17 @@ import org.example.kalkulationsprogramm.domain.ArtikelPreisHinweis;
 import org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe;
 import org.example.kalkulationsprogramm.domain.LieferantenArtikelPreise;
 import org.example.kalkulationsprogramm.domain.Verrechnungseinheit;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 
-/**
- * Leitet aus einem Artikel den Vorschlag fuer eine Dokumentposition ab:
- * Einheit und Einzelpreis.
- *
- * <p>Der Schluessel ist die {@link Verrechnungseinheit}. Sie sagt, worauf sich
- * der gespeicherte Lieferantenpreis bezieht - nicht, was der Kunde liest. Ein
- * Rohr ist mit einem Meterpreis hinterlegt, ein Vollprofil mit einem Kilopreis.
- * Der Bediener gibt in beiden Faellen Meter ein; die Umrechnung passiert hier.
- *
- * <p>Bleche sind der eine Sonderfall: Sie tragen kein Gewicht je Meter, sondern
- * je Quadratmeter, und rechnen deshalb in m2.
- *
- * <p>Der Service ist bewusst zustandslos und ohne Abhaengigkeiten - er rechnet
- * nur. Dadurch laesst er sich ohne Spring-Kontext testen.
- */
 @Service
 public class ArtikelPositionsPreisService {
+
+    @Autowired(required = false)
+    private AufschlagService aufschlaege;
 
     private static final BigDecimal HUNDERT = new BigDecimal("100");
 
@@ -108,6 +97,7 @@ public class ArtikelPositionsPreisService {
             case QUADRATMETER -> "m²";
             case KILOGRAMM -> istBlech(artikel) ? "m²" : "lfm";
             case STUECK -> "Stk";
+            case LITER -> "l";
         };
     }
 
@@ -137,5 +127,33 @@ public class ArtikelPositionsPreisService {
         boolean ohneMeterGewicht = werkstoff.getMasse() == null || werkstoff.getMasse().signum() <= 0;
         boolean mitQmGewicht = werkstoff.getMassePerQm() != null && werkstoff.getMassePerQm().signum() > 0;
         return ohneMeterGewicht && mitQmGewicht;
+    }
+
+    public ArtikelPositionsVorschlag berechneZuschnitt(Artikel artikel, java.math.BigDecimal kgJeStueck, java.math.BigDecimal m2JeStueck) {
+        return berechneZuschnittIntern(artikel, artikel == null ? null : artikel.getGuenstigsterPreis().orElse(null), kgJeStueck, m2JeStueck);
+    }
+
+    private ArtikelPositionsVorschlag berechneZuschnittIntern(Artikel artikel, LieferantenArtikelPreise preis, java.math.BigDecimal kgJeStueck, java.math.BigDecimal m2JeStueck) {
+        if (artikel == null) return new ArtikelPositionsVorschlag("Stk", null, ArtikelPreisHinweis.KEIN_PREIS);
+        Verrechnungseinheit einheit = artikel.getVerrechnungseinheit();
+        java.math.BigDecimal einkauf = preis != null ? preis.getPreis() : null;
+        if (einkauf == null) return new ArtikelPositionsVorschlag("Stk", null, ArtikelPreisHinweis.KEIN_PREIS);
+        java.math.BigDecimal faktor = zuschnittFaktor(einheit, kgJeStueck, m2JeStueck);
+        if (faktor == null || faktor.signum() <= 0) return new ArtikelPositionsVorschlag("Stk", null, ArtikelPreisHinweis.KEIN_GEWICHT);
+        java.math.BigDecimal basis = einkauf.multiply(faktor);
+        java.math.BigDecimal aufschlag = aufschlaege == null ? artikel.getVerkaufsaufschlagProzent() : aufschlaege.wirksamer(artikel).prozent();
+        if (aufschlag == null) return new ArtikelPositionsVorschlag("Stk", basis.setScale(2, java.math.RoundingMode.HALF_UP), ArtikelPreisHinweis.KEIN_AUFSCHLAG);
+        java.math.BigDecimal endpreis = basis.multiply(java.math.BigDecimal.ONE.add(aufschlag.divide(HUNDERT, 6, java.math.RoundingMode.HALF_UP))).setScale(2, java.math.RoundingMode.HALF_UP);
+        return new ArtikelPositionsVorschlag("Stk", endpreis, ArtikelPreisHinweis.OK);
+    }
+
+    private static java.math.BigDecimal zuschnittFaktor(Verrechnungseinheit einheit, java.math.BigDecimal kgJeStueck, java.math.BigDecimal m2JeStueck) {
+        if (einheit == null) return java.math.BigDecimal.ONE;
+        return switch (einheit) {
+            case KILOGRAMM -> kgJeStueck;
+            case QUADRATMETER -> m2JeStueck;
+            case STUECK -> java.math.BigDecimal.ONE;
+            default -> null;
+        };
     }
 }

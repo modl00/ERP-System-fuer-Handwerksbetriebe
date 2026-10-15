@@ -1,0 +1,44 @@
+# Minimale Test-Umgebung: nur Postgres + App, kein Updater, keine Netzsperre.
+# Portainer: Repository-URL + Compose-Pfad "deployment/docker-compose.test.yml"
+# ERP_IMAGE setzen oder leer lassen (zieht dann Kuhns stable-Image).
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: erp-test-postgres
+    environment:
+      POSTGRES_DB: kalkulationsprogramm_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-test1234}
+      TZ: Europe/Berlin
+    volumes:
+      - erp_test_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d kalkulationsprogramm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  app:
+    image: ${ERP_IMAGE:-ghcr.io/winfo2024kuhn/erp-system-fuer-handwerksbetriebe:stable}
+    container_name: erp-test-app
+    ports:
+      - "8081:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker,postgres
+      TZ: Europe/Berlin
+      APP_DB_URL: jdbc:postgresql://postgres:5432/kalkulationsprogramm_db
+      APP_DB_USER: erp_user
+      APP_DB_PASS: ${DB_PASSWORD:-test1234}
+    volumes:
+      - erp_test_uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  erp_test_db:
+  erp_test_uploads:

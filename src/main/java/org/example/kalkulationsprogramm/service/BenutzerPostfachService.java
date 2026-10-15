@@ -6,7 +6,6 @@ import java.util.Properties;
 import java.util.Set;
 import java.util.regex.Pattern;
 
-import org.example.email.MailSicherheit;
 import org.example.kalkulationsprogramm.domain.BenutzerPostfach;
 import org.example.kalkulationsprogramm.repository.BenutzerPostfachRepository;
 import org.springframework.stereotype.Service;
@@ -101,8 +100,8 @@ public class BenutzerPostfachService {
         if (benutzer.isEmpty()) {
             throw new IllegalArgumentException("Bitte den Benutzernamen (meist die E-Mail-Adresse) eingeben.");
         }
-        Properties props = MailSicherheit.imap(port, 10000, 15000);
-        try (Store store = Session.getInstance(props).getStore(MailSicherheit.imapProtokoll(port))) {
+        Properties props = imapEigenschaften(port, 10000, 15000);
+        try (Store store = Session.getInstance(props).getStore(port == 143 ? "imap" : "imaps")) {
             store.connect(host, port, benutzer, passwort);
             return new Testergebnis(true, "Die Anmeldung hat geklappt.");
         } catch (AuthenticationFailedException ex) {
@@ -167,5 +166,23 @@ public class BenutzerPostfachService {
     private static PostfachDto dto(BenutzerPostfach p) {
         return new PostfachDto(p.getId(), p.getBezeichnung(), p.getEmailAdresse(), p.getImapHost(), p.getImapPort(), p.getSmtpHost(), p.getSmtpPort(), p.getBenutzername(),
                 p.getPasswortVerschluesselt() != null && !p.getPasswortVerschluesselt().isBlank(), p.isAktiv(), p.getErstelltAm());
+    }
+
+    // MailSicherheit wurde im Upstream-Merge entfernt; Logik hier inlinen
+    private static Properties imapEigenschaften(int port, int verbindungMs, int lesenMs) {
+        boolean ssl = port != 143;
+        String protokoll = ssl ? "imaps" : "imap";
+        Properties props = new Properties();
+        props.put("mail.store.protocol", protokoll);
+        props.put("mail.mime.address.strict", "false");
+        if (ssl) {
+            props.put("mail.imaps.ssl.enable", "true");
+        } else {
+            props.put("mail.imap.starttls.enable", "true");
+            props.put("mail.imap.starttls.required", "true");
+        }
+        props.put("mail." + protokoll + ".connectiontimeout", String.valueOf(verbindungMs));
+        props.put("mail." + protokoll + ".timeout", String.valueOf(lesenMs));
+        return props;
     }
 }

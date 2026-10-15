@@ -22,7 +22,7 @@ services:
     restart: unless-stopped
 
   app:
-    image: ${ERP_IMAGE:-ghcr.io/winfo2024kuhn/erp-system-fuer-handwerksbetriebe:stable}
+    image: ${ERP_IMAGE:-erp-handwerk:main}
     container_name: erp-test-app
     ports:
       - "8081:8080"

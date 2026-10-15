@@ -1016,6 +1016,7 @@ public class PlanungsService {
     }
 
     /** Die Plantafel rechnet sich selbst: regelmäßig, weil Urlaub, Termine und der Tag selbst sich ändern, ohne dass jemand die Plantafel anfasst. */
+    @Transactional
     @Scheduled(fixedDelay = 900_000, initialDelay = 180_000)
     void regelmaessigNeuBerechnen() {
         try {

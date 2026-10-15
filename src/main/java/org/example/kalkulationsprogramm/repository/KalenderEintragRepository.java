@@ -26,6 +26,13 @@ public interface KalenderEintragRepository extends JpaRepository<KalenderEintrag
                         "ORDER BY k.datum, k.startZeit NULLS FIRST")
         List<KalenderEintrag> findByDatumBetween(@Param("von") LocalDate von, @Param("bis") LocalDate bis);
 
+        @Query("SELECT k FROM KalenderEintrag k " +
+                        "LEFT JOIN FETCH k.projekt " +
+                        "LEFT JOIN FETCH k.ersteller " +
+                        "WHERE k.datum <= :bis AND COALESCE(k.datumBis, k.datum) >= :von " +
+                        "ORDER BY k.datum, k.startZeit NULLS FIRST")
+        List<KalenderEintrag> findeUeberlappende(@Param("von") LocalDate von, @Param("bis") LocalDate bis);
+
         /**
          * Findet alle Einträge für einen Mitarbeiter in einem Datumsbereich.
          * Zeigt Einträge, wo der Mitarbeiter Ersteller ODER Teilnehmer ist.

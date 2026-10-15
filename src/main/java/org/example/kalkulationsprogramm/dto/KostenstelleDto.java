@@ -13,4 +13,5 @@ public class KostenstelleDto {
     private boolean istInvestition;
     private boolean aktiv;
     private Integer sortierung;
+    private java.math.BigDecimal jahresSoll;
 }

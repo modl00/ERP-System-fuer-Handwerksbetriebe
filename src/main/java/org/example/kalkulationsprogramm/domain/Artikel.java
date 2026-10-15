@@ -186,6 +186,10 @@ public class Artikel
     @Column(name = "artikelnummer", unique = true, length = 64)
     private String artikelnummer;
 
+    /** EAN-13 oder EAN-8 Barcode. */
+    @Column(name = "ean", length = 14, unique = true)
+    private String ean;
+
     /**
      * Normalisierter Suchtext mit allen Schreibweisen ("42.4", "42,4", "rundrohr",
      * "rohr"). Die Suche zerlegt die Eingabe in Woerter und verlangt, dass alle

@@ -24,6 +24,10 @@ public class Kategorie
     @JoinColumn(name = "parent_kategorie_id")
     private Kategorie parentKategorie;
 
+    /** Aufschlag in Prozent für alle Artikel dieser Kategorie. Leer = erbt von der Oberkategorie. */
+    @Column(name = "verkaufsaufschlag_prozent", precision = 6, scale = 2)
+    private java.math.BigDecimal verkaufsaufschlagProzent;
+
     /**
      * Typische Liefer-Rollen dieser Kategorie. Leer = erbt von der Oberkategorie.
      * Steuert den Lieferanten-Vorschlag beim Preis-Eintragen am Artikel.

@@ -6,6 +6,7 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface ArbeitsgangRepository extends JpaRepository<Arbeitsgang, Long> {
-    // Repository für die Stammdaten der Arbeitsgänge (Planung, Montage etc.).
     java.util.Optional<Arbeitsgang> findByBeschreibung(String bezeichnung);
+    java.util.List<Arbeitsgang> findByMaschineId(Long maschineId);
+    java.util.List<Arbeitsgang> findByMaschineIsNotNull();
 }

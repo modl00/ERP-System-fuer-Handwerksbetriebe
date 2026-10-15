@@ -223,6 +223,7 @@ public class ProjektMapper {
             case KILOGRAMM -> aip.getKilogramm() != null
                     ? aip.getKilogramm()
                     : BigDecimal.ZERO;
+            case LITER -> aip.getMeter() != null ? aip.getMeter() : BigDecimal.ZERO;
         };
     }
 
@@ -246,6 +247,14 @@ public class ProjektMapper {
      * laengst abgehakte Bestellungen zurueckgehaengt, deren
      * {@code preisProStueck} trotzdem die eingefrorene Summe blieb.
      */
+    public BigDecimal geplanterGesamtpreis(ArtikelInProjekt aip) {
+        return ermittleGesamtpreis(aip, ermittleMenge(aip));
+    }
+
+    public BigDecimal geplanteMenge(ArtikelInProjekt aip) {
+        return ermittleMenge(aip);
+    }
+
     private BigDecimal ermittleGesamtpreis(ArtikelInProjekt aip, BigDecimal menge) {
         // Abgehakte Bestellung - die Summe steht fest. Lagerware laeuft nie
         // ueber diesen Weg, sie ist nur deshalb "bestellt", damit sie aus der

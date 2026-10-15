@@ -102,6 +102,7 @@ public class BestellungService {
             case KILOGRAMM -> aip.getKilogramm();
             case LAUFENDE_METER, QUADRATMETER -> aip.getMeter();
             case STUECK -> aip.getStueckzahl() != null ? BigDecimal.valueOf(aip.getStueckzahl()) : null;
+            case LITER -> aip.getMeter();
         };
         return menge != null ? menge : BigDecimal.ONE;
     }

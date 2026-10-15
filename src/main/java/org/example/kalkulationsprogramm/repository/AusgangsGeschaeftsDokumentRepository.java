@@ -173,4 +173,7 @@ public interface AusgangsGeschaeftsDokumentRepository extends JpaRepository<Ausg
             @org.springframework.data.repository.query.Param("typen") java.util.Set<AusgangsGeschaeftsDokumentTyp> typen,
             @org.springframework.data.repository.query.Param("start") java.time.LocalDate start,
             @org.springframework.data.repository.query.Param("end") java.time.LocalDate end);
+
+    @org.springframework.data.jpa.repository.Query("select d.dokumentNummer from AusgangsGeschaeftsDokument d where d.typ = :typ")
+    java.util.List<String> findeNummernDerArt(@org.springframework.data.repository.query.Param("typ") AusgangsGeschaeftsDokumentTyp typ);
 }

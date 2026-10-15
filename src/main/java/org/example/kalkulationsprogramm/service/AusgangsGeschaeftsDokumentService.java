@@ -2988,4 +2988,78 @@ public class AusgangsGeschaeftsDokumentService {
     private static BigDecimal nonNull(BigDecimal v) {
         return v == null ? BigDecimal.ZERO : v;
     }
+
+    /** Die Leistungen eines Auftrags mit ihrer Menge und woher sie stammen (Auftragsbestätigung oder Angebot). */
+    public record LeistungMengen(String quelle, Map<Long, BigDecimal> mengen) { }
+
+    @Transactional(readOnly = true)
+    public LeistungMengen leistungMengenFuerProjekt(Long projektId) {
+        if (projektId == null) return new LeistungMengen(null, Map.of());
+        List<AusgangsGeschaeftsDokument> alle = new ArrayList<>(dokumentRepository.findByProjektIdOrderByDatumDesc(projektId));
+        alle.addAll(dokumentRepository.findByAnfrageProjektIdAndProjektIsNull(projektId));
+        List<AusgangsGeschaeftsDokument> aktive = alle.stream().filter(d -> !d.isStorniert()).filter(d -> KATEGORIE_RELEVANTE_TYPEN.contains(d.getTyp())).toList();
+        List<AusgangsGeschaeftsDokument> abs = aktive.stream().filter(d -> d.getTyp() == AusgangsGeschaeftsDokumentTyp.AUFTRAGSBESTAETIGUNG).toList();
+        List<AusgangsGeschaeftsDokument> effektive = abs.isEmpty()
+                ? aktive.stream().filter(d -> d.getTyp() == AusgangsGeschaeftsDokumentTyp.ANGEBOT).toList()
+                : abs;
+        Map<Long, BigDecimal> mengen = new java.util.HashMap<>();
+        for (AusgangsGeschaeftsDokument dok : effektive) {
+            extractLeistungMengenFromPositionenJson(dok.getPositionenJson(), mengen);
+        }
+        String quelle = effektive.isEmpty() ? null : (abs.isEmpty() ? AusgangsGeschaeftsDokumentTyp.ANGEBOT.name() : AusgangsGeschaeftsDokumentTyp.AUFTRAGSBESTAETIGUNG.name());
+        return new LeistungMengen(quelle, mengen);
+    }
+
+    /** Die Positionen eines Auftrags als Text (eine Zeile je Position) und woher sie stammen. */
+    public record PositionsTexte(String quelle, java.util.List<String> zeilen) { }
+
+    @Transactional(readOnly = true)
+    public PositionsTexte positionsTexteFuerProjekt(Long projektId) {
+        if (projektId == null) return new PositionsTexte(null, java.util.List.of());
+        List<AusgangsGeschaeftsDokument> alle = new ArrayList<>(dokumentRepository.findByProjektIdOrderByDatumDesc(projektId));
+        alle.addAll(dokumentRepository.findByAnfrageProjektIdAndProjektIsNull(projektId));
+        List<AusgangsGeschaeftsDokument> aktive = alle.stream().filter(d -> !d.isStorniert()).filter(d -> KATEGORIE_RELEVANTE_TYPEN.contains(d.getTyp())).toList();
+        List<AusgangsGeschaeftsDokument> abs = aktive.stream().filter(d -> d.getTyp() == AusgangsGeschaeftsDokumentTyp.AUFTRAGSBESTAETIGUNG).toList();
+        List<AusgangsGeschaeftsDokument> effektive = abs.isEmpty()
+                ? aktive.stream().filter(d -> d.getTyp() == AusgangsGeschaeftsDokumentTyp.ANGEBOT).toList()
+                : abs;
+        List<String> zeilen = new ArrayList<>();
+        for (AusgangsGeschaeftsDokument dok : effektive) {
+            sammlePositionsTexte(dok.getPositionenJson(), zeilen);
+        }
+        String quelle = effektive.isEmpty() ? null : (abs.isEmpty() ? AusgangsGeschaeftsDokumentTyp.ANGEBOT.name() : AusgangsGeschaeftsDokumentTyp.AUFTRAGSBESTAETIGUNG.name());
+        return new PositionsTexte(quelle, zeilen);
+    }
+
+    private void sammlePositionsTexte(String positionenJson, List<String> zeilen) {
+        if (positionenJson == null || positionenJson.isBlank()) return;
+        try {
+            JsonNode root = new ObjectMapper().readTree(positionenJson);
+            JsonNode blocks = root.isArray() ? root : root.get("blocks");
+            if (blocks == null || !blocks.isArray()) return;
+            for (JsonNode block : blocks) {
+                sammlePositionsText(block, zeilen);
+            }
+        } catch (Exception e) {
+            log.warn("Fehler beim Lesen der Positionstexte aus positionenJson: {}", e.getMessage());
+        }
+    }
+
+    private void sammlePositionsText(JsonNode block, List<String> zeilen) {
+        String type = block.path("type").asText("");
+        if ("SERVICE".equals(type) && !block.path("optional").asBoolean(false)) {
+            String titel = block.path("title").asText("").strip();
+            if (!titel.isEmpty()) {
+                String menge = block.hasNonNull("quantity") ? BigDecimal.valueOf(block.get("quantity").asDouble()).stripTrailingZeros().toPlainString() + " " + block.path("unit").asText("") + " " : "";
+                zeilen.add((menge + titel).strip());
+            }
+        }
+        if ("SECTION_HEADER".equals(type) && block.path("children").isArray()) {
+            String label = block.path("sectionLabel").asText("").strip();
+            if (!label.isEmpty()) zeilen.add("Abschnitt: " + label);
+            for (JsonNode child : block.get("children")) {
+                sammlePositionsText(child, zeilen);
+            }
+        }
+    }
 }

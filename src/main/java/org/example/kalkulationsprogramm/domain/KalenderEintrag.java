@@ -34,6 +34,9 @@ public class KalenderEintrag {
     @Column(nullable = false)
     private LocalDate datum;
 
+    /** Letzter Tag eines mehrtägigen Termins; leer = nur am Tag {@code datum}. Mehrtägige Termine sind ganztägig. */
+    private LocalDate datumBis;
+
     private LocalTime startZeit;
 
     private LocalTime endeZeit;

@@ -1625,4 +1625,10 @@ public class EmailImportService {
             log.error("[EmailDeletion] Fehler bei Server-Löschung: {}", e.getMessage());
         }
     }
+
+    static boolean istGesendetName(String vollerName) {
+        if (vollerName == null) return false;
+        String letzter = vollerName.substring(Math.max(vollerName.lastIndexOf('.'), Math.max(vollerName.lastIndexOf('/'), vollerName.lastIndexOf('\\'))) + 1).trim().toLowerCase(java.util.Locale.ROOT);
+        return java.util.Set.of("sent", "sent items", "sent messages", "gesendet", "gesendete elemente", "gesendete objekte", "gesendete nachrichten").contains(letzter);
+    }
 }

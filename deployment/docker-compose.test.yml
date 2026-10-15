@@ -23,6 +23,10 @@ services:
 
   app:
     image: ${ERP_IMAGE:-erp-handwerk:main}
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    pull_policy: build
     container_name: erp-test-app
     ports:
       - "8081:8080"

@@ -46,7 +46,7 @@ COPY --from=frontend /build/src/main/resources/static src/main/resources/static
 # Bauen und das Ergebnis auf einen festen Namen legen. Ohne das muesste hier
 # die Projektversion stehen — die laeuft erfahrungsgemaess auseinander
 # (pom stand auf 1.0.3, das Dockerfile noch auf 1.0.0).
-RUN ./mvnw clean package -DskipTests -B \
+RUN ./mvnw clean package -Dmaven.test.skip=true -B \
  && cp target/Kalkulationsprogramm-*.jar /app/app.jar
 
 # ===== Wissen der KI-Hilfe (RAG-Datei) =====

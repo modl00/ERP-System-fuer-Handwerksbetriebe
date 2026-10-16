@@ -9,15 +9,22 @@ import { SessionGuard } from './auth/SessionGuard';
 import { installSessionInterceptor } from './auth/sessionInterceptor';
 import TextbausteinEditor from './pages/TextbausteinEditor';
 import Leistungseditor from './pages/Leistungseditor';
+import LagerEditor from './pages/LagerEditor';
 import Kundeneditor from './pages/Kundeneditor';
 import LieferantenEditor from './pages/LieferantenEditor';
 import ArtikelEditor from './pages/ArtikelEditor';
 import ArtikelDetail from './pages/ArtikelDetail';
 import ArbeitsgangEditor from './pages/ArbeitsgangEditor';
+import KostenrechnungPage from './pages/KostenrechnungPage';
+import FremdleistungenPage from './pages/FremdleistungenPage';
+import WerkstoffEditor from './pages/WerkstoffEditor';
+import Aufschlaege from './pages/Aufschlaege';
 import ProduktkategorieEditor from './pages/ProduktkategorieEditor';
 import ProjektEditor from './pages/ProjektEditor';
 import AnfrageEditor from './pages/AnfrageEditor';
 import BestellungenUebersicht from './pages/BestellungenUebersicht';
+import BestellListe from './pages/BestellListe';
+import BestellungBearbeiten from './pages/BestellungBearbeiten';
 import ErfolgsanalyseEditor from './pages/ErfolgsanalyseEditor';
 import KostenstellenControllingEditor from './pages/KostenstellenControllingEditor';
 import FormularwesenEditor from './pages/FormularwesenEditor';
@@ -25,7 +32,20 @@ import OffenePostenEditor from './pages/OffenePostenEditor';
 import EmailCenter from './pages/EmailCenter';
 import EmailTextvorlagenEditor from './pages/EmailTextvorlagenEditor';
 import EmailEinstellungenPage from './pages/EmailEinstellungenPage';
-
+import Plantafel from './pages/Plantafel';
+import Startbildschirm from './pages/Startbildschirm';
+import WartungUebersicht from './pages/WartungUebersicht';
+import WartungProtokoll from './pages/WartungProtokoll';
+import WartungModulEditor from './pages/WartungModulEditor';
+import WartungAnlage from './pages/WartungAnlage';
+import RechteUebersichtSeite from './pages/RechteUebersicht';
+import MeinTagesverlauf from './pages/MeinTagesverlauf';
+import AktivitaetenImSystem from './pages/AktivitaetenImSystem';
+import AbteilungBerechtigungenEditor from './pages/AbteilungBerechtigungenEditor';
+import Testbox from './pages/Testbox';
+import { RequireModul } from './features/modulschalter/RequireModul';
+import { RequireWartungModul } from './features/modulschalter/RequireWartungModul';
+import { RequireLagerModul } from './features/modulschalter/RequireLagerModul';
 import MietabrechnungEditor from './pages/MietabrechnungEditor';
 import BenutzerEditor from './pages/BenutzerEditor';
 import MitarbeiterEditor from './pages/MitarbeiterEditor';
@@ -70,7 +90,8 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="/onboarding" element={<RequireAdmin><ErrorBoundary><FirstLoginSetupPage /></ErrorBoundary></RequireAdmin>} />
 
               <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
-                <Route path="/" element={<Navigate to="/projekte" replace />} />
+                <Route path="/" element={<ErrorBoundary><Startbildschirm /></ErrorBoundary>} />
+                <Route path="/start" element={<ErrorBoundary><Startbildschirm /></ErrorBoundary>} />
 
                 <Route path="/textbausteine" element={<ErrorBoundary><TextbausteinEditor /></ErrorBoundary>} />
                 <Route path="/leistungen" element={<ErrorBoundary><Leistungseditor /></ErrorBoundary>} />
@@ -81,14 +102,26 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/artikel" element={<ErrorBoundary><ArtikelEditor /></ErrorBoundary>} />
                 <Route path="/artikel/:id" element={<ErrorBoundary><ArtikelDetail /></ErrorBoundary>} />
                 <Route path="/arbeitsgaenge" element={<ErrorBoundary><ArbeitsgangEditor /></ErrorBoundary>} />
+                <Route path="/kostenrechnung" element={<RequireAdmin><ErrorBoundary><KostenrechnungPage /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/fremdleistungen" element={<ErrorBoundary><FremdleistungenPage /></ErrorBoundary>} />
+                <Route path="/lager" element={<RequireLagerModul><ErrorBoundary><LagerEditor /></ErrorBoundary></RequireLagerModul>} />
+                <Route path="/werkstoffe" element={<ErrorBoundary><WerkstoffEditor /></ErrorBoundary>} />
+                <Route path="/aufschlaege" element={<ErrorBoundary><Aufschlaege /></ErrorBoundary>} />
                 <Route path="/produktkategorien" element={<ErrorBoundary><ProduktkategorieEditor /></ErrorBoundary>} />
                 <Route path="/projekte" element={<ErrorBoundary><ProjektEditor /></ErrorBoundary>} />
                 <Route path="/anfragen" element={<ErrorBoundary><AnfrageEditor /></ErrorBoundary>} />
                 <Route path="/bestellungen" element={<ErrorBoundary><BestellungenUebersicht /></ErrorBoundary>} />
+                <Route path="/bestellungen/liste" element={<ErrorBoundary><BestellListe /></ErrorBoundary>} />
+                <Route path="/bestellungen/bestellung/:id" element={<ErrorBoundary><BestellungBearbeiten /></ErrorBoundary>} />
                 <Route path={BESTELLBEDARF_PFAD} element={istFreigegeben(BESTELLBEDARF_PFAD)
                     ? <ErrorBoundary><BestellungEditor /></ErrorBoundary>
                     : <Navigate to="/bestellungen" replace />} />
+                <Route path="/wartung" element={<RequireWartungModul><ErrorBoundary><WartungUebersicht /></ErrorBoundary></RequireWartungModul>} />
+                <Route path="/wartung/:id" element={<RequireWartungModul><ErrorBoundary><WartungProtokoll /></ErrorBoundary></RequireWartungModul>} />
+                <Route path="/wartung/anlagen/:tuerId" element={<RequireWartungModul><ErrorBoundary><WartungAnlage /></ErrorBoundary></RequireWartungModul>} />
+                <Route path="/wartung/module/:id" element={<RequireAdmin><RequireWartungModul><ErrorBoundary><WartungModulEditor /></ErrorBoundary></RequireWartungModul></RequireAdmin>} />
                 <Route path="/kalender" element={<ErrorBoundary><TerminKalender /></ErrorBoundary>} />
+                <Route path="/plantafel" element={<ErrorBoundary><Plantafel /></ErrorBoundary>} />
                 <Route path="/analyse" element={<ErrorBoundary><ErfolgsanalyseEditor /></ErrorBoundary>} />
                 <Route path="/kostenstellen" element={<ErrorBoundary><KostenstellenControllingEditor /></ErrorBoundary>} />
                 <Route path="/website" element={<RequireAdmin><ErrorBoundary><WebsiteEditor /></ErrorBoundary></RequireAdmin>} />
@@ -107,7 +140,7 @@ const router = createBrowserRouter(createRoutesFromElements(
                 {/* Ziel der Glocke – für alle Angemeldeten; was jemand sieht, entscheidet der Server. */}
                 <Route path="/benachrichtigungen" element={<ErrorBoundary><BenachrichtigungenPage /></ErrorBoundary>} />
 
-                <Route path="/miete" element={<ErrorBoundary><MietabrechnungEditor /></ErrorBoundary>} />
+                <Route path="/miete" element={<RequireModul modul="miete" titel="Mietabrechnung" ribbonCategory="Finanzen & Controlling" modulName="Das Mietabrechnungsmodul" erhalten="Die bisherigen Mietobjekte und Abrechnungen"><ErrorBoundary><MietabrechnungEditor /></ErrorBoundary></RequireModul>} />
                 <Route path="/benutzer" element={<RequireAdmin><ErrorBoundary><BenutzerEditor /></ErrorBoundary></RequireAdmin>} />
 
                 {/* Zeiterfassung & Admin */}
@@ -119,8 +152,11 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/feiertage" element={<ErrorBoundary><ZeiterfassungFeiertage /></ErrorBoundary>} />
                 <Route path="/urlaubsantraege" element={<ErrorBoundary><Urlaubsantraege /></ErrorBoundary>} />
                 <Route path="/langzeitkrankmeldungen" element={<ErrorBoundary><Langzeitkrankmeldungen /></ErrorBoundary>} />
-                {/* Die Rechte sind in die Einstellungen umgezogen; alte Links und Lesezeichen landen im Reiter. */}
-                <Route path="/abteilung-berechtigungen" element={<Navigate to="/einstellungen#berechtigungen" replace />} />
+                <Route path="/rechte-uebersicht" element={<RequireAdmin><ErrorBoundary><RechteUebersichtSeite /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/mein-tagesverlauf" element={<ErrorBoundary><MeinTagesverlauf /></ErrorBoundary>} />
+                <Route path="/aktivitaeten" element={<RequireAdmin><ErrorBoundary><AktivitaetenImSystem /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/abteilung-berechtigungen" element={<RequireAdmin><ErrorBoundary><AbteilungBerechtigungenEditor /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/testbox" element={<RequireAdmin><ErrorBoundary><Testbox /></ErrorBoundary></RequireAdmin>} />
                 <Route path="/firma" element={<RequireAdmin><ErrorBoundary><FirmaEditor /></ErrorBoundary></RequireAdmin>} />
                 <Route path="/einstellungen" element={<RequireAdmin><ErrorBoundary><EinstellungenEditor /></ErrorBoundary></RequireAdmin>} />
 

@@ -15,11 +15,19 @@ interface AnfrageAdresseLike {
     kundenOrt?: string;
 }
 
+/** Der Aufschlag auf den Einkaufspreis in Prozent (0 bis 999,99), mit dem ein Artikel den Verkaufspreis ergibt; {@code null} ohne Einkaufspreis. */
+export const aufschlagFuer = (verkauf: number, einkauf: number | null): number | null => {
+    if (einkauf == null || einkauf <= 0) return null;
+    const prozent = (verkauf / einkauf - 1) * 100;
+    return Math.min(999.99, Math.max(0, Math.round(prozent * 100) / 100));
+};
+
 export const unitMap: Record<string, string> = {
     'LAUFENDE_METER': 'lfm',
     'QUADRATMETER': 'm²',
     'KILOGRAMM': 'kg',
-    'STUECK': 'Stk'
+    'STUECK': 'Stk',
+    'LITER': 'l'
 };
 
 /**

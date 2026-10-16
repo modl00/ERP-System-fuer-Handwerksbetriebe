@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { Brain, CheckCircle2, Loader2, MessageSquareWarning, PlugZap, PowerOff } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { useToast } from '../../ui/toast';
@@ -13,7 +13,25 @@ import {
     TestResultBanner,
 } from '../settingsUi';
 import { parseErrorMessage } from '../settingsApi';
+import { KiFunktionenKarte } from './KiFunktionenKarte';
+import { LokaleKiKarte } from './LokaleKiKarte';
+import { KiAnbieterKarte } from './KiAnbieterKarte';
+import { KiObergrenzeKarte } from './KiObergrenzeKarte';
+import { KiProtokollKarte } from './KiProtokollKarte';
+import { KiUebersichtKarte } from './KiUebersichtKarte';
+import { KiMerklisteKarte } from './KiMerklisteKarte';
+import { KiWunschKarte } from './KiWunschKarte';
 import type { TestResult } from '../settingsApi';
+
+type Bereich = 'uebersicht' | 'anbieter' | 'grenzen' | 'protokoll' | 'merkliste' | 'wuensche';
+const BEREICHE: { id: Bereich; label: string }[] = [
+    { id: 'uebersicht', label: 'Übersicht' },
+    { id: 'anbieter', label: 'Anbieter und Modelle' },
+    { id: 'grenzen', label: 'Grenzen' },
+    { id: 'merkliste', label: 'Merkliste' },
+    { id: 'wuensche', label: 'Wünsche an die Entwicklung' },
+    { id: 'protokoll', label: 'Protokoll' },
+];
 
 /**
  * KI-Funktionen: Status (an/aus), der KI-Schlüssel (Google Gemini) und der
@@ -36,6 +54,8 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
     // Anmelde-Rahmen gebaut. In der App ist der AuthProvider immer da.
     const auth = useOptionalAuth();
     const [loading, setLoading] = useState(true);
+    const [bereich, setBereich] = useState<Bereich>('uebersicht');
+    const reiter = useRef<Record<string, HTMLButtonElement | null>>({});
 
     const [apiKeySet, setApiKeySet] = useState(false);
     const [apiKey, setApiKey] = useState('');
@@ -161,10 +181,16 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
 
     if (loading) return <SectionLoading />;
 
-    return (
-        <div className="space-y-6">
-            <KiStatusKasten an={apiKeySet} />
+    const waehle = (id: Bereich) => setBereich(id);
+    const taste = (e: React.KeyboardEvent, index: number) => {
+        if (e.key !== 'ArrowRight' && e.key !== 'ArrowLeft') return;
+        e.preventDefault();
+        const n = BEREICHE[(index + (e.key === 'ArrowRight' ? 1 : -1) + BEREICHE.length) % BEREICHE.length];
+        waehle(n.id);
+        reiter.current[n.id]?.focus();
+    };
 
+    const geminiKarte = (
             <SettingsCard
                 icon={<Brain className="w-5 h-5 text-rose-600" />}
                 title="KI-Schlüssel (Google Gemini)"
@@ -204,41 +230,85 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                     Schlüssel speichern
                 </SaveButton>
             </SettingsCard>
+    );
 
-            <SettingsCard
-                icon={<MessageSquareWarning className="w-5 h-5 text-rose-600" />}
-                title="Anfragen von der Webseite"
-                description={
-                    <p>
-                        Wenn aktiv, prüft ein Sprachmodell jede neue Anfrage über das Webseiten-Formular
-                        und blockiert offensichtliche Spaß-Eingaben (z.B. „Test 123", Beleidigungen,
-                        kaputte E-Mail-Adressen). Dafür braucht es keinen Gemini-Schlüssel: Das Modell
-                        läuft standardmäßig auf dem eigenen Server, die Anfragen verlassen den Betrieb
-                        dabei nicht. Ist es nicht eingerichtet oder gerade nicht erreichbar, gehen alle
-                        Anfragen durch – eine echte Anfrage wird nie wegen eines Fehlers abgewiesen.
-                    </p>
-                }
-            >
-                <label className="flex items-start gap-3 cursor-pointer select-none">
-                    <input
-                        type="checkbox"
-                        checked={spamFilterAktiv}
-                        disabled={spamFilterSaving}
-                        onChange={(e) => handleToggleSpamFilter(e.target.checked)}
-                        className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
-                    />
-                    <span>
-                        <span className="font-medium text-slate-900">
-                            Spaß-Anfragen automatisch aussortieren
-                        </span>
-                        <span className="block text-xs text-slate-500">
-                            Erkennt z.B. „asdf", „leck mich", Test-Eingaben oder unsinnige
-                            E-Mail-Adressen und meldet der Webseite, dass die Anfrage nicht gesendet
-                            werden konnte.
-                        </span>
-                    </span>
-                </label>
-            </SettingsCard>
+    return (
+        <div className="space-y-6">
+            <div role="tablist" aria-label="Bereiche der KI-Einstellungen" className="flex flex-wrap gap-1 border-b border-slate-200">
+                {BEREICHE.map((b, i) => (
+                    <button key={b.id} type="button" role="tab" id={`ki-reiter-${b.id}`} aria-selected={bereich === b.id} aria-controls="ki-bereich"
+                        tabIndex={bereich === b.id ? 0 : -1} ref={el => { reiter.current[b.id] = el; }} onClick={() => waehle(b.id)} onKeyDown={e => taste(e, i)}
+                        className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${bereich === b.id ? 'border-rose-600 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'}`}>
+                        {b.label}
+                    </button>
+                ))}
+            </div>
+
+            <div role="tabpanel" id="ki-bereich" aria-labelledby={`ki-reiter-${bereich}`} className="space-y-6">
+                {bereich === 'uebersicht' && (
+                    <>
+                        <KiStatusKasten an={auth?.user?.kiAktiv ?? apiKeySet} />
+
+                        <KiUebersichtKarte onOeffne={waehle} />
+
+                        <SettingsCard
+                            icon={<MessageSquareWarning className="w-5 h-5 text-rose-600" />}
+                            title="Anfragen von der Webseite"
+                            description={
+                                <p>
+                                    Wenn aktiv, prüft ein Sprachmodell jede neue Anfrage über das Webseiten-Formular
+                                    und blockiert offensichtliche Spaß-Eingaben (z.B. „Test 123", Beleidigungen,
+                                    kaputte E-Mail-Adressen). Dafür braucht es keinen Gemini-Schlüssel: Das Modell
+                                    läuft standardmäßig auf dem eigenen Server, die Anfragen verlassen den Betrieb
+                                    dabei nicht. Ist es nicht eingerichtet oder gerade nicht erreichbar, gehen alle
+                                    Anfragen durch – eine echte Anfrage wird nie wegen eines Fehlers abgewiesen.
+                                </p>
+                            }
+                        >
+                            <label className="flex items-start gap-3 cursor-pointer select-none">
+                                <input
+                                    type="checkbox"
+                                    checked={spamFilterAktiv}
+                                    disabled={spamFilterSaving}
+                                    onChange={(e) => handleToggleSpamFilter(e.target.checked)}
+                                    className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                                />
+                                <span>
+                                    <span className="font-medium text-slate-900">
+                                        Spaß-Anfragen automatisch aussortieren
+                                    </span>
+                                    <span className="block text-xs text-slate-500">
+                                        Erkennt z.B. „asdf", „leck mich", Test-Eingaben oder unsinnige
+                                        E-Mail-Adressen und meldet der Webseite, dass die Anfrage nicht gesendet
+                                        werden konnte.
+                                    </span>
+                                </span>
+                            </label>
+                        </SettingsCard>
+                    </>
+                )}
+
+                {bereich === 'anbieter' && (
+                    <div className="space-y-8">
+                        <KiAnbieterKarte
+                            geminiZugang={geminiKarte}
+                            lokalZugang={<LokaleKiKarte />}
+                        />
+                        <section className="space-y-3" aria-labelledby="ki-schritt-2">
+                            <h3 id="ki-schritt-2" className="text-base font-bold text-slate-900">2. Funktionen: Anbieter, Modell und Datenschutz</h3>
+                            <KiFunktionenKarte />
+                        </section>
+                    </div>
+                )}
+
+                {bereich === 'grenzen' && <KiObergrenzeKarte />}
+
+                {bereich === 'merkliste' && <KiMerklisteKarte />}
+
+                {bereich === 'wuensche' && <KiWunschKarte />}
+
+                {bereich === 'protokoll' && <KiProtokollKarte />}
+            </div>
         </div>
     );
 }
@@ -304,7 +374,8 @@ function KiStatusKasten({ an }: { an: boolean }) {
                                 {OHNE_SCHLUESSEL_FAELLT_WEG.map((punkt) => <li key={punkt}>{punkt}</li>)}
                             </ul>
                             <p className="mt-3 text-sm text-slate-600">
-                                Zum Einschalten unten einen KI-Schlüssel von Google Gemini eintragen und speichern.
+                                Zum Einschalten unten einen KI-Zugang eintragen und speichern – Gemini (Google),
+                                Claude (Anthropic), Mistral oder eine lokale KI (siehe „Anbieter und Modelle").
                             </p>
                         </>
                     )}

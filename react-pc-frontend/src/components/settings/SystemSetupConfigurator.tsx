@@ -1,10 +1,21 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Brain, Check, Clock, FolderOpen, Mail, Phone, Shield } from 'lucide-react';
+import { Blocks, Brain, Check, Clock, DatabaseZap, FolderOpen, Globe, Hash, Mail, Palette, Phone, Shield, CalendarRange } from 'lucide-react';
 import { EmailSettingsSection } from './sections/EmailSettingsSection';
 import { DateiOrdnerSection } from './sections/DateiOrdnerSection';
+import { LesbareAblageBereich } from '../../features/ablage/LesbareAblageBereich';
+import { SmbAbgleichBereich } from '../../features/ablage/SmbAbgleichBereich';
 import { KiSettingsSection } from './sections/KiSettingsSection';
 import { ZeiterfassungSection } from './sections/ZeiterfassungSection';
+import { FeiertageKarte } from './sections/FeiertageKarte';
 import { TelefonSettingsSection } from './sections/TelefonSettingsSection';
+import { ModuleSection } from './sections/ModuleSection';
+import { DarstellungSection } from './sections/DarstellungSection';
+import { PlanungSection } from './sections/PlanungSection';
+import { WebsiteZugangKarte } from './sections/WebsiteZugangKarte';
+import { AngebotsLinkKarte } from './sections/AngebotsLinkKarte';
+import { NummernkreiseSection } from './sections/NummernkreiseSection';
+import { DemoDatenKarte } from './sections/DemoDatenKarte';
+import { HeroVerbindungKarte } from './sections/HeroVerbindungKarte';
 import { BerechtigungenSection } from './sections/BerechtigungenSection';
 
 /**
@@ -21,7 +32,7 @@ import { BerechtigungenSection } from './sections/BerechtigungenSection';
  * mehr an.</p>
  */
 
-type TabId = 'email' | 'dateien' | 'ki' | 'zeiterfassung' | 'telefon' | 'berechtigungen';
+type TabId = 'email' | 'dateien' | 'ki' | 'zeiterfassung' | 'telefon' | 'website' | 'nummern' | 'module' | 'darstellung' | 'planung' | 'import' | 'berechtigungen';
 
 interface TabDefinition {
     id: TabId;
@@ -35,6 +46,12 @@ const TABS: TabDefinition[] = [
     { id: 'ki', label: 'KI-Funktionen', icon: <Brain className="w-4 h-4" /> },
     { id: 'zeiterfassung', label: 'Zeiterfassung', icon: <Clock className="w-4 h-4" /> },
     { id: 'telefon', label: 'Telefon', icon: <Phone className="w-4 h-4" /> },
+    { id: 'website', label: 'Website', icon: <Globe className="w-4 h-4" /> },
+    { id: 'nummern', label: 'Nummernkreise', icon: <Hash className="w-4 h-4" /> },
+    { id: 'module', label: 'Module', icon: <Blocks className="w-4 h-4" /> },
+    { id: 'darstellung', label: 'Darstellung', icon: <Palette className="w-4 h-4" /> },
+    { id: 'planung', label: 'Planung', icon: <CalendarRange className="w-4 h-4" /> },
+    { id: 'import', label: 'Datenübernahme', icon: <DatabaseZap className="w-4 h-4" /> },
     { id: 'berechtigungen', label: 'Berechtigungen', icon: <Shield className="w-4 h-4" /> },
 ];
 
@@ -209,11 +226,33 @@ export function SystemSetupConfigurator({ onSaved }: SystemSetupConfiguratorProp
                 id={`settings-panel-${activeTab}`}
                 aria-labelledby={`settings-tab-${activeTab}`}
             >
-                {activeTab === 'email' && <EmailSettingsSection onSaved={handleSaved} />}
-                {activeTab === 'dateien' && <DateiOrdnerSection onSaved={handleSaved} />}
+                {activeTab === 'email' && (
+                    <>
+                        <EmailSettingsSection onSaved={handleSaved} />
+                        <AngebotsLinkKarte />
+                    </>
+                )}
+                {activeTab === 'dateien' && (
+                    <>
+                        <DateiOrdnerSection onSaved={handleSaved} />
+                        <LesbareAblageBereich />
+                        <SmbAbgleichBereich />
+                    </>
+                )}
                 {activeTab === 'ki' && <KiSettingsSection onSaved={handleSaved} />}
-                {activeTab === 'zeiterfassung' && <ZeiterfassungSection onSaved={handleSaved} />}
+                {activeTab === 'zeiterfassung' && <div className="space-y-6"><FeiertageKarte /><ZeiterfassungSection onSaved={handleSaved} /></div>}
                 {activeTab === 'telefon' && <TelefonSettingsSection onSaved={handleSaved} />}
+                {activeTab === 'website' && <WebsiteZugangKarte />}
+                {activeTab === 'nummern' && <NummernkreiseSection />}
+                {activeTab === 'module' && <ModuleSection />}
+                {activeTab === 'darstellung' && <DarstellungSection />}
+                {activeTab === 'planung' && <PlanungSection />}
+                {activeTab === 'import' && (
+                    <>
+                        <HeroVerbindungKarte />
+                        <DemoDatenKarte />
+                    </>
+                )}
                 {activeTab === 'berechtigungen' && <BerechtigungenSection />}
             </div>
         </div>

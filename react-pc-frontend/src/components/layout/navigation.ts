@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, Building2, Calculator, Calendar, CalendarDays, ClipboardCheck, Clock, Euro, Factory, FileCheck, FileJson, FileText, GanttChart, Globe, History, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShieldCheck, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet, Warehouse } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, Calendar, CalendarDays, Clock, Euro, FileCheck, FileJson, FileText, Globe, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { BESTELLBEDARF_PFAD } from '../../lib/freigaben';
 
@@ -7,7 +7,6 @@ export interface NavItem {
     name: string;
     href: string;
     icon: ComponentType<{ className?: string }>;
-    auch?: string[];
 }
 
 export interface NavSubgroup {
@@ -43,20 +42,14 @@ export const NAVIGATION: NavCategory[] = [
             {
                 label: 'Katalog',
                 items: [
-                    { name: 'Artikel', href: '/artikel', icon: Package, auch: ['/werkstoffe', '/aufschlaege'] },
-                    { name: 'Lager', href: '/lager', icon: Warehouse },
-                    { name: 'Leistungen', href: '/leistungen', icon: List },
+                    { name: 'Artikel', href: '/artikel', icon: Package },
                     { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
-                    { name: 'Fremdleistungen', href: '/fremdleistungen', icon: Factory },
-                    { name: 'Kostenrechnung', href: '/kostenrechnung', icon: Calculator },
                     { name: 'Kategorien', href: '/produktkategorien', icon: Layers },
                 ]
             },
             {
                 label: 'Administration',
                 items: [
-                    { name: 'Wer darf was?', href: '/rechte-uebersicht', icon: ShieldCheck, auch: ['/abteilung-berechtigungen'] },
-                    { name: 'Aktivitäten', href: '/aktivitaeten', icon: History },
                     { name: 'Firma', href: '/firma', icon: Building2 },
                     { name: 'Formularwesen', href: '/formulare', icon: FileJson },
                     { name: 'Einstellungen', href: '/einstellungen', icon: Settings },
@@ -75,12 +68,6 @@ export const NAVIGATION: NavCategory[] = [
                 ]
             },
             {
-                label: 'Wartung',
-                items: [
-                    { name: 'Wartungen', href: '/wartung', icon: ClipboardCheck },
-                ]
-            },
-            {
                 label: 'Dokumente',
                 items: [
                     { name: 'Dokumente', href: '/dokumentuebersicht', icon: FileText },
@@ -90,14 +77,12 @@ export const NAVIGATION: NavCategory[] = [
                 label: 'Planung',
                 items: [
                     { name: 'Kalender', href: '/kalender', icon: Calendar },
-                    { name: 'Plantafel', href: '/plantafel', icon: GanttChart },
                 ]
             },
             {
                 label: 'Einkauf',
                 items: [
-                    { name: 'Bestellen', href: '/bestellungen/liste', icon: ShoppingCart },
-                    { name: 'Bestellungen', href: '/bestellungen', icon: FileText },
+                    { name: 'Bestellungen', href: '/bestellungen', icon: ShoppingCart },
                     { name: 'Bedarf', href: BESTELLBEDARF_PFAD, icon: List },
                 ]
             }

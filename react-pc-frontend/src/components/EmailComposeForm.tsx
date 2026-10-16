@@ -15,11 +15,11 @@ import { komprimiereBildFuerEmail, komprimiereBilderFuerEmail } from '../lib/bil
 import { EmailRecipientInput } from './EmailRecipientInput';
 import { EmailEntityDocumentPicker } from './EmailEntityDocumentPicker';
 import { EmailZuordnungSearchModal, type EmailZuordnung } from './EmailZuordnungSearchModal';
-import DOMPurify from 'dompurify';
 import { useToast } from './ui/toast';
 import { useEmailDraft } from '../features/email/useEmailDraft';
 import { loadEmailDraft } from '../features/email/emailDraftPersistence';
-import { toSafeResourceUrl } from '../lib/htmlSanitizer';
+import { sanitizeHtml, toSafeResourceUrl } from '../lib/htmlSanitizer';
+import { formuliereMitKi, htmlFuerVersand, ladeStandardSignatur, setzeEditorHtml } from '../features/email/mailEditorHtml';
 import { AbsenderPostfachAuswahl } from '../features/email/AbsenderPostfachAuswahl';
 import { useAbsenderPostfaecher } from '../features/email/useAbsenderPostfaecher';
 import { nurWaehlbareAbsender, waehleStandardAbsender, type PostfachKurz } from '../features/email/postfach';
@@ -145,11 +145,37 @@ export interface EmailComposeFormProps {
      * bereits fest – dort bleibt das Feld aus.
      */
     zuordnungWaehlbar?: boolean;
+    /**
+     * Wird nach dem Klick auf „E-Mail senden“ und vor dem eigentlichen Versand
+     * aufgerufen (z. B. Rechnung buchen). `weiter: false` bricht ab, ohne zu senden –
+     * die Fehlermeldung zeigt der Aufrufer selbst. `hinweisBeiSendefehler` wird an
+     * die Meldung gehängt, falls der Versand danach scheitert.
+     */
+    vorDemSenden?: () => Promise<VorDemSendenErgebnis>;
+    /**
+     * Sperrt Vorschau und Download der automatisch angehängten Dateien und zeigt
+     * stattdessen diesen Hinweis (z. B. ungebuchte Rechnung: sonst ließe sie sich
+     * am Buchen vorbei herunterladen).
+     */
+    anhangVorschauGesperrt?: string;
+    /**
+     * `false`: kein automatischer Entwurf. Nötig, wenn beim Senden noch etwas
+     * passieren muss (Buchen, alte Online-Links ablösen) – ein später aus der
+     * Entwurfsliste verschickter Entwurf würde das sonst überspringen.
+     */
+    entwurfSpeichern?: boolean;
+    /** Angebotsversand: nach dem Senden offene Online-Links anderer Angebote zurückziehen. */
+    freigabenAbloesenFuerDokumentId?: number;
+    /**
+     * Die automatisch angehängten Dateien sind Pflicht (z. B. die Rechnung, die beim Senden
+     * gebucht wird). Fehlt eine, ist „Senden“ gesperrt und dieser Hinweis erscheint.
+     */
+    pflichtanhangHinweis?: string;
 }
 
-interface SignatureResponse {
-    id?: number;
-    html?: string;
+export interface VorDemSendenErgebnis {
+    weiter: boolean;
+    hinweisBeiSendefehler?: string;
 }
 
 // Aktuelles Frontend-Profil aus localStorage holen
@@ -172,25 +198,6 @@ const getCurrentFrontendUser = (): FrontendUserSelection | null => {
         console.warn('Frontend-Profil konnte nicht gelesen werden:', err);
     }
     return null;
-};
-
-// Signatur-Wrapper für konsistentes Styling
-const wrapSignatureHtml = (rawHtml: string): string => {
-    const trimmed = (rawHtml || '').trim();
-    if (!trimmed) return '';
-    if (/email-signature/i.test(trimmed)) {
-        return trimmed;
-    }
-    return `<div class="email-signature" style="margin-top: 20px; padding-top: 10px; border-top: 1px solid #ddd;">${trimmed}</div>`;
-};
-
-// HTML für E-Mail-Versand vorbereiten
-const prepareHtmlForSending = (rawHtml: string): string => {
-    const wrapper = document.createElement('div');
-    wrapper.innerHTML = rawHtml || '';
-    wrapper.querySelectorAll('script, style').forEach(n => n.remove());
-    wrapper.querySelectorAll('[contenteditable]').forEach(n => n.removeAttribute('contenteditable'));
-    return wrapper.innerHTML.trim();
 };
 
 const deriveOrderRecipientName = (subject: string): string => {
@@ -234,6 +241,11 @@ export function EmailComposeForm({
     draftId: initialDraftId,
     zuordnungWaehlbar = false,
     variant = 'default',
+    vorDemSenden,
+    anhangVorschauGesperrt,
+    entwurfSpeichern = true,
+    freigabenAbloesenFuerDokumentId,
+    pflichtanhangHinweis,
 }: EmailComposeFormProps) {
     const inline = variant !== 'modal';
     const toast = useToast();
@@ -467,6 +479,8 @@ export function EmailComposeForm({
             : `${initialAttachments!.length} Dateien automatisch angehängt`
         : '';
     const firstPdfAttachment = uploadedFiles.find(file => file.file.type === 'application/pdf');
+    const pflichtanhangFehlt = !!pflichtanhangHinweis && !!initialAttachments
+        && initialAttachments.some(datei => !uploadedFiles.some(uf => uf.file === datei));
     /** Antwort oder Weiterleitung: Absender steht fest (Postfach der Original-Mail). */
     const absenderFest = !!replyEmailId || !!weitergeleitetVonEmailId;
     const originalEmailId = replyEmailId ?? weitergeleitetVonEmailId;
@@ -516,7 +530,7 @@ export function EmailComposeForm({
     }), [recipient, ccRecipients, subject, body, absenderModus, gewaehltesPostfach, postfachId, einzelversandAktiv,
         replyEmailId, weitergeleitetVonEmailId, isAnfrageContext, entityId, geschaeftsdokument, uploadedFiles]);
     const draft = useEmailDraft(draftSnapshot, initialDraftId,
-        !draftLoading && !draftLoadError && !komprimiereAnhaenge, reportDraftError);
+        entwurfSpeichern && !draftLoading && !draftLoadError && !komprimiereAnhaenge, reportDraftError);
     const markDirty = draft.markDirty;
 
     useEffect(() => {
@@ -528,7 +542,7 @@ export function EmailComposeForm({
             if (cancelled) return;
             setRecipient(content.recipient ?? initialRecipient);
             setSubject(content.subject ?? initialSubject);
-            const html = DOMPurify.sanitize(content.body ?? initialBody);
+            const html = sanitizeHtml(content.body ?? initialBody);
             setBody(html);
             const gespeicherterEinzelversand = !!content.einzelversand;
             // Einzelversand und CC schließen sich aus (Backend lehnt sonst mit 400 ab).
@@ -559,7 +573,7 @@ export function EmailComposeForm({
 
     // After restoring all attachments the editable element is mounted again.
     useEffect(() => {
-        if (!draftLoading && initialDraftId && editorRef.current) editorRef.current.innerHTML = body;
+        if (!draftLoading && initialDraftId) setzeEditorHtml(editorRef.current, body);
         // Only restoration may replace the editable DOM; keystrokes must retain their caret.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [draftLoading, initialDraftId]);
@@ -592,29 +606,9 @@ export function EmailComposeForm({
     };
 
     const loadSignature = useCallback(async () => {
-        try {
-            const currentUser = getCurrentFrontendUser();
-            const params = new URLSearchParams();
-            if (currentUser?.id) {
-                params.set('frontendUserId', String(currentUser.id));
-            }
-            const signatureUrl = params.toString()
-                ? `/api/email/signatures/default?${params.toString()}`
-                : '/api/email/signatures/default';
-
-            const res = await fetch(signatureUrl);
-            if (res.ok && res.status !== 204) {
-                const data: SignatureResponse = await res.json();
-                if (data.html) {
-                    const wrappedSig = wrapSignatureHtml(data.html);
-                    setSignature(wrappedSig);
-                    return wrappedSig;
-                }
-            }
-        } catch (err) {
-            console.error('Signatur konnte nicht geladen werden:', err);
-        }
-        return '';
+        const sig = await ladeStandardSignatur(getCurrentFrontendUser()?.id);
+        if (sig) setSignature(sig);
+        return sig;
     }, []);
 
     // Beim Versand eines Geschäftsdokuments entscheidet nicht die Auswahl,
@@ -719,9 +713,8 @@ export function EmailComposeForm({
             // Antwort-Modus: Schreibbereich → Signatur → Zitat
             loadSignature().then(sig => {
                 const content = `<p><br></p>${sig}<br>${replyQuote}`;
-                setBody(content);
+                setBody(setzeEditorHtml(editorRef.current, content));
                 if (editorRef.current) {
-                    editorRef.current.innerHTML = content;
                     // Cursor an den Anfang setzen
                     const range = document.createRange();
                     const sel = window.getSelection();
@@ -734,28 +727,17 @@ export function EmailComposeForm({
         } else if (!initialBody) {
             // Neue E-Mail: nur Signatur
             loadSignature().then(sig => {
-                const initialContent = `<p><br></p>${sig}`;
-                setBody(initialContent);
-                if (editorRef.current) {
-                    editorRef.current.innerHTML = initialContent;
-                }
+                setBody(setzeEditorHtml(editorRef.current, `<p><br></p>${sig}`));
             });
         } else {
             // initialBody vorhanden (z.B. aus Draft oder DocumentEditor)
             // Signatur nur anhängen wenn im Body noch keine enthalten ist (Draft enthält sie bereits)
             const alreadyHasSignature = /email-signature/i.test(initialBody);
             if (alreadyHasSignature) {
-                setBody(initialBody);
-                if (editorRef.current) {
-                    editorRef.current.innerHTML = initialBody;
-                }
+                setBody(setzeEditorHtml(editorRef.current, initialBody));
             } else {
                 loadSignature().then(sig => {
-                    const content = `${initialBody}${sig}`;
-                    setBody(content);
-                    if (editorRef.current) {
-                        editorRef.current.innerHTML = content;
-                    }
+                    setBody(setzeEditorHtml(editorRef.current, `${initialBody}${sig}`));
                 });
             }
         }
@@ -873,85 +855,25 @@ export function EmailComposeForm({
         e.stopPropagation();
     };
 
-    // KI-Verschönerung
+    // KI-Verschönerung: nur der eigene Text, Signatur und Zitat bleiben stehen
     const handleBeautify = async () => {
-        const currentHtml = editorRef.current?.innerHTML || body;
-        const container = document.createElement('div');
-        container.innerHTML = currentHtml;
-
-        // 1. Signatur entfernen (und speichern)
-        const sigEl = container.querySelector('.email-signature');
-        let sigHtml = '';
-        if (sigEl) {
-            sigHtml = sigEl.outerHTML;
-            sigEl.remove();
-        }
-
-        // 2. Zitat / Antwort-Kontext entfernen (und speichern)
-        // Wir suchen nach .email-quote ODRE dem typischen Style
-        let quoteEl = container.querySelector('.email-quote');
-        if (!quoteEl) {
-            // Fallback: Suche nach dem Style, falls Klasse fehlt
-            const divs = container.querySelectorAll('div[style*="border-left"]');
-            if (divs.length > 0) {
-                quoteEl = divs[0];
-            }
-        }
-
-        let quoteHtml = '';
-        let contextText = '';
-
-        if (quoteEl) {
-            quoteHtml = quoteEl.outerHTML;
-            contextText = quoteEl.textContent || '';
-            quoteEl.remove();
-        }
-
-        // 3. Verbleibender Text ist der User-Input
-        const plainText = container.textContent?.trim() || '';
-
-        if (!plainText) {
-            setError('Kein Text zum Umformulieren gefunden.');
-            return;
-        }
-
         setBeautifying(true);
         setError(null);
-
         try {
-            const res = await fetch('/api/email/beautify', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    body: plainText,
-                    context: contextText || (entityName ? `Projekt/Anfrage: ${entityName}` : null)
-                })
+            const ergebnis = await formuliereMitKi(editorRef.current?.innerHTML || body, {
+                kontext: entityName ? `Projekt/Anfrage: ${entityName}` : null,
+                ersatzSignaturHtml: signature,
             });
-
-            if (!res.ok) {
-                throw new Error(`HTTP ${res.status}`);
+            if (ergebnis.status === 'kein-text') {
+                setError('Kein Text zum Umformulieren gefunden.');
+                return;
             }
-
-            const data = await res.json();
-            const suggestion = typeof data?.body === 'string' ? data.body.trim() : '';
-
-            if (!suggestion) {
+            if (ergebnis.status === 'kein-vorschlag') {
                 setError('Keine alternative Formulierung erhalten.');
                 return;
             }
-
-            const isHtml = /<[^>]+>/.test(suggestion);
-            const htmlSuggestion = isHtml
-                ? suggestion
-                : suggestion.split(/\n{2,}/).filter(Boolean).map((p: string) => `<p>${p}</p>`).join('');
-
-            // 4. Alles wieder zusammensetzen: Optimierter Text + Signatur + Zitat
-            const newContent = `${htmlSuggestion}${sigHtml || signature}${quoteHtml ? '<br>' + quoteHtml : ''}`;
             markDirty();
-            setBody(newContent);
-            if (editorRef.current) {
-                editorRef.current.innerHTML = newContent;
-            }
+            setBody(setzeEditorHtml(editorRef.current, ergebnis.html));
         } catch (err) {
             console.error('KI-Verschönerung fehlgeschlagen:', err);
             setError('Formulierung fehlgeschlagen. Bitte erneut versuchen.');
@@ -978,6 +900,10 @@ export function EmailComposeForm({
             setError(EINZELVERSAND_ZU_VIELE);
             return;
         }
+        if (pflichtanhangFehlt) {
+            setError(pflichtanhangHinweis ?? null);
+            return;
+        }
         // Ohne Projekt/Anfrage landet die E-Mail nirgendwo – einmal nachfragen.
         // Nur dort, wo der Vorgang im Formular überhaupt wählbar ist, und nicht beim
         // Antworten: eine Antwort erbt die Zuordnung der Ursprungsmail.
@@ -994,9 +920,18 @@ export function EmailComposeForm({
         setSending(true);
         setError(null);
         setEinzelversandErgebnis(null);
+        let hinweisBeiSendefehler: string | undefined;
 
         try {
             await draft.pause();
+            if (vorDemSenden) {
+                const vorbereitung = await vorDemSenden();
+                if (!vorbereitung.weiter) {
+                    draft.resume();
+                    return;
+                }
+                hinweisBeiSendefehler = vorbereitung.hinweisBeiSendefehler;
+            }
             const currentUser = getCurrentFrontendUser();
 
             // FormData für multipart request (mit Anhängen)
@@ -1008,7 +943,7 @@ export function EmailComposeForm({
                 recipients: einzelversandAktiv ? anEmpfaenger : [finalRecipient],
                 cc: einzelversandAktiv ? [] : ccRecipients.filter(c => c.trim().length > 0),
                 subject: subject.trim(),
-                body: prepareHtmlForSending(editorRef.current?.innerHTML || body),
+                body: htmlFuerVersand(editorRef.current?.innerHTML || body),
                 direction: 'OUT',
                 benutzer: currentUser?.displayName || '',
                 frontendUserId: currentUser?.id || null,
@@ -1022,6 +957,7 @@ export function EmailComposeForm({
                 postfachId: absenderModus === 'auswahl' ? postfachId : null,
                 weitergeleitetVonEmailId: weitergeleitetVonEmailId ?? null,
                 einzelversand: einzelversandAktiv,
+                freigabenAbloesenFuerDokumentId: freigabenAbloesenFuerDokumentId ?? null,
             };
 
             formData.append('dto', new Blob([JSON.stringify(dtoPayload)], { type: 'application/json' }));
@@ -1093,9 +1029,10 @@ export function EmailComposeForm({
             }
         } catch (err) {
             console.error('E-Mail senden fehlgeschlagen:', err);
-            const meldung = err instanceof VersandFehler && err.message
+            const grund = err instanceof VersandFehler && err.message
                 ? err.message
                 : 'E-Mail konnte nicht gesendet werden. Bitte erneut versuchen.';
+            const meldung = hinweisBeiSendefehler ? `${grund} ${hinweisBeiSendefehler}` : grund;
             setError(meldung);
             toast.error(meldung);
             draft.resume();
@@ -1215,7 +1152,11 @@ export function EmailComposeForm({
                                     </p>
                                     <p className="mt-1 text-sm text-rose-700/90 break-words">{initialAttachmentLabel}</p>
                                 </div>
-                                {firstPdfAttachment && (
+                                {anhangVorschauGesperrt ? (
+                                    <p className="max-w-sm text-xs text-rose-700/90" data-testid="anhang-vorschau-gesperrt">
+                                        {anhangVorschauGesperrt}
+                                    </p>
+                                ) : firstPdfAttachment && (
                                     <Button
                                         type="button"
                                         variant="outline"
@@ -1638,6 +1579,11 @@ export function EmailComposeForm({
                                 </div>
                             </div>
 
+                            {pflichtanhangFehlt && (
+                                <p role="alert" data-testid="pflichtanhang-fehlt" className="mt-2 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-800">
+                                    {pflichtanhangHinweis}
+                                </p>
+                            )}
                             {uploadedFiles.length > 0 && (
                                 <div className="space-y-2 mt-2">
                                     {uploadedFiles.map((uf, idx) => (
@@ -1647,7 +1593,8 @@ export function EmailComposeForm({
                                                 <span className="text-xs text-slate-500">{formatFileSize(uf.file.size)}</span>
                                             </div>
                                             <div className="flex items-center gap-1">
-                                                {(isPdfAttachment(uf.file) || isImageAttachment(uf.file)) && (
+                                                {(isPdfAttachment(uf.file) || isImageAttachment(uf.file))
+                                                    && !(anhangVorschauGesperrt && initialAttachments?.includes(uf.file)) && (
                                                     <Button
                                                         type="button"
                                                         variant="ghost"
@@ -1698,7 +1645,7 @@ export function EmailComposeForm({
             {/* Footer – immer sichtbar, damit "E-Mail senden" nie verdeckt wird */}
             <div className="px-4 py-3 border-t border-slate-200 bg-slate-50 flex flex-wrap items-center justify-between gap-2 flex-shrink-0 relative z-10">
                 <span role="status" className={`text-xs ${draft.status === 'error' ? 'text-rose-700' : 'text-slate-500'}`}>
-                    {draft.label}
+                    {entwurfSpeichern ? draft.label : 'Wird nicht als Entwurf gespeichert'}
                     {draft.status === 'error' && <button className="ml-2 underline" onClick={() => { void draft.flush().catch(() => undefined); }}>Erneut speichern</button>}
                 </span>
                 <div className="flex gap-3">
@@ -1707,8 +1654,8 @@ export function EmailComposeForm({
                     </Button>
                     <Button
                         onClick={handleSend}
-                        disabled={sending || closing || komprimiereAnhaenge || loadingEntityDokumentIds.size > 0 || !recipient.trim() || !subject.trim() || attachmentLimitExceeded || zuVieleEmpfaenger}
-                        title={zuVieleEmpfaenger ? EINZELVERSAND_ZU_VIELE : undefined}
+                        disabled={sending || closing || komprimiereAnhaenge || loadingEntityDokumentIds.size > 0 || !recipient.trim() || !subject.trim() || attachmentLimitExceeded || zuVieleEmpfaenger || pflichtanhangFehlt}
+                        title={zuVieleEmpfaenger ? EINZELVERSAND_ZU_VIELE : pflichtanhangFehlt ? pflichtanhangHinweis : undefined}
                         className="bg-rose-600 hover:bg-rose-700 text-white"
                     >
                         {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}

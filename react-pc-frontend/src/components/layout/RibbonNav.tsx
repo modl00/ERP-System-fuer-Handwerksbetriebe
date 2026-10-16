@@ -10,12 +10,18 @@ import { useTelefonBerechtigung } from '../../features/telefon/useTelefonBerecht
 import { useNeueSprachnachrichten } from '../../features/telefon/useNeueSprachnachrichten';
 import { useKiAktiv } from '../../features/ki/useKiAktiv';
 import { useZeiterfassungSichtbarkeit } from '../../features/zeiterfassung/useZeiterfassungSichtbarkeit';
+import { useLagerAktiv, useWartungAktiv } from '../../features/modulschalter/useFeatures';
+import { useDarf } from '../../features/funktionsrechte/useFunktionsrechte';
 import { NAVIGATION, ZEITERFASSUNG_KATEGORIE, type NavCategory } from './navigation';
 
 
-const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/benutzer', '/website']);
+const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/benutzer', '/website', '/rechte-uebersicht', '/aktivitaeten', '/abteilung-berechtigungen', '/kostenrechnung']);
 /** Nur mit dem Abteilungs-Recht „Anrufe & Anrufbeantworter" sichtbar. */
 const TELEFON_PATHS = new Set(['/telefon/anrufe', '/telefon/anrufbeantworter']);
+/** Nur sichtbar, solange das Wartungsmodul eingeschaltet ist. */
+const WARTUNG_PATHS = new Set(['/wartung']);
+/** Nur sichtbar, solange das Lagermodul eingeschaltet ist. */
+const LAGER_PATHS = new Set(['/lager']);
 
 
 export function RibbonNavigation() {
@@ -26,6 +32,10 @@ export function RibbonNavigation() {
     const darfTelefon = useTelefonBerechtigung() === true;
     // Während der Prüfung (null) bleibt der Bereich verborgen – so blitzt der Reiter nicht kurz auf.
     const darfZeiterfassung = useZeiterfassungSichtbarkeit() === true;
+    const darfWartungSehen = useDarf('WARTUNG') !== false;
+    const darfLagerSehen = useDarf('LAGER') !== false;
+    const wartungAktiv = useWartungAktiv() === true && darfWartungSehen;
+    const lagerAktiv = useLagerAktiv() !== false && darfLagerSehen;
     // Zähler neuer Nachrichten am Menüpunkt "Anrufbeantworter".
     const neueSprachnachrichten = useNeueSprachnachrichten(darfTelefon);
     const zaehler: Record<string, number> = { '/telefon/anrufbeantworter': neueSprachnachrichten };
@@ -41,12 +51,14 @@ export function RibbonNavigation() {
                         items: subgroup.items.filter((item) =>
                             istFreigegeben(item.href)
                             && (isAdmin || !ADMIN_ONLY_PATHS.has(item.href))
-                            && (darfTelefon || !TELEFON_PATHS.has(item.href))),
+                            && (darfTelefon || !TELEFON_PATHS.has(item.href))
+                            && (wartungAktiv || !WARTUNG_PATHS.has(item.href))
+                            && (lagerAktiv || !LAGER_PATHS.has(item.href))),
                     }))
                     .filter((subgroup) => subgroup.items.length > 0),
             }))
             .filter((category) => category.subgroups.length > 0);
-    }, [isAdmin, darfTelefon, darfZeiterfassung]);
+    }, [isAdmin, darfTelefon, darfZeiterfassung, wartungAktiv, lagerAktiv]);
 
     const [selectedCategory, setSelectedCategory] = useState<string>(NAVIGATION[0].category);
     // Track the pathname when the user explicitly clicked a tab.

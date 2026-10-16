@@ -1,6 +1,10 @@
 package org.example.kalkulationsprogramm.service.mail;
 
+import java.io.IOException;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.security.GeneralSecurityException;
 import java.security.SecureRandom;
 import java.util.Base64;
@@ -10,19 +14,56 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.GCMParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
 @Service
 public class MailSecretService {
+    private static final Logger log = LoggerFactory.getLogger(MailSecretService.class);
     private static final String PREFIX = "v1:";
     private static final int NONCE_LENGTH = 12;
     private static final int TAG_LENGTH_BITS = 128;
     private static final SecureRandom RANDOM = new SecureRandom();
+    /** Dateiname in uploads/ – versteckter Name, kein üblicher Upload */
+    private static final String SCHLUESSEL_DATEI = ".mail-encryption.key";
     private final byte[] key;
 
-    public MailSecretService(@Value("${mail.credentials.encryption-key:}") String key) {
-        this.key = key == null ? new byte[0] : key.getBytes(StandardCharsets.UTF_8);
+    public MailSecretService(@Value("${mail.credentials.encryption-key:}") String keyProperty,
+                             @Value("${file.upload-dir:uploads}") String uploadDir) {
+        this.key = ladeOderErzeugeSchluessel(keyProperty, uploadDir);
+    }
+
+    private static byte[] ladeOderErzeugeSchluessel(String keyProperty, String uploadDir) {
+        // 1. Explizit gesetzter Property hat Vorrang
+        if (keyProperty != null && !keyProperty.isBlank()) {
+            byte[] k = keyProperty.getBytes(StandardCharsets.UTF_8);
+            if (k.length == 16 || k.length == 24 || k.length == 32) return k;
+            log.warn("mail.credentials.encryption-key hat ungültige Länge ({} Zeichen, erwartet 16/24/32) – wird ignoriert.", k.length);
+        }
+        // 2. Schlüsseldatei in uploads/ lesen oder anlegen
+        Path dir = Path.of(uploadDir);
+        Path datei = dir.resolve(SCHLUESSEL_DATEI);
+        try {
+            Files.createDirectories(dir);
+            if (Files.exists(datei)) {
+                byte[] k = Files.readAllBytes(datei);
+                if (k.length == 32) return k;
+                log.warn("Schlüsseldatei {} hat ungültige Länge – neuer Schlüssel wird erzeugt.", datei);
+            }
+            // Neuen 32-Byte-Schlüssel erzeugen und speichern
+            byte[] neu = new byte[32];
+            RANDOM.nextBytes(neu);
+            Files.write(datei, neu, StandardOpenOption.CREATE, StandardOpenOption.TRUNCATE_EXISTING);
+            // Nur Eigentümer darf lesen/schreiben (best-effort, klappt auf Linux)
+            try { datei.toFile().setReadable(false, false); datei.toFile().setReadable(true, true); datei.toFile().setWritable(false, false); datei.toFile().setWritable(true, true); } catch (Exception ignored) { }
+            log.info("Neuer Mail-Verschlüsselungsschlüssel erzeugt und gespeichert: {}", datei);
+            return neu;
+        } catch (IOException e) {
+            log.warn("Schlüsseldatei {} konnte nicht gelesen/geschrieben werden: {} – Mail-Passwörter nicht verschlüsselbar.", datei, e.getMessage());
+            return new byte[0];
+        }
     }
 
     public boolean isConfigured() {

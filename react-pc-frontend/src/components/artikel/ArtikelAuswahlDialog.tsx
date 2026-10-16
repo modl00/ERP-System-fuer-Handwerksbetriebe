@@ -9,7 +9,7 @@ import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { cn } from '../../lib/utils';
 import { stripHtmlTags } from '../../lib/htmlSanitizer';
-import type { Artikel, ArbeitsgangFormelFeld } from '../../types';
+import type { Artikel } from '../../types';
 
 export interface ArtikelAuswahl {
     artikelId: number;
@@ -23,10 +23,12 @@ export interface ArtikelAuswahl {
     beschreibungHtml: string;
     menge: number;
     einheit: string;
+    /** Hat der Artikel eine Zuschnitt-Formel (#228), die Eingabefelder für die Maße; sonst leer. */
+    formelFelder?: Artikel['formelFelder'];
     /** 0, wenn kein Preis ermittelbar war — der Bediener traegt ihn im Editor nach. */
     einzelpreis: number;
-    /** Zuschnitt-Formel (#228): Eingabefelder für Maße; leer = kein Zuschnitt. */
-    formelFelder?: ArbeitsgangFormelFeld[] | null;
+    /** Artikelnummer (eigene, sonst die des Lieferanten), für die Spalte "Artikel-Nr."; leer, wenn keine bekannt ist. */
+    artikelnummer?: string;
 }
 
 /**
@@ -65,11 +67,12 @@ const zuAuswahl = (artikel: Artikel, menge: number): ArtikelAuswahl => ({
     beschreibungHtml: kundentextFuerPosition(artikel),
     menge,
     einheit: artikel.positionsEinheit ?? 'Stk',
+    formelFelder: artikel.formelFelder ?? undefined,
     // Kein ermittelbarer Preis wird zu 0. Der Bediener sieht die Null im Editor
     // und traegt den Wert nach - eine leere Zahl wuerde die Summenrechnung
     // durcheinanderbringen.
     einzelpreis: artikel.positionsEinzelpreis ?? 0,
-    formelFelder: artikel.formelFelder ?? undefined,
+    artikelnummer: artikel.artikelnummer?.trim() || artikel.externeArtikelnummer?.trim() || undefined,
 });
 
 export function ArtikelAuswahlDialog({ offen, onSchliessen, onUebernehmen }: ArtikelAuswahlDialogProps) {

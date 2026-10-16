@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-    ArrowLeft, Minus, Package, RefreshCw, Save, ShieldCheck, ShieldX,
+    ArrowLeft, Minus, Package, Pencil, RefreshCw, Save, ShieldCheck, ShieldX,
     TrendingDown, TrendingUp
 } from "lucide-react";
 import { Button } from "../components/ui/button";
@@ -13,10 +13,12 @@ import { useToast } from "../components/ui/toast";
 import { TiptapEditor } from "../components/TiptapEditor";
 import { preisHinweisText, type PreisHinweis } from "../components/artikel/preisHinweis";
 import { ArtikelDokumente } from "../components/artikel/ArtikelDokumente";
+import { ArtikelStammdatenForm } from "../components/artikel/ArtikelStammdatenForm";
+import { ArtikelLagerBereich } from "../features/lager/ArtikelLagerBereich";
 // Dieselbe Waehrungsformatierung wie in der Trefferliste - inklusive der
 // zusaetzlichen Nachkommastellen bei Kleinstpreisen (Schrauben, Muttern).
 import { formatCurrency as formatEuro } from "../components/artikel/formatCurrency";
-import { stripHtmlTags } from "../lib/htmlSanitizer";
+import { richtextOderNull } from "../components/artikel/richtext";
 import type { Artikel, ArtikelDetail as ArtikelDetailData, ArtikelPreisstand } from "../types";
 
 /** Wie in der Liste - nur steht hier ein Strich, wo gar kein Preis gepflegt ist. */
@@ -30,21 +32,6 @@ const formatZahl = (val?: number, nachkomma = 3) =>
     val === undefined || val === null
         ? "—"
         : new Intl.NumberFormat("de-DE", { maximumFractionDigits: nachkomma }).format(val);
-
-/**
- * Ein Rich-Text ohne sichtbaren Inhalt gilt als leer und wird als `null`
- * gesendet - sonst bleibt ein geleertes Beschreibungsfeld "gepflegt", weil
- * Tiptap beim Leeren typischerweise "<p></p>" liefert statt eines leeren
- * Strings. Zaehlt nicht als Inhalt: Tags, "&nbsp;" (als Entity oder echtes
- * Zeichen) und gewoehnliche Leerzeichen.
- */
-function richtextOderNull(html: string): string | null {
-    const sichtbarerText = stripHtmlTags(html)
-        .replace(/&nbsp;/gi, " ")
-        .replace(/\u00a0/g, " ")
-        .trim();
-    return sichtbarerText === "" ? null : html;
-}
 
 /**
  * Detailseite eines Artikels.
@@ -94,7 +81,24 @@ export default function ArtikelDetail() {
     const [kurzbeschreibung, setKurzbeschreibung] = useState("");
     const [beschreibung, setBeschreibung] = useState("");
     const [aufschlag, setAufschlag] = useState<string>("");
+    // Welcher Aufschlag gilt, wenn am Artikel keiner steht (Kategorie oder allgemein); fehlt die Angabe, bleibt der Hinweis weg
+    const [geltenderAufschlag, setGeltenderAufschlag] = useState<{ prozent: number | null; quelle: string; quellenName: string | null } | null>(null);
     const [speichern, setSpeichern] = useState(false);
+
+    // Stammdaten bearbeiten (Name, Nummern, Einheit, Kategorie, Maße ...)
+    const [stammdatenBearbeiten, setStammdatenBearbeiten] = useState(false);
+
+    useEffect(() => {
+        if (!id) return;
+        let abgebrochen = false;
+        void (async () => {
+            try {
+                const res = await fetch(`/api/aufschlaege/artikel/${encodeURIComponent(id)}`);
+                if (res.ok && !abgebrochen) setGeltenderAufschlag(await res.json());
+            } catch { /* ohne die Angabe fehlt nur der Hinweis unter dem Feld */ }
+        })();
+        return () => { abgebrochen = true; };
+    }, [id, daten]);
 
     const laden = useCallback(async () => {
         if (!id) return;
@@ -254,6 +258,13 @@ export default function ArtikelDetail() {
             subtitle={[artikel.artikelnummer, artikel.werkstoffName].filter(Boolean).join(" · ")}
             actions={
                 <div className="flex gap-2">
+                    {!stammdatenBearbeiten && (
+                        <Button size="sm" className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700"
+                            onClick={() => setStammdatenBearbeiten(true)}>
+                            <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Stammdaten bearbeiten
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm"
                         className="border-rose-300 text-rose-700 hover:bg-rose-50"
                         onClick={zurueckZurListe}>
@@ -269,9 +280,31 @@ export default function ArtikelDetail() {
                 </div>
             }
         >
+            {/* ============ Stammdaten bearbeiten ============ */}
+            {stammdatenBearbeiten && (
+                <ArtikelStammdatenForm
+                    key={`${artikel.id}-${artikel.version ?? 0}`}
+                    artikel={artikel}
+                    onAbbrechen={() => setStammdatenBearbeiten(false)}
+                    onGespeichert={() => { setStammdatenBearbeiten(false); void laden(); }}
+                />
+            )}
+
             {/* ============ Was ist das für ein Teil? ============ */}
             <section className="bg-white border border-slate-200 rounded-lg p-5">
-                <h2 className="text-lg font-semibold text-slate-900 mb-4">Was ist das für ein Teil?</h2>
+                <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
+                    <div>
+                        <h2 className="text-lg font-semibold text-slate-900">Was ist das für ein Teil?</h2>
+                        <p className="text-sm text-slate-500">Daraus rechnet das Programm Gewicht und Oberfläche für Kalkulation und Verzinken.</p>
+                    </div>
+                    {!stammdatenBearbeiten && (
+                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" aria-label="Angaben zum Teil bearbeiten"
+                            onClick={() => { setStammdatenBearbeiten(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
+                            <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Bearbeiten
+                        </Button>
+                    )}
+                </div>
 
                 <div className="flex flex-wrap gap-2 mb-5">
                     {artikel.profilform && <Merkmalchip text={artikel.profilform.anzeigename} titel={artikel.profilform.erklaerung} />}
@@ -281,15 +314,30 @@ export default function ArtikelDetail() {
                 </div>
 
                 <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-sm">
+                    <Datenfeld label="Artikelnummer" wert={artikel.artikelnummer} />
+                    <Datenfeld label="EAN / Strichcode" wert={artikel.ean} />
                     <Datenfeld label="Abmessung" wert={artikel.abmessung} />
                     <Datenfeld label="Durchmesser" wert={artikel.durchmesser ? `${formatZahl(artikel.durchmesser, 1)} mm` : undefined} />
                     <Datenfeld label="Wandstärke" wert={artikel.wandstaerke ? `${formatZahl(artikel.wandstaerke, 1)} mm` : undefined} />
                     <Datenfeld label="Höhe × Breite" wert={artikel.hoehe && artikel.breite
                         ? `${formatZahl(artikel.hoehe, 1)} × ${formatZahl(artikel.breite, 1)} mm` : undefined} />
-                    <Datenfeld label="Gewicht je Meter" wert={artikel.kgProMeter ? `${formatZahl(artikel.kgProMeter)} kg/m` : undefined} />
-                    <Datenfeld label="Gewicht je m²" wert={artikel.kgProQm ? `${formatZahl(artikel.kgProQm)} kg/m²` : undefined} />
-                    <Datenfeld label="Oberfläche je Meter" wert={artikel.mantelflaeche ? `${formatZahl(artikel.mantelflaeche, 4)} m²/m` : undefined}
-                        hinweis="Wird für die Kosten von Pulverbeschichtung und Anstrich gebraucht." />
+                    <Datenfeld label="Gewicht je Meter" wert={artikel.kgProMeter ? `${formatZahl(artikel.kgProMeter)} kg/m` : undefined}
+                        hinweis="Für das Verzinken: Es wird immer nach Gewicht gerechnet." />
+                    <Datenfeld label="Gewicht je m²" wert={artikel.kgProQm ? `${formatZahl(artikel.kgProQm)} kg/m²` : undefined}
+                        hinweis="Für das Verzinken von Blech." />
+                    <Datenfeld label="Gewicht je Stück" wert={artikel.kgJeStueck ? `${formatZahl(artikel.kgJeStueck)} kg` : undefined}
+                        hinweis="Für das Verzinken von Stückware." />
+                    <Datenfeld label="Außenfläche je Meter" wert={artikel.mantelflaeche ? `${formatZahl(artikel.mantelflaeche, 4)} m²/m` : undefined}
+                        hinweis="Für das Pulverbeschichten: Es wird immer nach Fläche gerechnet." />
+                    <Datenfeld label="Fläche je m² Blech" wert={artikel.flaecheJeQm ? `${formatZahl(artikel.flaecheJeQm, 2)} m²/m²` : undefined}
+                        hinweis="2 = beide Seiten. Ohne Angabe rechnet das Programm mit beiden Seiten." />
+                    <Datenfeld label="Außenfläche je Stück" wert={artikel.m2JeStueck ? `${formatZahl(artikel.m2JeStueck, 4)} m²` : undefined}
+                        hinweis="Für das Pulverbeschichten von Stückware." />
+                    <Datenfeld label="Zuschnitt-Formel (Gewicht)" wert={artikel.formelGewicht ?? undefined}
+                        hinweis={artikel.formelFelder && artikel.formelFelder.length > 0 ? `Eingabefelder in der Leistung: ${artikel.formelFelder.map(f => f.bezeichnung || f.name).join(', ')}` : undefined} />
+                    <Datenfeld label="Zuschnitt-Formel (Außenfläche)" wert={artikel.formelFlaeche ?? undefined} />
+                    <Datenfeld label="Woher das Gewicht stammt" wert={artikel.gewichtHerkunft === "TABELLE" ? "Profiltabelle" : artikel.gewichtHerkunft === "BERECHNET" ? "Aus den Maßen berechnet" : artikel.gewichtHerkunft === "HAND" ? "Von Hand eingetragen" : undefined}
+                        hinweis={artikel.gewichtVeraltet ? "Der Werkstoff hat inzwischen eine andere Dichte: Bitte unter Stammdaten bearbeiten neu berechnen." : undefined} />
                     <Datenfeld label="Übliche Länge" wert={artikel.standardlaenge ? `${formatZahl(artikel.standardlaenge, 0)} mm` : undefined} />
                     <Datenfeld label="Maßnorm" wert={artikel.massnorm} />
                     <Datenfeld label="Werkstoffnorm" wert={artikel.werkstoffnorm} />
@@ -299,15 +347,19 @@ export default function ArtikelDetail() {
             {/* ============ Bilder & Unterlagen ============ */}
             <ArtikelDokumente artikelId={artikel.id} />
 
+            {/* ============ Lager (nur bei eingeschaltetem Lagermodul) ============ */}
+            <ArtikelLagerBereich artikelId={artikel.id} einheitGeaendertStand={artikel.version} />
+
             {/* ============ Oberflächenbehandlung ============ */}
             <section className="bg-white border border-slate-200 rounded-lg p-5">
                 <h2 className="text-lg font-semibold text-slate-900 mb-1">Oberfläche</h2>
                 <p className="text-sm text-slate-500 mb-4">
-                    Was mit diesem Werkstoff möglich ist — wichtig für die Kalkulation.
+                    Ob dieses Teil sich verzinken oder pulverbeschichten lässt — wichtig für die Kalkulation. Was der Veredler kostet, steht unter{" "}
+                    <a href="/fremdleistungen" className="text-rose-700 hover:underline">Fremdleistungen</a>.
                 </p>
                 <div className="flex flex-col sm:flex-row gap-3">
-                    <Eignung ok={!!artikel.verzinkungsgeeignet} text="Feuerverzinken" />
-                    <Eignung ok={!!artikel.pulverbeschichtungsgeeignet} text="Pulverbeschichten" />
+                    <Eignung ok={!!artikel.verzinkungsgeeignet} text="Feuerverzinken" quelle={eignungsQuelle(artikel.verzinkungsgeeignetEigen)} />
+                    <Eignung ok={!!artikel.pulverbeschichtungsgeeignet} text="Pulverbeschichten" quelle={eignungsQuelle(artikel.pulverbeschichtungsgeeignetEigen)} />
                 </div>
                 {artikel.beschichtungshinweis && (
                     <p className="text-sm text-slate-600 mt-3">{artikel.beschichtungshinweis}</p>
@@ -357,6 +409,14 @@ export default function ArtikelDetail() {
                             />
                             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
                         </div>
+                        {aufschlag === "" && geltenderAufschlag && (
+                            <p className="text-xs text-slate-500" data-testid="geltender-aufschlag">
+                                {geltenderAufschlag.quelle === "KATEGORIE" && `Ohne eigenen Aufschlag gilt ${formatZahl(geltenderAufschlag.prozent ?? 0, 2)} % (aus der Kategorie „${geltenderAufschlag.quellenName}“).`}
+                                {geltenderAufschlag.quelle === "ALLGEMEIN" && `Ohne eigenen Aufschlag gilt der allgemeine Aufschlag von ${formatZahl(geltenderAufschlag.prozent ?? 0, 2)} %.`}
+                                {geltenderAufschlag.quelle === "KEINER" && "Ohne eigenen Aufschlag gilt keiner: Der Einkaufspreis wird unverändert übernommen."}
+                                {" "}<a href="/aufschlaege" className="text-rose-700 hover:underline">Aufschläge einstellen</a>
+                            </p>
+                        )}
                     </div>
 
                     {hinweis === "OK" ? (
@@ -542,7 +602,10 @@ function Datenfeld({ label, wert, hinweis }: { label: string; wert?: string | nu
 }
 
 /** Eignung mit Symbol UND Text - Farbe allein darf die Aussage nicht tragen. */
-function Eignung({ ok, text }: { ok: boolean; text: string }) {
+/** Woher die Eignung kommt: vom Werkstoff oder für diesen Artikel festgelegt. */
+const eignungsQuelle = (eigen?: boolean | null) => (eigen == null ? "vom Werkstoff" : "für diesen Artikel festgelegt");
+
+function Eignung({ ok, text, quelle }: { ok: boolean; text: string; quelle?: string }) {
     return (
         <div className={`flex items-center gap-2 rounded-lg border px-4 py-3 ${
             ok ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"
@@ -553,7 +616,7 @@ function Eignung({ ok, text }: { ok: boolean; text: string }) {
             <div>
                 <p className={`text-sm font-semibold ${ok ? "text-emerald-800" : "text-slate-700"}`}>{text}</p>
                 <p className={`text-xs ${ok ? "text-emerald-700" : "text-slate-500"}`}>
-                    {ok ? "möglich" : "nicht möglich"}
+                    {ok ? "möglich" : "nicht möglich"}{quelle ? ` (${quelle})` : ""}
                 </p>
             </div>
         </div>

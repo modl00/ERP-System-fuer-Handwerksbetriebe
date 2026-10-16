@@ -7,6 +7,7 @@ import { Input } from "../ui/input";
 import { Label } from "../ui/label";
 import { Select } from "../ui/select-custom";
 import { ThumbnailImage } from "../ui/ThumbnailImage";
+import { useOptionalToast } from "../ui/toast";
 import { cn } from "../../lib/utils";
 import type { Artikel } from "../../types";
 import { SupplierSelectModal } from "../SupplierSelectModal";
@@ -160,6 +161,7 @@ export function ArtikelSuche({
     ref,
 }: ArtikelSucheProps) {
     const navigate = useNavigate();
+    const toast = useOptionalToast();
     const [searchParams, setSearchParams] = useSearchParams();
     const [artikelList, setArtikelList] = useState<Artikel[]>([]);
     const [loading, setLoading] = useState(false);
@@ -264,13 +266,15 @@ export function ArtikelSuche({
             if (!istAktuell()) return;
             setArtikelList([]);
             setTotal(0);
+            // Nicht nur in die Konsole: Sonst sieht es aus, als gäbe es keine Artikel
+            toast?.error("Die Artikel konnten nicht geladen werden.");
         } finally {
             if (istAktuell()) {
                 setLoading(false);
                 setErsteAntwortDa(true);
             }
         }
-    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis]);
+    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis, toast]);
 
     useEffect(() => {
         loadArtikel();

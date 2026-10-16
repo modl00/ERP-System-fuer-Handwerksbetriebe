@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, Building2, Calendar, CalendarDays, Clock, Euro, FileCheck, FileJson, FileText, Globe, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, Calendar, CalendarDays, Clock, Euro, Factory, FileCheck, FileJson, FileText, Globe, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { BESTELLBEDARF_PFAD } from '../../lib/freigaben';
 
@@ -44,6 +44,7 @@ export const NAVIGATION: NavCategory[] = [
                 items: [
                     { name: 'Artikel', href: '/artikel', icon: Package },
                     { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
+                    { name: 'Fremdleistungen', href: '/fremdleistungen', icon: Factory },
                     { name: 'Kategorien', href: '/produktkategorien', icon: Layers },
                 ]
             },

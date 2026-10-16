@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { MoreHorizontal, Reply, ReplyAll, Forward, Star, Trash2, FolderPlus, FolderInput, Download,
-    Inbox, Newspaper, ShieldAlert, ShieldCheck, ShieldX, CheckCircle2, RotateCcw } from 'lucide-react';
+    Inbox, Newspaper, ShieldAlert, ShieldCheck, ShieldX, CheckCircle2, RotateCcw, Sparkles } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
     DropdownMenuSeparator, DropdownMenuLabel, DropdownMenuSub, DropdownMenuSubTrigger,
@@ -19,6 +19,10 @@ interface Props {
     email: EmailItem; folder: FolderType; onReply: Action; onForward: Action; onAssign: Action;
     /** Nur gesetzt, wenn "Allen antworten" mehr Empfänger erreicht als "Antworten". */
     onReplyAll?: Action;
+    /** Diese Mail mit der KI abgleichen (Vorschlag für Projekt, Anfrage oder Lieferant). */
+    onKiAbgleich?: Action;
+    /** Diese Mail im KI-Chat öffnen (Kunde prüfen, Anfrage anlegen). */
+    onKiChat?: Action;
     onStar: Action; onDelete: Action; onMove: (target: MoveTarget) => void | Promise<void>;
     onSpam: Action; onNotSpam: Action; onBlock: Action; onNotNewsletter: Action; onConfirmNewsletter: Action;
 }
@@ -31,7 +35,7 @@ const moveTargets = [
 ] as const;
 
 /** Häufige Aktionen bleiben sichtbar; weitere Aktionen öffnen ein Portal mit Tastatursteuerung. */
-export function EmailDetailHeader({ email, folder, onReply, onReplyAll, onForward, onAssign, onStar, onDelete,
+export function EmailDetailHeader({ email, folder, onReply, onReplyAll, onKiAbgleich, onKiChat, onForward, onAssign, onStar, onDelete,
     onMove, onSpam, onNotSpam, onBlock, onNotNewsletter, onConfirmNewsletter }: Props) {
     const [busy, setBusy] = useState(false);
     const toast = useToast();
@@ -76,6 +80,8 @@ export function EmailDetailHeader({ email, folder, onReply, onReplyAll, onForwar
                     <DropdownMenuContent align="end" collisionPadding={12} className="w-60 rounded-xl p-1.5 shadow-lg">
                         <DropdownMenuItem onSelect={() => void run(onForward)}><Forward />Weiterleiten</DropdownMenuItem>
                         {folder !== 'sent' && <DropdownMenuItem onSelect={() => void run(onAssign)}><FolderPlus />Zuordnen</DropdownMenuItem>}
+                        {folder !== 'sent' && onKiAbgleich && <DropdownMenuItem onSelect={() => void run(onKiAbgleich)}><Sparkles />Mit KI zuordnen</DropdownMenuItem>}
+                        {folder !== 'sent' && onKiChat && <DropdownMenuItem onSelect={() => void run(onKiChat)}><Sparkles />Im KI-Chat öffnen</DropdownMenuItem>}
                         {(email.attachments?.filter(a => !a.inline).length ?? 0) > 1 &&
                             <DropdownMenuItem asChild><a href={`/api/emails/${email.id}/attachments/download-all`} download>
                                 <Download />Alle Anhänge herunterladen

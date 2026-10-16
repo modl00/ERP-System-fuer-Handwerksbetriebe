@@ -6,13 +6,13 @@ import { PostfachSchild } from '../features/email/PostfachSchild';
 import { useAbsenderPostfaecher } from '../features/email/useAbsenderPostfaecher';
 import { ermittleEmailZuordnung } from '../features/email/emailZuordnung';
 import { EmailFolderSidebar } from '../features/email/EmailFolderSidebar';
-import { UngelesenKopfzeile } from '../features/email/UngelesenKopfzeile';
 import { AssignModal } from '../features/email/EmailAssignmentDialog';
+import { KiAbgleichDialog } from '../features/email/KiAbgleichDialog';
 import { useEmailPaneWidth } from '../features/email/useEmailPaneWidth';
 import {
-    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, filtereEntwuerfe,
-    getSenderName, getDisplayName, groupEmailThreads, hasFurtherRecipients, isImageAttachment, nutztServerFilterUngelesen,
-    type DraftItem, type EmailItem, type EmailThreadRow, type FolderType, type ReadFilter, type ReplyMode,
+    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, getSenderName,
+    getDisplayName, groupEmailThreads, hasFurtherRecipients, isImageAttachment, nutztServerFilterUngelesen,
+    type EmailItem, type EmailThreadRow, type FolderType, type ReadFilter, type ReplyMode,
 } from '../features/email/emailCenterModel';
 import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, UNSAFE_DataRouterContext } from 'react-router-dom';
@@ -36,12 +36,14 @@ import {
     Globe,
     X,
     CheckSquare,
+    MailCheck,
     MessagesSquare,
     RotateCcw,
     FolderInput,
     ArrowDownAZ,
     ArrowUpAZ,
     CheckCircle2,
+    Sparkles,
 } from 'lucide-react';
 import {
     DndContext,
@@ -56,7 +58,7 @@ import {
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { cn } from '../lib/utils';
-import { htmlZuEinzeiler } from '../lib/htmlSanitizer';
+import { stripHtmlTags } from '../lib/htmlSanitizer';
 import { extractDisplayName, extractEmailAddress, escapeHtml, parseRecipientList } from '../lib/emailAddress';
 import { EMAILS_REFRESH_EVENT, refreshNotifications } from '../lib/notificationRefresh';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../components/ui/dialog';
@@ -299,6 +301,8 @@ export default function EmailCenter() {
     const [replyMode, setReplyMode] = useState<ReplyMode>('reply');
 
     const [showAssignModal, setShowAssignModal] = useState(false);
+    // Nummern der Mails, die gerade mit der KI abgeglichen werden (null = Fenster zu): eine einzelne Mail oder die Mehrfachauswahl
+    const [kiAbgleichIds, setKiAbgleichIds] = useState<number[] | null>(null);
     const [folderCounts, setFolderCounts] = useState({
         inbox: 0, sent: 0, drafts: 0, trash: 0, spam: 0, newsletter: 0,
         starred: 0, projects: 0, offers: 0, suppliers: 0, taxAdvisors: 0, unassigned: 0
@@ -320,6 +324,7 @@ export default function EmailCenter() {
     const [forwardEmail, setForwardEmail] = useState<EmailItem | null>(null);
 
     // Drafts
+    interface DraftItem { id: number; recipient?: string; cc?: string; subject?: string; body?: string; fromAddress?: string; replyEmailId?: number; weitergeleitetVonEmailId?: number | null; projektId?: number; anfrageId?: number; updatedAt?: string; }
     const [drafts, setDrafts] = useState<DraftItem[]>([]);
     const [activeDraftId, setActiveDraftId] = useState<number | undefined>(undefined);
     const [activeDraft, setActiveDraft] = useState<DraftItem | null>(null);
@@ -1133,6 +1138,15 @@ export default function EmailCenter() {
     const [dragActiveEmail, setDragActiveEmail] = useState<EmailItem | null>(null);
     const [dragCount, setDragCount] = useState(0);
 
+    /** Wurde die Mail über dem KI-Chatfenster losgelassen? Der Chat liegt außerhalb der Ziehen-Fläche, deshalb wird die Zeigerposition geprüft. */
+    const istUeberKiChat = (e: DragEndEvent): boolean => {
+        const start = e.activatorEvent as { clientX?: number; clientY?: number } | null;
+        if (!start || typeof start.clientX !== 'number' || typeof start.clientY !== 'number') return false;
+        const x = start.clientX + e.delta.x;
+        const y = start.clientY + e.delta.y;
+        return document.elementsFromPoint(x, y).some(el => el.closest('[data-ki-chat]'));
+    };
+
     const handleDragStart = (e: DragStartEvent) => {
         const data = e.active.data.current as { emailId?: number } | undefined;
         const id = data?.emailId;
@@ -1147,6 +1161,12 @@ export default function EmailCenter() {
         const startedId = (e.active.data.current as { emailId?: number } | undefined)?.emailId ?? null;
         setDragActiveEmail(null);
         setDragCount(0);
+
+        // Auf das offene KI-Chatfenster gezogen: die Mail wird dort angehängt (der Chat prüft den Kunden und legt auf Wunsch Kunde und Anfrage an)
+        if (startedId != null && istUeberKiChat(e)) {
+            window.dispatchEvent(new CustomEvent('ki-email-anhaengen', { detail: { emailId: startedId } }));
+            return;
+        }
 
         const over = e.over;
         if (!over) return;
@@ -1409,7 +1429,17 @@ export default function EmailCenter() {
         : (threadRowByEmailId.get(email.id)?.anyUnread ?? !email.isRead);
 
     const filteredDrafts = useMemo(() => {
-        return [...filtereEntwuerfe(drafts, searchQuery)].sort((a, b) => {
+        const q = searchQuery.trim().toLowerCase();
+        const base = !q
+            ? drafts
+            : drafts.filter(draft =>
+                draft.subject?.toLowerCase().includes(q) ||
+                draft.recipient?.toLowerCase().includes(q) ||
+                draft.fromAddress?.toLowerCase().includes(q) ||
+                draft.body?.replace(/<[^>]*>/g, ' ').toLowerCase().includes(q)
+            );
+
+        return [...base].sort((a, b) => {
             const dateA = a.updatedAt ? new Date(a.updatedAt).getTime() : 0;
             const dateB = b.updatedAt ? new Date(b.updatedAt).getTime() : 0;
             return sortOrder === 'desc' ? dateB - dateA : dateA - dateB;
@@ -1458,7 +1488,7 @@ export default function EmailCenter() {
 
                 // replyQuote verwenden (nicht initialBody), damit EmailComposeForm
                 // die korrekte Reihenfolge: [leer] → [Signatur] → [Zitat] erzeugt
-                replyQuote = `<div class="email-quote" style="border-top:1px solid #e2e8f0;padding-top:1rem;margin-top:1rem;color:#64748b">
+                replyQuote = `<div style="border-top:1px solid #e2e8f0;padding-top:1rem;margin-top:1rem;color:#64748b">
                     <p style="font-size:0.8125rem;color:#94a3b8;margin-bottom:0.5rem">---------- Weitergeleitete Nachricht ----------<br/>
                     Von: ${escapeHtml(senderName)} &lt;${escapeHtml(forwardEmail.fromAddress || '')}&gt;<br/>
                     Datum: ${escapeHtml(date)}<br/>
@@ -1554,6 +1584,16 @@ export default function EmailCenter() {
                             >
                                 <FolderPlus className="w-4 h-4" />
                                 Zuordnen ({selectedIds.size})
+                            </Button>
+                        )}
+                        {activeFolder !== 'sent' && (
+                            <Button
+                                variant="outline"
+                                onClick={() => setKiAbgleichIds(Array.from(selectedIds))}
+                                className="w-full gap-2 justify-start h-11 border-slate-200 hover:bg-rose-50 hover:text-rose-700 hover:border-rose-300"
+                            >
+                                <Sparkles className="w-4 h-4" />
+                                Mit KI abgleichen ({selectedIds.size})
                             </Button>
                         )}
 
@@ -1684,6 +1724,8 @@ export default function EmailCenter() {
                             ? () => handleReply(selectedEmail, undefined, 'replyAll') : undefined}
                         onForward={() => handleForward(selectedEmail)}
                         onAssign={() => setShowAssignModal(true)}
+                        onKiAbgleich={() => setKiAbgleichIds([selectedEmail.id])}
+                        onKiChat={() => { window.dispatchEvent(new CustomEvent('ki-email-anhaengen', { detail: { emailId: selectedEmail.id } })); }}
                         onStar={() => handleToggleStar(selectedEmail.id)}
                         onDelete={() => handleDelete(null, selectedEmail)}
                         onMove={(target) => handleMoveToFolder(target, [selectedEmail.id])}
@@ -1782,8 +1824,6 @@ export default function EmailCenter() {
         );
     };
 
-    const ungeleseneAnzahl = emails.filter(e => !e.isRead).length;
-
     return (
         <>
         {hasDataRouter && <EmailNavigationGuard active={isComposing} persist={persistComposer} />}
@@ -1821,11 +1861,20 @@ export default function EmailCenter() {
                 className="bg-white border-r border-slate-200 flex flex-col shrink-0 min-w-[280px]"
             >
                 {/* Ordner-Header mit "Alle gelesen"-Button */}
-                {!isGlobalSearch && activeFolder !== 'sent' && ungeleseneAnzahl > 0 && (
-                    <UngelesenKopfzeile
-                        anzahl={ungeleseneAnzahl}
-                        onAlleGelesen={handleMarkAllRead}
-                    />
+                {!isGlobalSearch && activeFolder !== 'sent' && emails.some(e => !e.isRead) && (
+                    <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
+                        <span className="text-xs text-slate-500 font-medium">
+                            {emails.filter(e => !e.isRead).length} ungelesen
+                        </span>
+                        <button
+                            onClick={handleMarkAllRead}
+                            className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-medium text-rose-600 hover:bg-rose-50 hover:text-rose-700 transition-colors cursor-pointer"
+                            title="Alle als gelesen markieren"
+                        >
+                            <MailCheck className="w-3.5 h-3.5" />
+                            Alle gelesen
+                        </button>
+                    </div>
                 )}
                 {/* Search */}
                 <div className="p-3 border-b border-slate-200 space-y-2">
@@ -1992,7 +2041,7 @@ export default function EmailCenter() {
                                         {draft.subject || '(Kein Betreff)'}
                                     </p>
                                     <p className="text-xs text-slate-400 line-clamp-2">
-                                        {(htmlZuEinzeiler(draft.body) || '...').substring(0, 150)}
+                                        {stripHtmlTags(draft.body || '...', ' ').replace(/\s+/g, ' ').trim().substring(0, 150)}
                                     </p>
 
                                     <div className="flex gap-2 mt-2 flex-wrap">
@@ -2172,6 +2221,13 @@ export default function EmailCenter() {
                 onAssign={handleAssign}
                 emailSubject={selectedEmail?.subject || ''}
                 emailId={selectedEmail?.id}
+            />
+
+            <KiAbgleichDialog
+                open={kiAbgleichIds !== null}
+                emailIds={kiAbgleichIds ?? []}
+                onOpenChange={(offen) => { if (!offen) setKiAbgleichIds(null); }}
+                onUebernommen={() => { setSelectedIds(new Set()); setSelectedEmail(null); void loadEmails(); }}
             />
 
             {/* Standard ImageViewer for Images */}

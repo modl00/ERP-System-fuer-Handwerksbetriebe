@@ -3,6 +3,7 @@ import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
     ArrowLeft,
     Briefcase,
+    Building2,
     Calendar,
     ChevronLeft,
     ChevronRight,
@@ -17,12 +18,16 @@ import {
     Save,
     StickyNote,
     User,
+    UserRound,
     X,
     CreditCard,
     Edit2,
     Smartphone
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { ProjektErstellenModal } from '../components/ProjektErstellenModal';
+import { AnfrageErstellenModal } from './AnfrageEditor';
+import { useDarf } from '../features/funktionsrechte/useFunktionsrechte';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
@@ -40,6 +45,8 @@ import { PageLayout } from '../components/layout/PageLayout';
 import { KundeDuplikatHinweis, type KundeDuplikatTreffer } from '../components/KundeDuplikatHinweis';
 import { KundeDuplikatBestaetigungModal } from '../components/KundeDuplikatBestaetigungModal';
 import { KontaktAnrufeTab } from '../features/telefon/KontaktAnrufeTab';
+import { AnsprechpartnerBereich } from '../features/kundenstamm/AnsprechpartnerBereich';
+import { KundeObjekteBereich } from '../features/kundenstamm/KundeObjekteBereich';
 import { WeitereRufnummern } from '../features/telefon/WeitereRufnummern';
 import { useKontaktAnrufAnzahl } from '../features/telefon/useKontaktAnrufAnzahl';
 import { useTelefonBerechtigung } from '../features/telefon/useTelefonBerechtigung';
@@ -81,7 +88,7 @@ const formatCurrencyEUR = (val?: number) =>
 const formatDateDE = (dateStr?: string) =>
     dateStr ? new Date(dateStr).toLocaleDateString('de-DE') : '-';
 
-type KundeDetailTab = 'emails' | 'anrufe' | 'projekte' | 'anfragen' | 'dokumente' | 'notizen';
+type KundeDetailTab = 'emails' | 'anrufe' | 'ansprechpartner' | 'objekte' | 'projekte' | 'anfragen' | 'dokumente' | 'notizen';
 
 // Farben & Klartext-Labels für Geschäftsdokument-Typen (gleiche Logik wie im ProjektEditor).
 const DOK_TYP_COLORS: Record<string, string> = {
@@ -254,16 +261,31 @@ interface KundenDetailViewProps {
     kunde: KundeDetail;
     onBack: () => void;
     onEdit: () => void;
+    /** Nach dem Anlegen eines Projekts: Kunde neu laden, damit das Projekt in der Liste steht */
+    onProjektAngelegt: () => void;
+    /** Nach dem Anlegen einer Anfrage: Kunde neu laden, damit die Anfrage in der Liste steht */
+    onAnfrageAngelegt: () => void;
 }
 
-const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEdit }) => {
+const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEdit, onProjektAngelegt, onAnfrageAngelegt }) => {
     const navigate = useNavigate();
+    const [projektDialog, setProjektDialog] = useState(false);
+    const [anfrageDialog, setAnfrageDialog] = useState(false);
+    const darfAnfrageAnlegen = useDarf('ANFRAGEN', 'ANLEGEN') !== false;
     const initials = kunde.name.slice(0, 2).toUpperCase();
     const [gewaehlterTab, setActiveTab] = useState<KundeDetailTab>('emails');
     // Reiter "Anrufe" nur mit dem Abteilungs-Recht "Anrufe & Anrufbeantworter".
     const darfTelefon = useTelefonBerechtigung() === true;
     const anrufAnzahl = useKontaktAnrufAnzahl('KUNDE', kunde.id, darfTelefon);
     const activeTab: KundeDetailTab = gewaehlterTab === 'anrufe' && !darfTelefon ? 'emails' : gewaehlterTab;
+
+    // Die Zähler der Reiter "Ansprechpartner" und "Objekte" melden die Bereiche selbst, sobald sie etwas ändern
+    // (zusammen mit der Kundennummer gespeichert: Wechselt der Kunde, gelten sie nicht mehr)
+    const [gemeldet, setGemeldet] = useState<{ kundeId: number; ansprechpartner?: number; objekte?: number } | null>(null);
+    const anzahlAnsprechpartner = gemeldet?.kundeId === kunde.id ? gemeldet.ansprechpartner : undefined;
+    const anzahlObjekte = gemeldet?.kundeId === kunde.id ? gemeldet.objekte : undefined;
+    const meldeAnsprechpartner = useCallback((n: number) => setGemeldet((alt) => ({ ...(alt?.kundeId === kunde.id ? alt : null), kundeId: kunde.id, ansprechpartner: n })), [kunde.id]);
+    const meldeObjekte = useCallback((n: number) => setGemeldet((alt) => ({ ...(alt?.kundeId === kunde.id ? alt : null), kundeId: kunde.id, objekte: n })), [kunde.id]);
 
     const projekte = kunde.projekte || [];
     const anfragen = kunde.anfragen || [];
@@ -276,6 +298,8 @@ const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEd
     const tabs: { key: KundeDetailTab; label: string; icon: React.ReactNode; count: number }[] = [
         { key: 'emails', label: 'E-Mails', icon: <Mail className="w-4 h-4" />, count: emailCount },
         ...(darfTelefon ? [{ key: 'anrufe' as const, label: 'Anrufe', icon: <Phone className="w-4 h-4" />, count: anrufAnzahl }] : []),
+        { key: 'ansprechpartner', label: 'Ansprechpartner', icon: <UserRound className="w-4 h-4" />, count: anzahlAnsprechpartner ?? kunde.anzahlAnsprechpartner ?? 0 },
+        { key: 'objekte', label: 'Objekte', icon: <Building2 className="w-4 h-4" />, count: anzahlObjekte ?? kunde.anzahlObjekte ?? 0 },
         { key: 'projekte', label: 'Projekte', icon: <Briefcase className="w-4 h-4" />, count: projekte.length },
         { key: 'anfragen', label: 'Anfragen', icon: <FileText className="w-4 h-4" />, count: anfragen.length },
         { key: 'dokumente', label: 'Dokumente', icon: <Receipt className="w-4 h-4" />, count: dokumente.length },
@@ -371,13 +395,14 @@ const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEd
                         key={tab.key}
                         onClick={() => setActiveTab(tab.key)}
                         className={cn(
-                            'flex items-center gap-2 px-3 py-2.5 text-sm font-medium transition-colors -mb-px whitespace-nowrap',
+                            'flex items-center gap-2 px-2.5 py-2.5 text-sm font-medium transition-colors -mb-px whitespace-nowrap',
                             activeTab === tab.key
                                 ? 'text-rose-600 border-b-2 border-rose-500'
                                 : 'text-slate-500 hover:text-slate-700'
                         )}
                     >
-                        {tab.icon}
+                        {/* Mit sieben Reitern passt die Leiste auf dem 14-Zoll-Bildschirm nur ohne Symbole in eine Zeile */}
+                        <span className="hidden 2xl:inline-flex" aria-hidden="true">{tab.icon}</span>
                         {tab.label}
                         <span className="text-xs bg-slate-100 text-slate-600 px-1.5 py-0.5 rounded-full">{tab.count}</span>
                     </button>
@@ -419,28 +444,64 @@ const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEd
                         <KontaktAnrufeTab typ="KUNDE" kontaktId={kunde.id} />
                     )}
 
+                    {activeTab === 'ansprechpartner' && (
+                        <AnsprechpartnerBereich key={kunde.id} kundeId={kunde.id} onAnzahl={meldeAnsprechpartner} />
+                    )}
+
+                    {activeTab === 'objekte' && (
+                        <KundeObjekteBereich key={kunde.id} kundeId={kunde.id} onAnzahl={meldeObjekte} />
+                    )}
+
                     {activeTab === 'projekte' && (
-                        projekte.length === 0 ? (
-                            <KartenLeerzustand icon={<Briefcase className="w-12 h-12" />} text="Keine Projekte vorhanden." />
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {projekte.map(p => (
-                                    <KundenProjektKarte key={p.id} projekt={p} onOpen={() => navigate(`/projekte?projektId=${p.id}`)} />
-                                ))}
+                        <>
+                            <div className="mb-4 flex justify-end">
+                                <Button className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700" onClick={() => setProjektDialog(true)}>
+                                    <Plus className="w-4 h-4 mr-2" /> Neues Projekt
+                                </Button>
                             </div>
-                        )
+                            {projekte.length === 0 ? (
+                                <KartenLeerzustand icon={<Briefcase className="w-12 h-12" />} text="Keine Projekte vorhanden." />
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {projekte.map(p => (
+                                        <KundenProjektKarte key={p.id} projekt={p} onOpen={() => navigate(`/projekte?projektId=${p.id}`)} />
+                                    ))}
+                                </div>
+                            )}
+                            <ProjektErstellenModal
+                                isOpen={projektDialog}
+                                onClose={() => setProjektDialog(false)}
+                                vorbelegterKunde={{ id: kunde.id, name: kunde.name, kundennummer: kunde.kundennummer, strasse: kunde.strasse, plz: kunde.plz, ort: kunde.ort, kundenEmails: kunde.kundenEmails, zahlungsziel: kunde.zahlungsziel }}
+                                onSuccess={() => { setProjektDialog(false); onProjektAngelegt(); }}
+                            />
+                        </>
                     )}
 
                     {activeTab === 'anfragen' && (
-                        anfragen.length === 0 ? (
-                            <KartenLeerzustand icon={<FileText className="w-12 h-12" />} text="Keine Anfragen vorhanden." />
-                        ) : (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                {anfragen.map(a => (
-                                    <KundenAnfrageKarte key={a.id} anfrage={a} onOpen={() => navigate(`/anfragen?anfrageId=${a.id}`)} />
-                                ))}
-                            </div>
-                        )
+                        <>
+                            {darfAnfrageAnlegen && (
+                                <div className="mb-4 flex justify-end">
+                                    <Button className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700" onClick={() => setAnfrageDialog(true)}>
+                                        <Plus className="w-4 h-4 mr-2" /> Neue Anfrage
+                                    </Button>
+                                </div>
+                            )}
+                            {anfragen.length === 0 ? (
+                                <KartenLeerzustand icon={<FileText className="w-12 h-12" />} text="Keine Anfragen vorhanden." />
+                            ) : (
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    {anfragen.map(a => (
+                                        <KundenAnfrageKarte key={a.id} anfrage={a} onOpen={() => navigate(`/anfragen?anfrageId=${a.id}`)} />
+                                    ))}
+                                </div>
+                            )}
+                            <AnfrageErstellenModal
+                                isOpen={anfrageDialog}
+                                onClose={() => setAnfrageDialog(false)}
+                                vorbelegterKunde={{ id: kunde.id, name: kunde.name, kundennummer: kunde.kundennummer, strasse: kunde.strasse, plz: kunde.plz, ort: kunde.ort, kundenEmails: kunde.kundenEmails }}
+                                onSuccess={() => { setAnfrageDialog(false); onAnfrageAngelegt(); }}
+                            />
+                        </>
                     )}
 
                     {activeTab === 'dokumente' && (
@@ -606,6 +667,9 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
     const [emails, setEmails] = useState<string[]>(kunde.kundenEmails || ['']);
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
+    // Beim Bearbeiten pflegt man Ansprechpartner im Reiter "Ansprechpartner" (die Liste ist maßgebend); das Feld zeigt nur den Hauptansprechpartner.
+    // Es hängt bewusst nicht an einem Zähler, der veraltet sein kann, wenn im Reiter gerade etwas geändert wurde.
+    const ansprechpartnerInListe = !isCreating;
     const [autoKundennummer, setAutoKundennummer] = useState(isCreating && !kunde.kundennummer);
     const [duplikatModal, setDuplikatModal] = useState<{ duplikate: KundeDuplikatTreffer[] } | null>(null);
 
@@ -627,7 +691,7 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
         }
     }, [isCreating, autoKundennummer]);
 
-    const handleChange = (field: keyof KundeDetail, value: string | number) => {
+    const handleChange = (field: keyof KundeDetail, value: string | number | undefined) => {
         setFormData(prev => ({ ...prev, [field]: value }));
     };
 
@@ -670,7 +734,8 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
             telefon: ohneReineVorwahl(formData.telefon),
             mobiltelefon: ohneReineVorwahl(formData.mobiltelefon),
             kundenEmails: uniqueEmails,
-            zahlungsziel: formData.zahlungsziel || 8
+            // 0 heißt sofort fällig und bleibt 0; nur ohne Angabe gelten 8 Tage
+            zahlungsziel: formData.zahlungsziel ?? 8
         };
 
         setSaving(true);
@@ -804,8 +869,20 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
                             <Input id="name" value={formData.name} onChange={e => handleChange('name', e.target.value)} placeholder="Unternehmensname" />
                         </div>
                         <div>
-                            <Label htmlFor="ansprechspartner">Ansprechpartner</Label>
-                            <Input id="ansprechspartner" value={formData.ansprechspartner || ''} onChange={e => handleChange('ansprechspartner', e.target.value)} placeholder="Max Mustermann" />
+                            <Label htmlFor="ansprechspartner">{ansprechpartnerInListe ? 'Hauptansprechpartner' : 'Ansprechpartner'}</Label>
+                            <Input
+                                id="ansprechspartner"
+                                value={formData.ansprechspartner || ''}
+                                onChange={e => handleChange('ansprechspartner', e.target.value)}
+                                placeholder="Max Mustermann"
+                                disabled={ansprechpartnerInListe}
+                                aria-describedby={ansprechpartnerInListe ? 'ansprechspartner-hinweis' : undefined}
+                            />
+                            {ansprechpartnerInListe && (
+                                <p id="ansprechspartner-hinweis" className="mt-1 text-xs text-slate-500">
+                                    Ansprechpartner pflegen Sie im Reiter „Ansprechpartner“ des Kunden.
+                                </p>
+                            )}
                         </div>
                         <div>
                             <Label htmlFor="anrede">Anrede</Label>
@@ -835,7 +912,7 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <Label htmlFor="zahlungsziel">Zahlungsziel (Tage)</Label>
-                            <Input id="zahlungsziel" type="number" min={0} value={formData.zahlungsziel ?? 8} onChange={e => handleChange('zahlungsziel', parseInt(e.target.value, 10) || 8)} placeholder="8" />
+                            <Input id="zahlungsziel" type="number" min={0} value={formData.zahlungsziel ?? ''} onChange={e => { const tage = parseInt(e.target.value, 10); handleChange('zahlungsziel', Number.isNaN(tage) ? undefined : Math.min(Math.max(tage, 0), 365)); }} placeholder="8" />
                         </div>
                     </div>
 
@@ -1008,6 +1085,8 @@ const TYP_OPTIONS = [
 type ViewMode = 'list' | 'detail';
 
 export const Kundeneditor: React.FC = () => {
+    // Ohne das Recht „Kunden anlegen“ (Rechteverwaltung) erscheint der Knopf nicht; der Server prüft es ohnehin bei jedem Anlegen
+    const darfKundeAnlegen = useDarf('KUNDEN', 'ANLEGEN') !== false;
     const [searchParams, setSearchParams] = useSearchParams();
     const [viewMode, setViewMode] = useState<ViewMode>('list');
     const [selectedKunde, setSelectedKunde] = useState<KundeDetail | null>(null);
@@ -1121,6 +1200,18 @@ export const Kundeneditor: React.FC = () => {
         setIsCreating(true);
     };
 
+    /** Den Kunden mit seinen Projekten neu laden (zum Beispiel nach dem Anlegen eines Projekts) */
+    const ladeKundeNeu = async (id: number) => {
+        try {
+            const res = await fetch(`/api/kunden/${id}`);
+            if (res.ok) {
+                setSelectedKunde(await res.json());
+            }
+        } catch {
+            // Die Liste bleibt, wie sie war; das neue Projekt erscheint beim nächsten Öffnen
+        }
+    };
+
     const handleOpenDetail = async (kunde: KundeDetail) => {
         // Fetch full details including communication history
         setLoading(true);
@@ -1196,6 +1287,8 @@ export const Kundeneditor: React.FC = () => {
                     kunde={selectedKunde}
                     onBack={handleBackToList}
                     onEdit={handleEditFromDetail}
+                    onProjektAngelegt={() => { void ladeKundeNeu(selectedKunde.id); }}
+                    onAnfrageAngelegt={() => { void ladeKundeNeu(selectedKunde.id); }}
                 />
                 {editingKunde && (
                     <KundenFormular
@@ -1217,10 +1310,12 @@ export const Kundeneditor: React.FC = () => {
             subtitle="Kunden anlegen, bearbeiten und verwalten."
             actions={
                 <>
-                    <Button size="sm" className="bg-rose-600 text-white hover:bg-rose-700" onClick={handleCreate}>
-                        <Plus className="w-4 h-4 mr-2" />
-                        Neuer Kunde
-                    </Button>
+                    {darfKundeAnlegen && (
+                        <Button size="sm" className="bg-rose-600 text-white hover:bg-rose-700" onClick={handleCreate}>
+                            <Plus className="w-4 h-4 mr-2" />
+                            Neuer Kunde
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={fetchKunden}>
                         <RefreshCw className="w-4 h-4 mr-2" />
                         Aktualisieren

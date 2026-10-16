@@ -36,6 +36,7 @@ import { DocumentManager } from "../components/DocumentManager";
 import { EmailListInput } from "../components/EmailListInput";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { KundeAnlegenForm } from "../components/KundeAnlegenForm";
+import { useDarf } from "../features/funktionsrechte/useFunktionsrechte";
 import type {
     Anfrage,
     AnfrageDetail,
@@ -46,11 +47,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { ImageViewer } from "../components/ui/image-viewer";
 import { ThumbnailImage } from "../components/ui/ThumbnailImage";
 import { useToast } from '../components/ui/toast';
-import { InfoAbschnitt, InfoButton } from '../components/ui/info-button';
 import { useConfirm } from '../components/ui/confirm-dialog';
 import { onDokumentChanged } from '../lib/dokumentChannel';
 import { appendBildToNotiz, removeBildFromNotiz } from '../lib/optimisticUploads';
-import { leseFehlermeldung } from '../lib/apiFehler';
 
 type AnfrageDetailTab = 'emails' | 'geschaeftsdokumente' | 'dokumente' | 'beschreibung' | 'notizen';
 const ALLOWED_ANFRAGE_TABS: ReadonlyArray<AnfrageDetailTab> =
@@ -404,27 +403,20 @@ interface AnfrageErstellenModalProps {
     onClose: () => void;
     onSuccess: (anfrageId: number) => void;
     editAnfrage?: Anfrage | null;
+    /** Neue Anfrage für diesen Kunden (zum Beispiel aus dem Kundenstamm): der Kunde ist vorbelegt und lässt sich nicht ändern */
+    vorbelegterKunde?: Kunde | null;
 }
 
-/** Erklärt, woher der Betrag einer Anfrage kommt (AusgangsGeschaeftsDokumentService.aktualisiereAnfragePreisAusDokumenten). */
-function BetragInfo() {
-    return <InfoButton titel="Betrag der Anfrage">
-        <InfoAbschnitt titel="Was passiert im Hintergrund?">
-            <p>Der Betrag wird nicht von Hand eingetragen. Das Programm nimmt ihn aus dem aktuellen Angebot bzw. der Auftragsbestätigung dieser Anfrage; Nachtragsangebote kommen dazu, stornierte zählen nicht. Auch ein hochgeladenes Angebot als E-Rechnung (ZUGFeRD) liefert den Betrag.</p>
-        </InfoAbschnitt>
-        <InfoAbschnitt titel="Was bewirkt das?">
-            <p>Ändern Sie das Angebot, stimmt der Betrag hier automatisch wieder. Gibt es kein gültiges Angebot (mehr), bleibt der zuletzt berechnete Betrag stehen.</p>
-        </InfoAbschnitt>
-    </InfoButton>;
-}
-
-const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
+/** Auch im Kundenstamm benutzt (Reiter Anfragen, „Neue Anfrage“): eine Maske für beide Stellen. */
+export const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
     isOpen,
     onClose,
     onSuccess,
     editAnfrage,
+    vorbelegterKunde,
 }) => {
     const isEditMode = !!editAnfrage;
+    const kundeFest = !isEditMode && !!vorbelegterKunde;
     const [subView, setSubView] = useState<'main' | 'selectKunde' | 'createKunde'>('main');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -434,15 +426,21 @@ const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
 
     const [formData, setFormData] = useState({
         bauvorhaben: '',
+        betrag: undefined as number | undefined,
         projektStrasse: '',
         projektPlz: '',
         projektOrt: '',
     });
 
+    // Aus dem Kundenstamm geöffnet: Kunde setzen
+    useEffect(() => {
+        if (isOpen && kundeFest && vorbelegterKunde) setSelectedKunde(vorbelegterKunde);
+    }, [isOpen, kundeFest, vorbelegterKunde]);
+
     // Reset beim Öffnen/Schließen
     useEffect(() => {
         if (!isOpen) {
-            setFormData({ bauvorhaben: '', projektStrasse: '', projektPlz: '', projektOrt: '' });
+            setFormData({ bauvorhaben: '', betrag: undefined, projektStrasse: '', projektPlz: '', projektOrt: '' });
             setSelectedKunde(null);
             setError(null);
             setSubView('main');
@@ -451,6 +449,7 @@ const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
         } else if (editAnfrage) {
             setFormData({
                 bauvorhaben: editAnfrage.bauvorhaben || '',
+                betrag: editAnfrage.betrag,
                 projektStrasse: editAnfrage.projektStrasse || '',
                 projektPlz: editAnfrage.projektPlz || '',
                 projektOrt: editAnfrage.projektOrt || '',
@@ -520,7 +519,7 @@ const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
             const payload = {
                 bauvorhaben: formData.bauvorhaben.trim(),
                 kundenId: selectedKunde.id,
-                // Kein Betrag: Er kommt nur aus Angebot/Auftragsbestätigung.
+                betrag: formData.betrag,
                 projektStrasse: formData.projektStrasse,
                 projektPlz: formData.projektPlz,
                 projektOrt: formData.projektOrt,
@@ -598,6 +597,9 @@ const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
                                             <p className="font-medium text-slate-900 break-words">{selectedKunde.name}</p>
                                             <p className="text-sm text-slate-500 break-words">{selectedKunde.kundennummer}</p>
                                         </div>
+                                        {kundeFest ? (
+                                            <span className="text-sm text-slate-500" data-testid="kunde-vorgegeben">Kunde ist vorgegeben</span>
+                                        ) : (
                                         <Button
                                             size="sm"
                                             variant="outline"
@@ -606,6 +608,7 @@ const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
                                         >
                                             Ändern
                                         </Button>
+                                        )}
                                     </div>
                                 ) : (
                                     <Button
@@ -629,6 +632,21 @@ const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
                                     value={formData.bauvorhaben}
                                     onChange={e => setFormData(prev => ({ ...prev, bauvorhaben: e.target.value }))}
                                     placeholder="Beschreibung des Bauvorhabens"
+                                />
+                            </div>
+
+                            {/* Betrag */}
+                            <div>
+                                <label className="block text-sm font-medium text-slate-700 mb-1">
+                                    <Euro className="w-4 h-4 inline-block mr-1" />
+                                    Bruttobetrag (€)
+                                </label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={formData.betrag ?? ''}
+                                    onChange={e => setFormData(prev => ({ ...prev, betrag: e.target.value ? parseFloat(e.target.value) : undefined }))}
+                                    placeholder="0,00"
                                 />
                             </div>
 
@@ -819,6 +837,9 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
         if (!neueNotiz.trim()) return;
         setSavingNotiz(true);
         try {
+            const userProfileId = localStorage.getItem('frontendUserSelection');
+            const profileData = userProfileId ? JSON.parse(userProfileId) : null;
+
             const url = editingNotiz
                 ? `/api/anfragen/${anfrage.id}/notizen/${editingNotiz.id}`
                 : `/api/anfragen/${anfrage.id}/notizen`;
@@ -828,7 +849,8 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
             const res = await fetch(url, {
                 method: method,
                 headers: {
-                    'Content-Type': 'application/json'
+                    'Content-Type': 'application/json',
+                    ...(profileData?.id ? { 'X-User-Profile-Id': profileData.id.toString() } : {})
                 },
                 body: JSON.stringify({
                     notiz: neueNotiz.trim(),
@@ -843,12 +865,9 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
                 setEditingNotiz(null);
                 setShowNotizModal(false);
                 loadNotizen();
-            } else {
-                toast.error(await leseFehlermeldung(res, 'Notiz konnte nicht gespeichert werden.'));
             }
         } catch (e) {
             console.error('Notiz speichern fehlgeschlagen', e);
-            toast.error('Notiz konnte nicht gespeichert werden.');
         } finally {
             setSavingNotiz(false);
         }
@@ -857,14 +876,20 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
     const handleDeleteNotiz = async (notizId: number) => {
         if (!await confirmDialog({ title: 'Notiz löschen', message: 'Möchten Sie diese Notiz wirklich löschen?', variant: 'danger', confirmLabel: 'Löschen' })) return;
         try {
+            const userProfileId = localStorage.getItem('frontendUserSelection');
+            const profileData = userProfileId ? JSON.parse(userProfileId) : null;
+
             const res = await fetch(`/api/anfragen/${anfrage.id}/notizen/${notizId}`, {
                 method: 'DELETE',
+                headers: {
+                    ...(profileData?.id ? { 'X-User-Profile-Id': profileData.id.toString() } : {})
+                }
             });
 
             if (res.ok) {
                 loadNotizen();
             } else {
-                toast.error(await leseFehlermeldung(res, 'Fehler beim Löschen der Notiz'));
+                toast.error('Fehler beim Löschen der Notiz');
             }
         } catch (e) {
             console.error('Fehler beim Löschen:', e);
@@ -892,11 +917,17 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
     const handleNotizBildUpload = async (notizId: number, file: File) => {
         setUploadingNotizBildId(notizId);
         try {
+            const userProfileId = localStorage.getItem('frontendUserSelection');
+            const profileData = userProfileId ? JSON.parse(userProfileId) : null;
+
             const formData = new FormData();
             formData.append('datei', file);
 
             const res = await fetch(`/api/anfragen/${anfrage.id}/notizen/${notizId}/bilder`, {
                 method: 'POST',
+                headers: {
+                    ...(profileData?.id ? { 'X-User-Profile-Id': profileData.id.toString() } : {})
+                },
                 body: formData
             });
             if (res.ok) {
@@ -904,7 +935,7 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
                 setNotizen(prev => appendBildToNotiz(prev, notizId, bild));
                 void loadNotizen();
             } else {
-                toast.error(await leseFehlermeldung(res, 'Fehler beim Hochladen des Bildes'));
+                toast.error('Fehler beim Hochladen des Bildes');
             }
         } catch (e) {
             console.error('Bild-Upload fehlgeschlagen:', e);
@@ -918,14 +949,20 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
     const handleNotizBildDelete = async (notizId: number, bildId: number) => {
         if (!await confirmDialog({ title: 'Bild löschen', message: 'Bild wirklich löschen?', variant: 'danger', confirmLabel: 'Löschen' })) return;
         try {
+            const userProfileId = localStorage.getItem('frontendUserSelection');
+            const profileData = userProfileId ? JSON.parse(userProfileId) : null;
+
             const res = await fetch(`/api/anfragen/${anfrage.id}/notizen/${notizId}/bilder/${bildId}`, {
                 method: 'DELETE',
+                headers: {
+                    ...(profileData?.id ? { 'X-User-Profile-Id': profileData.id.toString() } : {})
+                }
             });
             if (res.ok) {
                 setNotizen(prev => removeBildFromNotiz(prev, notizId, bildId));
                 void loadNotizen();
             } else {
-                toast.error(await leseFehlermeldung(res, 'Fehler beim Löschen des Bildes'));
+                toast.error('Fehler beim Löschen des Bildes');
             }
         } catch (e) {
             console.error('Bild-Löschen fehlgeschlagen:', e);
@@ -1028,10 +1065,7 @@ const AnfrageDetailView: React.FC<AnfrageDetailViewProps> = ({ anfrage, onBack, 
                 {/* Stats Row */}
                 <div className="flex flex-wrap gap-x-6 gap-y-2 shrink-0">
                     <div className="flex flex-col items-center px-4 py-2 border-r border-slate-200 min-w-[7rem]">
-                        <p className="flex items-center gap-0.5 text-[11px] text-slate-400 uppercase tracking-wider font-medium">
-                            Brutto
-                            <BetragInfo />
-                        </p>
+                        <p className="text-[11px] text-slate-400 uppercase tracking-wider font-medium">Brutto</p>
                         <p className="text-base font-semibold text-slate-800">{formatCurrency(anfrage.betrag)}</p>
                     </div>
                     <div className="flex flex-col items-center px-4 py-2 min-w-[7rem]">
@@ -1581,6 +1615,8 @@ export default function AnfrageEditor() {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    // Ohne das Recht „Anfragen anlegen“ (Rechteverwaltung) erscheint der Knopf nicht; der Server prüft es ohnehin bei jedem Anlegen
+    const darfAnfrageAnlegen = useDarf('ANFRAGEN', 'ANLEGEN') !== false;
     const [showEditModal, setShowEditModal] = useState(false);
     // Tab aus URL (Notification-Center kann ?tab=emails / ?tab=geschaeftsdokumente
     // schicken). Wird einmal beim Mount übernommen – danach hält die Detail-View
@@ -1730,12 +1766,22 @@ export default function AnfrageEditor() {
     // Toggle abgeschlossen status
     const handleToggleAbgeschlossen = async (anfrageId: number, abgeschlossen: boolean) => {
         try {
-            // Eigener Weg nur für den Haken: Ein PUT mit allen Feldern würde, was hier
-            // fehlt (z. B. die Beschreibung), mit überschreiben.
-            const res = await fetch(
-                `/api/anfragen/${encodeURIComponent(anfrageId)}/abgeschlossen?abgeschlossen=${abgeschlossen}`,
-                { method: 'PATCH' },
-            );
+            const anfrage = anfragen.find(a => a.id === anfrageId);
+            if (!anfrage) return;
+
+            const res = await fetch(`/api/anfragen/${anfrageId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    bauvorhaben: anfrage.bauvorhaben,
+                    kundenId: anfrage.kundenId,
+                    betrag: anfrage.betrag,
+                    projektStrasse: anfrage.projektStrasse,
+                    projektPlz: anfrage.projektPlz,
+                    projektOrt: anfrage.projektOrt,
+                    abgeschlossen: abgeschlossen
+                })
+            });
 
             if (!res.ok) throw new Error('Status der Anfrage konnte nicht gespeichert werden.');
 
@@ -1877,10 +1923,12 @@ export default function AnfrageEditor() {
             subtitle="Übersicht und Verwaltung Ihrer Anfragen."
             actions={
                 <>
-                    <Button size="sm" onClick={() => setShowCreateModal(true)} className="bg-rose-600 text-white hover:bg-rose-700">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Neue Anfrage
-                    </Button>
+                    {darfAnfrageAnlegen && (
+                        <Button size="sm" onClick={() => setShowCreateModal(true)} className="bg-rose-600 text-white hover:bg-rose-700">
+                            <Plus className="w-4 h-4 mr-2" />
+                            Neue Anfrage
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={() => loadAnfragen()}>
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
                         Aktualisieren

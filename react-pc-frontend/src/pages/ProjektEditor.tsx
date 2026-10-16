@@ -4,10 +4,12 @@ import {
     ArrowLeft,
     Briefcase,
     Calendar,
+    CalendarRange,
     Check,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
+    ClipboardCheck,
     Clock,
     CornerDownRight,
     Edit2,
@@ -77,6 +79,10 @@ import { KettenLinie } from '../features/bestellungen/KettenLinie';
 import { alsKettenTyp, type KettenLinienDokument, type KettenVerbindung } from '../features/bestellungen/kettenLinieLogik';
 import { FreigabeRechtsnachweis } from '../features/freigabe/FreigabeRechtsnachweis';
 import type { FreigabeRechtsnachweisDaten } from '../features/freigabe/rechtsnachweisLogik';
+import { ProjektWartungReiter } from '../features/wartung/ProjektWartungReiter';
+import { AuftragPlanenDialog } from '../features/plantafel/AuftragPlanenDialog';
+import { useWartungAktiv } from '../features/modulschalter/useFeatures';
+import { MaterialAbrechnungPanel } from '../features/material/MaterialAbrechnungPanel';
 
 interface Supplier {
     id: number;
@@ -196,9 +202,9 @@ type FreigabeAuditData = {
 
 // ==================== DETAIL VIEW ====================
 
-type ProjektDetailTab = 'zeiten' | 'materialkosten' | 'emails' | 'geschaeftsdokumente' | 'dokumente' | 'beschreibung' | 'notizen';
+type ProjektDetailTab = 'zeiten' | 'materialkosten' | 'emails' | 'geschaeftsdokumente' | 'dokumente' | 'beschreibung' | 'notizen' | 'wartung';
 const ALLOWED_PROJEKT_TABS: ReadonlyArray<ProjektDetailTab> =
-    ['zeiten', 'materialkosten', 'emails', 'geschaeftsdokumente', 'dokumente', 'beschreibung', 'notizen'];
+    ['zeiten', 'materialkosten', 'emails', 'geschaeftsdokumente', 'dokumente', 'beschreibung', 'notizen', 'wartung'];
 function parseProjektTab(raw: string | null): ProjektDetailTab | undefined {
     return raw && (ALLOWED_PROJEKT_TABS as readonly string[]).includes(raw)
         ? raw as ProjektDetailTab
@@ -245,6 +251,11 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
             return next;
         }, { replace: true });
     }, [setSearchParams]);
+    const wartungAktiv = useWartungAktiv() === true;
+    const wartungAus = useWartungAktiv() === false;
+    useEffect(() => {
+        if (wartungAus && activeTab === 'wartung') setActiveTab('zeiten');
+    }, [wartungAus, activeTab, setActiveTab]);
     const [kurzbeschreibung, setKurzbeschreibung] = useState(projekt.kurzbeschreibung || '');
     const [savingDesc, setSavingDesc] = useState(false);
 
@@ -281,6 +292,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     // Id der Position, die gerade entfernt wird - sperrt genau ihren Knopf.
     const [loeschendeArtikelId, setLoeschendeArtikelId] = useState<number | null>(null);
     const [loeschendeMaterialId, setLoeschendeMaterialId] = useState<number | null>(null);
+    const [planenOffen, setPlanenOffen] = useState(false);
     // Die Auswahl haengt an der Artikel-Id. Die Trefferliste zeigt eine Zeile je
     // Artikel (mit dem guenstigsten Anbieter darin) - ein zusammengesetzter
     // Schluessel aus Artikel und Lieferant haette hier nichts mehr zu unterscheiden.
@@ -1195,6 +1207,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     <Button variant="outline" onClick={openAnfrageMergeDialog}>
                         <GitMerge className="w-4 h-4 mr-2" /> mit Anfrage zusammenführen
                     </Button>
+                    <Button variant="outline" onClick={() => setPlanenOffen(true)} title="Zieltermin, Fremdleistung, Montage und Personen für die Plantafel festlegen">
+                        <CalendarRange className="w-4 h-4 mr-2" /> Planen
+                    </Button>
                 </div>
             </div>
         </Card>
@@ -1348,9 +1363,32 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     <StickyNote className="w-4 h-4 inline-block mr-1 2xl:mr-2" />
                     Tagebuch ({notizen.length})
                 </button>
+                {wartungAktiv && (
+                    <button
+                        onClick={() => setActiveTab('wartung')}
+                        className={cn(
+                            "px-1.5 2xl:px-2 py-2 text-sm font-medium rounded-t-lg transition whitespace-nowrap",
+                            activeTab === 'wartung'
+                                ? "bg-rose-50 text-rose-700 border-b-2 border-rose-600"
+                                : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                        )}
+                    >
+                        <ClipboardCheck className="w-4 h-4 inline-block mr-1 2xl:mr-2" />
+                        Wartung
+                    </button>
+                )}
             </div>
 
             {/* Tab Content */}
+            {activeTab === 'wartung' && wartungAktiv && (
+                <ProjektWartungReiter
+                    projektId={projekt.id}
+                    kundeId={projekt.kundeDto?.id ?? null}
+                    dokumente={ausgangsDokumente}
+                    dateienAnzahl={dokumenteCount}
+                    onOeffneReiter={setActiveTab}
+                />
+            )}
             {activeTab === 'notizen' && (
                 <div className="space-y-4">
                     <div className="flex justify-between items-center">
@@ -2451,6 +2489,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                             </div>
                         )}
                     </div>
+
+                    {/* Material: Plan und Rechnung (#99) */}
+                    <MaterialAbrechnungPanel projektId={projekt.id} onGeaendert={() => { void loadEingangsrechnungen(); }} />
                 </div>
             )}
 
@@ -3414,6 +3455,8 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            {planenOffen && <AuftragPlanenDialog offen projektId={projekt.id} onSchliessen={() => setPlanenOffen(false)} />}
         </>
     );
 

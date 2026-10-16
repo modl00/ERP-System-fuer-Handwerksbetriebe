@@ -6,6 +6,7 @@ import {
   FileText,
   Folder,
   FolderOpen,
+  Library,
   Loader2,
   Pencil,
   Plus,
@@ -15,17 +16,20 @@ import {
   X
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
+import { LeistungenVorlageDialog } from '../features/leistungen/LeistungenVorlageDialog';
 import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select-custom';
+import { NeueKategorieDialog } from '../features/leistungen/NeueKategorieDialog';
+import type { NeueKategorie } from '../features/leistungen/kategorieApi';
 import { TiptapEditor } from '../components/TiptapEditor';
 import { PageLayout } from '../components/layout/PageLayout';
 import { cn } from '../lib/utils';
-import { htmlZuEinzeiler } from '../lib/htmlSanitizer';
 import { type LeistungsFolder, type LeistungsService, type ProduktkategorieDto } from '../types';
 import { useToast } from '../components/ui/toast';
 import { useConfirm } from '../components/ui/confirm-dialog';
+import { LeistungKalkulation } from '../features/leistungen/LeistungKalkulation';
 
 // Rohe API-Antwort bevor Normalisierung auf string-IDs
 interface LeistungApiResponse {
@@ -35,13 +39,16 @@ interface LeistungApiResponse {
   price: number;
   unit: string | { name: string };
   folderId: number | string | null;
+  kalkuliert?: boolean;
+  baugruppe?: boolean;
 }
 
 const BILLING_UNITS = [
   { id: 'LAUFENDE_METER', name: 'Laufende Meter', short: 'm' },
   { id: 'QUADRATMETER', name: 'Quadratmeter', short: 'm²' },
   { id: 'KILOGRAMM', name: 'Kilogramm', short: 'kg' },
-  { id: 'STUECK', name: 'Stück', short: 'Stk' }
+  { id: 'STUECK', name: 'Stück', short: 'Stk' },
+  { id: 'LITER', name: 'Liter', short: 'l' }
 ];
 
 const priceFormatter = new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' });
@@ -50,6 +57,7 @@ const formatPrice = (value: number | string) => {
   return priceFormatter.format(numeric);
 };
 const getUnitShort = (unitId: string) => BILLING_UNITS.find((u) => u.id === unitId)?.short || '';
+const stripHtml = (value: string) => value.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
 
 const getFolderPath = (folder: LeistungsFolder, folders: LeistungsFolder[]): string => {
   const parent = folders.find((f) => f.id === folder.parentId);
@@ -66,12 +74,19 @@ interface ServiceFormProps {
   isCreating: boolean;
   onSave: (service: LeistungsService) => void;
   onCancel: () => void;
+  /** Die Kalkulation wurde gespeichert oder der Preis übernommen: Liste und Preisfeld nachziehen. */
+  onKalkulationGespeichert: (id: string, price: number, kalkuliert: boolean) => void;
+  /** Eine neue Kategorie wurde angelegt: Die Seite lädt die Ordner neu, danach wird sie hier gewählt. */
+  onKategorieAngelegt: (neu: NeueKategorie) => Promise<void>;
 }
 
-const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating, onSave, onCancel }) => {
+const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating, onSave, onCancel, onKalkulationGespeichert, onKategorieAngelegt }) => {
+  const [kategorieDialog, setKategorieDialog] = useState(false);
   const [name, setName] = useState(service.name);
   const [description, setDescription] = useState(service.description);
   const [price, setPrice] = useState(service.price.toString());
+  const [kalkuliert, setKalkuliert] = useState(service.kalkuliert ?? false);
+  const [baugruppe, setBaugruppe] = useState(service.baugruppe ?? false);
   const [unit, setUnit] = useState(service.unit);
   const [folderId, setFolderId] = useState(service.folderId);
   const [error, setError] = useState('');
@@ -86,6 +101,8 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating,
     setName(service.name);
     setDescription(service.description);
     setPrice(service.price.toString());
+    setKalkuliert(service.kalkuliert ?? false);
+    setBaugruppe(service.baugruppe ?? false);
     setUnit(service.unit);
     setFolderId(service.folderId);
     setError('');
@@ -93,7 +110,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating,
 
   const handleSave = () => {
     const parsedPrice = Number.parseFloat(price.replace(',', '.'));
-    if (!name.trim() || !description.trim() || !htmlZuEinzeiler(description)) {
+    if (!name.trim() || !description.trim() || !stripHtml(description)) {
       setError('Bitte Name und Beschreibung ausfüllen.');
       return;
     }
@@ -101,7 +118,7 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating,
       setError('Preis muss eine Zahl sein.');
       return;
     }
-    onSave({ ...service, name: name.trim(), description, price: parsedPrice, unit, folderId });
+    onSave({ ...service, name: name.trim(), description, price: parsedPrice, unit, folderId, kalkuliert, baugruppe });
   };
 
   return (
@@ -134,6 +151,11 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating,
               }))}
               placeholder="Ordner auswählen"
             />
+            <button type="button" onClick={() => setKategorieDialog(true)} className="mt-1 inline-flex items-center gap-1 text-sm text-rose-700 hover:underline">
+              <Plus className="w-3.5 h-3.5" aria-hidden="true" /> Neue Kategorie anlegen
+            </button>
+            <NeueKategorieDialog open={kategorieDialog} onOpenChange={setKategorieDialog} folders={folders} elternId={folderId ? String(folderId) : null}
+              onAngelegt={async (neu) => { await onKategorieAngelegt(neu); setFolderId(String(neu.id)); setKategorieDialog(false); }} />
           </div>
         </div>
 
@@ -147,7 +169,10 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating,
               value={price}
               onChange={(e) => setPrice(e.target.value)}
               placeholder="0.00"
+              disabled={kalkuliert}
+              title={kalkuliert ? 'Der Preis kommt aus der Kalkulation (siehe unten)' : undefined}
             />
+            {kalkuliert && <p className="mt-1 text-xs text-slate-500">Der Preis kommt aus der Kalkulation weiter unten.</p>}
           </div>
           <div>
             <Label>Verrechnungseinheit</Label>
@@ -160,10 +185,41 @@ const ServiceForm: React.FC<ServiceFormProps> = ({ service, folders, isCreating,
           </div>
         </div>
 
+        <label className="flex items-start gap-3 cursor-pointer select-none">
+          <input
+            type="checkbox"
+            checked={baugruppe}
+            onChange={(e) => setBaugruppe(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+          />
+          <span>
+            <span className="font-medium text-slate-900">Als Baugruppe nutzbar</span>
+            <span className="block text-xs text-slate-500">
+              Dann lässt sich diese Leistung in der Kalkulation anderer Leistungen als Baustein einsetzen (zum Beispiel ein Pfosten im Geländer).
+              Ihr Zuschlag zählt dort nicht, den setzt nur die oberste Leistung.
+            </span>
+          </span>
+        </label>
+
         <div className="space-y-2">
           <Label>Beschreibung</Label>
           <TiptapEditor value={description} onChange={setDescription} />
         </div>
+
+        {isCreating || !service.id ? (
+          <p className="text-sm text-slate-500 rounded-lg border border-dashed border-slate-300 p-3">
+            Nach dem ersten Speichern lässt sich der Preis dieser Leistung aus Material und Arbeitszeit kalkulieren.
+          </p>
+        ) : (
+          <LeistungKalkulation
+            leistungId={service.id}
+            onPreisGeaendert={(neuerPreis, istKalkuliert) => {
+              setPrice(String(neuerPreis));
+              setKalkuliert(istKalkuliert);
+              onKalkulationGespeichert(service.id, neuerPreis, istKalkuliert);
+            }}
+          />
+        )}
 
         <div className="flex gap-3 pt-2">
           <Button className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700" size="sm" onClick={handleSave}>
@@ -418,6 +474,8 @@ export const Leistungseditor: React.FC = () => {
   const [folders, setFolders] = useState<LeistungsFolder[]>([]);
   const [services, setServices] = useState<LeistungsService[]>([]);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+  const [neueKategorieOffen, setNeueKategorieOffen] = useState(false);
+  const [vorlagenOffen, setVorlagenOffen] = useState(false);
   const [editingService, setEditingService] = useState<LeistungsService | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [loadingFolders, setLoadingFolders] = useState(false);
@@ -443,7 +501,7 @@ export const Leistungseditor: React.FC = () => {
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       return services.filter(
-        (s) => s.name.toLowerCase().includes(q) || htmlZuEinzeiler(s.description).toLowerCase().includes(q)
+        (s) => s.name.toLowerCase().includes(q) || stripHtml(s.description).toLowerCase().includes(q)
       );
     }
     if (selectedFolderId) {
@@ -485,7 +543,7 @@ export const Leistungseditor: React.FC = () => {
   const isSelectedFolderLeaf = selectedFolder ? (childrenMap[selectedFolder.id] ?? []).length === 0 : false;
 
   // Alle Kategorien auf einmal laden
-  const loadFolders = useCallback(async () => {
+  const loadFolders = useCallback(async (waehleId?: string) => {
     setLoadingFolders(true);
     setFolderError(null);
     try {
@@ -506,7 +564,7 @@ export const Leistungseditor: React.FC = () => {
       setFolderDescriptions(descs);
       // Root-Ordner als Standardauswahl
       const root = all.find((f) => f.parentId === null);
-      setSelectedFolderId(root?.id ?? null);
+      setSelectedFolderId(waehleId && all.some((f) => f.id === waehleId) ? waehleId : (root?.id ?? null));
     } catch (error) {
       console.warn('Produktkategorien konnten nicht geladen werden', error);
       setFolderError('Produktkategorien konnten nicht geladen werden.');
@@ -517,8 +575,7 @@ export const Leistungseditor: React.FC = () => {
     }
   }, []);
 
-  useEffect(() => {
-    loadFolders();
+  const ladeLeistungen = useCallback(() => {
     fetch('/api/leistungen')
       .then((res) => res.json())
       .then((data) => {
@@ -530,13 +587,20 @@ export const Leistungseditor: React.FC = () => {
               description: s.description,
               price: s.price,
               folderId: String(s.folderId ?? ''),
-              unit: typeof s.unit === 'object' ? s.unit.name : (s.unit || '')
+              unit: typeof s.unit === 'object' ? s.unit.name : (s.unit || ''),
+              kalkuliert: s.kalkuliert ?? false,
+              baugruppe: s.baugruppe ?? false
             }))
           );
         }
       })
       .catch((err) => console.error('Leistungen konnten nicht geladen werden', err));
-  }, [loadFolders]);
+  }, []);
+
+  useEffect(() => {
+    loadFolders();
+    ladeLeistungen();
+  }, [loadFolders, ladeLeistungen]);
 
   const buildSuggestedDescription = useCallback(
     (folderId: string | null) => {
@@ -586,7 +650,8 @@ export const Leistungseditor: React.FC = () => {
         description: service.description,
         price: service.price,
         unit: service.unit,
-        folderId: service.folderId ? Number(service.folderId) : null
+        folderId: service.folderId ? Number(service.folderId) : null,
+        baugruppe: service.baugruppe ?? false
       })
     })
       .then((res) => {
@@ -600,11 +665,19 @@ export const Leistungseditor: React.FC = () => {
           description: saved.description,
           price: saved.price,
           folderId: String(saved.folderId ?? ''),
-          unit: typeof saved.unit === 'object' ? saved.unit.name : (saved.unit || '')
+          unit: typeof saved.unit === 'object' ? saved.unit.name : (saved.unit || ''),
+          kalkuliert: saved.kalkuliert ?? false,
+          baugruppe: saved.baugruppe ?? false
         };
         setServices((prev) => isNew ? [...prev, normalized] : prev.map((s) => s.id === normalized.id ? normalized : s));
         setSelectedFolderId(normalized.folderId);
-        setEditingService(null);
+        if (isNew) {
+          // Die neue Leistung bleibt geöffnet, damit sich ihr Preis gleich kalkulieren lässt
+          setEditingService(normalized);
+          toast.success('Leistung gespeichert. Der Preis lässt sich jetzt aus Material und Arbeit kalkulieren.');
+        } else {
+          setEditingService(null);
+        }
         setIsCreating(false);
       })
       .catch(() => toast.error('Leistung konnte nicht gespeichert werden.'));
@@ -659,6 +732,10 @@ export const Leistungseditor: React.FC = () => {
       subtitle="Verwaltung von Leistungen und Beschreibungen nach Kategorien."
       actions={
         <div className="flex gap-2">
+          <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" onClick={() => setVorlagenOffen(true)}
+            title="Fertige Metallbau-Leistungen mit Baugruppen, Artikeln, Arbeitsgängen, Maschinen und Fremdleistungen übernehmen">
+            <Library className="w-4 h-4" /> Vorlagen übernehmen
+          </Button>
           <Button
             variant="outline"
             size="sm"
@@ -683,10 +760,17 @@ export const Leistungseditor: React.FC = () => {
       <div className="grid grid-cols-1 xl:grid-cols-[280px_280px_1fr] gap-6">
         {/* Spalte 1: Ordnerstruktur */}
         <Card className="p-4 border-rose-100 shadow-lg">
-          <div className="mb-3">
-            <p className="text-xs uppercase tracking-wide text-slate-500">Kategorien</p>
-            <h4 className="text-base font-semibold text-slate-900">Ordnerstruktur</h4>
+          <div className="mb-3 flex items-start justify-between gap-2">
+            <div>
+              <p className="text-xs uppercase tracking-wide text-slate-500">Kategorien</p>
+              <h4 className="text-base font-semibold text-slate-900">Ordnerstruktur</h4>
+            </div>
+            <Button size="sm" variant="outline" onClick={() => setNeueKategorieOffen(true)} title="Eine neue Kategorie anlegen (unter der gewählten)">
+              <Plus className="w-4 h-4" /> Kategorie
+            </Button>
           </div>
+          <NeueKategorieDialog open={neueKategorieOffen} onOpenChange={setNeueKategorieOffen} folders={folders} elternId={selectedFolderId}
+            onAngelegt={async (neu) => { await loadFolders(String(neu.id)); setNeueKategorieOffen(false); toast.success(`Kategorie „${neu.bezeichnung}“ angelegt.`); }} />
           {loadingFolders ? (
             <div className="flex items-center gap-2 text-slate-500 text-sm py-6">
               <Loader2 className="w-4 h-4 animate-spin" /> Wird geladen…
@@ -767,6 +851,9 @@ export const Leistungseditor: React.FC = () => {
               isCreating={isCreating}
               onSave={handleSaveService}
               onCancel={() => { setEditingService(null); setIsCreating(false); }}
+              onKategorieAngelegt={async (neu) => { await loadFolders(String(neu.id)); toast.success(`Kategorie „${neu.bezeichnung}“ angelegt.`); }}
+              onKalkulationGespeichert={(id, price, kalkuliert) =>
+                setServices((prev) => prev.map((s) => (s.id === id ? { ...s, price, kalkuliert } : s)))}
             />
           ) : (
             <Card className="p-16 h-full border-dashed border-slate-200 text-center shadow-inner">
@@ -776,6 +863,7 @@ export const Leistungseditor: React.FC = () => {
           )}
         </div>
       </div>
+      <LeistungenVorlageDialog offen={vorlagenOffen} onOpenChange={setVorlagenOffen} onFertig={() => { void loadFolders(); ladeLeistungen(); }} />
     </PageLayout>
   );
 };

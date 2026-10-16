@@ -40,7 +40,6 @@ import RechteUebersichtSeite from './pages/RechteUebersicht';
 import MeinTagesverlauf from './pages/MeinTagesverlauf';
 import AktivitaetenImSystem from './pages/AktivitaetenImSystem';
 import AbteilungBerechtigungenEditor from './pages/AbteilungBerechtigungenEditor';
-import Testbox from './pages/Testbox';
 import { RequireModul } from './features/modulschalter/RequireModul';
 import { RequireWartungModul } from './features/modulschalter/RequireWartungModul';
 import { RequireLagerModul } from './features/modulschalter/RequireLagerModul';
@@ -154,7 +153,7 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/mein-tagesverlauf" element={<ErrorBoundary><MeinTagesverlauf /></ErrorBoundary>} />
                 <Route path="/aktivitaeten" element={<RequireAdmin><ErrorBoundary><AktivitaetenImSystem /></ErrorBoundary></RequireAdmin>} />
                 <Route path="/abteilung-berechtigungen" element={<RequireAdmin><ErrorBoundary><AbteilungBerechtigungenEditor /></ErrorBoundary></RequireAdmin>} />
-                <Route path="/testbox" element={<RequireAdmin><ErrorBoundary><Testbox /></ErrorBoundary></RequireAdmin>} />
+
                 <Route path="/firma" element={<RequireAdmin><ErrorBoundary><FirmaEditor /></ErrorBoundary></RequireAdmin>} />
                 <Route path="/einstellungen" element={<RequireAdmin><ErrorBoundary><EinstellungenEditor /></ErrorBoundary></RequireAdmin>} />
 

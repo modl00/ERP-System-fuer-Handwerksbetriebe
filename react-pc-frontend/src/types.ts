@@ -355,6 +355,23 @@ export interface Artikel {
   kategoriePfad?: string;
   werkstoffName?: string;
   kgProMeter?: number;
+  werkstoffId?: number;
+  /** Strichcode, nur bei einem Teil der Artikel vorhanden. */
+  ean?: string;
+  version?: number;
+  stegdicke?: number;
+  flanschdicke?: number;
+  flaecheJeQm?: number;
+  kgJeStueck?: number;
+  m2JeStueck?: number;
+  /** TABELLE, BERECHNET oder HAND; leer bei älteren Artikeln. */
+  gewichtHerkunft?: string;
+  gewichtVeraltet?: boolean;
+  /** Nur für diesen Artikel festgelegt (leer = vom Werkstoff übernommen) */
+  verzinkungsgeeignetEigen?: boolean | null;
+  pulverbeschichtungsgeeignetEigen?: boolean | null;
+  werkstoffVerzinkungsgeeignet?: boolean | null;
+  werkstoffPulverbeschichtungsgeeignet?: boolean | null;
 
   // Guenstigster Preis - die Suche liefert eine Zeile je Artikel
   guenstigsterPreis?: number;
@@ -932,7 +949,8 @@ export type FormBlockType =
   | 'datum'
   | 'seitenzahl'
   | 'logo'
-  | 'table';
+  | 'table'
+  | 'linie';
 
 export interface FormBlockStyles {
   fontSize?: number;
@@ -1166,6 +1184,8 @@ export interface Sachkonto {
   beschreibung?: string | null;
   aktiv: boolean;
   sortierung: number;
+  systemkonto?: boolean;
+  eingangsrechnungMitSkonto?: boolean | null;
 }
 
 export interface Zahlungsart {

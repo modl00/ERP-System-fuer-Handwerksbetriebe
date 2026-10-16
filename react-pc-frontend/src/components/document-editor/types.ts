@@ -33,8 +33,19 @@ export interface DocBlock {
     alternativGruppe?: string;
     /** ID der Leistung aus der Stammdaten-Tabelle (für Kategoriezuordnung) */
     leistungId?: number;
+    /** Einmalige Position, die der Bearbeiter selbst angelegt hat (nur in diesem Dokument, ohne Stammdaten); lässt sich in den Leistungsstamm übernehmen. */
+    eigenePosition?: boolean;
+    /** Die {@code leistungId} gehört zu einer temporären Leistung (nicht im Katalog), an der diese einmalige Position kalkuliert wurde. */
+    temporaereLeistung?: boolean;
+    /**
+     * Alternative Kalkulation an einer Katalogleistung oder einem Artikel: Woher die Position kam ({@code leistungId} leer = aus dem Artikel) und ihr Preis davor, damit sich das Original
+     * wieder einsetzen lässt. Gesetzt zusammen mit {@code temporaereLeistung}.
+     */
+    alternativeVon?: { leistungId: number | null; preis: number };
     /** ID der Produktkategorie (von Leistung.kategorie) */
     kategorieId?: number;
+    /** Artikelnummer des Artikels, für die Spalte "Artikel-Nr." (Lieferschein); Herkunftsangabe wie artikelId. */
+    artikelnummer?: string;
     /**
      * ID des Artikels aus den Stammdaten, aus dem diese Position entstanden ist.
      * Reine Herkunftsangabe: Preis und Text stehen fest im Block, damit ein

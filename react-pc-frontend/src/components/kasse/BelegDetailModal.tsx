@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import {
-    AlertCircle, CheckCircle2, ChevronDown, ChevronRight, FileText,
+    AlertCircle, BookOpen, CheckCircle2, ChevronDown, ChevronRight, FileText,
     Loader2, Lock, Receipt, Save, Trash2, Truck, Undo2,
 } from 'lucide-react';
 import { Button } from '../ui/button';
@@ -8,7 +8,9 @@ import { Select } from '../ui/select-custom';
 import { LieferantSearchModal, type LieferantSuchErgebnis } from '../LieferantSearchModal';
 import { KostenstellenSplitsEditor, type KostenstellenSplit } from './KostenstellenSplitsEditor';
 import { StornoDialog } from './StornoDialog';
+import { KontenDialog } from './KontenDialog';
 import { VerwerfenDialog } from './VerwerfenDialog';
+import { BelegProjektSektion } from './BelegProjektSektion';
 import { nettoAusBrutto, schluesseleAuf } from '../../lib/mwst';
 import type { Beleg, BelegKategorie, Sachkonto, Zahlungsart } from '../../types';
 import {
@@ -16,6 +18,7 @@ import {
     formatDateTime, formatEuro, gesperrtCls, inputCls,
 } from './belegFormat';
 import { VorschlagsChip } from './VorschlagsChip';
+import { SachkontoInfo } from './SachkontoInfo';
 import { Dialog } from '../ui/dialog';
 import { DecimalInput } from '../ui/decimal-input';
 import { DatePicker } from '../ui/datepicker';
@@ -32,15 +35,32 @@ import { istEinfacheKostenstellenZuordnung } from './kostenstellenModus';
 
 // ===================== Detail / Validierungs-Modal =====================
 
-export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, onSaved, onDeleted }: {
+/** Nummern und Zahlungsbedingungen der Eingangsrechnung als Eingabetexte (#191); dieselben Felder wie in „Dokument bearbeiten“. */
+function bedingungenAus(b: Beleg) {
+    return {
+        bestellnummer: b.eingangsrechnungBestellnummer ?? '',
+        referenzNummer: b.eingangsrechnungReferenzNummer ?? '',
+        zahlungsziel: b.eingangsrechnungZahlungsziel ?? '',
+        nettoTage: b.eingangsrechnungNettoTage == null ? '' : String(b.eingangsrechnungNettoTage),
+        skontoProzent: b.eingangsrechnungSkontoProzent == null ? '' : formatDecimalInput(b.eingangsrechnungSkontoProzent),
+        skontoTage: b.eingangsrechnungSkontoTage == null ? '' : String(b.eingangsrechnungSkontoTage),
+        tatsaechlichGezahlt: b.eingangsrechnungTatsaechlichGezahlt == null ? '' : formatDecimalInput(b.eingangsrechnungTatsaechlichGezahlt),
+        mitSkonto: b.eingangsrechnungMitSkonto ?? false,
+    };
+}
+
+export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, onSaved, onDeleted, onKontenGeaendert }: {
     beleg: Beleg;
     sachkonten: Sachkonto[];
     zahlungsarten: Zahlungsart[];
     onClose: () => void;
     onSaved: (b: Beleg) => void;
     onDeleted: (id: number) => void;
+    /** Die Konten wurden im Fenster „Konten“ (hier am Beleg geöffnet) geändert; die Seite lädt die Liste neu. */
+    onKontenGeaendert?: () => void;
 }) {
     const toast = useToast();
+    const [kontenOffen, setKontenOffen] = useState(false);
     // Detail-Beleg nachladen. Zwei Gruende:
     //  (a) Issue #58: Die Listen-Query liefert positionen[] aus Performance-
     //      Gruenden nicht — der Aufteilungs-Bereich braucht sie aber.
@@ -57,6 +77,7 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
     const formularBearbeitet = useRef(false);
     const splitsBearbeitet = useRef(false);
     const zahlungBearbeitet = useRef(false);
+    const bedingungenBearbeitet = useRef(false);
     // Bewusst nur diese drei Werte als Abhaengigkeit: eine neue `beleg`-Identitaet
     // bei sonst gleichen Werten wuerde das Polling sonst unnoetig neu starten.
     const belegId = beleg.id;
@@ -80,6 +101,7 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
                         const einfach = istEinfacheKostenstellenZuordnung(neueSplits);
                         setSplits(neueSplits); setMehrereKostenstellen(!einfach); setKostenstelleId(einfach ? neueSplits[0]?.kostenstelleId ?? null : null);
                     }
+                    if (!bedingungenBearbeitet.current) setBedingungen(bedingungenAus(data));
                     if (!zahlungBearbeitet.current) {
                         setBezahlt(data.eingangsrechnungBezahlt ?? false);
                         setBezahltAm(data.eingangsrechnungBezahltAm ?? new Date().toISOString().slice(0, 10));
@@ -109,6 +131,11 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
         sachkontoId: beleg.sachkontoId ?? null as number | null,
         notiz: beleg.notiz ?? '',
     });
+    const [bedingungen, setBedingungen] = useState(() => bedingungenAus(beleg));
+    const aendereBedingung = <K extends keyof ReturnType<typeof bedingungenAus>>(k: K, v: ReturnType<typeof bedingungenAus>[K]) => {
+        bedingungenBearbeitet.current = true;
+        setBedingungen(b => ({ ...b, [k]: v }));
+    };
     const [zeigeStorno, setZeigeStorno] = useState(false);
     const [zeigeVerwerfen, setZeigeVerwerfen] = useState(false);
     const [splits, setSplits] = useState<KostenstellenSplit[]>(beleg.kostenstellenSplits ?? []);
@@ -191,6 +218,7 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
         form.betragNetto === '' ? null : form.betragNetto,
         form.mwstSatz === '' ? null : form.mwstSatz,
         form.lieferantId,
+        ...(detailBeleg.eingangsrechnungId != null ? [bedingungen.bestellnummer, bedingungen.referenzNummer, bedingungen.zahlungsziel, bedingungen.nettoTage, bedingungen.skontoProzent, bedingungen.skontoTage, bedingungen.tatsaechlichGezahlt] : []),
     ].filter(v => v != null && v !== '').length;
 
     // Brutto → Netto/MwSt aufschluesseln. Rein zur Anzeige; geschrieben wird
@@ -230,7 +258,21 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
             ? kostenstelleId == null ? [] : [{ kostenstelleId, prozent: 100, absoluterBetrag: null, streckungJahre: 1, streckungStartJahr: null }] as KostenstellenSplit[] : splits;
         const splitResult = validateKostenstellenSplits(einfacheSplits);
         if (!splitResult.valid) { setValidationHint(splitResult.message); return null; }
-        return { values: numbers.values, splits: splitResult.splits };
+        const tage = (wert: string, label: string) => {
+            if (wert.trim() === '') return { ok: true as const, wert: undefined };
+            const n = Number(wert);
+            if (!Number.isInteger(n) || n < 0 || n > 3650) { setValidationHint(`${label}: Bitte eine ganze Zahl von 0 bis 3650 eingeben.`); return { ok: false as const, wert: undefined }; }
+            return { ok: true as const, wert: n };
+        };
+        const nettoTage = tage(bedingungen.nettoTage, 'Netto-Tage');
+        const skontoTage = tage(bedingungen.skontoTage, 'Skonto-Tage');
+        if (!nettoTage.ok || !skontoTage.ok) return null;
+        const zahlung = validateNumberDrafts({ skontoProzent: bedingungen.skontoProzent, tatsaechlichGezahlt: bedingungen.tatsaechlichGezahlt }, {
+            skontoProzent: { label: 'Skonto %', min: 0, max: 100, maxDecimalPlaces: 2 },
+            tatsaechlichGezahlt: { label: 'Tatsächlich gezahlt', min: 0, maxDecimalPlaces: 2 },
+        });
+        if (!zahlung.valid) { setValidationHint(zahlung.message); return null; }
+        return { values: numbers.values, splits: splitResult.splits, zahlung: { ...zahlung.values, nettoTage: nettoTage.wert, skontoTage: skontoTage.wert } };
     };
 
     const save = async (alsValidiert: boolean) => {
@@ -261,6 +303,17 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
                 lieferantId: form.lieferantId,
                 sachkontoId: form.sachkontoId,
                 notiz: form.notiz || null,
+                // Nur wenn zu diesem Beleg eine Eingangsrechnung besteht; leere Felder bleiben unverändert (Nummern: leer löscht)
+                ...(detailBeleg.eingangsrechnungId != null ? {
+                    bestellnummer: bedingungen.bestellnummer,
+                    referenzNummer: bedingungen.referenzNummer,
+                    zahlungsziel: bedingungen.zahlungsziel || undefined,
+                    nettoTage: checked.zahlung.nettoTage,
+                    skontoTage: checked.zahlung.skontoTage,
+                    skontoProzent: checked.zahlung.skontoProzent ?? undefined,
+                    tatsaechlichGezahlt: checked.zahlung.tatsaechlichGezahlt ?? undefined,
+                    mitSkonto: bedingungen.mitSkonto,
+                } : {}),
                 kostenstellenSplits: checked.splits.map(s => ({
                     kostenstelleId: s.kostenstelleId,
                     prozent: s.prozent,
@@ -480,7 +533,6 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
                             <label className="mt-3 flex items-center gap-2 text-sm text-slate-800"><input type="radio" checked={bezahlt} onChange={() => { zahlungBearbeitet.current = true; setBezahlt(true); }} /> Ja, bezahlt am …</label>
                             {bezahlt && <div className="mt-2 max-w-xs"><DatePicker aria-label="Bezahlt am" value={bezahltAm} onChange={value => { zahlungBearbeitet.current = true; setBezahltAm(value); }} /></div>}
                             <label className="mt-2 flex items-center gap-2 text-sm text-slate-800"><input type="radio" checked={!bezahlt} onChange={() => { zahlungBearbeitet.current = true; setBezahlt(false); }} /> Nein, noch nicht bezahlt</label>
-                            {detailBeleg.eingangsrechnungId && <a className="mt-3 inline-block text-sm font-medium text-rose-700 hover:underline" target="_blank" rel="noreferrer" href="/rechnungsuebersicht">Zur Eingangsrechnung</a>}
                         </section> : giltAlsBezahlt(form.zahlungsart) && <p className="text-sm text-slate-600">Bar und EC-Karte gelten als sofort bezahlt.</p>}
                         <section>
                             <h3 className="text-base font-bold text-slate-900">Wofür war das?</h3>
@@ -494,6 +546,8 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
                                     placeholder="– kein Konto zugewiesen –"
                                     options={buildSachkontoOptions(sachkonten)}
                                 />
+                                <SachkontoInfo konto={sachkonten.find(k => k.id === form.sachkontoId) ?? null} anzahl={sachkonten.length} />
+                                {onKontenGeaendert && !istFestgeschrieben && <Button type="button" variant="outline" size="sm" className="mt-2 border-rose-300 text-rose-700" onClick={() => setKontenOffen(true)}><BookOpen className="mr-2 h-4 w-4" aria-hidden="true" />Konten bearbeiten</Button>}
                             </div>
                         </section>
                         <section>
@@ -507,10 +561,16 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
                         </section>
                         <section>
                             <h3 className="text-base font-bold text-slate-900">Von wem war der Beleg?</h3>
-                            <p className="mt-1 text-sm text-slate-600">Wählen Sie den passenden Lieferanten.</p>
+                            <p className="mt-1 text-sm text-slate-600">Wählen Sie den passenden Lieferanten.{(beleg.dokumentTyp === 'RECHNUNG' || beleg.dokumentTyp === 'GUTSCHRIFT') && ' Damit erscheint die Rechnung unter Rechnungen → Eingangsrechnungen.'}</p>
+                            {detailBeleg.eingangsrechnungHinweis === 'LIEFERANT_FEHLT' && !form.lieferantId && <div role="status" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" data-testid="hinweis-lieferant-fehlt">Ohne Lieferanten erscheint diese Rechnung noch nicht unter Eingangsrechnungen. Wählen Sie unten den Lieferanten und speichern Sie.</div>}
+                            {detailBeleg.eingangsrechnungHinweis === 'DATUM_FEHLT' && <div role="status" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" data-testid="hinweis-datum-fehlt">Zu diesem Beleg fehlt das Rechnungsdatum. Ohne Datum erscheint die Rechnung bei der Monatsauswahl unter Eingangsrechnungen nicht. Bitte unten das Datum eintragen und speichern.</div>}
+                            {detailBeleg.eingangsrechnungId != null && <p className="mt-3 text-sm text-slate-700" data-testid="zur-eingangsrechnung">Diese Rechnung steht unter Eingangsrechnungen. <a className="font-medium text-rose-700 hover:underline" target="_blank" rel="noreferrer" href={`/rechnungsuebersicht?tab=eingang${detailBeleg.belegNummer ? `&suche=${encodeURIComponent(detailBeleg.belegNummer)}` : ''}`}>Zur Eingangsrechnung</a></p>}
+                            {detailBeleg.eingangsrechnungHinweis === 'NUMMER_DOPPELT' && <div role="status" className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900" data-testid="hinweis-nummer-doppelt">Die Rechnungsnummer {detailBeleg.belegNummer} gibt es bei {detailBeleg.lieferantName ?? 'diesem Lieferanten'} schon. Darum entsteht keine zweite Eingangsrechnung. Prüfen Sie, ob der Beleg doppelt eingescannt wurde.</div>}
                             <div className="mt-3 flex items-center gap-2"><input type="text" readOnly value={form.lieferantName} placeholder="Kein Lieferant" className={`${inputCls} bg-slate-50`} /><Button variant="outline" type="button" onClick={() => { setLieferantStartsuche(''); setLieferantPicker(true); }}><Truck className="mr-2 h-4 w-4" />Wählen</Button></div>
                             {detailBeleg.kiVorgeschlagenerLieferant && detailBeleg.kiVorgeschlagenerLieferant !== form.lieferantName && <div className="mt-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">Am Handy gewählt: {form.lieferantName || 'kein Lieferant'}. Die KI hat gelesen: {detailBeleg.kiVorgeschlagenerLieferant}. <Button type="button" size="sm" variant="outline" className="ml-2 border-amber-300 text-amber-900" onClick={async () => { const name = detailBeleg.kiVorgeschlagenerLieferant!; try { const response = await fetch(`/api/lieferanten?size=100&q=${encodeURIComponent(name)}`); const data = response.ok ? await response.json() : null; const treffer = data?.lieferanten?.find((l: LieferantSuchErgebnis) => l.lieferantenname === name); if (treffer) { update('lieferantId', treffer.id); update('lieferantName', treffer.lieferantenname); } else { setLieferantStartsuche(name); setLieferantPicker(true); } } catch { setLieferantStartsuche(name); setLieferantPicker(true); } }}>Übernehmen</Button></div>}
                         </section>
+
+                        {(detailBeleg.eingangsrechnungId != null || beleg.dokumentTyp === 'RECHNUNG' || beleg.dokumentTyp === 'GUTSCHRIFT') && <BelegProjektSektion eingangsrechnungId={detailBeleg.eingangsrechnungId ?? null} />}
 
                         {/* ---------- Alles Seltene eingeklappt (Progressive Disclosure) ---------- */}
 
@@ -553,6 +613,41 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
                                         </Field>
                                     </div>
 
+                                    {detailBeleg.eingangsrechnungId != null && (
+                                        <fieldset className="space-y-3 rounded-lg border border-slate-200 p-3" data-testid="zahlungsbedingungen">
+                                            <legend className="px-1 text-xs font-semibold uppercase tracking-wide text-slate-500">Zahlungsbedingungen</legend>
+                                            <div className="grid grid-cols-2 gap-3">
+                                                <Field label="Bestellnummer">
+                                                    <input type="text" aria-label="Bestellnummer" value={bedingungen.bestellnummer} maxLength={100}
+                                                        onChange={e => aendereBedingung('bestellnummer', e.target.value)} disabled={istFestgeschrieben} className={`${inputCls} ${gesperrtCls}`} />
+                                                </Field>
+                                                <Field label="Referenznummer">
+                                                    <input type="text" aria-label="Referenznummer" value={bedingungen.referenzNummer} maxLength={100}
+                                                        onChange={e => aendereBedingung('referenzNummer', e.target.value)} disabled={istFestgeschrieben} className={`${inputCls} ${gesperrtCls}`} />
+                                                </Field>
+                                                <Field label="Zahlungsziel">
+                                                    <DatePicker aria-label="Zahlungsziel" value={bedingungen.zahlungsziel} onChange={value => aendereBedingung('zahlungsziel', value)} />
+                                                </Field>
+                                                <Field label="Netto-Tage">
+                                                    <input type="text" inputMode="numeric" aria-label="Netto-Tage" value={bedingungen.nettoTage} maxLength={4}
+                                                        onChange={e => aendereBedingung('nettoTage', e.target.value)} className={inputCls} />
+                                                </Field>
+                                                <Field label="Skonto (%)">
+                                                    <DecimalInput aria-label="Skonto (%)" value={bedingungen.skontoProzent} onChange={value => aendereBedingung('skontoProzent', value)} className={inputCls} />
+                                                </Field>
+                                                <Field label="Skonto-Tage">
+                                                    <input type="text" inputMode="numeric" aria-label="Skonto-Tage" value={bedingungen.skontoTage} maxLength={4}
+                                                        onChange={e => aendereBedingung('skontoTage', e.target.value)} className={inputCls} />
+                                                </Field>
+                                                <Field label="Tatsächlich gezahlt (€)">
+                                                    <DecimalInput aria-label="Tatsächlich gezahlt (€)" value={bedingungen.tatsaechlichGezahlt} onChange={value => aendereBedingung('tatsaechlichGezahlt', value)} className={inputCls} />
+                                                </Field>
+                                                <label className="flex items-center gap-2 self-end pb-2 text-sm text-slate-800">
+                                                    <input type="checkbox" className="h-4 w-4 accent-rose-600" checked={bedingungen.mitSkonto} onChange={e => aendereBedingung('mitSkonto', e.target.checked)} /> Mit Skonto bezahlt
+                                                </label>
+                                            </div>
+                                        </fieldset>
+                                    )}
 
                                     <Field label="Notiz">
                                         <textarea rows={2} value={form.notiz}
@@ -641,6 +736,7 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
                 </div>
             </div>
 
+            {kontenOffen && <KontenDialog onClose={() => setKontenOffen(false)} onChanged={() => onKontenGeaendert?.()} />}
             {lieferantPicker && (
                 <LieferantSearchModal
                     isOpen={lieferantPicker}

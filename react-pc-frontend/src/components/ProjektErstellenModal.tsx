@@ -7,7 +7,6 @@ import { AddressAutocomplete } from './AddressAutocomplete';
 import { KundeAnlegenForm } from './KundeAnlegenForm';
 import type { Kunde, Anfrage } from '../types';
 import { baueAuftragsnummerHinweis, type NaechsteAuftragsnummerResponse } from './auftragsnummerHinweis';
-import type { ProjektBearbeiten } from '../lib/projektBearbeiten';
 
 interface SelectedCategory {
     id: number;
@@ -31,12 +30,48 @@ interface ProjektErstellenPayload {
     projektArt?: string;
 }
 
+interface ProjektBearbeiten {
+    id: number;
+    bauvorhaben: string;
+    kunde: string;
+    kundennummer: string;
+    kundenId?: number;
+    auftragsnummer: string;
+    bruttoPreis?: number;
+    strasse?: string;
+    plz?: string;
+    ort?: string;
+    abgeschlossen?: boolean;
+    projektArt?: string;
+    kundenEmails?: string[];
+    kundeDto?: {
+        id: number;
+        name: string;
+        kundennummer: string;
+        strasse?: string;
+        plz?: string;
+        ort?: string;
+        kundenEmails?: string[];
+    };
+    produktkategorien?: Array<{
+        id?: number; // ProjektProduktkategorie.id
+        produktkategorie: {
+            id: number;
+            bezeichnung: string;
+            verrechnungseinheit?: { name: string; anzeigename: string };
+        };
+        menge?: number;
+    }>;
+}
+
 interface ProjektErstellenModalProps {
     isOpen: boolean;
     onClose: () => void;
     onSuccess: (projektId: number) => void;
     /** Falls gesetzt, wird das Projekt bearbeitet statt neu angelegt */
     editProjekt?: ProjektBearbeiten | null;
+    /** Neues Projekt für diesen Kunden (zum Beispiel aus dem Kundenstamm): der Kunde ist vorbelegt und lässt sich nicht ändern, die Maske beginnt direkt mit den Projektdaten */
+    vorbelegterKunde?: Kunde | null;
 }
 
 // Sub-view for customer search and selection
@@ -151,8 +186,10 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
     onClose,
     onSuccess,
     editProjekt,
+    vorbelegterKunde,
 }) => {
     const isEditMode = !!editProjekt;
+    const kundeFest = !isEditMode && !!vorbelegterKunde;
     const [mode, setMode] = useState<'select' | 'manual'>('select');
     const [subView, setSubView] = useState<'main' | 'kundensuche' | 'kundeNeu'>('main');
     const [anfragen, setAnfragen] = useState<Anfrage[]>([]);
@@ -317,6 +354,14 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
         return () => clearTimeout(timer);
     }, [isOpen, mode, subView, filterJahr, filterSuche, loadAnfragen]);
 
+    // Aus dem Kundenstamm geöffnet: Kunde setzen und gleich die Projektdaten zeigen
+    useEffect(() => {
+        if (isOpen && kundeFest && vorbelegterKunde) {
+            setMode('manual');
+            setSelectedKunde(vorbelegterKunde);
+        }
+    }, [isOpen, kundeFest, vorbelegterKunde]);
+
     // Reset form when closing OR initialize when opening in edit mode
     useEffect(() => {
         if (!isOpen) {
@@ -393,9 +438,7 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
                 strasse: editProjekt.strasse || '',
                 plz: editProjekt.plz || '',
                 ort: editProjekt.ort || '',
-                // Unbekannte Projektart nicht durch „Pauschalpreis“ ersetzen: leer
-                // bleibt nichts vorgewählt, und das Backend lässt die gespeicherte stehen.
-                projektArt: editProjekt.projektArt ?? '',
+                projektArt: editProjekt.projektArt || 'PAUSCHAL',
             });
 
             // Produktkategorien aus bestehendem Projekt laden
@@ -622,6 +665,7 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
                 // ein zwischenzeitlich beendetes Projekt nicht wieder aufreißen.
                 ...(isEditMode ? {} : {
                     anlegedatum: new Date().toISOString().split('T')[0],
+                    zeitPositionen: [],
                     materialkosten: [],
                 }),
             };
@@ -666,27 +710,22 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
 
     return (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <div
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="projekt-erstellen-titel"
-                className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col"
-            >
+            <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
                 {/* Header */}
                 <div className="px-6 py-4 border-b border-slate-100 flex items-center justify-between bg-gradient-to-r from-rose-50 to-white">
                     <div>
                         <p className="text-xs font-semibold text-rose-600 uppercase tracking-wide">Projektmanagement</p>
-                        <h2 id="projekt-erstellen-titel" className="text-xl font-bold text-slate-900">
+                        <h2 className="text-xl font-bold text-slate-900">
                             {isEditMode ? 'Projekt bearbeiten' : 'Neues Projekt anlegen'}
                         </h2>
                     </div>
-                    <Button variant="ghost" size="sm" onClick={onClose} aria-label="Schließen" className="text-slate-500 hover:bg-slate-100">
+                    <Button variant="ghost" size="sm" onClick={onClose} className="text-slate-500 hover:bg-slate-100">
                         <X className="w-5 h-5" />
                     </Button>
                 </div>
 
                 {/* Mode Tabs - only show on main view and not in edit mode */}
-                {subView === 'main' && !isEditMode && (
+                {subView === 'main' && !isEditMode && !kundeFest && (
                     <div className="px-6 py-3 border-b border-slate-100 bg-slate-50">
                         <div className="flex gap-2">
                             <button
@@ -829,6 +868,9 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
                                             <p className="text-slate-500 text-sm">Kein Kunde ausgewählt</p>
                                         )}
                                     </div>
+                                    {kundeFest ? (
+                                        <span className="text-sm text-slate-500" data-testid="kunde-vorgegeben">Kunde ist vorgegeben</span>
+                                    ) : (
                                     <Button
                                         variant="outline"
                                         size="sm"
@@ -838,6 +880,7 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
                                         <Search className="w-4 h-4 mr-1" />
                                         {selectedKunde ? 'Ändern' : 'Kunde auswählen'}
                                     </Button>
+                                    )}
                                 </div>
                             </div>
 
@@ -1009,7 +1052,6 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
                                             key={art.value}
                                             type="button"
                                             onClick={() => handleInputChange('projektArt', art.value)}
-                                            aria-pressed={formData.projektArt === art.value}
                                             className={`p-3 rounded-lg border-2 text-left transition-all ${
                                                 formData.projektArt === art.value
                                                     ? 'border-rose-500 bg-rose-50'

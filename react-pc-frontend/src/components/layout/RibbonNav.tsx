@@ -1,27 +1,228 @@
-import { useState, useMemo } from 'react';
+import { Fragment, useState, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { cn } from '../../lib/utils';
-import { istFreigegeben } from '../../lib/freigaben';
-import { Gem, ChevronUp, ChevronDown, User, LogOut } from 'lucide-react';
+import { FirmenLogo } from './FirmenLogo';
+import {
+    BarChart3, Briefcase, Building2, Clock, Euro, FileCheck, FileJson,
+    FileText, Gem, Globe, Home, Layers, List, Mail, MailPlus, Package, Settings, Settings2,
+    ShoppingCart, Truck, GanttChartSquare, ChevronUp, ChevronDown, User, LogOut,
+    Calendar, CalendarDays, Plane, Receipt, Wallet, Stethoscope,
+    Phone, Voicemail, Cuboid, ClipboardCheck, Warehouse, ShieldCheck, History, Factory, Calculator, LayoutGrid, FlaskConical
+} from 'lucide-react';
+import { Inbox, Percent } from 'lucide-react';
 import { Button } from '../ui/button';
 import { NotificationBell } from './NotificationBell';
 import { useAuth } from '../../auth/AuthContext';
 import { useTelefonBerechtigung } from '../../features/telefon/useTelefonBerechtigung';
-import { useNeueSprachnachrichten } from '../../features/telefon/useNeueSprachnachrichten';
-import { useKiAktiv } from '../../features/ki/useKiAktiv';
-import { useZeiterfassungSichtbarkeit } from '../../features/zeiterfassung/useZeiterfassungSichtbarkeit';
-import { useLagerAktiv, useWartungAktiv } from '../../features/modulschalter/useFeatures';
+import { useLagerAktiv, useModulAktiv, useWartungAktiv } from '../../features/modulschalter/useFeatures';
 import { useDarf } from '../../features/funktionsrechte/useFunktionsrechte';
-import { NAVIGATION, ZEITERFASSUNG_KATEGORIE, type NavCategory } from './navigation';
+import { useNeueSprachnachrichten } from '../../features/telefon/useNeueSprachnachrichten';
+import { useMenue } from '../../features/menue/useMenue';
+import { AlleFunktionenDialog } from './AlleFunktionenDialog';
+import { Schnellzugriffsleiste } from './Schnellzugriffsleiste';
+import { MeinePostfaecherDialog } from '../../features/postfaecher/MeinePostfaecherDialog';
+import { useKiAktiv } from '../../features/ki/useKiAktiv';
 
+// Navigation structure with subgroups for better organization
+interface NavItem {
+    name: string;
+    href: string;
+    icon: React.ComponentType<{ className?: string }>;
+    /** Weitere Adressen, bei denen dieser Punkt als geöffnet gilt (zum Beispiel Reiter einer Seite mit eigener Adresse). */
+    auch?: string[];
+}
 
-const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/benutzer', '/website', '/rechte-uebersicht', '/aktivitaeten', '/abteilung-berechtigungen', '/kostenrechnung']);
+interface NavSubgroup {
+    label: string;
+    items: NavItem[];
+}
+
+interface NavCategory {
+    category: string;
+    subgroups: NavSubgroup[];
+}
+
+const NAVIGATION: NavCategory[] = [
+    {
+        category: 'Vorlagen & Stammdaten',
+        subgroups: [
+            {
+                label: 'Dokumente',
+                items: [
+                    { name: 'Textvorlagen', href: '/textbausteine', icon: FileText },
+                    { name: 'Stundensätze (Abrechnung)', href: '/arbeitszeitarten', icon: Clock },
+                ]
+            },
+            {
+                label: 'Kontakte',
+                items: [
+                    { name: 'Kunden', href: '/kunden', icon: User },
+                    { name: 'Mitarbeiter', href: '/mitarbeiter', icon: User },
+                    { name: 'Lieferanten', href: '/lieferanten', icon: Truck },
+                ]
+            },
+            {
+                label: 'Katalog',
+                items: [
+                    { name: 'Artikel', href: '/artikel', icon: Package },
+                    { name: 'Leistungen', href: '/leistungen', icon: List },
+                    { name: 'Lager', href: '/lager', icon: Warehouse },
+                    { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
+                    { name: 'Fremdleistungen', href: '/fremdleistungen', icon: Factory },
+                    { name: 'Kostenrechnung', href: '/kostenrechnung', icon: Calculator },
+                    { name: 'Kategorien', href: '/produktkategorien', icon: Layers },
+                    { name: 'Werkstoffe', href: '/werkstoffe', icon: Cuboid },
+                    { name: 'Aufschläge', href: '/aufschlaege', icon: Percent },
+                ]
+            },
+            {
+                label: 'Administration',
+                items: [
+                    { name: 'Wer darf was?', href: '/rechte-uebersicht', icon: ShieldCheck, auch: ['/abteilung-berechtigungen'] },
+                    { name: 'Aktivitäten', href: '/aktivitaeten', icon: History },
+                    { name: 'Firma', href: '/firma', icon: Building2 },
+                    { name: 'Formularwesen', href: '/formulare', icon: FileJson },
+                    { name: 'Einstellungen', href: '/einstellungen', icon: Settings },
+                    { name: 'Test-Box', href: '/testbox', icon: FlaskConical },
+                ]
+            }
+        ]
+    },
+    {
+        category: 'Projektmanagement',
+        subgroups: [
+            {
+                label: 'Aufträge',
+                items: [
+                    { name: 'Startbildschirm', href: '/start', icon: Home },
+                    { name: 'Projekte', href: '/projekte', icon: Briefcase },
+                    { name: 'Anfragen', href: '/anfragen', icon: FileCheck },
+                ]
+            },
+            {
+                label: 'Wartung',
+                items: [
+                    { name: 'Wartungen', href: '/wartung', icon: ClipboardCheck },
+                ]
+            },
+            {
+                label: 'Dokumente',
+                items: [
+                    { name: 'Dokumente', href: '/dokumentuebersicht', icon: FileText },
+                ]
+            },
+            {
+                label: 'Planung',
+                items: [
+                    { name: 'Kalender', href: '/kalender', icon: Calendar },
+                    { name: 'Plantafel', href: '/plantafel', icon: GanttChartSquare },
+                ]
+            },
+            {
+                label: 'Einkauf',
+                items: [
+                    { name: 'Bestellen', href: '/bestellungen/liste', icon: ShoppingCart },
+                    { name: 'Bestellungen', href: '/bestellungen', icon: FileText },
+                    { name: 'Bedarf', href: '/bestellungen/bedarf', icon: List },
+                ]
+            }
+        ]
+    },
+    {
+        category: 'Zeiterfassung',
+        subgroups: [
+            {
+                label: 'Übersicht',
+                items: [
+                    { name: 'Kalender', href: '/zeitbuchungen', icon: Calendar },
+                    { name: 'Monatsabschluss', href: '/monatsabschluss', icon: FileCheck },
+                ]
+            },
+            {
+                label: 'Berichte',
+                items: [
+                    { name: 'Auswertung', href: '/auswertung', icon: BarChart3 },
+                    { name: 'Steuerberater', href: '/steuerberater', icon: Mail },
+                ]
+            },
+            {
+                label: 'Einstellungen',
+                items: [
+                    { name: 'Zeitkonten', href: '/zeitkonten', icon: Clock },
+                    { name: 'Feiertage', href: '/feiertage', icon: CalendarDays },
+                ]
+            },
+            {
+                label: 'Abwesenheiten',
+                items: [
+                    { name: 'Urlaubsanträge', href: '/urlaubsantraege', icon: Plane },
+                    { name: 'Lange Krankheit', href: '/langzeitkrankmeldungen', icon: Stethoscope },
+                ]
+            }
+        ]
+    },
+    {
+        category: 'Kommunikation',
+        subgroups: [
+            {
+                label: 'E-Mail',
+                items: [
+                    { name: 'E-Mail Center', href: '/emails/inbox', icon: Mail },
+                    { name: 'E-Mail Vorlagen', href: '/email-textvorlagen', icon: MailPlus },
+                    { name: 'E-Mail-Einstellungen', href: '/email-einstellungen', icon: Settings2 },
+                ]
+            },
+            {
+                label: 'Telefon',
+                items: [
+                    { name: 'Anrufe', href: '/telefon/anrufe', icon: Phone },
+                    { name: 'Anrufbeantworter', href: '/telefon/anrufbeantworter', icon: Voicemail },
+                ]
+            },
+            {
+                label: 'Website',
+                items: [
+                    { name: 'Neuigkeiten', href: '/website', icon: Globe },
+                ]
+            }
+        ]
+    },
+    {
+        category: 'Finanzen & Controlling',
+        subgroups: [
+            {
+                label: 'Buchhaltung',
+                items: [
+                    { name: 'Offene Posten', href: '/offeneposten', icon: Euro },
+                    { name: 'Rechnungen', href: '/rechnungsuebersicht', icon: FileText },
+                    { name: 'Belege & Kasse', href: '/belege-kasse', icon: Receipt },
+                    { name: 'Mietabrechnung', href: '/miete', icon: Home },
+                ]
+            },
+            {
+                label: 'Auswertung',
+                items: [
+                    { name: 'Erfolgsanalyse', href: '/analyse', icon: BarChart3 },
+                    { name: 'Kostenstellen', href: '/kostenstellen', icon: Wallet },
+                ]
+            }
+        ]
+    }
+];
+
+const ADMIN_ONLY_PATHS = new Set(['/rechte-uebersicht', '/aktivitaeten', '/abteilung-berechtigungen', '/firma', '/formulare', '/einstellungen', '/benutzer', '/website', '/kostenrechnung', '/testbox']);
 /** Nur mit dem Abteilungs-Recht „Anrufe & Anrufbeantworter" sichtbar. */
 const TELEFON_PATHS = new Set(['/telefon/anrufe', '/telefon/anrufbeantworter']);
-/** Nur sichtbar, solange das Wartungsmodul eingeschaltet ist. */
+/** Nur sichtbar, solange das Wartungsmodul in den Einstellungen eingeschaltet ist. */
 const WARTUNG_PATHS = new Set(['/wartung']);
-/** Nur sichtbar, solange das Lagermodul eingeschaltet ist. */
+/** Nur sichtbar, solange das Lagermodul eingeschaltet ist (ohne Angabe: eingeschaltet). */
 const LAGER_PATHS = new Set(['/lager']);
+/** Nur mit dem Recht „Ansehen“ an der Funktion Bestellungen (Rechteverwaltung). */
+const BESTELLEN_PATHS = new Set(['/bestellungen/liste']);
+/** Nur sichtbar, solange das jeweilige Modul eingeschaltet ist (ohne Angabe: eingeschaltet). */
+const MIETE_PATHS = new Set(['/miete']);
+const WEBSITE_PATHS = new Set(['/website']);
 
 
 export function RibbonNavigation() {
@@ -30,65 +231,77 @@ export function RibbonNavigation() {
     const { user, isAdmin, logout } = useAuth();
     const kiAktiv = useKiAktiv();
     const darfTelefon = useTelefonBerechtigung() === true;
-    // Während der Prüfung (null) bleibt der Bereich verborgen – so blitzt der Reiter nicht kurz auf.
-    const darfZeiterfassung = useZeiterfassungSichtbarkeit() === true;
+    // Ohne das Recht "Sehen" (Rechteverwaltung) erscheint der Menüpunkt nicht; solange unbekannt, bleibt er sichtbar
     const darfWartungSehen = useDarf('WARTUNG') !== false;
     const darfLagerSehen = useDarf('LAGER') !== false;
+    const darfBestellenSehen = useDarf('BESTELLUNGEN') !== false;
     const wartungAktiv = useWartungAktiv() === true && darfWartungSehen;
     const lagerAktiv = useLagerAktiv() !== false && darfLagerSehen;
+    const mieteAktiv = useModulAktiv('miete') !== false;
+    const websiteAktiv = useModulAktiv('website') !== false;
     // Zähler neuer Nachrichten am Menüpunkt "Anrufbeantworter".
     const neueSprachnachrichten = useNeueSprachnachrichten(darfTelefon);
     const zaehler: Record<string, number> = { '/telefon/anrufbeantworter': neueSprachnachrichten };
 
-    const visibleNavigation = useMemo<NavCategory[]>(() => {
+    const erlaubteNavigation = useMemo<NavCategory[]>(() => {
         return NAVIGATION
-            .filter((category) => darfZeiterfassung || category.category !== ZEITERFASSUNG_KATEGORIE)
             .map((category) => ({
                 ...category,
                 subgroups: category.subgroups
                     .map((subgroup) => ({
                         ...subgroup,
                         items: subgroup.items.filter((item) =>
-                            istFreigegeben(item.href)
-                            && (isAdmin || !ADMIN_ONLY_PATHS.has(item.href))
+                            (isAdmin || !ADMIN_ONLY_PATHS.has(item.href))
                             && (darfTelefon || !TELEFON_PATHS.has(item.href))
                             && (wartungAktiv || !WARTUNG_PATHS.has(item.href))
-                            && (lagerAktiv || !LAGER_PATHS.has(item.href))),
+                            && (lagerAktiv || !LAGER_PATHS.has(item.href))
+                            && (darfBestellenSehen || !BESTELLEN_PATHS.has(item.href))
+                            && (mieteAktiv || !MIETE_PATHS.has(item.href))
+                            && (websiteAktiv || !WEBSITE_PATHS.has(item.href))),
                     }))
                     .filter((subgroup) => subgroup.items.length > 0),
             }))
             .filter((category) => category.subgroups.length > 0);
-    }, [isAdmin, darfTelefon, darfZeiterfassung, wartungAktiv, lagerAktiv]);
+    }, [isAdmin, darfTelefon, wartungAktiv, lagerAktiv, darfBestellenSehen, mieteAktiv, websiteAktiv]);
 
-    const [selectedCategory, setSelectedCategory] = useState<string>(NAVIGATION[0].category);
-    // Track the pathname when the user explicitly clicked a tab.
-    // Override is implicitly reset when the route changes (overridePath != current path).
-    const [overridePath, setOverridePath] = useState<string | null>(null);
+    // Hauptmenü: erlaubte Punkte ohne die ausgeblendeten. Die Seite, auf der man gerade ist, bleibt immer stehen,
+    // damit man sieht, wo man ist. Solange der Stand unbekannt ist, wird nichts ausgeblendet.
+    const { bekannt: menueBekannt, ausgeblendet } = useMenue();
+    const anzahlAusgeblendet = useMemo(
+        () => erlaubteNavigation.reduce((summe, k) => summe + k.subgroups.reduce((s2, sg) => s2 + sg.items.filter((i) => ausgeblendet.has(i.href)).length, 0), 0),
+        [erlaubteNavigation, ausgeblendet],
+    );
+    const visibleNavigation = useMemo<NavCategory[]>(() => {
+        if (!menueBekannt) return erlaubteNavigation;
+        const istAktuell = (item: NavItem) => [item.href, ...(item.auch ?? [])].some((h) => location.pathname === h || location.pathname.startsWith(h + '/'));
+        return erlaubteNavigation
+            .map((category) => ({
+                ...category,
+                subgroups: category.subgroups
+                    .map((subgroup) => ({ ...subgroup, items: subgroup.items.filter((item) => !ausgeblendet.has(item.href) || istAktuell(item)) }))
+                    .filter((subgroup) => subgroup.items.length > 0),
+            }))
+            .filter((category) => category.subgroups.length > 0);
+    }, [erlaubteNavigation, menueBekannt, ausgeblendet, location.pathname]);
+    const [alleOffen, setAlleOffen] = useState(false);
+    const [postfaecherOffen, setPostfaecherOffen] = useState(false);
+    // Aufklappliste an einem Hauptpunkt (zum Beispiel "Stammdaten"): alle Module dieser Kategorie auf einen Blick
+    const [kategorieOffen, setKategorieOffen] = useState<{ kategorie: string; links: number; oben: number } | null>(null);
+
+    const oeffneKategorie = (kategorie: string, knopf: HTMLElement) => {
+        const r = knopf.getBoundingClientRect();
+        setKategorieOffen(alt => (alt?.kategorie === kategorie ? null : { kategorie, links: Math.max(8, Math.min(r.left - 120, window.innerWidth - 296)), oben: r.bottom + 4 }));
+    };
+
     const [isExpanded, setIsExpanded] = useState(true);
 
     const routeCategory = useMemo(() => {
         return visibleNavigation.find(group =>
-            group.subgroups.some(sg => sg.items.some(item => location.pathname.startsWith(item.href)))
+            group.subgroups.some(sg => sg.items.some(item => [item.href, ...(item.auch ?? [])].some(h => location.pathname.startsWith(h))))
         );
     }, [location.pathname, visibleNavigation]);
-
-    const activeCategory = useMemo(() => {
-        // User explicitly clicked a tab — honor their selection (only for the same route)
-        const userOverride = overridePath === location.pathname;
-        if (userOverride && visibleNavigation.some(group => group.category === selectedCategory)) {
-            return selectedCategory;
-        }
-        if (routeCategory) {
-            return routeCategory.category;
-        }
-        if (visibleNavigation.length === 0) {
-            return '';
-        }
-        if (visibleNavigation.some(group => group.category === selectedCategory)) {
-            return selectedCategory;
-        }
-        return visibleNavigation[0].category;
-    }, [routeCategory, selectedCategory, overridePath, location.pathname, visibleNavigation]);
+    // Hervorgehoben wird der Hauptpunkt, zu dem die aktuelle Seite gehört
+    const activeCategory = routeCategory?.category ?? '';
 
     // User Menu State
     const currentUser = user;
@@ -110,10 +323,23 @@ export function RibbonNavigation() {
                 die paar Pixel, die ihr sonst durch die Aussenabstaende der
                 Nachbar-Elemente fehlen (siehe Spec C, Befund 3). */}
             <div className="flex items-center px-4 h-16 border-b border-rose-100 bg-white shadow-sm gap-2 min-[1680px]:gap-4">
-                {/* Company Logo */}
+                {/* Firmenlogo (#209): das der Firma, sonst das mitgelieferte Programmlogo */}
                 <div className="flex items-center shrink-0">
-                    <img src="/firmenlogo_icon.png" alt="Company Logo" className="h-14 w-auto object-contain" />
+                    <FirmenLogo />
                 </div>
+
+                {/* Startbildschirm: von jeder Seite aus mit einem Klick erreichbar */}
+                <Link
+                    to="/start"
+                    aria-label="Startbildschirm"
+                    title="Startbildschirm"
+                    className={cn(
+                        'flex shrink-0 items-center justify-center rounded-full p-2 transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-400',
+                        location.pathname === '/' || location.pathname === '/start' ? 'bg-rose-100 text-rose-600' : 'bg-slate-100 text-slate-500 hover:bg-rose-50 hover:text-rose-600',
+                    )}
+                >
+                    <Home className="h-5 w-5" aria-hidden="true" />
+                </Link>
 
                 {/* Category Tabs */}
                 {/* "no-scrollbar" entfernt (vorher): eine still scrollende
@@ -122,17 +348,11 @@ export function RibbonNavigation() {
                     unsichtbar abgeschnitten (Spec C, Befund 3). */}
                 <div className="flex-1 flex overflow-x-auto overflow-y-hidden gap-0.5 min-[1680px]:gap-2 h-full items-end">
                     {visibleNavigation.map((group) => (
+                        <Fragment key={group.category}>
                         <button
-                            key={group.category}
-                            onClick={() => {
-                                if (activeCategory === group.category) {
-                                    toggleRibbon();
-                                } else {
-                                    setSelectedCategory(group.category);
-                                    setOverridePath(location.pathname);
-                                    setIsExpanded(true);
-                                }
-                            }}
+                            aria-haspopup="menu"
+                            aria-expanded={kategorieOffen?.kategorie === group.category}
+                            onClick={(e) => oeffneKategorie(group.category, e.currentTarget)}
                             className={cn(
                                 // px-1.5 bei 1440px, px-2.5 ab 1480px, px-4 ab 1680px:
                                 // spart genug Breite, damit alle fünf Kategorien auch bei breiteren Linux-Systemfonts
@@ -145,6 +365,18 @@ export function RibbonNavigation() {
                         >
                             {group.category}
                         </button>
+                        <button
+                            type="button"
+                            aria-haspopup="menu"
+                            aria-expanded={kategorieOffen?.kategorie === group.category}
+                            aria-label={`Module von ${group.category}`}
+                            title={`Alle Module von ${group.category} anzeigen`}
+                            onClick={(e) => oeffneKategorie(group.category, e.currentTarget)}
+                            className="self-center -ml-1 rounded p-0.5 text-slate-400 hover:bg-slate-100 hover:text-rose-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-300"
+                        >
+                            <ChevronDown className={cn('w-3.5 h-3.5 transition-transform', kategorieOffen?.kategorie === group.category && 'rotate-180')} aria-hidden="true" />
+                        </button>
+                        </Fragment>
                     ))}
                 </div>
 
@@ -234,6 +466,28 @@ export function RibbonNavigation() {
                                     <p className="text-xs text-slate-500">{currentUser?.username || 'Kein Username'}</p>
                                 </div>
                                 <div className="border-t border-slate-100 mt-2 pt-2 pb-1">
+                                    <Link
+                                        to="/mein-tagesverlauf"
+                                        onClick={() => setShowUserMenu(false)}
+                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    >
+                                        <History className="w-4 h-4" />
+                                        Mein Tagesverlauf
+                                    </Link>
+                                    <button
+                                        onClick={() => { setShowUserMenu(false); setAlleOffen(true); }}
+                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    >
+                                        <LayoutGrid className="w-4 h-4" />
+                                        Alle Funktionen &amp; Menü anpassen
+                                    </button>
+                                    <button
+                                        onClick={() => { setShowUserMenu(false); setPostfaecherOffen(true); }}
+                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-slate-50 flex items-center gap-2"
+                                    >
+                                        <Inbox className="w-4 h-4" />
+                                        Meine Postfächer
+                                    </button>
                                     {isAdmin && (
                                         <Link
                                             to="/benutzer"
@@ -264,7 +518,7 @@ export function RibbonNavigation() {
                     variant="ghost"
                     size="sm"
                     onClick={toggleRibbon}
-                    aria-label={isExpanded ? 'Menüleiste einklappen' : 'Menüleiste ausklappen'}
+                    aria-label={isExpanded ? 'Schnellzugriffsleiste einklappen' : 'Schnellzugriffsleiste ausklappen'}
                     aria-expanded={isExpanded}
                     className="ml-2 text-slate-400"
                 >
@@ -272,88 +526,48 @@ export function RibbonNavigation() {
                 </Button>
             </div>
 
-            {/* Ribbon Content (Toolbar) with Subgroups */}
-            <div
-                className={cn(
-                    "overflow-hidden transition-all duration-300 ease-in-out bg-slate-50/50",
-                    isExpanded ? "max-h-40 opacity-100 border-b border-slate-200" : "max-h-0 opacity-0"
-                )}
-            >
-                {/* "no-scrollbar" entfernt (Task 8b, Nachtrag aus dem Review von
-                    Abschnitt 2): dasselbe Muster wie bei der Kategorie-Leiste oben --
-                    laeuft hier heute nichts ueber, soll ein kuenftiger Ueberlauf aber
-                    als Scrollbalken sichtbar sein statt lautlos abgeschnitten zu werden. */}
-                <div className="px-3 py-2 flex gap-1 overflow-x-auto">
-                    {visibleNavigation.find(g => g.category === activeCategory)?.subgroups.map((subgroup, sgIndex) => (
-                        <div key={subgroup.label} className="flex items-center">
-                            {/* Subgroup Container */}
-                            <div className="flex flex-col">
-                                {/* Subgroup Label */}
-                                <span className="text-[9px] font-semibold text-slate-400 uppercase tracking-wider px-2 mb-1">
-                                    {subgroup.label}
-                                </span>
-                                {/* Subgroup Items */}
-                                <div className="flex gap-1">
-                                    {subgroup.items.map((item) => {
-                                        // Exact match or starts with item.href followed by / (for nested routes)
-                                        // But not if another sibling route is a better match
-                                        const isExactMatch = location.pathname === item.href;
-                                        const isNestedMatch = location.pathname.startsWith(item.href + '/');
-                                        // Check if there's a more specific sibling route that matches
-                                        const hasBetterSiblingMatch = subgroup.items.some(sibling => 
-                                            sibling.href !== item.href && 
-                                            sibling.href.startsWith(item.href) && 
-                                            (location.pathname === sibling.href || location.pathname.startsWith(sibling.href + '/'))
-                                        );
-                                        const isActive = (isExactMatch || isNestedMatch) && !hasBetterSiblingMatch;
-                                        return (
-                                            <Link
-                                                key={item.href}
-                                                to={item.href}
-                                                className={cn(
-                                                    "flex flex-col items-center justify-center gap-1 min-w-[4.5rem] p-2 rounded-lg transition-all hover:bg-white hover:shadow-sm hover:scale-105 active:scale-95 group",
-                                                    isActive ? "bg-white shadow-sm ring-1 ring-slate-200" : ""
-                                                )}
-                                            >
-                                                <div className={cn(
-                                                    "relative p-2 rounded-full transition-colors",
-                                                    isActive ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-500 group-hover:text-rose-600 group-hover:bg-rose-50"
-                                                )}>
-                                                    <item.icon className="w-5 h-5" />
-                                                    {(zaehler[item.href] ?? 0) > 0 && (
-                                                        <span
-                                                            className="absolute -top-1 -right-1.5 flex items-center justify-center min-w-[18px] h-[18px] px-1 text-[10px] font-bold text-white bg-rose-600 rounded-full ring-2 ring-white"
-                                                            aria-label={`${zaehler[item.href]} neu`}
-                                                        >
-                                                            {zaehler[item.href] > 99 ? '99+' : zaehler[item.href]}
-                                                        </span>
-                                                    )}
-                                                </div>
-                                                {/* max-w-[5.5rem] + break-words statt truncate:
-                                                    zweizeilig statt gekuerzt -- "Dokumentenrechte"
-                                                    und "Mietabrechnung" stehen sonst als "..." da,
-                                                    unabhaengig von der Fenstergroesse (Spec C,
-                                                    Befund 3). Macht die Menuezeile hoechstens
-                                                    12px hoeher. */}
-                                                <span className={cn(
-                                                    "text-[10px] font-medium text-center leading-tight max-w-[5.5rem] break-words",
-                                                    isActive ? "text-rose-700" : "text-slate-600"
-                                                )}>
-                                                    {item.name}
-                                                </span>
-                                            </Link>
-                                        );
-                                    })}
-                                </div>
+            {kategorieOffen && createPortal(
+                <>
+                    <div className="fixed inset-0 z-[60]" onClick={() => setKategorieOffen(null)} aria-hidden="true" />
+                    <div
+                        role="menu"
+                        aria-label={`Module von ${kategorieOffen.kategorie}`}
+                        onKeyDown={(e) => { if (e.key === 'Escape') setKategorieOffen(null); }}
+                        style={{ top: kategorieOffen.oben, left: kategorieOffen.links }}
+                        className="fixed z-[61] w-72 max-h-[70vh] overflow-y-auto rounded-xl border border-slate-100 bg-white py-1.5 shadow-lg"
+                    >
+                        {(erlaubteNavigation.find(k => k.category === kategorieOffen.kategorie)?.subgroups ?? []).map(untergruppe => (
+                            <div key={untergruppe.label} role="group" aria-label={untergruppe.label}>
+                                <p className="px-3 pb-0.5 pt-2 text-[11px] font-semibold uppercase tracking-wide text-slate-400">{untergruppe.label}</p>
+                                {untergruppe.items.map(item => (
+                                    <Link
+                                        key={item.href}
+                                        to={item.href}
+                                        role="menuitem"
+                                        onClick={() => setKategorieOffen(null)}
+                                        className="flex items-center gap-2 px-3 py-2 text-sm text-slate-700 hover:bg-slate-50 hover:text-rose-700 focus:bg-slate-50 focus:outline-none"
+                                    >
+                                        <item.icon className="w-4 h-4 shrink-0 text-slate-400" aria-hidden="true" />
+                                        <span className="truncate">{item.name}</span>
+                                        {(zaehler[item.href] ?? 0) > 0 && (
+                                            <span className="ml-auto shrink-0 rounded-full bg-rose-600 px-1.5 text-[10px] font-bold text-white" aria-label={`${zaehler[item.href]} neu`}>{zaehler[item.href] > 99 ? '99+' : zaehler[item.href]}</span>
+                                        )}
+                                        {ausgeblendet.has(item.href) && <span className="ml-auto shrink-0 text-[10px] text-slate-400">ausgeblendet</span>}
+                                    </Link>
+                                ))}
                             </div>
-                            {/* Separator between subgroups */}
-                            {sgIndex < (visibleNavigation.find(g => g.category === activeCategory)?.subgroups.length ?? 0) - 1 && (
-                                <div className="w-px h-16 bg-slate-200 mx-3" />
-                            )}
-                        </div>
-                    ))}
-                </div>
-            </div>
+                        ))}
+                    </div>
+                </>,
+                document.body,
+            )}
+            {isExpanded && (
+                <Schnellzugriffsleiste navigation={erlaubteNavigation} istAdmin={isAdmin} zaehler={zaehler} anzahlAusgeblendet={anzahlAusgeblendet} onAlleFunktionen={() => setAlleOffen(true)} />
+            )}
+            <MeinePostfaecherDialog offen={postfaecherOffen} onSchliessen={() => setPostfaecherOffen(false)} />
+            {alleOffen && (
+                <AlleFunktionenDialog offen={alleOffen} onSchliessen={() => setAlleOffen(false)} navigation={erlaubteNavigation} istAdmin={isAdmin} />
+            )}
         </div>
     );
 }

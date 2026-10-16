@@ -104,6 +104,8 @@ export interface KundeDetail {
   anfragen?: KundeAnfrageKurz[];
   geschaeftsdokumente?: AusgangsGeschaeftsDokument[];
   notizen?: KundeNotiz[];
+  anzahlAnsprechpartner?: number;
+  anzahlObjekte?: number;
 }
 
 export interface LieferantStatistik {
@@ -275,6 +277,10 @@ export interface LeistungsService {
   price: number;
   unit: string;
   folderId: string;
+  /** Folgt der Preis der Kalkulation (Material und Arbeit) statt einem festen Betrag? */
+  kalkuliert?: boolean;
+  /** Darf als Baugruppe (Baustein) in anderen Leistungen benutzt werden? */
+  baugruppe?: boolean;
 }
 
 export interface ProduktkategorieDto {
@@ -316,6 +322,8 @@ export interface Lieferant {
    * Offenen Posten auf, damit sie nicht ein zweites Mal überwiesen werden.
    */
   vorauskasse?: boolean;
+  /** Übliche Lieferzeit in Arbeitstagen ab Bestellung; leer = unbekannt. */
+  standardLieferzeitTage?: number | null;
 }
 
 /** Enum-Wert vom Backend: technischer Wert plus Klartext und Erklaerung. */
@@ -548,7 +556,7 @@ export interface ArbeitsgangFormelFeld {
   standard: number | null;
 }
 
-export type VerrechnungseinheitName = 'LAUFENDE_METER' | 'QUADRATMETER' | 'KILOGRAMM' | 'STUECK';
+export type VerrechnungseinheitName = 'LAUFENDE_METER' | 'QUADRATMETER' | 'KILOGRAMM' | 'STUECK' | 'LITER';
 
 export interface Verrechnungseinheit {
   name: VerrechnungseinheitName;
@@ -560,6 +568,7 @@ export const VERRECHNUNGSEINHEITEN: Verrechnungseinheit[] = [
   { name: 'QUADRATMETER', anzeigename: 'Quadratmeter' },
   { name: 'KILOGRAMM', anzeigename: 'Kilogramm' },
   { name: 'STUECK', anzeigename: 'Stück' },
+  { name: 'LITER', anzeigename: 'Liter' },
 ];
 
 export interface Produktkategorie {
@@ -1280,6 +1289,8 @@ export interface Beleg {
   validiertVonName?: string | null;
   notiz?: string | null;
   eingangsrechnungId?: number | null;
+  // Warum zu diesem als Rechnung/Gutschrift erkannten Beleg noch keine Eingangsrechnung besteht (#190)
+  eingangsrechnungHinweis?: 'LIEFERANT_FEHLT' | 'NUMMER_DOPPELT' | 'DATUM_FEHLT' | null;
   // Beleg-Aufteilung (Issue #58): bei TEILWEISE ist nur ein Teil des Belegs
   // betrieblich. Die Firma-Felder sind dann gefuellt; bei VOLLSTAENDIG null.
   aufteilungsModus?: AufteilungsModus | null;
@@ -1311,6 +1322,15 @@ export interface Beleg {
   kiKostenkontoHinweis?: string | null;
   eingangsrechnungBezahlt?: boolean | null;
   eingangsrechnungBezahltAm?: string | null;
+  // Nummern und Zahlungsbedingungen der Eingangsrechnung (#191)
+  eingangsrechnungBestellnummer?: string | null;
+  eingangsrechnungReferenzNummer?: string | null;
+  eingangsrechnungZahlungsziel?: string | null;
+  eingangsrechnungSkontoProzent?: number | null;
+  eingangsrechnungSkontoTage?: number | null;
+  eingangsrechnungNettoTage?: number | null;
+  eingangsrechnungTatsaechlichGezahlt?: number | null;
+  eingangsrechnungMitSkonto?: boolean | null;
   vorschlagSachkonto?: BelegVorschlag | null;
   vorschlagKostenstelle?: BelegVorschlag | null;
 }

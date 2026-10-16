@@ -1,28 +1,36 @@
-import { useState, useRef, useEffect, useCallback, useId } from 'react';
+import { useState, useRef, useEffect, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { useLocation, useNavigate } from 'react-router-dom';
-import { Gem, X, Send, Trash2, Minimize2, ExternalLink } from 'lucide-react';
+import { Gem, X, Send, Trash2, Minimize2, ExternalLink, ShieldCheck, Cloud, Paperclip, FileText, Loader2 } from 'lucide-react';
+import { KiBelegKarte } from './KiBelegKarte';
+import { KiAssistentVorschlag, type AssistentVorschlag, type VorschlagStatus } from './KiAssistentVorschlag';
 import { cn } from '../lib/utils';
-import { BESTELLBEDARF_PFAD, istFreigegeben } from '../lib/freigaben';
-import { InfoAbschnitt, InfoButton } from './ui/info-button';
-import { useToast } from './ui/toast';
-import { KiSchritteLive, KiSchritteVerlauf } from '../features/ki/KiSchritte';
-import { KI_VERBINDUNGSFEHLER, KiHilfeFehler, stelleKiFrage, type KiQuelle } from '../features/ki/kiHilfeAnfrage';
+import { begrenze, groesseLinks, groesseRechts, leseRahmen, standardRahmen, verschiebe, type Rahmen } from './kiChatRahmen';
+import { holeBrowserFehler } from '../lib/browserFehler';
+
+interface SourceLink {
+    title: string;
+    url: string;
+}
+
+/** Ein Dokument aus dem Chat: die Datei selbst (für „Als Beleg ablegen“) und der gelesene Text (für Aufgaben an die KI). */
+/** Ein Dokument oder eine E-Mail aus dem E-Mail-Center ({@code emailId}) im Chat; bei einer E-Mail gibt es keine Datei. */
+interface Anhang { file: File | null; name: string; text: string | null; hinweis: string | null; emailId?: number }
+
+interface AssistentQuelle {
+    anbieter: string;
+    modell: string;
+    lokal: boolean;
+}
 
 interface Message {
     role: 'user' | 'assistant';
     text: string;
-    sources?: KiQuelle[];
-    /** Wo die KI für diese Antwort nachgeschaut hat. Fehlt bei älteren gespeicherten Nachrichten. */
-    schritte?: string[];
+    sources?: SourceLink[];
+    /** Nur im Assistenten-Modus: wer geantwortet hat und was vorgeschlagen wurde. */
+    quelle?: AssistentQuelle;
+    vorschlaege?: (AssistentVorschlag & { status: VorschlagStatus })[];
 }
-
-/** Vorschläge im leeren Chat – häufige Fragen aus dem Büroalltag. */
-const VORSCHLAEGE = [
-    'Wie lege ich eine neue Anfrage an?',
-    'Wo finde ich die Zeiterfassung?',
-    'Wie storniere ich eine Rechnung?',
-];
 
 const FRONTEND_USER_STORAGE_KEY = 'frontendUserSelection';
 
@@ -50,13 +58,13 @@ function readLS<T>(key: string, fallback: T): T {
 export function KiHilfeChat() {
     const location = useLocation();
     const navigate = useNavigate();
-    const toast = useToast();
     const [userId, setUserId] = useState<number | null>(() => getCurrentUserId());
 
     // Derive user-scoped localStorage keys
     const keyMessages = lsKey('ki-hilfe-messages', userId);
     const keyOpen = lsKey('ki-hilfe-open', userId);
     const keyMinimized = lsKey('ki-hilfe-minimized', userId);
+    const keyRahmen = lsKey('ki-hilfe-rahmen', userId);
 
     const [open, setOpen] = useState(() => readLS(keyOpen, false));
     const [minimized, setMinimized] = useState(() => readLS(keyMinimized, false));
@@ -64,21 +72,20 @@ export function KiHilfeChat() {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    /** Schritte der laufenden Anfrage, live vom Server. */
-    const [liveSchritte, setLiveSchritte] = useState<string[]>([]);
-    const laufendeAnfrageRef = useRef<AbortController | null>(null);
-    /** Text der Frage, auf deren Antwort gerade gewartet wird. */
-    const offeneFrageRef = useRef<string | null>(null);
-    /** Nach „Abbrechen“ soll der Nutzer die Frage gleich ändern können. */
-    const eingabeFokussierenRef = useRef(false);
-    /** Das Chatfenster selbst – seine Inhalte sind keine Meldungen der Seite. */
-    const fensterRef = useRef<HTMLDivElement>(null);
-    /** Fehler, die die KI-Hilfe selbst als Toast gezeigt hat. */
-    const eigeneFehlerRef = useRef(new Set<string>());
+    // Ein Fenster für alles: Die KI beantwortet Fragen zum Programm (Werkzeug „programm_hilfe“) und zu den Daten des Betriebs und macht Vorschläge, die man bestätigt.
+    // Ist für die KI noch kein Anbieter eingerichtet, antwortet wie bisher die reine Programmhilfe. Unbekannter Stand zählt als bereit: Beim Fragen kommt die genaue Meldung.
+    // Dokument aus dem Chat (hineingezogen oder per Büroklammer): gelesener Text für Aufgaben, die Datei selbst für „Als Beleg ablegen“
+    const [anhang, setAnhang] = useState<Anhang | null>(null);
+    const [liestDokument, setLiestDokument] = useState(false);
+    const [ziehen, setZiehen] = useState(false);
+    const [belegDatei, setBelegDatei] = useState<File | null>(null);
+    const dateiFeld = useRef<HTMLInputElement>(null);
+    const [assistentBereit, setAssistentBereit] = useState<boolean | null>(null);
+    const assistent = assistentBereit !== false;
+    const [assistentMeldung, setAssistentMeldung] = useState<string | null>(null);
     const [geoLocation, setGeoLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
-    const titelId = useId();
 
     // Detect user profile changes (login/switch)
     useEffect(() => {
@@ -98,31 +105,72 @@ export function KiHilfeChat() {
         };
     }, [userId]);
 
-    /** Bricht eine laufende Frage still ab – ohne Fehlermeldung. */
-    const anfrageAbbrechen = useCallback(() => {
-        laufendeAnfrageRef.current?.abort();
-        laufendeAnfrageRef.current = null;
-        offeneFrageRef.current = null;
-        setLoading(false);
-        setLiveSchritte([]);
-    }, []);
-
-    // Beim Verlassen der Seite keine Antwort mehr abwarten.
-    useEffect(() => () => laufendeAnfrageRef.current?.abort(), []);
-
     // Reload state when user changes
     useEffect(() => {
-        // Eine Antwort für den vorherigen Benutzer gehört nicht in den neuen Chat.
-        anfrageAbbrechen();
         setMessages(readLS(keyMessages, []));
         setOpen(readLS(keyOpen, false));
         setMinimized(readLS(keyMinimized, false));
         setError(null);
         setInput('');
-    }, [keyMessages, keyOpen, keyMinimized, anfrageAbbrechen]);
+    }, [keyMessages, keyOpen, keyMinimized]);
+
+    // Lage und Größe des Fensters (Issue #251): frei verschiebbar und in der Größe änderbar, wird gemerkt
+    const [rahmen, setRahmen] = useState<Rahmen>(() => begrenze(leseRahmen(readLS<unknown>(keyRahmen, null)) ?? standardRahmen(window.innerWidth, window.innerHeight), window.innerWidth, window.innerHeight));
+    const rahmenRef = useRef(rahmen);
+    useEffect(() => { rahmenRef.current = rahmen; }, [rahmen]);
+    useEffect(() => {
+        const anpassen = () => setRahmen(r => begrenze(r, window.innerWidth, window.innerHeight));
+        window.addEventListener('resize', anpassen);
+        return () => window.removeEventListener('resize', anpassen);
+    }, []);
+
+    /** Zieht das Fenster (Kopf) oder eine Ecke; die Bewegung wird bis zum Loslassen verfolgt und dann gemerkt. */
+    const startZiehen = (art: 'verschieben' | 'rechts' | 'links') => (e: React.PointerEvent<HTMLElement>) => {
+        if (e.button !== 0 || (art === 'verschieben' && (e.target as HTMLElement).closest('button'))) return;
+        e.preventDefault();
+        const start = rahmenRef.current;
+        const x0 = e.clientX;
+        const y0 = e.clientY;
+        const bewegen = (ev: PointerEvent) => {
+            const dx = ev.clientX - x0;
+            const dy = ev.clientY - y0;
+            const vw = window.innerWidth;
+            const vh = window.innerHeight;
+            setRahmen(art === 'verschieben' ? verschiebe(start, dx, dy, vw, vh) : art === 'rechts' ? groesseRechts(start, dx, dy, vw, vh) : groesseLinks(start, dx, dy, vw, vh));
+        };
+        const ende = () => {
+            window.removeEventListener('pointermove', bewegen);
+            window.removeEventListener('pointerup', ende);
+            window.removeEventListener('pointercancel', ende);
+            try { localStorage.setItem(keyRahmen, JSON.stringify(rahmenRef.current)); } catch { /* Speicher voll oder gesperrt: dann gilt die Lage nur bis zum Neuladen */ }
+        };
+        window.addEventListener('pointermove', bewegen);
+        window.addEventListener('pointerup', ende);
+        window.addEventListener('pointercancel', ende);
+    };
+
+    const rahmenZuruecksetzen = () => {
+        const neu = standardRahmen(window.innerWidth, window.innerHeight);
+        setRahmen(neu);
+        try { localStorage.removeItem(keyRahmen); } catch { /* egal */ }
+    };
 
     // Persist state to localStorage on change
     useEffect(() => { localStorage.setItem(keyMessages, JSON.stringify(messages)); }, [messages, keyMessages]);
+
+    useEffect(() => {
+        if (!open) return;
+        let abgebrochen = false;
+        fetch('/api/ki-assistent/status')
+            .then(r => (r.ok ? r.json() : null))
+            .then((s: { bereit?: boolean; meldung?: string | null } | null) => {
+                if (abgebrochen) return;
+                setAssistentBereit(s && s.bereit === false ? false : true);
+                setAssistentMeldung(s && s.bereit === false ? (s.meldung ?? null) : null);
+            })
+            .catch(() => { /* Stand unbekannt: beim Fragen kommt die genaue Meldung */ });
+        return () => { abgebrochen = true; };
+    }, [open]);
     useEffect(() => { localStorage.setItem(keyOpen, JSON.stringify(open)); }, [open, keyOpen]);
     useEffect(() => { localStorage.setItem(keyMinimized, JSON.stringify(minimized)); }, [minimized, keyMinimized]);
 
@@ -156,21 +204,13 @@ export function KiHilfeChat() {
 
     useEffect(() => {
         scrollToBottom();
-    }, [messages, liveSchritte, loading, scrollToBottom]);
+    }, [messages, scrollToBottom]);
 
     useEffect(() => {
         if (open && !minimized) {
             inputRef.current?.focus();
         }
     }, [open, minimized]);
-
-    // Erst wenn das Eingabefeld wieder frei ist, lässt es sich fokussieren.
-    useEffect(() => {
-        if (!loading && eingabeFokussierenRef.current) {
-            eingabeFokussierenRef.current = false;
-            inputRef.current?.focus();
-        }
-    }, [loading]);
 
     /** Collect current page context for RAG-enhanced responses. */
     const gatherPageContext = useCallback(() => {
@@ -184,13 +224,7 @@ export function KiHilfeChat() {
         const errorEls = document.querySelectorAll(
             '[role="alert"], .bg-red-50, .bg-yellow-50'
         );
-        // Eigene Meldungen der KI-Hilfe (im Chatfenster oder als ihr Toast) gehören
-        // nicht zur Seite. Andere Toasts zählen weiter, sie erklären oft die Frage.
-        const istEigeneMeldung = (el: Element) =>
-            !!fensterRef.current?.contains(el)
-            || (!!el.closest('[data-pc-toasts]') && eigeneFehlerRef.current.has(el.textContent?.trim() ?? ''));
         const errors = Array.from(errorEls)
-            .filter(el => !istEigeneMeldung(el))
             .map(el => el.textContent?.trim())
             .filter(Boolean)
             .slice(0, 5)
@@ -317,8 +351,53 @@ export function KiHilfeChat() {
         };
     }, [location.pathname, geoLocation]);
 
-    const sendMessage = async () => {
-        const trimmed = input.trim();
+    const dokumentLesen = async (file: File) => {
+        setError(null); setBelegDatei(null); setLiestDokument(true);
+        try {
+            const form = new FormData();
+            form.append('datei', file);
+            const res = await fetch('/api/ki-assistent/dokument/lesen', { method: 'POST', body: form });
+            const d = await res.json().catch(() => ({})) as { name?: string; text?: string | null; hinweis?: string | null; message?: string; error?: string };
+            if (!res.ok) { setError(d.message || d.error || 'Das Dokument konnte nicht gelesen werden.'); return; }
+            setAnhang({ file, name: d.name || file.name, text: d.text ?? null, hinweis: d.hinweis ?? null });
+        } catch {
+            setError('Das Dokument konnte nicht gelesen werden. Ist der Server erreichbar?');
+        } finally {
+            setLiestDokument(false);
+        }
+    };
+
+    /** Strg+V mit einem Bild in der Zwischenablage (zum Beispiel ein Screenshot): wird wie ein hineingezogenes Dokument gelesen. Reiner Text wird normal eingefügt. */
+    const einfuegen = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+        if (!assistent || loading || liestDokument) return;
+        const bild = Array.from(e.clipboardData?.files ?? []).find(f => f.type.startsWith('image/'));
+        if (!bild) return;
+        e.preventDefault();
+        const jetzt = new Date();
+        const zeit = `${jetzt.getFullYear()}-${String(jetzt.getMonth() + 1).padStart(2, '0')}-${String(jetzt.getDate()).padStart(2, '0')}_${String(jetzt.getHours()).padStart(2, '0')}${String(jetzt.getMinutes()).padStart(2, '0')}`;
+        const endung = bild.type === 'image/jpeg' ? 'jpg' : bild.type === 'image/webp' ? 'webp' : 'png';
+        void dokumentLesen(new File([bild], `Bild_${zeit}.${endung}`, { type: bild.type }));
+    };
+
+    /** Eine E-Mail aus dem E-Mail-Center als Anhang holen (Text, Absender, Betreff, Nummer); verändert nichts. */
+    const emailAnhaengen = useCallback(async (emailId: number) => {
+        setError(null); setBelegDatei(null); setLiestDokument(true);
+        try {
+            const res = await fetch(`/api/ki-assistent/dokument/email/${emailId}`);
+            const d = await res.json().catch(() => ({})) as { name?: string; text?: string | null; hinweis?: string | null; message?: string; error?: string };
+            if (!res.ok) { setError(d.message || d.error || 'Die E-Mail konnte nicht gelesen werden.'); return; }
+            setAnhang({ file: null, name: d.name || 'E-Mail', text: d.text ?? null, hinweis: d.hinweis ?? null, emailId });
+        } catch {
+            setError('Die E-Mail konnte nicht gelesen werden. Ist der Server erreichbar?');
+        } finally {
+            setLiestDokument(false);
+        }
+    }, []);
+
+    const dokumentEntfernen = () => { setAnhang(null); setBelegDatei(null); if (dateiFeld.current) dateiFeld.current.value = ''; };
+
+    const sendMessage = async (vorgabe?: string) => {
+        const trimmed = (vorgabe ?? input).trim();
         if (!trimmed || loading) return;
 
         const userMessage: Message = { role: 'user', text: trimmed };
@@ -326,46 +405,74 @@ export function KiHilfeChat() {
         setMessages(newMessages);
         setInput('');
         setError(null);
-        setLiveSchritte([]);
         setLoading(true);
 
-        const steuerung = new AbortController();
-        laufendeAnfrageRef.current = steuerung;
-        offeneFrageRef.current = trimmed;
         try {
-            const antwort = await stelleKiFrage(
-                {
-                    messages: newMessages.map(m => ({ role: m.role, text: m.text })),
-                    context: gatherPageContext(),
-                },
-                {
-                    signal: steuerung.signal,
-                    beiSchritt: (text) => {
-                        if (!steuerung.signal.aborted) setLiveSchritte(prev => [...prev, text]);
-                    },
-                },
-            );
-            if (steuerung.signal.aborted) return;
-            setMessages(prev => [...prev, {
-                role: 'assistant',
-                text: antwort.reply,
-                sources: antwort.sources,
-                schritte: antwort.schritte,
-            }]);
-        } catch (fehler) {
-            // Abgebrochen (Knopf „Abbrechen“, Chat geleert, Seite verlassen): kein Fehler für den Nutzer.
-            if (steuerung.signal.aborted) return;
-            const meldung = fehler instanceof KiHilfeFehler ? fehler.message : KI_VERBINDUNGSFEHLER;
-            setError(meldung);
-            eigeneFehlerRef.current.add(meldung);
-            toast.error(meldung);
-        } finally {
-            if (laufendeAnfrageRef.current === steuerung) {
-                laufendeAnfrageRef.current = null;
-                offeneFrageRef.current = null;
-                setLoading(false);
-                setLiveSchritte([]);
+            if (assistent) {
+                // Wo man gerade ist, damit „Was bedeutet das hier?“ beantwortbar ist (der Server lässt den sichtbaren Inhalt bei gesperrten Programmdaten weg)
+                const ctx = gatherPageContext();
+                const antwort = await fetch('/api/ki-assistent/chat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        messages: newMessages.map(m => ({ role: m.role, text: m.text })),
+                        seite: { route: ctx.route, titel: ctx.pageTitle, fehler: ctx.errorMessages, inhalt: ctx.visibleContent },
+                        dokument: anhang?.text ? { name: anhang.name, text: anhang.text } : undefined,
+                        // Für Fehlerberichte: Der Server hängt sie nach Ihrer Bestätigung bereinigt an (nichts geht ohne Bestätigung hinaus)
+                        browser: { fehler: holeBrowserFehler() },
+                    }),
+                });
+                const d = await antwort.json();
+                if (!antwort.ok || d.error) {
+                    setError(d.error || d.message || 'Fehler bei der KI-Anfrage');
+                    return;
+                }
+                setMessages(prev => [...prev, {
+                    role: 'assistant', text: d.text, quelle: d.quelle,
+                    vorschlaege: (d.vorschlaege ?? []).map((v: AssistentVorschlag) => ({ id: v.id, werkzeug: v.werkzeug, beschreibung: v.beschreibung, status: { art: 'offen' } as VorschlagStatus })),
+                }]);
+                return;
             }
+            const context = gatherPageContext();
+            const res = await fetch('/api/ki-hilfe/chat', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    messages: newMessages.map(m => ({ role: m.role, text: m.text })),
+                    context,
+                }),
+            });
+
+            const data = await res.json();
+
+            if (!res.ok || data.error) {
+                setError(data.error || 'Fehler bei der KI-Anfrage');
+                return;
+            }
+
+            setMessages(prev => [...prev, { role: 'assistant', text: data.reply, sources: data.sources }]);
+        } catch {
+            setError('Verbindung zur KI fehlgeschlagen. Ist der Server erreichbar?');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const setzeVorschlagStatus = (msgIndex: number, id: string, status: VorschlagStatus) => {
+        setMessages(prev => prev.map((m, i) => (i !== msgIndex || !m.vorschlaege ? m
+            : { ...m, vorschlaege: m.vorschlaege.map(v => (v.id === id ? { ...v, status } : v)) })));
+    };
+
+    const entscheide = async (msgIndex: number, id: string, aktion: 'bestaetigen' | 'verwerfen') => {
+        if (aktion === 'bestaetigen') setzeVorschlagStatus(msgIndex, id, { art: 'laeuft' });
+        try {
+            const res = await fetch(`/api/ki-assistent/vorschlaege/${encodeURIComponent(id)}/${aktion}`, { method: 'POST' });
+            const d = await res.json().catch(() => ({})) as { ok?: boolean; meldung?: string };
+            const meldung = d.meldung ?? (res.ok ? 'Erledigt.' : 'Das hat nicht geklappt.');
+            if (aktion === 'verwerfen') setzeVorschlagStatus(msgIndex, id, { art: 'verworfen', meldung: res.ok ? 'Verworfen. Es wurde nichts geändert.' : meldung });
+            else setzeVorschlagStatus(msgIndex, id, { art: res.ok ? 'bestaetigt' : 'fehler', meldung });
+        } catch {
+            setzeVorschlagStatus(msgIndex, id, { art: 'fehler', meldung: 'Die Verbindung ist fehlgeschlagen. Es wurde nichts geändert.' });
         }
     };
 
@@ -376,25 +483,7 @@ export function KiHilfeChat() {
         }
     };
 
-    /**
-     * „Abbrechen“ in der Lade-Blase: Die Frage kommt zurück ins Eingabefeld, damit
-     * man sie ändern kann. Im Verlauf bleibt keine unbeantwortete Frage stehen –
-     * sonst bekäme die KI später zwei Nutzer-Nachrichten hintereinander.
-     */
-    const frageZuruecknehmen = () => {
-        const frage = offeneFrageRef.current;
-        anfrageAbbrechen();
-        if (frage === null) return;
-        setMessages(prev => {
-            const letzte = prev[prev.length - 1];
-            return letzte?.role === 'user' && letzte.text === frage ? prev.slice(0, -1) : prev;
-        });
-        setInput(frage);
-        eingabeFokussierenRef.current = true;
-    };
-
     const clearChat = () => {
-        anfrageAbbrechen();
         setMessages([]);
         setError(null);
         localStorage.setItem(keyMessages, '[]');
@@ -410,6 +499,19 @@ export function KiHilfeChat() {
         return () => window.removeEventListener('ki-hilfe-open', handler);
     }, []);
 
+    // Eine E-Mail aus dem E-Mail-Center wurde auf das Chatfenster gezogen (oder über das Menü gesendet): Chat öffnen und die Mail anhängen
+    useEffect(() => {
+        const handler = (e: Event) => {
+            const id = (e as CustomEvent<{ emailId?: number }>).detail?.emailId;
+            if (typeof id !== 'number') return;
+            setOpen(true);
+            setMinimized(false);
+            void emailAnhaengen(id);
+        };
+        window.addEventListener('ki-email-anhaengen', handler);
+        return () => window.removeEventListener('ki-email-anhaengen', handler);
+    }, [emailAnhaengen]);
+
     // Wenn geschlossen oder minimiert: nichts rendern (Trigger ist jetzt in der RibbonNav)
     if (!open || minimized) {
         return null;
@@ -417,43 +519,33 @@ export function KiHilfeChat() {
 
     // Full chat panel
     return createPortal(
-        // Schwebendes, nicht-modales Fenster: die Seite dahinter bleibt bedienbar.
         <div
-            ref={fensterRef}
-            role="dialog"
-            aria-modal="false"
-            aria-labelledby={titelId}
-            className="fixed bottom-6 right-6 z-50 w-[420px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-4rem)] flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden">
-            {/* Header */}
-            <div className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-rose-600 to-rose-700 text-white flex-shrink-0">
+            data-ki-chat="true"
+            style={{ left: rahmen.x, top: rahmen.y, width: rahmen.w, height: rahmen.h }}
+            className="fixed z-50 flex flex-col bg-white rounded-2xl shadow-2xl border border-slate-200 overflow-hidden"
+            onDragOver={e => { if (assistent && e.dataTransfer.types.includes('Files')) { e.preventDefault(); setZiehen(true); } }}
+            onDragLeave={e => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setZiehen(false); }}
+            onDrop={e => { setZiehen(false); if (!assistent) return; const f = e.dataTransfer.files?.[0]; if (f) { e.preventDefault(); void dokumentLesen(f); } }}
+        >
+            <div data-testid="ki-groesse-rechts" aria-hidden="true" onPointerDown={startZiehen('rechts')} className="absolute bottom-0 right-0 z-20 h-4 w-4 cursor-nwse-resize touch-none" />
+            <div data-testid="ki-groesse-links" aria-hidden="true" onPointerDown={startZiehen('links')} className="absolute bottom-0 left-0 z-20 h-4 w-4 cursor-nesw-resize touch-none" />
+            {ziehen && (
+                <div className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center bg-rose-50/90 border-2 border-dashed border-rose-400 rounded-2xl" data-testid="ki-drop">
+                    <p className="flex items-center gap-2 text-sm font-semibold text-rose-700"><FileText className="h-5 w-5" aria-hidden="true" /> Dokument hier ablegen</p>
+                </div>
+            )}
+            {/* Header: hier lässt sich das Fenster verschieben, ein Doppelklick stellt es zurück */}
+            <div
+                data-testid="ki-kopf"
+                title="Zum Verschieben ziehen, Doppelklick stellt die Standardlage wieder her"
+                onPointerDown={startZiehen('verschieben')}
+                onDoubleClick={(e) => { if (!(e.target as HTMLElement).closest('button')) rahmenZuruecksetzen(); }}
+                className="flex items-center justify-between px-4 py-3 bg-gradient-to-r from-rose-600 to-rose-700 text-white flex-shrink-0 cursor-move select-none touch-none">
                 <div className="flex items-center gap-2">
                     <Gem className="w-5 h-5" />
                     <div>
-                        <div className="flex items-center gap-1">
-                            <h3 id={titelId} className="text-sm font-semibold">KI-Hilfe</h3>
-                            <InfoButton titel="So arbeitet die KI-Hilfe" variante="hell" className="-my-1">
-                                <InfoAbschnitt titel="Was passiert im Hintergrund?">
-                                    <p>
-                                        Deine Frage, die bisherigen Nachrichten in diesem Chat und ein Auszug von dem,
-                                        was gerade auf dem Bildschirm steht, gehen an Google Gemini. Die KI schaut zuerst
-                                        in der Anleitung und im Aufbau der Seiten nach. Findet sie nicht sofort eine sichere
-                                        Antwort, sucht sie selbst weiter, mit anderen Begriffen und in höchstens vier Runden.
-                                        Fachfragen wie Normen, Vorschriften, Wetter oder Preise beantwortet sie mit der
-                                        Google-Suche. Hast du den Standort freigegeben, geht er mit jeder Frage mit, damit
-                                        die KI Wetter- und Ortsfragen beantworten kann.
-                                    </p>
-                                </InfoAbschnitt>
-                                <InfoAbschnitt titel="Was bewirkt das?">
-                                    <p>
-                                        Einfache Fragen sind in wenigen Sekunden beantwortet, schwierige dauern etwas
-                                        länger. Während die KI sucht, siehst du, wo sie gerade nachschaut. Sie liest und
-                                        erklärt nur und ändert nichts im Programm. Antworten können trotzdem einmal falsch
-                                        sein, bei wichtigen Dingen lieber kurz nachprüfen.
-                                    </p>
-                                </InfoAbschnitt>
-                            </InfoButton>
-                        </div>
-                        <p className="text-xs text-rose-200">Gemini · Programmhilfe</p>
+                        <h3 className="text-sm font-semibold">KI</h3>
+                        <p className="text-xs text-rose-200">{assistent ? 'Fragen zum Programm und zu Ihren Daten' : 'Programmhilfe'}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-1">
@@ -488,7 +580,11 @@ export function KiHilfeChat() {
                         <Gem className="w-10 h-10 mx-auto text-rose-300" />
                         <p className="text-sm font-medium">Wie kann ich dir helfen?</p>
                         <div className="space-y-2">
-                            {VORSCHLAEGE.map((suggestion) => (
+                            {[
+                                'Wie erstelle ich ein neues Anfrage?',
+                                'Wo finde ich die Zeiterfassung?',
+                                'Wie funktioniert die Kalkulation?',
+                            ].map((suggestion) => (
                                 <button
                                     key={suggestion}
                                     onClick={() => {
@@ -504,59 +600,82 @@ export function KiHilfeChat() {
                     </div>
                 )}
 
-                {/* Fertige Antworten liest der Screenreader vor; die Schritte haben ihre eigene Live-Region darunter. */}
-                <div role="log" aria-live="polite" aria-label="Unterhaltung" className="space-y-3">
-                    {messages.map((msg, i) => (
+                {messages.map((msg, i) => (
+                    <div
+                        key={i}
+                        className={cn(
+                            'flex',
+                            msg.role === 'user' ? 'justify-end' : 'justify-start'
+                        )}
+                    >
                         <div
-                            key={i}
                             className={cn(
-                                'flex flex-col',
-                                msg.role === 'user' ? 'items-end' : 'items-start'
+                                'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
+                                msg.role === 'user'
+                                    ? 'bg-rose-600 text-white rounded-br-md'
+                                    : 'bg-slate-100 text-slate-800 rounded-bl-md'
                             )}
                         >
-                            <div
-                                className={cn(
-                                    'max-w-[85%] rounded-2xl px-4 py-2.5 text-sm leading-relaxed',
-                                    msg.role === 'user'
-                                        ? 'bg-rose-600 text-white rounded-br-md'
-                                        : 'bg-slate-100 text-slate-800 rounded-bl-md'
-                                )}
-                            >
-                                {msg.role === 'assistant' ? (
-                                    <>
-                                        <MarkdownText text={msg.text} onNavigate={navigate} />
-                                        {msg.sources && msg.sources.length > 0 && (
-                                            <div className="mt-2 pt-2 border-t border-slate-200/60">
-                                                <p className="text-[11px] text-slate-400 font-medium mb-1">Quellen:</p>
-                                                <div className="space-y-0.5">
-                                                    {msg.sources.map((source, j) => (
-                                                        <a
-                                                            key={j}
-                                                            href={source.url}
-                                                            target="_blank"
-                                                            rel="noopener noreferrer"
-                                                            className="flex items-center gap-1 text-[11px] text-rose-600 hover:text-rose-800 hover:underline truncate"
-                                                        >
-                                                            <ExternalLink className="w-3 h-3 flex-shrink-0" />
-                                                            <span className="truncate">{source.title || source.url}</span>
-                                                        </a>
-                                                    ))}
-                                                </div>
+                            {msg.role === 'assistant' ? (
+                                <>
+                                    <MarkdownText text={msg.text} onNavigate={navigate} />
+                                    {msg.vorschlaege?.map(v => (
+                                        <KiAssistentVorschlag key={v.id} vorschlag={v} status={v.status}
+                                            onBestaetigen={() => void entscheide(i, v.id, 'bestaetigen')} onVerwerfen={() => void entscheide(i, v.id, 'verwerfen')} />
+                                    ))}
+                                    {msg.quelle && (
+                                        <p className="mt-2 flex items-center gap-1 text-[11px] text-slate-500" data-testid="ki-quelle">
+                                            {msg.quelle.lokal ? <ShieldCheck className="h-3 w-3 text-emerald-600" aria-hidden="true" /> : <Cloud className="h-3 w-3 text-amber-600" aria-hidden="true" />}
+                                            {msg.quelle.anbieter}{msg.quelle.modell ? ` · ${msg.quelle.modell}` : ''} · {msg.quelle.lokal ? 'Daten bleiben im Haus' : 'Fragen und Daten gingen an einen Cloud-Anbieter'}
+                                        </p>
+                                    )}
+                                    {msg.sources && msg.sources.length > 0 && (
+                                        <div className="mt-2 pt-2 border-t border-slate-200/60">
+                                            <p className="text-[11px] text-slate-400 font-medium mb-1">Quellen:</p>
+                                            <div className="space-y-0.5">
+                                                {msg.sources.map((source, j) => (
+                                                    <a
+                                                        key={j}
+                                                        href={source.url}
+                                                        target="_blank"
+                                                        rel="noopener noreferrer"
+                                                        className="flex items-center gap-1 text-[11px] text-rose-600 hover:text-rose-800 hover:underline truncate"
+                                                    >
+                                                        <ExternalLink className="w-3 h-3 flex-shrink-0" />
+                                                        <span className="truncate">{source.title || source.url}</span>
+                                                    </a>
+                                                ))}
                                             </div>
-                                        )}
-                                    </>
-                                ) : (
-                                    <span className="whitespace-pre-wrap">{msg.text}</span>
-                                )}
-                            </div>
-                            {msg.role === 'assistant' && msg.schritte && <KiSchritteVerlauf schritte={msg.schritte} />}
+                                        </div>
+                                    )}
+                                </>
+                            ) : (
+                                <span className="whitespace-pre-wrap">{msg.text}</span>
+                            )}
                         </div>
-                    ))}
-                </div>
+                    </div>
+                ))}
 
-                {loading && <KiSchritteLive schritte={liveSchritte} onAbbrechen={frageZuruecknehmen} />}
+                {loading && (
+                    <div className="flex justify-start">
+                        <div className="bg-slate-100 rounded-2xl rounded-bl-md px-4 py-3">
+                            <div className="flex gap-1.5">
+                                <span className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '0ms' }} />
+                                <span className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '150ms' }} />
+                                <span className="w-2 h-2 bg-rose-400 rounded-full animate-bounce" style={{ animationDelay: '300ms' }} />
+                            </div>
+                        </div>
+                    </div>
+                )}
 
-                {/* Ohne role="alert": Den Fehler sagt schon der Toast an. */}
+                {!assistent && (
+                    <div role="status" className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900" data-testid="ki-nur-hilfe">
+                        <p className="font-semibold">Die KI für Ihre Daten ist noch nicht eingerichtet.</p>
+                        <p className="mt-0.5">Es antwortet nur die Programmhilfe: Sie erklärt das Programm, kann aber nichts nachschlagen, anlegen oder Dokumente lesen.{assistentMeldung ? ` (${assistentMeldung})` : ''}</p>
+                        <button type="button" onClick={() => navigate('/einstellungen')} className="mt-1 font-medium text-rose-700 underline hover:text-rose-800">Zu den KI-Einstellungen</button>
+                    </div>
+                )}
+
                 {error && (
                     <div className="bg-red-50 border border-red-200 rounded-lg px-3 py-2 text-sm text-red-700">
                         {error}
@@ -568,29 +687,72 @@ export function KiHilfeChat() {
 
             {/* Input */}
             <div className="flex-shrink-0 border-t border-slate-200 p-3">
+                {assistent && anhang && (
+                    <div className="mb-2 rounded-lg border border-slate-200 bg-slate-50 p-2 text-xs text-slate-700" data-testid="ki-anhang">
+                        <div className="flex items-center gap-2">
+                            <FileText className="h-4 w-4 flex-shrink-0 text-rose-600" aria-hidden="true" />
+                            <span className="min-w-0 flex-1 truncate font-medium" title={anhang.name}>{anhang.name}</span>
+                            <button type="button" onClick={dokumentEntfernen} aria-label="Dokument entfernen" title="Dokument entfernen" className="rounded p-1 hover:bg-slate-200"><X className="h-3.5 w-3.5" aria-hidden="true" /></button>
+                        </div>
+                        {anhang.hinweis && <p className="mt-1 text-amber-800">{anhang.hinweis}</p>}
+                        <div className="mt-1.5 flex flex-wrap gap-1.5">
+                            {anhang.emailId != null && anhang.text && (
+                                <button type="button" disabled={loading} data-testid="ki-email-anfrage"
+                                    onClick={() => void sendMessage(`Lege aus dieser E-Mail eine Anfrage an (E-Mail-Nr. ${anhang.emailId}). Suche zuerst mit kunden_suchen nach dem Absender (E-Mail-Adresse) und nach der Firma, ob es den Kunden schon gibt. Gibt es ihn, nimm ihn, sonst lege ihn mit den Angaben aus der E-Mail neu an. Trage alle Details ein, die in der E-Mail stehen, und verknüpfe die E-Mail mit der Anfrage.`)}
+                                    className="rounded-full border border-rose-300 bg-rose-50 px-2.5 py-1 font-medium text-rose-700 hover:bg-rose-100 disabled:opacity-50">Kunde prüfen und Anfrage anlegen</button>
+                            )}
+                            {anhang.emailId != null && anhang.text && (
+                                <button type="button" disabled={loading} data-testid="ki-email-notiz"
+                                    onClick={() => void sendMessage(`Speichere das Wichtige aus dieser E-Mail (E-Mail-Nr. ${anhang.emailId}) als kurze Notiz beim passenden Lieferanten. Suche ihn zuerst mit lieferanten_suchen nach Absender und Firma. Schreibe nur die Information auf, nicht die ganze E-Mail, mit Datum und Betreff als Quelle.`)}
+                                    className="rounded-full border border-slate-300 bg-white px-2.5 py-1 font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50">Beim Lieferanten notieren</button>
+                            )}
+                            {anhang.text && ([
+                                ['Zusammenfassen', 'Fasse das Dokument kurz zusammen.'],
+                                ['Wichtige Angaben', 'Liste die wichtigsten Angaben auf: Namen, Daten, Fristen, Beträge, Nummern.'],
+                                ['Was ist zu tun?', 'Was muss ich nach diesem Dokument tun? Nenne Aufgaben und Fristen.'],
+                            ] as const).map(([titel, frage]) => (
+                                <button key={titel} type="button" disabled={loading} onClick={() => void sendMessage(frage)}
+                                    className="rounded-full border border-slate-300 bg-white px-2.5 py-1 font-medium text-slate-700 hover:bg-slate-100 disabled:opacity-50">{titel}</button>
+                            ))}
+                            {anhang.file && <button type="button" onClick={() => setBelegDatei(anhang.file)}
+                                className="rounded-full border border-rose-300 bg-white px-2.5 py-1 font-medium text-rose-700 hover:bg-rose-50">Als Beleg ablegen</button>}
+                        </div>
+                        {anhang.text && <p className="mt-1 text-slate-500">Oder unten eine eigene Aufgabe zu diesem Dokument eingeben.</p>}
+                    </div>
+                )}
+                {assistent && liestDokument && (
+                    <p role="status" className="mb-2 flex items-center gap-1.5 text-xs text-slate-600"><Loader2 className="h-3.5 w-3.5 animate-spin motion-reduce:animate-none" aria-hidden="true" /> Dokument wird gelesen …</p>
+                )}
+                {assistent && (!anhang || belegDatei) && <div className="mb-2"><KiBelegKarte key={belegDatei?.name ?? 'leer'} datei={belegDatei} /></div>}
                 <div className="flex items-end gap-2">
+                    {assistent && (
+                        <>
+                            <input ref={dateiFeld} type="file" accept=".pdf,.txt,.csv,.xml,.json,.md,image/*" className="sr-only" aria-label="Dokument auswählen" onChange={e => { const f = e.target.files?.[0]; if (f) void dokumentLesen(f); }} />
+                            <button type="button" onClick={() => dateiFeld.current?.click()} disabled={loading || liestDokument} aria-label="Dokument anhängen" title="Dokument anhängen (oder hineinziehen, Bilder auch mit Strg+V einfügen)"
+                                className="flex-shrink-0 p-2.5 rounded-xl border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40"><Paperclip className="w-4 h-4" aria-hidden="true" /></button>
+                        </>
+                    )}
                     <textarea
                         ref={inputRef}
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={handleKeyDown}
+                        onPaste={einfuegen}
                         placeholder="Frage stellen..."
                         rows={1}
                         className="flex-1 resize-none rounded-xl border border-slate-200 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent max-h-24 overflow-y-auto"
                         disabled={loading}
                     />
                     <button
-                        onClick={sendMessage}
+                        onClick={() => void sendMessage()}
                         disabled={!input.trim() || loading}
-                        aria-label="Frage senden"
-                        title="Frage senden"
                         className="flex-shrink-0 p-2.5 rounded-xl bg-rose-600 text-white hover:bg-rose-700 disabled:opacity-40 disabled:cursor-not-allowed transition-colors"
                     >
                         <Send className="w-4 h-4" />
                     </button>
                 </div>
                 <p className="text-[10px] text-slate-400 mt-1.5 text-center">
-                    KI-Antworten können fehlerhaft sein · Programm- & Fachhilfe
+                    KI-Antworten können fehlerhaft sein · Änderungen nur nach Ihrer Bestätigung
                 </p>
             </div>
         </div>,
@@ -598,16 +760,16 @@ export function KiHilfeChat() {
     );
 }
 
-/** Valid internal routes that can be linked; pages not yet released stay plain text */
+/** Valid internal routes that can be linked */
 const VALID_ROUTES = new Set([
     '/projekte', '/anfragen', '/kunden', '/lieferanten', '/artikel',
-    '/bestellungen', BESTELLBEDARF_PFAD, '/textbausteine', '/leistungen',
+    '/bestellungen', '/bestellungen/bedarf', '/textbausteine', '/leistungen',
     '/arbeitsgaenge', '/produktkategorien', '/mitarbeiter', '/arbeitszeitarten',
     '/kalender', '/emails', '/formulare', '/offeneposten',
     '/rechnungsuebersicht', '/miete', '/analyse', '/zeitbuchungen',
     '/auswertung', '/steuerberater', '/zeitkonten', '/feiertage',
     '/urlaubsantraege', '/firma', '/benutzer',
-].filter(istFreigegeben));
+]);
 
 /** Simple markdown renderer for assistant messages */
 function MarkdownText({ text, onNavigate }: { text: string; onNavigate: (path: string) => void }) {

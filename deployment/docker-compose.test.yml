@@ -36,6 +36,7 @@ services:
       APP_DB_URL: jdbc:postgresql://postgres:5432/kalkulationsprogramm_db
       APP_DB_USER: erp_user
       APP_DB_PASS: ${DB_PASSWORD:-test1234}
+      MAIL_CREDENTIALS_ENCRYPTION_KEY: ${MAIL_CREDENTIALS_ENCRYPTION_KEY}
     volumes:
       - erp_test_uploads:/app/uploads
     depends_on:

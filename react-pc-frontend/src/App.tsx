@@ -17,8 +17,6 @@ import ArtikelDetail from './pages/ArtikelDetail';
 import ArbeitsgangEditor from './pages/ArbeitsgangEditor';
 import KostenrechnungPage from './pages/KostenrechnungPage';
 import FremdleistungenPage from './pages/FremdleistungenPage';
-import WerkstoffEditor from './pages/WerkstoffEditor';
-import Aufschlaege from './pages/Aufschlaege';
 import ProduktkategorieEditor from './pages/ProduktkategorieEditor';
 import ProjektEditor from './pages/ProjektEditor';
 import AnfrageEditor from './pages/AnfrageEditor';
@@ -105,8 +103,8 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/kostenrechnung" element={<RequireAdmin><ErrorBoundary><KostenrechnungPage /></ErrorBoundary></RequireAdmin>} />
                 <Route path="/fremdleistungen" element={<ErrorBoundary><FremdleistungenPage /></ErrorBoundary>} />
                 <Route path="/lager" element={<RequireLagerModul><ErrorBoundary><LagerEditor /></ErrorBoundary></RequireLagerModul>} />
-                <Route path="/werkstoffe" element={<ErrorBoundary><WerkstoffEditor /></ErrorBoundary>} />
-                <Route path="/aufschlaege" element={<ErrorBoundary><Aufschlaege /></ErrorBoundary>} />
+                <Route path="/werkstoffe" element={<Navigate to="/artikel#werkstoffe" replace />} />
+                <Route path="/aufschlaege" element={<Navigate to="/artikel#aufschlaege" replace />} />
                 <Route path="/produktkategorien" element={<ErrorBoundary><ProduktkategorieEditor /></ErrorBoundary>} />
                 <Route path="/projekte" element={<ErrorBoundary><ProjektEditor /></ErrorBoundary>} />
                 <Route path="/anfragen" element={<ErrorBoundary><AnfrageEditor /></ErrorBoundary>} />

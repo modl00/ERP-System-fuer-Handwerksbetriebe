@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, Building2, Calculator, Calendar, CalendarDays, ClipboardCheck, Clock, Cuboid, Euro, Factory, FileCheck, FileJson, FileText, GanttChart, Globe, History, Home, Layers, List, Mail, MailPlus, Package, Percent, Phone, Plane, Receipt, Settings, Settings2, ShieldCheck, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet, Warehouse } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, Calculator, Calendar, CalendarDays, ClipboardCheck, Clock, Euro, Factory, FileCheck, FileJson, FileText, GanttChart, Globe, History, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShieldCheck, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet, Warehouse } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { BESTELLBEDARF_PFAD } from '../../lib/freigaben';
 
@@ -43,15 +43,13 @@ export const NAVIGATION: NavCategory[] = [
             {
                 label: 'Katalog',
                 items: [
-                    { name: 'Artikel', href: '/artikel', icon: Package },
+                    { name: 'Artikel', href: '/artikel', icon: Package, auch: ['/werkstoffe', '/aufschlaege'] },
                     { name: 'Lager', href: '/lager', icon: Warehouse },
                     { name: 'Leistungen', href: '/leistungen', icon: List },
                     { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
                     { name: 'Fremdleistungen', href: '/fremdleistungen', icon: Factory },
                     { name: 'Kostenrechnung', href: '/kostenrechnung', icon: Calculator },
                     { name: 'Kategorien', href: '/produktkategorien', icon: Layers },
-                    { name: 'Werkstoffe', href: '/werkstoffe', icon: Cuboid },
-                    { name: 'Aufschläge', href: '/aufschlaege', icon: Percent },
                 ]
             },
             {

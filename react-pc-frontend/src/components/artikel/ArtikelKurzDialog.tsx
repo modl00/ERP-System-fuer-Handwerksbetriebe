@@ -54,6 +54,7 @@ export function ArtikelKurzDialog({ artikelId, onSchliessen, onGespeichert }: Pr
             const res = await fetch(`/api/artikel/${encodeURIComponent(String(artikelId))}/dokumenttexte`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
+                // Nur die zwei Texte: Der Aufschlag bleibt unberührt (Teil-Update)
                 body: JSON.stringify({ kurzbeschreibung: kurz.trim() || null, beschreibung: richtextOderNull(beschreibung) }),
             });
             if (!res.ok) throw new Error(res.status === 400 ? 'Ein Text ist zu lang (Kurzbeschreibung höchstens 255, Beschreibung höchstens 10000 Zeichen).' : 'Die Texte konnten nicht gespeichert werden.');
@@ -86,6 +87,7 @@ export function ArtikelKurzDialog({ artikelId, onSchliessen, onGespeichert }: Pr
                     <div className="space-y-4">
                         <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm">
                             <Zeile label="Artikelnummer" wert={a.artikelnummer} />
+                            <Zeile label="EAN / Strichcode" wert={a.ean} />
                             <Zeile label="Einheit" wert={einheit} />
                             <Zeile label="Günstigster Preis" wert={a.guenstigsterPreis != null ? formatCurrency(a.guenstigsterPreis) : undefined} />
                             <Zeile label="Werkstoff" wert={a.werkstoffName} />
@@ -111,7 +113,7 @@ export function ArtikelKurzDialog({ artikelId, onSchliessen, onGespeichert }: Pr
                     )}
                     <div className="flex gap-2">
                         <Button type="button" variant="outline" size="sm" onClick={onSchliessen}>Schließen</Button>
-                        <Button type="button" size="sm" className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700" onClick={() => void speichern()} disabled={!a || speichert}>
+                        <Button type="button" size="sm" className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700" onClick={speichern} disabled={!a || speichert}>
                             {speichert ? <Loader2 className="w-4 h-4 mr-2 animate-spin motion-reduce:animate-none" aria-hidden="true" /> : <Save className="w-4 h-4 mr-2" aria-hidden="true" />} Speichern
                         </Button>
                     </div>

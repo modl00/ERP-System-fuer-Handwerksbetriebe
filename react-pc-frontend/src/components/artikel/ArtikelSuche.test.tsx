@@ -5,6 +5,7 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { ArtikelSuche } from './ArtikelSuche';
+import { ToastProvider } from '../ui/toast';
 // Eigene Datei, weil ESLint (react-refresh/only-export-components) neben dem
 // Komponenten-Export keinen Funktions-Export in ArtikelSuche.tsx duldet.
 import { formatCurrency } from './formatCurrency';
@@ -66,6 +67,36 @@ describe('ArtikelSuche', () => {
     afterEach(() => {
         vi.unstubAllGlobals();
         vi.restoreAllMocks();
+    });
+
+    it('meldet eine fehlgeschlagene Suche als Toast statt nur in der Konsole', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+            if (url.includes('/filteroptionen') || url.includes('/werkstoffe')) return filteroptionen();
+            return { ok: false, status: 500, json: async () => ({}) };
+        }));
+        render(
+            <ToastProvider>
+                <MemoryRouter>
+                    <ArtikelSuche />
+                </MemoryRouter>
+            </ToastProvider>,
+        );
+
+        expect(await screen.findByText('Die Artikel konnten nicht geladen werden.')).toBeInTheDocument();
+    });
+
+    it('läuft ohne Meldungsfläche weiter, wenn die Suche fehlschlägt', async () => {
+        vi.spyOn(console, 'error').mockImplementation(() => undefined);
+        vi.stubGlobal('fetch', vi.fn(async (url: string) => {
+            if (url.includes('/filteroptionen') || url.includes('/werkstoffe')) return filteroptionen();
+            return { ok: false, status: 500, json: async () => ({}) };
+        }));
+
+        zeigeSuche(<ArtikelSuche />);
+
+        await waitFor(() => expect(console.error).toHaveBeenCalled());
+        expect(screen.queryByText('Die Artikel konnten nicht geladen werden.')).not.toBeInTheDocument();
     });
 
     it('zeigt die Treffer der Suche', async () => {

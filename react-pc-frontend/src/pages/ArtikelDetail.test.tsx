@@ -7,6 +7,9 @@ import ArtikelDetail from './ArtikelDetail';
 import { ToastProvider } from '../components/ui/toast';
 import { ConfirmProvider } from '../components/ui/confirm-dialog';
 
+// Der Lager-Bereich hat eigene Tests (ArtikelLagerBereich.test.tsx) und eigene Abrufe.
+vi.mock('../features/lager/ArtikelLagerBereich', () => ({ ArtikelLagerBereich: () => null }));
+
 // Der echte Tiptap-Editor braucht Browser-APIs, die jsdom nicht bereitstellt
 // (z. B. document.createRange). Fuer diese Seite reicht ein steuerbarer Stub -
 // ein Textfeld, ueber das Tests den HTML-Inhalt direkt setzen koennen, ohne
@@ -188,7 +191,23 @@ describe('ArtikelDetail', () => {
         expect(await screen.findByText('Feuerverzinken')).toBeInTheDocument();
         expect(screen.getByText('Pulverbeschichten')).toBeInTheDocument();
         // Barrierefreiheit: die Aussage darf nicht allein an der Farbe haengen.
-        expect(screen.getAllByText('möglich').length).toBe(2);
+        expect(screen.getAllByText(/^möglich/).length).toBe(2);
+    });
+
+    it('sagt, woher die Eignung kommt, und verweist für die Kosten auf die Fremdleistungen', async () => {
+        renderSeite();
+        await screen.findByText('Feuerverzinken');
+        expect(screen.getAllByText(/\(vom Werkstoff\)/).length).toBe(2);
+        expect(screen.getByRole('link', { name: 'Fremdleistungen' })).toHaveAttribute('href', '/fremdleistungen');
+    });
+
+    it('die Box „Was ist das für ein Teil?“ erklärt, wozu sie dient, und hat ein Bearbeiten, das das Stammdaten-Formular öffnet', async () => {
+        const user = userEvent.setup();
+        window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
+        renderSeite();
+        expect(await screen.findByText(/Daraus rechnet das Programm Gewicht und Oberfläche/)).toBeInTheDocument();
+        await user.click(screen.getByRole('button', { name: 'Angaben zum Teil bearbeiten' }));
+        expect(await screen.findByTestId('artikel-stammdaten-form')).toBeInTheDocument();
     });
 
     it('listet alle Lieferanten mit deren eigener Artikelnummer', async () => {
@@ -322,6 +341,23 @@ describe('ArtikelDetail', () => {
         render(<ArtikelDetail />, { wrapper: Wrapper });
 
         expect(await screen.findByText(/Kein Aufschlag hinterlegt/)).toBeInTheDocument();
+    });
+
+    it('sagt unter dem Aufschlag-Feld, welcher Aufschlag ohne eigenen Wert gilt und woher er kommt', async () => {
+        mockFetchDetail({ artikel: { id: 8, produktname: 'Rundrohr', positionsEinheit: 'lfm', positionsEinzelpreis: 6, preisHinweis: 'OK' }, lieferanten: [], preisverlauf: [] });
+        const detail = fetchMock;
+        const gelten = (antwort: Record<string, unknown>) => vi.stubGlobal('fetch', vi.fn((url: string, options?: RequestInit) => (url.includes('/api/aufschlaege/artikel/')
+            ? Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(antwort) }) : detail(url, options))));
+
+        gelten({ prozent: 25, quelle: 'KATEGORIE', quellenName: 'Stahl' });
+        const erste = render(<ArtikelDetail />, { wrapper: Wrapper });
+        expect(await screen.findByTestId('geltender-aufschlag')).toHaveTextContent('Ohne eigenen Aufschlag gilt 25 % (aus der Kategorie „Stahl“).');
+        expect(screen.getByRole('link', { name: 'Aufschläge einstellen' })).toHaveAttribute('href', '/aufschlaege');
+        erste.unmount();
+
+        gelten({ prozent: 20, quelle: 'ALLGEMEIN', quellenName: null });
+        render(<ArtikelDetail />, { wrapper: Wrapper });
+        expect(await screen.findByText(/gilt der allgemeine Aufschlag von 20 %/)).toBeInTheDocument();
     });
 
     it('speichert die Angebotsfelder über den PATCH-Endpunkt', async () => {

@@ -1,3 +1,4 @@
+import { FIRMENLOGO_GEAENDERT } from '../components/layout/FirmenLogo';
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { Building2, Users, Plus, Edit2, Trash2, Save, X, RefreshCw, FileText, Download, Calendar, ShieldCheck, HeartPulse, CalendarClock, BellRing, Mail, MailWarning, Info, type LucideIcon } from 'lucide-react';
@@ -17,6 +18,7 @@ import { useToast } from '../components/ui/toast';
 import { useConfirm } from '../components/ui/confirm-dialog';
 import { SteuerpruefungExport } from '../components/firma/SteuerpruefungExport';
 import { LohnStammdatenPanel } from '../components/firma/LohnStammdatenPanel';
+import { BriefpapierBereich } from '../components/firma/BriefpapierBereich';
 
 // Types
 interface Firmeninformation {
@@ -37,6 +39,9 @@ interface Firmeninformation {
     iban: string;
     bic: string;
     logoDateiname: string;
+    /** Briefpapier (Bild oder PDF), wird über den Upload gesetzt */
+    briefpapierDateiname?: string | null;
+    briefpapierEnthaeltKopf?: boolean;
     geschaeftsfuehrer: string;
     fusszeileText: string;
     googleBewertungsLink: string;
@@ -353,6 +358,7 @@ export default function FirmaEditor() {
                 const aktualisiert = await res.json();
                 setFirma(prev => (prev ? { ...prev, logoDateiname: aktualisiert.logoDateiname } : prev));
                 setLogoVersion(v => v + 1);
+                window.dispatchEvent(new Event(FIRMENLOGO_GEAENDERT));
                 toast.success('Firmenlogo gespeichert.');
             } else {
                 const text = await res.text();
@@ -383,6 +389,7 @@ export default function FirmaEditor() {
             if (res.ok) {
                 setFirma(prev => (prev ? { ...prev, logoDateiname: '' } : prev));
                 setLogoVersion(v => v + 1);
+                window.dispatchEvent(new Event(FIRMENLOGO_GEAENDERT));
                 toast.success('Firmenlogo entfernt.');
             } else {
                 toast.error('Löschen fehlgeschlagen.');
@@ -623,6 +630,12 @@ export default function FirmaEditor() {
                                     </div>
                                 </div>
                             </div>
+
+                            <BriefpapierBereich
+                                briefpapierDateiname={firma.briefpapierDateiname ?? null}
+                                briefpapierEnthaeltKopf={!!firma.briefpapierEnthaeltKopf}
+                                onGeaendert={neu => setFirma(prev => (prev ? { ...prev, ...neu } : prev))}
+                            />
 
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                                 {/* Allgemeine Daten */}

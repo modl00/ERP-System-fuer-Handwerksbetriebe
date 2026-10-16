@@ -1,14 +1,18 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
     Building2,
+    Library,
     Calculator,
     ChevronRight,
+    Wrench,
     Pencil,
     Plus,
     RefreshCw,
     Save,
     Search,
     Trash2,
+    Eye,
+    EyeOff,
     X
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -17,11 +21,17 @@ import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { useToast } from '../components/ui/toast';
 import { useConfirm } from '../components/ui/confirm-dialog';
+import { parseErrorMessage } from '../components/settings/settingsApi';
 import { StundensatzEditModal } from '../components/StundensatzEditModal';
+import { ArbeitsgangFormelModal } from '../components/ArbeitsgangFormelModal';
+import { ArbeitsgangMaschineModal } from '../components/ArbeitsgangMaschineModal';
+import { useNavigate } from 'react-router-dom';
 import { VerrechnungslohnRechnerDialog } from '../components/VerrechnungslohnRechnerDialog';
+import { VorlagenUebernehmenDialog } from '../components/VorlagenUebernehmenDialog';
+import { useOptionalAuth } from '../auth/AuthContext';
 import { PageLayout } from '../components/layout/PageLayout';
 import { cn } from '../lib/utils';
-import { type Abteilung, type Arbeitsgang } from '../types';
+import { type Abteilung, type Arbeitsgang, type ArbeitsgangFormelFeld } from '../types';
 
 const priceFormatter = new Intl.NumberFormat('de-DE', {
     style: 'currency',
@@ -101,15 +111,29 @@ const AbteilungList: React.FC<AbteilungListProps> = ({
 };
 
 // ==================== Arbeitsgang List Component ====================
+/** Die Normzeiten als Kurztext, zum Beispiel "Rüsten 30 min · je Einheit 6,5 min". Leer, wenn keine Zeit angegeben ist. */
+const zeitenKurz = (a: Arbeitsgang): string => {
+    const teile: string[] = [];
+    if (a.ruestzeitMinuten != null) teile.push(`Rüsten ${a.ruestzeitMinuten.toLocaleString('de-DE')} min`);
+    if (a.bearbeitungszeitMinuten != null) teile.push(`je Einheit ${a.bearbeitungszeitMinuten.toLocaleString('de-DE')} min`);
+    return teile.join(' · ');
+};
+
 interface ArbeitsgangListProps {
     arbeitsgaenge: Arbeitsgang[];
     onEditRate: (arbeitsgang: Arbeitsgang) => void;
+    onEditFormel: (arbeitsgang: Arbeitsgang) => void;
+    onEditMaschine: (arbeitsgang: Arbeitsgang) => void;
+    onArchivieren: (arbeitsgang: Arbeitsgang) => void;
     onDelete: (id: number) => void;
 }
 
 const ArbeitsgangList: React.FC<ArbeitsgangListProps> = ({
     arbeitsgaenge,
     onEditRate,
+    onEditFormel,
+    onEditMaschine,
+    onArchivieren,
     onDelete
 }) => {
     const currentYear = new Date().getFullYear();
@@ -133,7 +157,7 @@ const ArbeitsgangList: React.FC<ArbeitsgangListProps> = ({
                 return (
                     <Card
                         key={arbeitsgang.id}
-                        className="p-3 hover:border-rose-200 hover:shadow-sm transition"
+                        className={`p-3 hover:border-rose-200 hover:shadow-sm transition ${arbeitsgang.archiviert ? 'bg-slate-50 opacity-75' : ''}`}
                     >
                         <div className="flex items-center justify-between gap-3">
                             <div className="min-w-0 flex-1">
@@ -141,9 +165,14 @@ const ArbeitsgangList: React.FC<ArbeitsgangListProps> = ({
                                     <p className="text-sm font-semibold text-slate-900 truncate">
                                         {arbeitsgang.beschreibung}
                                     </p>
+                                    {arbeitsgang.archiviert && (
+                                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-slate-200 text-slate-700" data-testid={`ausgeblendet-${arbeitsgang.id}`}>
+                                            ausgeblendet
+                                        </span>
+                                    )}
                                     {(isOutdated || hasNoRate) && (
                                         <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium bg-orange-100 text-orange-700">
-                                            Stundensatz veraltet
+                                            Kalkulationssatz veraltet
                                         </span>
                                     )}
                                 </div>
@@ -157,14 +186,47 @@ const ArbeitsgangList: React.FC<ArbeitsgangListProps> = ({
                                         </span>
                                     )}
                                 </p>
+                                {arbeitsgang.satzQuelle === 'VERRECHNUNG' && (
+                                    <p className="text-xs text-rose-700 mt-0.5" data-testid={`satzquelle-${arbeitsgang.id}`}>
+                                        Satz folgt dem Verrechnungssatz ({arbeitsgang.satzGruppe ? ({ AUSZUBILDENDER: 'Auszubildender', FACHARBEITER: 'Facharbeiter', MEISTER: 'Meister' } as Record<string, string>)[arbeitsgang.satzGruppe] ?? arbeitsgang.satzGruppe : 'ganzer Betrieb'})
+                                    </p>
+                                )}
+                                <p className="text-xs text-slate-500 mt-0.5" data-testid={`zeiten-${arbeitsgang.id}`}>
+                                    {arbeitsgang.formelBearbeitung ? `Zeit aus Formel: ${arbeitsgang.formelBearbeitung}` : (zeitenKurz(arbeitsgang) || 'Noch keine Zeiten (Rüstzeit, Bearbeitungszeit)')}
+                                </p>
+                                <p className="text-xs text-slate-500 mt-0.5" data-testid={`maschine-${arbeitsgang.id}`}>
+                                    {arbeitsgang.maschinenStundensatz != null
+                                        ? `${arbeitsgang.maschineId != null ? 'Maschine aus der Maschinenliste' : 'Maschine'}: ${arbeitsgang.maschinenBezeichnung ? `${arbeitsgang.maschinenBezeichnung}, ` : ''}${formatRate(arbeitsgang.maschinenStundensatz)} je Maschinenstunde`
+                                        : 'Keine Maschine'}
+                                </p>
                             </div>
                             <div className="flex items-center gap-1 flex-shrink-0">
                                 <Button
                                     variant="ghost"
                                     size="sm"
                                     className="text-rose-700 hover:bg-rose-100"
+                                    onClick={() => onEditMaschine(arbeitsgang)}
+                                    title={arbeitsgang.maschineId != null ? 'Die Maschine steht in der Kostenrechnung: dort Satz und Zuordnung ändern' : 'Maschine und Maschinenstundensatz bearbeiten'}
+                                    aria-label={`Maschine von ${arbeitsgang.beschreibung} bearbeiten`}
+                                >
+                                    <Wrench className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-rose-700 hover:bg-rose-100"
+                                    onClick={() => onEditFormel(arbeitsgang)}
+                                    title="Zeit mit Formel berechnen (Eingabefelder wie Durchmesser und Länge)"
+                                    aria-label={`Formel von ${arbeitsgang.beschreibung} bearbeiten`}
+                                >
+                                    <Calculator className="w-4 h-4" />
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-rose-700 hover:bg-rose-100"
                                     onClick={() => onEditRate(arbeitsgang)}
-                                    title="Stundensatz bearbeiten"
+                                    title="Kalkulationssatz bearbeiten"
                                 >
                                     <Pencil className="w-4 h-4" />
                                 </Button>
@@ -172,8 +234,19 @@ const ArbeitsgangList: React.FC<ArbeitsgangListProps> = ({
                                     variant="ghost"
                                     size="sm"
                                     className="text-rose-700 hover:bg-rose-100"
+                                    onClick={() => onArchivieren(arbeitsgang)}
+                                    title={arbeitsgang.archiviert ? 'Wieder einblenden: erscheint wieder in der Auswahl' : 'Ausblenden: erscheint nicht mehr in der Auswahl, nichts wird gelöscht'}
+                                    aria-label={`${arbeitsgang.beschreibung} ${arbeitsgang.archiviert ? 'wieder einblenden' : 'ausblenden'}`}
+                                >
+                                    {arbeitsgang.archiviert ? <Eye className="w-4 h-4" /> : <EyeOff className="w-4 h-4" />}
+                                </Button>
+                                <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    className="text-rose-700 hover:bg-rose-100"
                                     onClick={() => onDelete(arbeitsgang.id)}
                                     title="Löschen"
+                                    aria-label={`${arbeitsgang.beschreibung} löschen`}
                                 >
                                     <Trash2 className="w-4 h-4" />
                                 </Button>
@@ -188,6 +261,7 @@ const ArbeitsgangList: React.FC<ArbeitsgangListProps> = ({
 
 // ==================== Main Component ====================
 export default function ArbeitsgangEditor() {
+    const navigate = useNavigate();
     const toast = useToast();
     const confirmDialog = useConfirm();
     const [abteilungen, setAbteilungen] = useState<Abteilung[]>([]);
@@ -201,15 +275,21 @@ export default function ArbeitsgangEditor() {
 
     // Modal state
     const [editingArbeitsgang, setEditingArbeitsgang] = useState<Arbeitsgang | null>(null);
+    const [editingFormel, setEditingFormel] = useState<Arbeitsgang | null>(null);
+    const [editingMaschine, setEditingMaschine] = useState<Arbeitsgang | null>(null);
     const [rechnerOpen, setRechnerOpen] = useState(false);
+    const [vorlagenOpen, setVorlagenOpen] = useState(false);
+    const istAdmin = useOptionalAuth()?.isAdmin === true;
 
     // Search
     const [searchTerm, setSearchTerm] = useState('');
+    // Ausgeblendete Arbeitsgänge (#235) stehen nur auf Wunsch in der Liste
+    const [zeigeAusgeblendete, setZeigeAusgeblendete] = useState(false);
 
     // Filtered arbeitsgaenge for selected abteilung + search
     const filteredArbeitsgaenge = useMemo(() => {
         if (!selectedAbteilungId) return [];
-        let filtered = arbeitsgaenge.filter(a => a.abteilungId === selectedAbteilungId);
+        let filtered = arbeitsgaenge.filter(a => a.abteilungId === selectedAbteilungId && (zeigeAusgeblendete || !a.archiviert));
         if (searchTerm.trim()) {
             const term = searchTerm.toLowerCase();
             filtered = filtered.filter(a =>
@@ -217,7 +297,8 @@ export default function ArbeitsgangEditor() {
             );
         }
         return filtered;
-    }, [arbeitsgaenge, selectedAbteilungId, searchTerm]);
+    }, [arbeitsgaenge, selectedAbteilungId, searchTerm, zeigeAusgeblendete]);
+    const anzahlAusgeblendet = useMemo(() => arbeitsgaenge.filter(a => a.abteilungId === selectedAbteilungId && a.archiviert).length, [arbeitsgaenge, selectedAbteilungId]);
 
     // Selected abteilung
     const selectedAbteilung = useMemo(() => {
@@ -337,12 +418,33 @@ export default function ArbeitsgangEditor() {
             if (res.ok) {
                 await loadData();
             } else if (res.status === 409) {
-                toast.warning('Arbeitsgang kann nicht gelöscht werden, da er noch verwendet wird.');
+                // Benutzt: Der Grund steht in der Meldung; als Lösung wird das Ausblenden angeboten
+                const grund = await parseErrorMessage(res, 'Der Arbeitsgang wird noch benutzt und lässt sich nicht löschen.');
+                if (await confirmDialog({ title: 'Arbeitsgang ausblenden?', message: grund, variant: 'warning', confirmLabel: 'Ausblenden' })) {
+                    await setzeArchiviert(id, true);
+                }
             } else {
-                toast.error('Fehler beim Löschen des Arbeitsgangs.');
+                toast.error(await parseErrorMessage(res, 'Der Arbeitsgang konnte nicht gelöscht werden.'));
             }
         } catch (err) {
             console.error(err);
+            toast.error('Der Arbeitsgang konnte nicht gelöscht werden. Ist der Server erreichbar?');
+        }
+    };
+
+    // Ausblenden oder wieder einblenden (löscht nichts)
+    const setzeArchiviert = async (id: number, archiviert: boolean) => {
+        try {
+            const res = await fetch(`/api/arbeitsgaenge/${id}/archiviert`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ archiviert }),
+            });
+            if (!res.ok) throw new Error(await parseErrorMessage(res, 'Das Ausblenden hat nicht geklappt.'));
+            toast.success(archiviert ? 'Der Arbeitsgang ist ausgeblendet. Er steht nicht mehr in der Auswahl, alles Bestehende bleibt.' : 'Der Arbeitsgang steht wieder in der Auswahl.');
+            await loadData();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Das Ausblenden hat nicht geklappt.');
         }
     };
 
@@ -359,12 +461,57 @@ export default function ArbeitsgangEditor() {
         await loadData();
     };
 
+    // Woher der Kalkulationssatz kommt (von Hand oder Verrechnungssatz); ändert selbst keinen Satz
+    const handleSaveSatzQuelle = async (arbeitsgangId: number, quelle: 'EIGEN' | 'VERRECHNUNG', gruppe: string | null) => {
+        const res = await fetch(`/api/arbeitsgaenge/${arbeitsgangId}/satzquelle`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ quelle, gruppe })
+        });
+        if (!res.ok) {
+            throw new Error('Speichern fehlgeschlagen');
+        }
+        await loadData();
+    };
+
+    // Formel (Eingabefelder, Bearbeitungs- und Rüstzeit-Formel) speichern; eine leere Bearbeitungsformel entfernt sie
+    const handleSaveFormel = async (arbeitsgangId: number, formel: { felder: ArbeitsgangFormelFeld[]; bearbeitungFormel: string; ruestFormel: string }) => {
+        const res = await fetch(`/api/arbeitsgaenge/${arbeitsgangId}/formel`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(formel)
+        });
+        if (!res.ok) {
+            let text = 'Die Formel konnte nicht gespeichert werden.';
+            try { const body = await res.json() as { message?: string }; if (body?.message) text = body.message; } catch { /* kein JSON */ }
+            throw new Error(text);
+        }
+        toast.success(formel.bearbeitungFormel.trim() === '' ? 'Formel entfernt.' : 'Formel gespeichert.');
+        await loadData();
+    };
+
+    // Maschine (Name und Kosten je Stunde) speichern; ohne Satz entfällt sie
+    const handleSaveMaschine = async (arbeitsgangId: number, bezeichnung: string, stundensatz: number | null) => {
+        const res = await fetch(`/api/arbeitsgaenge/${arbeitsgangId}/maschine`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ bezeichnung, stundensatz })
+        });
+        if (!res.ok) {
+            let text = 'Die Maschine konnte nicht gespeichert werden.';
+            try { const body = await res.json() as { message?: string }; if (body?.message) text = body.message; } catch { /* kein JSON */ }
+            throw new Error(text);
+        }
+        toast.success(stundensatz == null ? 'Die Maschine wurde entfernt.' : 'Maschine gespeichert.');
+        await loadData();
+    };
+
     return (
 
         <PageLayout
             ribbonCategory="Arbeitsplanung"
             title="Arbeitsgänge"
-            subtitle="Verwaltung der Arbeitsgänge und Stundensätze nach Abteilungen."
+            subtitle="Arbeitsgänge je Abteilung mit Kalkulationssatz (€/h), Rüstzeit und Bearbeitungszeit. Der Kalkulationssatz berechnet den Preis von Leistungen und bewertet gebuchte Arbeitszeit in der Nachkalkulation. Die Sätze für die Abrechnung nach Stunden stehen unter Stammdaten, Stundensätze (Abrechnung)."
             actions={
                 <>
                     <Button
@@ -375,6 +522,12 @@ export default function ArbeitsgangEditor() {
                         <Calculator className="w-4 h-4 mr-2" />
                         Was muss meine Stunde kosten?
                     </Button>
+                    {istAdmin && (
+                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" onClick={() => setVorlagenOpen(true)}>
+                            <Library className="w-4 h-4 mr-2" />
+                            Aus Vorlage ergänzen
+                        </Button>
+                    )}
                     <Button variant="outline" size="sm" onClick={loadData} disabled={loading}>
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
                         Aktualisieren
@@ -448,12 +601,23 @@ export default function ArbeitsgangEditor() {
                                 {selectedAbteilung?.name || 'Auswählen'}
                             </h4>
                         </div>
+                        {(anzahlAusgeblendet > 0 || zeigeAusgeblendete) && (
+                            <label className="flex items-center gap-2 text-sm text-slate-600 cursor-pointer select-none">
+                                <input type="checkbox" checked={zeigeAusgeblendete} onChange={e => setZeigeAusgeblendete(e.target.checked)}
+                                    className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500" />
+                                Ausgeblendete zeigen ({anzahlAusgeblendet})
+                            </label>
+                        )}
                     </div>
 
                     {selectedAbteilungId ? (
                         <ArbeitsgangList
                             arbeitsgaenge={filteredArbeitsgaenge}
                             onEditRate={(ag) => setEditingArbeitsgang(ag)}
+                            onEditFormel={(ag) => setEditingFormel(ag)}
+                            // Hat der Arbeitsgang eine Maschine aus der Maschinenliste, wird sie dort gepflegt (Kostenrechnung), nicht am Arbeitsgang
+                            onEditMaschine={(ag) => (ag.maschineId != null ? navigate('/kostenrechnung') : setEditingMaschine(ag))}
+                            onArchivieren={(ag) => void setzeArchiviert(ag.id, !ag.archiviert)}
                             onDelete={handleDeleteArbeitsgang}
                         />
                     ) : (
@@ -494,7 +658,7 @@ export default function ArbeitsgangEditor() {
                                     <p className="text-sm text-slate-600 leading-relaxed flex items-center gap-1">
                                         Nach dem Erstellen können Sie mit dem Stift-Icon
                                         <Pencil className="w-3.5 h-3.5 inline text-rose-600" />
-                                        den Stundensatz für das aktuelle Jahr festlegen.
+                                        den Kalkulationssatz (€/h) für das aktuelle Jahr festlegen.
                                     </p>
                                 </div>
 
@@ -533,10 +697,31 @@ export default function ArbeitsgangEditor() {
                     isOpen={!!editingArbeitsgang}
                     onClose={() => setEditingArbeitsgang(null)}
                     onSave={handleSaveStundensatz}
+                    onSaveQuelle={handleSaveSatzQuelle}
+                />
+            )}
+
+            {/* Rüstzeit und Bearbeitungszeit */}
+            {editingMaschine && (
+                <ArbeitsgangMaschineModal
+                    arbeitsgang={editingMaschine}
+                    isOpen={!!editingMaschine}
+                    onClose={() => setEditingMaschine(null)}
+                    onSave={handleSaveMaschine}
+                />
+            )}
+
+            {editingFormel && (
+                <ArbeitsgangFormelModal
+                    arbeitsgang={editingFormel}
+                    isOpen={!!editingFormel}
+                    onClose={() => setEditingFormel(null)}
+                    onSave={handleSaveFormel}
                 />
             )}
 
             {/* Verrechnungslohn-Rechner */}
+            <VorlagenUebernehmenDialog art="arbeitsgaenge" offen={vorlagenOpen} onOpenChange={setVorlagenOpen} onFertig={() => void loadData()} />
             <VerrechnungslohnRechnerDialog
                 open={rechnerOpen}
                 onClose={() => setRechnerOpen(false)}

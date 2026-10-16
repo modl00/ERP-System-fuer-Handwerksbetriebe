@@ -38,6 +38,7 @@ interface Projekt {
 interface Arbeitsgang {
     id: number;
     beschreibung: string;
+    archiviert?: boolean;
 }
 
 interface Buchung {
@@ -1462,7 +1463,7 @@ function DayEditorModal({
                     const newBooking: Buchung = {
                         id: getNextTempBookingId(),
                         projektId: clipboard.projektId || (projekte.length > 0 ? projekte[0].id : 0),
-                        arbeitsgangId: clipboard.arbeitsgangId || (arbeitsgaenge.length > 0 ? arbeitsgaenge[0].id : 0),
+                        arbeitsgangId: clipboard.arbeitsgangId || (arbeitsgaenge.find(a => !a.archiviert)?.id ?? 0),
                         startZeit: clipboard.startZeit ?? '08:00',
                         endeZeit: clipboard.endeZeit ?? '16:00',
                         projektName: '',
@@ -1648,7 +1649,7 @@ function DayEditorModal({
         const newBooking: Buchung = {
             id: newId,
             projektId: projekte.length > 0 ? projekte[0].id : 0,
-            arbeitsgangId: arbeitsgaenge.length > 0 ? arbeitsgaenge[0].id : 0,
+            arbeitsgangId: arbeitsgaenge.find(a => !a.archiviert)?.id ?? 0,
             startZeit: defaultStart,
             endeZeit: defaultEnd,
             projektName: '',
@@ -2177,7 +2178,7 @@ function DayEditorModal({
                                                         <Select
                                                             value={b.arbeitsgangId?.toString() || ''}
                                                             onChange={val => handleUpdateBooking(b.id, { arbeitsgangId: Number(val) })}
-                                                            options={arbeitsgaenge.map(a => ({ value: a.id.toString(), label: a.beschreibung }))}
+                                                            options={arbeitsgaenge.filter(a => !a.archiviert || a.id === b.arbeitsgangId).map(a => ({ value: a.id.toString(), label: a.beschreibung }))}
                                                             placeholder="Tätigkeit wählen..."
                                                             className="w-full"
                                                             disabled={readOnly}

@@ -1202,6 +1202,21 @@ function LieferantModal({ lieferant, onClose, onSave }: { lieferant: Lieferant; 
                         <p className="text-xs text-slate-400">Wird automatisch aus Auftragsbestätigungen berechnet</p>
                     </div>
 
+                    <div className="space-y-1.5">
+                        <Label htmlFor="standardLieferzeitTage">Übliche Lieferzeit (Arbeitstage)</Label>
+                        <Input
+                            id="standardLieferzeitTage"
+                            type="number"
+                            min={0}
+                            max={365}
+                            value={formData.standardLieferzeitTage ?? ""}
+                            onChange={(e) => handleChange("standardLieferzeitTage", e.target.value === "" ? null : Math.max(0, Math.min(365, Math.round(Number(e.target.value)))))}
+                        />
+                        <p className="text-xs text-slate-400">
+                            Ab Bestellung. Die Plantafel rechnet damit, solange noch keine Auftragsbestätigung dieses Lieferanten vorliegt. Leer lassen, wenn unbekannt.
+                        </p>
+                    </div>
+
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 border-t border-slate-100 pt-4">
                         <div className="space-y-1.5">
                             <Label>Telefon</Label>

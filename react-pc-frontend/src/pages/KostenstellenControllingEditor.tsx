@@ -14,6 +14,7 @@ import { KostenstelleDetailView } from '../components/firma/KostenstelleDetailVi
 import { useToast } from '../components/ui/toast';
 import { useConfirm } from '../components/ui/confirm-dialog';
 import { cn } from '../lib/utils';
+import { formatDecimalInput, validateDecimalInput } from '../lib/numberInput';
 
 interface KostenstelleAuswertung {
     id: number;
@@ -22,6 +23,10 @@ interface KostenstelleAuswertung {
     beschreibung: string;
     istFixkosten: boolean;
     istInvestition: boolean;
+    /** Wird mit zurückgeschickt, damit ein Bearbeiten diese Felder nicht verliert (aktiv, Reihenfolge, geschätzter Jahresbetrag). */
+    aktiv: boolean;
+    sortierung: number | null;
+    jahresSoll: number | null;
     summeDiesesJahr: number;
     summeVorjahr: number;
     anzahlDiesesJahr: number;
@@ -33,7 +38,11 @@ interface KostenstelleForm {
     typ?: 'LAGER' | 'GEMEINKOSTEN' | 'PROJEKT' | 'SONSTIG';
     beschreibung?: string;
     aktiv?: boolean;
-    sortierung?: number;
+    sortierung?: number | null;
+    /** Geschätzter Jahresbetrag für die Gemeinkosten der Kostenrechnung (#237); leer = keine Schätzung. */
+    jahresSoll?: number | null;
+    /** Eingabetext zum Jahresbetrag im Formular. */
+    jahresSollText?: string;
 }
 
 const KOSTENSTELLEN_TYP_OPTIONS = [
@@ -139,14 +148,23 @@ export default function KostenstellenControllingEditor() {
 
     const saveKostenstelle = async () => {
         if (!editing?.bezeichnung) return;
+        const typ = editing.typ || 'GEMEINKOSTEN';
+        const soll = validateDecimalInput(editing.jahresSollText ?? '', { label: 'Der geschätzte Jahresbetrag', required: false, min: 0, max: 100_000_000 });
+        if (typ === 'GEMEINKOSTEN' && !soll.valid) {
+            toast.error(soll.message);
+            return;
+        }
         setSaving(true);
         try {
-            const typ = editing.typ || 'GEMEINKOSTEN';
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            const { jahresSollText: _text, ...rest } = editing;
             const payload = {
-                ...editing,
+                ...rest,
                 typ,
                 istFixkosten: typ === 'GEMEINKOSTEN',
                 istInvestition: typ === 'LAGER',
+                // Wird bei jedem Speichern mitgeschickt (auch leer = keine Schätzung), sonst ginge der Wert verloren
+                jahresSoll: typ === 'GEMEINKOSTEN' && soll.valid ? soll.value ?? null : null,
             };
             const method = payload.id ? 'PUT' : 'POST';
             const url = payload.id
@@ -162,7 +180,12 @@ export default function KostenstellenControllingEditor() {
                 setEditing(null);
                 await loadData();
             } else {
-                toast.error('Fehler beim Speichern');
+                let meldung = 'Fehler beim Speichern';
+                try {
+                    const body = await res.json() as { message?: string };
+                    if (body?.message) meldung = body.message;
+                } catch { /* kein JSON */ }
+                toast.error(meldung);
             }
         } catch (e) {
             console.error('Fehler beim Speichern', e);
@@ -332,7 +355,7 @@ export default function KostenstellenControllingEditor() {
                                                 <Button
                                                     variant="ghost"
                                                     size="sm"
-                                                    onClick={(e) => { e.stopPropagation(); setEditing(ks); setShowModal(true); }}
+                                                    onClick={(e) => { e.stopPropagation(); setEditing({ ...ks, jahresSollText: ks.jahresSoll == null ? '' : formatDecimalInput(ks.jahresSoll) }); setShowModal(true); }}
                                                     aria-label="Kostenstelle bearbeiten"
                                                 >
                                                     <Edit2 className="w-4 h-4" />
@@ -403,6 +426,22 @@ export default function KostenstellenControllingEditor() {
                                 onChange={e => setEditing({ ...editing, beschreibung: e.target.value })}
                             />
                         </div>
+                        {(editing?.typ || 'GEMEINKOSTEN') === 'GEMEINKOSTEN' && (
+                            <div>
+                                <Label htmlFor="kostenstelle-soll">Geschätzt im Jahr (€)</Label>
+                                <Input
+                                    id="kostenstelle-soll"
+                                    inputMode="decimal"
+                                    placeholder="keine Schätzung"
+                                    value={editing?.jahresSollText ?? ''}
+                                    onChange={e => setEditing({ ...editing, jahresSollText: e.target.value })}
+                                />
+                                <p className="mt-1 text-xs text-slate-500">
+                                    Hilft bei einer frischen Installation, solange noch keine Rechnungen da sind: Die Kostenrechnung rechnet im laufenden Jahr mit dem höheren Wert aus
+                                    dieser Schätzung und den echten Kosten. Leer lassen = keine Schätzung.
+                                </p>
+                            </div>
+                        )}
                         <p className="text-xs text-slate-500">
                             {(editing?.typ || 'GEMEINKOSTEN') === 'GEMEINKOSTEN'
                                 ? 'Wird als Fixkosten für die Gemeinkostenberechnung verwendet.'

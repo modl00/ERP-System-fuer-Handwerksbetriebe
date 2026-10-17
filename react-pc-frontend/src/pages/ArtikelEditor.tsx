@@ -1,11 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import { RefreshCw, FolderPlus, Plus } from "lucide-react";
+import { RefreshCw, FolderPlus, Plus, BookTemplate } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { cn } from "../lib/utils";
 import { CategoryTreeModal } from "../components/CategoryTreeModal";
 import { CreateArticleModal } from "../components/CreateArticleModal";
 import { PageLayout } from "../components/layout/PageLayout";
 import { ArtikelSuche, type ArtikelSucheHandle } from "../components/artikel/ArtikelSuche";
+import { VorlagenUebernehmenDialog } from "../components/VorlagenUebernehmenDialog";
 import Aufschlaege from "./Aufschlaege";
 import WerkstoffEditor from "./WerkstoffEditor";
 import ProduktkategorieEditor from "./ProduktkategorieEditor";
@@ -48,6 +49,7 @@ export default function ArtikelEditor() {
     const [loading, setLoading] = useState(false);
     const [showCategoryManagerModal, setShowCategoryManagerModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
+    const [showVorlagen, setShowVorlagen] = useState(false);
 
     return (
         <PageLayout
@@ -60,6 +62,15 @@ export default function ArtikelEditor() {
                         <Button size="sm" className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => setShowCreateModal(true)}>
                             <Plus className="w-4 h-4 mr-2" />
                             Neu
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="sm"
+                            className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                            onClick={() => setShowVorlagen(true)}
+                        >
+                            <BookTemplate className="w-4 h-4 mr-2" />
+                            Stahlprofile aus Vorlage
                         </Button>
                         <Button
                             variant="outline"
@@ -118,6 +129,12 @@ export default function ArtikelEditor() {
                             onClose={() => setShowCategoryManagerModal(false)}
                         />
                     )}
+                    <VorlagenUebernehmenDialog
+                        art="profile"
+                        offen={showVorlagen}
+                        onOpenChange={setShowVorlagen}
+                        onFertig={() => { setShowVorlagen(false); sucheRef.current?.neuLaden(); }}
+                    />
                 </>
             )}
             {activeTab === 'werkstoffe' && <WerkstoffEditor eingebettet />}

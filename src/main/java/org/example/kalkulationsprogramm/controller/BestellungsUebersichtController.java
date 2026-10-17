@@ -811,6 +811,9 @@ public class BestellungsUebersichtController {
                     ks.getBeschreibung(),
                     ks.isIstFixkosten(),
                     ks.isIstInvestition(),
+                    ks.isAktiv(),
+                    ks.getSortierung(),
+                    ks.getJahresSoll(),
                     summeDiesesJahr,
                     summeVorjahr,
                     anzahlDiesesJahr));
@@ -1062,6 +1065,9 @@ public class BestellungsUebersichtController {
             String beschreibung,
             boolean istFixkosten,
             boolean istInvestition,
+            boolean aktiv,
+            Integer sortierung,
+            BigDecimal jahresSoll,
             BigDecimal summeDiesesJahr,
             BigDecimal summeVorjahr,
             long anzahlDiesesJahr) {

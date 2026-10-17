@@ -57,6 +57,7 @@ public class KostenstelleService {
         ks.setIstInvestition(dto.isIstInvestition());
         ks.setAktiv(dto.isAktiv());
         ks.setSortierung(dto.getSortierung() != null ? dto.getSortierung() : 0);
+        ks.setJahresSoll(dto.getJahresSoll() != null ? pruefeSoll(dto.getJahresSoll(), dto.isIstFixkosten()) : null);
 
         ks = repository.save(ks);
         return toDto(ks);

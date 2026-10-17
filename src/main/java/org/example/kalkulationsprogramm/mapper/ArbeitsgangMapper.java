@@ -5,6 +5,7 @@ import org.example.kalkulationsprogramm.domain.Arbeitsgang;
 import org.example.kalkulationsprogramm.domain.ArbeitsgangStundensatz;
 import org.example.kalkulationsprogramm.dto.Arbeitsgang.ArbeitsgangResponseDto;
 import org.example.kalkulationsprogramm.repository.ArbeitsgangStundensatzRepository;
+import org.example.kalkulationsprogramm.service.formel.ArbeitsgangFormeln;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -33,6 +34,12 @@ public class ArbeitsgangMapper {
                     dto.setStundensatz(s.getSatz());
                     dto.setStundensatzJahr(s.getJahr());
                 });
+
+        // Formel-Felder mappen
+        var formel = ArbeitsgangFormeln.lese(arbeitsgang);
+        dto.setFormelBearbeitung(formel.bearbeitung());
+        dto.setFormelRuest(formel.ruest());
+        dto.setFormelFelder(formel.felder().isEmpty() ? null : formel.felder());
 
         return dto;
     }

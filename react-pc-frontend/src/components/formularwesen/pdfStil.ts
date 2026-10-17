@@ -3,8 +3,7 @@ import type { FormBlock, FormBlockStyles } from '../../types';
 /**
  * Schrift eines Bausteins so, wie sie der PDF-Dienst druckt
  * (RechnungPdfService.parseBlockFont): ohne Stil 10 pt normal in Textfarbe,
- * Farbe nur als Hex, fett bei „700“/„bold“, Betreff immer Montserrat 11 pt.
- * Eine Text-Ausrichtung kennt der Druck nicht – Text steht immer links.
+ * Farbe nur als Hex, fett bei „700”/„bold”, Betreff immer Montserrat 11 pt.
  */
 export const PDF_TEXTFARBE = '#44403c';
 export const PDF_SCHRIFTGROESSE = 10;
@@ -14,23 +13,25 @@ export interface PdfStil {
     schriftgroesse: number;
     fett: boolean;
     farbe: string;
+    ausrichtung: 'left' | 'center' | 'right';
     /** {{BETREFF}}: feste Betreff-Schrift, Größe und Farbe aus der Vorlage gelten nicht. */
     betreff: boolean;
 }
 
 export function pdfStil(block: Pick<FormBlock, 'content' | 'styles'>): PdfStil {
     if ((block.content ?? '').includes('{{BETREFF}}')) {
-        return { schriftgroesse: BETREFF_GROESSE, fett: true, farbe: PDF_TEXTFARBE, betreff: true };
+        return { schriftgroesse: BETREFF_GROESSE, fett: true, farbe: PDF_TEXTFARBE, ausrichtung: 'left', betreff: true };
     }
     const s = block.styles;
     if (!s || Object.keys(s).length === 0) {
-        return { schriftgroesse: PDF_SCHRIFTGROESSE, fett: false, farbe: PDF_TEXTFARBE, betreff: false };
+        return { schriftgroesse: PDF_SCHRIFTGROESSE, fett: false, farbe: PDF_TEXTFARBE, ausrichtung: 'left', betreff: false };
     }
     const gewicht = String(s.fontWeight ?? '');
     return {
         schriftgroesse: typeof s.fontSize === 'number' && s.fontSize > 0 ? s.fontSize : PDF_SCHRIFTGROESSE,
         fett: gewicht === '700' || gewicht.toLowerCase() === 'bold',
         farbe: typeof s.color === 'string' && s.color.startsWith('#') ? s.color : PDF_TEXTFARBE,
+        ausrichtung: s.textAlign ?? 'left',
         betreff: false,
     };
 }

@@ -1,5 +1,5 @@
 import { useRef } from 'react';
-import { AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, ArrowDownToLine, ArrowUpToLine, Bold, Copy, Trash2, X } from 'lucide-react';
+import { AlignCenter, AlignHorizontalJustifyCenter, AlignHorizontalJustifyEnd, AlignHorizontalJustifyStart, AlignLeft, AlignRight, ArrowDownToLine, ArrowUpToLine, Bold, Copy, Trash2, X } from 'lucide-react';
 import { Button } from '../ui/button';
 import { ColorInput } from '../ui/color-input';
 import { cn } from '../../lib/utils';
@@ -133,33 +133,55 @@ export default function PropertiesSidebar({ block, onAendern, onLoeschen, onDupl
                         {stil.betreff ? (
                             <p className="text-sm text-slate-600">Der Betreff steht im Dokument immer in der festen Betreff-Schrift (11 pt, halbfett).</p>
                         ) : (
-                            <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
-                                <MassFeld
-                                    label="Größe"
-                                    einheit="pt"
-                                    anzeige={String(stil.schriftgroesse).replace('.', ',')}
-                                    min={5}
-                                    max={72}
-                                    onUebernehmen={groesse => stilAendern({ fontSize: groesse })}
-                                />
-                                <div>
-                                    <span className="mb-1 block text-[11px] font-medium text-slate-500">Fett</span>
-                                    <button
-                                        type="button"
-                                        aria-pressed={stil.fett}
-                                        aria-label="Fett"
-                                        title="Fett"
-                                        onClick={() => stilAendern({ fontWeight: stil.fett ? '400' : '700' })}
-                                        className={cn(SEGMENT, 'rounded-md border', stil.fett ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}
-                                    >
-                                        <Bold aria-hidden="true" className="h-4 w-4" />
-                                    </button>
+                            <>
+                                <div className="grid grid-cols-[1fr_auto_auto] items-end gap-2">
+                                    <MassFeld
+                                        label="Größe"
+                                        einheit="pt"
+                                        anzeige={String(stil.schriftgroesse).replace('.', ',')}
+                                        min={5}
+                                        max={72}
+                                        onUebernehmen={groesse => stilAendern({ fontSize: groesse })}
+                                    />
+                                    <div>
+                                        <span className="mb-1 block text-[11px] font-medium text-slate-500">Fett</span>
+                                        <button
+                                            type="button"
+                                            aria-pressed={stil.fett}
+                                            aria-label="Fett"
+                                            title="Fett"
+                                            onClick={() => stilAendern({ fontWeight: stil.fett ? '400' : '700' })}
+                                            className={cn(SEGMENT, 'rounded-md border', stil.fett ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}
+                                        >
+                                            <Bold aria-hidden="true" className="h-4 w-4" />
+                                        </button>
+                                    </div>
+                                    <div>
+                                        <span className="mb-1 block text-[11px] font-medium text-slate-500">Farbe</span>
+                                        <ColorInput value={stil.farbe} onChange={farbe => stilAendern({ color: farbe })} aria-label="Schriftfarbe" className="[&>button]:h-8" />
+                                    </div>
                                 </div>
-                                <div>
-                                    <span className="mb-1 block text-[11px] font-medium text-slate-500">Farbe</span>
-                                    <ColorInput value={stil.farbe} onChange={farbe => stilAendern({ color: farbe })} aria-label="Schriftfarbe" className="[&>button]:h-8" />
+                                <div className="mt-2 flex items-center gap-1">
+                                    <span className="mr-auto text-[11px] font-medium text-slate-500">Ausrichtung</span>
+                                    {([
+                                        { align: 'left'   as const, label: 'Linksbündig',  Icon: AlignLeft   },
+                                        { align: 'center' as const, label: 'Zentriert',    Icon: AlignCenter },
+                                        { align: 'right'  as const, label: 'Rechtsbündig', Icon: AlignRight  },
+                                    ]).map(({ align, label, Icon }) => (
+                                        <button
+                                            key={align}
+                                            type="button"
+                                            aria-pressed={stil.ausrichtung === align}
+                                            aria-label={label}
+                                            title={label}
+                                            onClick={() => stilAendern({ textAlign: align })}
+                                            className={cn(SEGMENT, 'rounded-md border', stil.ausrichtung === align ? 'border-rose-200 bg-rose-50 text-rose-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50')}
+                                        >
+                                            <Icon aria-hidden="true" className="h-4 w-4" />
+                                        </button>
+                                    ))}
                                 </div>
-                            </div>
+                            </>
                         )}
                     </Gruppe>
                 )}

@@ -8,6 +8,7 @@ import org.example.kalkulationsprogramm.domain.KostenstellenTyp;
 import org.example.kalkulationsprogramm.service.FirmeninformationService;
 import org.example.kalkulationsprogramm.service.KostenstelleService;
 import org.example.kalkulationsprogramm.service.SteuerberaterKontaktService;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -80,6 +81,51 @@ public class FirmaController {
     @DeleteMapping("/logo")
     public ResponseEntity<FirmeninformationDto> deleteLogo() {
         return ResponseEntity.ok(firmeninformationService.loescheLogoDatei());
+    }
+
+    // ==================== BRIEFPAPIER ====================
+
+    @PostMapping(value = "/briefpapier", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    public ResponseEntity<?> uploadBriefpapier(@RequestParam("datei") MultipartFile datei) {
+        try {
+            FirmeninformationDto dto = firmeninformationService.speichereBriefpapier(datei);
+            return ResponseEntity.ok(dto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (java.io.IOException e) {
+            return ResponseEntity.internalServerError().body(Map.of("message", "Speichern fehlgeschlagen"));
+        }
+    }
+
+    @GetMapping("/briefpapier")
+    public ResponseEntity<byte[]> downloadBriefpapier() {
+        FirmeninformationService.Briefpapier bp = firmeninformationService.loadBriefpapier();
+        if (bp == null) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok()
+                .contentType(MediaType.parseMediaType(bp.contentType()))
+                .header(HttpHeaders.CONTENT_DISPOSITION, "inline; filename=\"briefpapier\"")
+                .body(bp.bytes());
+    }
+
+    @DeleteMapping("/briefpapier")
+    public ResponseEntity<FirmeninformationDto> deleteBriefpapier() {
+        return ResponseEntity.ok(firmeninformationService.loescheBriefpapier());
+    }
+
+    @PutMapping("/briefpapier/kopf")
+    public ResponseEntity<?> setBriefpapierKopf(@RequestBody Map<String, Object> body) {
+        Object val = body.get("enthaeltKopf");
+        if (!(val instanceof Boolean)) {
+            return ResponseEntity.badRequest().body(Map.of("message", "enthaeltKopf (Boolean) fehlt"));
+        }
+        try {
+            FirmeninformationDto dto = firmeninformationService.setzeBriefpapierEnthaeltKopf((Boolean) val);
+            return ResponseEntity.ok(dto);
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     // ==================== KOSTENSTELLEN ====================

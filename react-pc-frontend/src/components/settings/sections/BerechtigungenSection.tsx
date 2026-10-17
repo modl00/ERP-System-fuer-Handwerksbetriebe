@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Bell, CalendarCheck, Shield, Users, Wallet } from 'lucide-react';
+import { Bell, CalendarCheck, Plus, Shield, Trash2, Users, Wallet } from 'lucide-react';
 import { InfoAbschnitt, InfoButton } from '../../ui/info-button';
 import { Button } from '../../ui/button';
 import { useToast } from '../../ui/toast';
+import { useConfirm } from '../../ui/confirm-dialog';
 import { SaveButton, SectionLoading, SettingsCard } from '../settingsUi';
 import { PostfachSichtbarkeitKarte } from './berechtigungen/PostfachSichtbarkeitKarte';
 import { setzeZeiterfassungSichtbarkeitZurueck } from '../../../features/zeiterfassung/useZeiterfassungSichtbarkeit';
@@ -135,6 +136,7 @@ function Gruppe({ icon, titel, children }: { icon: ReactNode; titel: string; chi
 
 export function BerechtigungenSection() {
     const toast = useToast();
+    const confirm = useConfirm();
     // Stabile Referenz, damit laden keine wechselnde Abhängigkeit bekommt.
     const toastRef = useRef(toast);
     toastRef.current = toast;
@@ -144,6 +146,9 @@ export function BerechtigungenSection() {
     const [saving, setSaving] = useState<number | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<number | null>(null);
     const gespeichertTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+    const [neuerName, setNeuerName] = useState('');
+    const [anlegenLaeuft, setAnlegenLaeuft] = useState(false);
+    const [loeschenLaeuft, setLoeschenLaeuft] = useState<number | null>(null);
 
     useEffect(() => () => clearTimeout(gespeichertTimer.current), []);
 
@@ -165,6 +170,47 @@ export function BerechtigungenSection() {
     useEffect(() => {
         laden();
     }, [laden]);
+
+    const handleAbteilungAnlegen = async () => {
+        const name = neuerName.trim();
+        if (!name) return;
+        setAnlegenLaeuft(true);
+        try {
+            const res = await fetch('/api/abteilungen', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+            });
+            if (!res.ok) throw new Error('Abteilung konnte nicht angelegt werden.');
+            toast.success(`Abteilung „${name}" angelegt.`);
+            setNeuerName('');
+            await laden();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Abteilung konnte nicht angelegt werden.');
+        }
+        setAnlegenLaeuft(false);
+    };
+
+    const handleAbteilungLoeschen = async (abteilungId: number, abteilungName: string) => {
+        const ok = await confirm({
+            title: 'Abteilung löschen?',
+            message: `Abteilung „${abteilungName}" dauerhaft löschen? Abteilungen mit Arbeitsgängen können nicht gelöscht werden.`,
+            confirmLabel: 'Löschen',
+            variant: 'danger',
+        });
+        if (!ok) return;
+        setLoeschenLaeuft(abteilungId);
+        try {
+            const res = await fetch(`/api/abteilungen/${abteilungId}`, { method: 'DELETE' });
+            if (res.status === 409) throw new Error(`„${abteilungName}" hat noch Arbeitsgänge und kann nicht gelöscht werden.`);
+            if (!res.ok) throw new Error('Abteilung konnte nicht gelöscht werden.');
+            toast.success(`Abteilung „${abteilungName}" gelöscht.`);
+            await laden();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Abteilung konnte nicht gelöscht werden.');
+        }
+        setLoeschenLaeuft(null);
+    };
 
     const aendere = (abteilungId: number, aenderung: (abt: AbteilungBerechtigung) => AbteilungBerechtigung) => {
         setAbteilungen((prev) => prev.map((abt) => (abt.abteilungId === abteilungId ? aenderung(abt) : abt)));
@@ -247,11 +293,50 @@ export function BerechtigungenSection() {
                             <Button variant="outline" size="sm" onClick={laden}>Erneut laden</Button>
                         </div>
                     )}
-                    {!loadError && abteilungen.length === 0 && (
-                        <p className="text-sm text-slate-500">
-                            Noch keine Abteilungen angelegt. Abteilungen legst du im Mitarbeiter-Bereich an.
-                        </p>
-                    )}
+                    {/* Abteilungsverwaltung */}
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
+                        <p className="mb-3 text-sm font-medium text-slate-700">Abteilungen verwalten</p>
+                        {abteilungen.length > 0 && (
+                            <ul className="mb-3 divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
+                                {abteilungen.map(a => (
+                                    <li key={a.abteilungId} className="flex items-center justify-between px-3 py-2">
+                                        <span className="text-sm text-slate-900">{a.abteilungName}</span>
+                                        <button
+                                            type="button"
+                                            title={`„${a.abteilungName}" löschen`}
+                                            aria-label={`Abteilung „${a.abteilungName}" löschen`}
+                                            disabled={loeschenLaeuft === a.abteilungId}
+                                            onClick={() => void handleAbteilungLoeschen(a.abteilungId, a.abteilungName)}
+                                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                                        >
+                                            {loeschenLaeuft === a.abteilungId
+                                                ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-rose-600" aria-hidden="true" />
+                                                : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+                                        </button>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                        {!loadError && abteilungen.length === 0 && (
+                            <p className="mb-3 text-sm text-slate-500">Noch keine Abteilungen angelegt.</p>
+                        )}
+                        <form onSubmit={e => { e.preventDefault(); void handleAbteilungAnlegen(); }} className="flex gap-2">
+                            <input
+                                type="text"
+                                value={neuerName}
+                                onChange={e => setNeuerName(e.target.value)}
+                                placeholder="Name der neuen Abteilung"
+                                maxLength={80}
+                                className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                            />
+                            <Button type="submit" size="sm" disabled={anlegenLaeuft || !neuerName.trim()} className="bg-rose-600 text-white hover:bg-rose-700">
+                                {anlegenLaeuft
+                                    ? <span className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden="true" />
+                                    : <Plus className="mr-1 h-4 w-4" aria-hidden="true" />}
+                                Anlegen
+                            </Button>
+                        </form>
+                    </div>
                 </SettingsCard>
 
                 {abteilungen.map((abt) => {

@@ -6,10 +6,12 @@ import { AnrufFensterHost } from '../../features/telefon/AnrufFensterHost';
 import { useBerechtigungenJeBenutzer } from '../../hooks/useBerechtigungenJeBenutzer';
 import { ZeiterfassungSchutz } from '../../features/zeiterfassung/ZeiterfassungSchutz';
 import { useKiAktiv } from '../../features/ki/useKiAktiv';
+import { useProgrammfarbe } from '../../features/darstellung/useProgrammfarbe';
 
 export function MainLayout() {
   const { pathname } = useLocation();
   useBerechtigungenJeBenutzer();
+  useProgrammfarbe();
   const kiAktiv = useKiAktiv();
   const isEmailCenter = pathname === '/emails' || pathname.startsWith('/emails/');
   return (

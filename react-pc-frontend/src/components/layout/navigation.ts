@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, Building2, Calendar, CalendarDays, Clock, Euro, Factory, FileCheck, FileJson, FileText, Globe, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, Calculator, Calendar, CalendarDays, ClipboardCheck, Clock, Euro, Factory, FileCheck, FileJson, FileText, Globe, History, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShieldCheck, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet, Warehouse } from 'lucide-react';
 import type { ComponentType } from 'react';
 import { BESTELLBEDARF_PFAD } from '../../lib/freigaben';
 
@@ -46,12 +46,16 @@ export const NAVIGATION: NavCategory[] = [
                     { name: 'Leistungen', href: '/leistungen', icon: List },
                     { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
                     { name: 'Fremdleistungen', href: '/fremdleistungen', icon: Factory },
+                    { name: 'Lager', href: '/lager', icon: Warehouse },
+                    { name: 'Kostenrechnung', href: '/kostenrechnung', icon: Calculator },
                     { name: 'Kategorien', href: '/produktkategorien', icon: Layers },
                 ]
             },
             {
                 label: 'Administration',
                 items: [
+                    { name: 'Wer darf was?', href: '/rechte-uebersicht', icon: ShieldCheck },
+                    { name: 'Aktivitäten', href: '/aktivitaeten', icon: History },
                     { name: 'Firma', href: '/firma', icon: Building2 },
                     { name: 'Formularwesen', href: '/formulare', icon: FileJson },
                     { name: 'Einstellungen', href: '/einstellungen', icon: Settings },
@@ -67,6 +71,7 @@ export const NAVIGATION: NavCategory[] = [
                 items: [
                     { name: 'Projekte', href: '/projekte', icon: Briefcase },
                     { name: 'Anfragen', href: '/anfragen', icon: FileCheck },
+                    { name: 'Wartungen', href: '/wartung', icon: ClipboardCheck },
                 ]
             },
             {
@@ -79,8 +84,10 @@ export const NAVIGATION: NavCategory[] = [
                 label: 'Planung',
                 items: [
                     { name: 'Kalender', href: '/kalender', icon: Calendar },
+                    { name: 'Plantafel', href: '/plantafel', icon: CalendarDays },
                 ]
             },
+
             {
                 label: 'Einkauf',
                 items: [

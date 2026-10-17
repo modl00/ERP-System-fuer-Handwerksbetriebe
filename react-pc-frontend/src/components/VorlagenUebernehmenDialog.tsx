@@ -150,7 +150,7 @@ function Inhalt({ art, onSchliessen, onFertig }: { art: Art; onSchliessen: () =>
                             <th scope="col" className="w-8 py-2"><span className="sr-only">Übernehmen</span></th>
                             <th scope="col" className="py-2 pr-3 font-semibold">{art === 'arbeitsgaenge' ? 'Arbeitsgang' : 'Artikel'}</th>
                             {art === 'arbeitsgaenge'
-                                ? (<><th scope="col" className="px-2 py-2 font-semibold">Abteilung</th><th scope="col" className="px-2 py-2 text-right font-semibold">Beispiel</th></>)
+                                ? (<><th scope="col" className="px-2 py-2 font-semibold">Abteilung</th><th scope="col" className="px-2 py-2 font-semibold">Eingabefelder</th><th scope="col" className="px-2 py-2 text-right font-semibold">Beispiel</th></>)
                                 : (<><th scope="col" className="px-2 py-2 text-right font-semibold">Gewicht</th><th scope="col" className="px-2 py-2 text-right font-semibold">Außenfläche</th></>)}
                             <th scope="col" className="pl-2 py-2 font-semibold">Stand</th>
                         </tr></thead>
@@ -160,6 +160,7 @@ function Inhalt({ art, onSchliessen, onFertig }: { art: Art; onSchliessen: () =>
                                     <td className="py-2"><input type="checkbox" className="h-4 w-4 accent-rose-600" aria-label={`${z.name} übernehmen`} disabled={z.vorhanden} checked={auswahl.has(z.name)} onChange={() => umschalten(z.name)} /></td>
                                     <td className="py-2 pr-3"><span className="font-medium text-slate-900 break-words">{z.name}</span><span className="block text-xs text-slate-500">{z.erklaerung}</span></td>
                                     <td className="px-2 py-2 text-slate-600">{z.abteilung}</td>
+                                    <td className="px-2 py-2 text-slate-600">{z.felder > 0 ? <span className="inline-flex items-center gap-1 rounded-full bg-blue-50 px-2 py-0.5 text-xs text-blue-700">{z.felder} Variable{z.felder !== 1 ? 'n' : ''}</span> : <span className="text-slate-400">–</span>}</td>
                                     <td className="px-2 py-2 text-right tabular-nums">{zahl(z.beispielMinuten)} min {z.einheit}</td>
                                     <td className="pl-2 py-2 text-xs">{z.vorhanden ? <span className="text-slate-500">vorhanden</span> : <span className="font-medium text-emerald-700">neu</span>}</td>
                                 </tr>

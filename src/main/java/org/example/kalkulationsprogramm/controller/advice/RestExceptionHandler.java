@@ -122,6 +122,17 @@ public class RestExceptionHandler {
         return punkt >= 0 ? propertyPath.substring(punkt + 1) : propertyPath;
     }
 
+    /**
+     * Fachliche Validierungsfehler aus den Services (z. B. ungültiger Jahresbetrag
+     * in KostenstelleService.pruefeSoll, Entität nicht gefunden in setzeSoll): 400
+     * statt 500, damit die Oberfläche die Meldung lesen kann.
+     */
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiError> handleIllegalArgument(IllegalArgumentException ex) {
+        ApiError body = new ApiError(HttpStatus.BAD_REQUEST.value(), ex.getMessage(), null, List.of(), null);
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(body);
+    }
+
     @ExceptionHandler(ResponseStatusException.class)
     public ResponseEntity<ApiError> handleResponseStatus(ResponseStatusException ex) {
         ApiError body = new ApiError(

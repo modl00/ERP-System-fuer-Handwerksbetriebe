@@ -8,12 +8,14 @@ import { PageLayout } from "../components/layout/PageLayout";
 import { ArtikelSuche, type ArtikelSucheHandle } from "../components/artikel/ArtikelSuche";
 import Aufschlaege from "./Aufschlaege";
 import WerkstoffEditor from "./WerkstoffEditor";
+import ProduktkategorieEditor from "./ProduktkategorieEditor";
 
-type TabId = 'artikel' | 'werkstoffe' | 'aufschlaege';
+type TabId = 'artikel' | 'werkstoffe' | 'aufschlaege' | 'kategorien';
 const TABS: { id: TabId; label: string }[] = [
     { id: 'artikel',     label: 'Artikel' },
     { id: 'werkstoffe',  label: 'Werkstoffe' },
     { id: 'aufschlaege', label: 'Aufschläge' },
+    { id: 'kategorien',  label: 'Kategorien' },
 ];
 
 function istGueltigerTab(v: string): v is TabId {
@@ -120,6 +122,7 @@ export default function ArtikelEditor() {
             )}
             {activeTab === 'werkstoffe' && <WerkstoffEditor eingebettet />}
             {activeTab === 'aufschlaege' && <Aufschlaege eingebettet />}
+            {activeTab === 'kategorien' && <ProduktkategorieEditor eingebettet />}
         </PageLayout>
     );
 }

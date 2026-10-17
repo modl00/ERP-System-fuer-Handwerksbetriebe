@@ -136,7 +136,8 @@ const KategorieTree: React.FC<KategorieTreeProps> = ({
 };
 
 // ==================== Main Component ====================
-export default function ProduktkategorieEditor() {
+/** {@code eingebettet}: ohne Seitenkopf und Seitenrand, zum Einsetzen in ein Fenster (zum Beispiel in der Artikelübersicht). */
+export default function ProduktkategorieEditor({ eingebettet = false }: { eingebettet?: boolean } = {}) {
     const toast = useToast();
     const confirmDialog = useConfirm();
     const [hauptkategorien, setHauptkategorien] = useState<Produktkategorie[]>([]);
@@ -351,28 +352,32 @@ export default function ProduktkategorieEditor() {
 
     return (
         <PageLayout
-            ribbonCategory="Artikelverwaltung"
-            title="Produktkategorien"
-            subtitle="Verwaltung der hierarchischen Kategoriestruktur."
-            actions={
-                <>
-                    {selectedKategorie && (
-                        <Button
-                            variant="outline"
-                            size="sm"
-                            className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                            onClick={() => setAnalyseOpen(true)}
-                        >
-                            <BarChart3 className="w-4 h-4 mr-2" />
-                            Analyse
-                        </Button>
-                    )}
-                    <Button variant="outline" size="sm" onClick={loadHauptkategorien} disabled={loading}>
-                        <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
-                        Aktualisieren
-                    </Button>
-                </>
-            }
+            {...(eingebettet
+                ? { className: 'max-w-none px-0 sm:px-0 lg:px-0 py-0' }
+                : {
+                    ribbonCategory: 'Artikelverwaltung',
+                    title: 'Produktkategorien',
+                    subtitle: 'Verwaltung der hierarchischen Kategoriestruktur.',
+                    actions: (
+                        <>
+                            {selectedKategorie && (
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                                    onClick={() => setAnalyseOpen(true)}
+                                >
+                                    <BarChart3 className="w-4 h-4 mr-2" />
+                                    Analyse
+                                </Button>
+                            )}
+                            <Button variant="outline" size="sm" onClick={loadHauptkategorien} disabled={loading}>
+                                <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
+                                Aktualisieren
+                            </Button>
+                        </>
+                    ),
+                })}
         >
             {/* 3-Column Grid */}
             <div className="grid grid-cols-1 xl:grid-cols-[1fr_1fr_1.5fr] gap-6">

@@ -164,7 +164,7 @@ export function DocumentEditorHeader({
                         className="h-7 px-2 text-[11px] gap-1 rounded-md text-slate-500 hover:text-slate-700"
                     >
                         <Package className="w-3 h-3" />
-                        Material
+                        Artikel
                     </Button>
                     <div className="w-px h-5 bg-slate-200 mx-0.5" />
                     <Button

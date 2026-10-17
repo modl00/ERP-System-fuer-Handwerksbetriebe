@@ -2,6 +2,9 @@ import { StrictMode } from 'react';
 import { createRoot } from 'react-dom/client';
 import './index.css';
 import App from './App';
+import { wendeGemerkteFarbeAn } from './features/darstellung/darstellung';
+
+wendeGemerkteFarbeAn();
 
 // CSRF protection: intercept all state-changing fetch requests and inject X-XSRF-TOKEN header.
 // Spring Security sets the XSRF-TOKEN cookie (non-HttpOnly) via CookieCsrfTokenRepository.

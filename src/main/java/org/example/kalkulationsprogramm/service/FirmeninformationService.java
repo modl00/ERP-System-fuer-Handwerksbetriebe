@@ -44,12 +44,34 @@ public class FirmeninformationService {
             MediaType.IMAGE_JPEG_VALUE, "jpg",
             "image/webp", "webp");
 
+    /** Maximal zulaessige Briefpapier-Dateigroesse in Bytes (30 MB). */
+    static final long MAX_BRIEFPAPIER_BYTES = 30L * 1024 * 1024;
+
+    /** Erlaubte MIME-Types fuer das Briefpapier (Whitelist): Bilder und PDF. */
+    static final List<String> ERLAUBTE_BRIEFPAPIER_MIME_TYPES = List.of(
+            MediaType.IMAGE_PNG_VALUE,
+            MediaType.IMAGE_JPEG_VALUE,
+            MediaType.APPLICATION_PDF_VALUE);
+
+    /** MIME-Type -> Dateiendung fuer das Briefpapier. */
+    private static final Map<String, String> BRIEFPAPIER_MIME_ZU_ENDUNG = Map.of(
+            MediaType.IMAGE_PNG_VALUE, "png",
+            MediaType.IMAGE_JPEG_VALUE, "jpg",
+            MediaType.APPLICATION_PDF_VALUE, "pdf");
+
+    /** Geladenes Briefpapier: Bytes, ob es ein PDF ist, und Content-Type. */
+    public record Briefpapier(byte[] bytes, boolean istPdf, String contentType) {}
+
     private final FirmeninformationRepository repository;
     private final GewerkRepository gewerkRepository;
 
     /** Basis-Verzeichnis fuer Firmen-Uploads (Logo). Ueberschreibbar fuer Tests. */
     @Value("${firma.logo.upload-dir:uploads/firma/logo}")
     private String logoUploadDir;
+
+    /** Basis-Verzeichnis fuer das Briefpapier. Ueberschreibbar fuer Tests. */
+    @Value("${firma.briefpapier.upload-dir:uploads/firma/briefpapier}")
+    private String briefpapierUploadDir;
 
     @Transactional(readOnly = true)
     public FirmeninformationDto getFirmeninformation() {
@@ -244,6 +266,136 @@ public class FirmeninformationService {
         return MediaType.APPLICATION_OCTET_STREAM_VALUE;
     }
 
+    // ==================== BRIEFPAPIER ====================
+
+    /**
+     * Speichert ein hochgeladenes Briefpapier (PNG, JPEG oder PDF).
+     * Bilder werden auf A4-Auflösung skaliert; PDFs werden unverändert gespeichert.
+     * Der Dateiname wird immer server-seitig als {@code briefpapier.<ext>} gesetzt.
+     */
+    @Transactional
+    public FirmeninformationDto speichereBriefpapier(MultipartFile datei) throws IOException {
+        if (datei == null || datei.isEmpty()) {
+            throw new IllegalArgumentException("Datei ist leer");
+        }
+        if (datei.getSize() > MAX_BRIEFPAPIER_BYTES) {
+            throw new IllegalArgumentException(
+                    "Datei zu groß (maximal " + (MAX_BRIEFPAPIER_BYTES / 1024 / 1024) + " MB)");
+        }
+        String contentType = datei.getContentType();
+        String endung = BRIEFPAPIER_MIME_ZU_ENDUNG.get(contentType != null ? contentType.toLowerCase(Locale.ROOT) : "");
+        if (endung == null) {
+            throw new IllegalArgumentException(
+                    "Ungültiger Dateityp – erlaubt sind PNG, JPEG und PDF");
+        }
+
+        Path basis = Path.of(briefpapierUploadDir).toAbsolutePath().normalize();
+        Files.createDirectories(basis);
+
+        String neuerDateiname = "briefpapier." + endung;
+        Path ziel = basis.resolve(neuerDateiname).normalize();
+        if (!ziel.startsWith(basis)) {
+            throw new IllegalStateException("Ungueltiger Zielpfad");
+        }
+
+        Firmeninformation fi = repository.getOrCreate();
+        String alterDateiname = fi.getBriefpapierDateiname();
+        if (alterDateiname != null && !alterDateiname.equals(neuerDateiname)) {
+            loescheBriefpapierDateiFallsVorhanden(basis, alterDateiname);
+        }
+
+        byte[] zuSpeichern;
+        if (MediaType.APPLICATION_PDF_VALUE.equals(contentType)) {
+            zuSpeichern = datei.getBytes();
+        } else {
+            BriefpapierBild.Ergebnis aufbereitet = BriefpapierBild.aufbereiten(datei.getBytes(), endung);
+            zuSpeichern = aufbereitet.bytes();
+        }
+        Files.write(ziel, zuSpeichern);
+
+        fi.setBriefpapierDateiname(neuerDateiname);
+        fi = repository.save(fi);
+        log.info("Briefpapier gespeichert: dateiname={} groesse={}B", neuerDateiname, zuSpeichern.length);
+        return toDto(fi);
+    }
+
+    /**
+     * Liefert das hinterlegte Briefpapier als {@link Briefpapier}-Record oder {@code null},
+     * wenn kein Briefpapier vorhanden ist.
+     */
+    @Transactional(readOnly = true)
+    public Briefpapier loadBriefpapier() {
+        Firmeninformation fi = repository.findFirmeninformation().orElse(null);
+        if (fi == null || fi.getBriefpapierDateiname() == null || fi.getBriefpapierDateiname().isBlank()) {
+            return null;
+        }
+        Path basis = Path.of(briefpapierUploadDir).toAbsolutePath().normalize();
+        Path datei = basis.resolve(fi.getBriefpapierDateiname()).normalize();
+        if (!datei.startsWith(basis) || !Files.isRegularFile(datei)) {
+            return null;
+        }
+        try {
+            byte[] bytes = Files.readAllBytes(datei);
+            String name = fi.getBriefpapierDateiname().toLowerCase(Locale.ROOT);
+            boolean istPdf = name.endsWith(".pdf");
+            String ct = istPdf ? MediaType.APPLICATION_PDF_VALUE
+                    : name.endsWith(".jpg") || name.endsWith(".jpeg") ? MediaType.IMAGE_JPEG_VALUE
+                    : MediaType.IMAGE_PNG_VALUE;
+            return new Briefpapier(bytes, istPdf, ct);
+        } catch (IOException e) {
+            log.warn("Briefpapier konnte nicht gelesen werden: {}", datei, e);
+            return null;
+        }
+    }
+
+    /**
+     * Entfernt das Briefpapier (Datei + DB-Eintrag). Idempotent.
+     */
+    @Transactional
+    public FirmeninformationDto loescheBriefpapier() {
+        Firmeninformation fi = repository.getOrCreate();
+        String dateiname = fi.getBriefpapierDateiname();
+        if (dateiname != null && !dateiname.isBlank()) {
+            Path basis = Path.of(briefpapierUploadDir).toAbsolutePath().normalize();
+            loescheBriefpapierDateiFallsVorhanden(basis, dateiname);
+        }
+        fi.setBriefpapierDateiname(null);
+        fi.setBriefpapierEnthaeltKopf(false);
+        fi = repository.save(fi);
+        return toDto(fi);
+    }
+
+    /**
+     * Setzt das Flag, ob das Briefpapier schon Briefkopf und Fußzeile enthält
+     * (dann lässt der PDF-Generator die eigenen Firmenblöcke weg).
+     */
+    @Transactional
+    public FirmeninformationDto setzeBriefpapierEnthaeltKopf(boolean enthaeltKopf) {
+        Firmeninformation fi = repository.getOrCreate();
+        if (fi.getBriefpapierDateiname() == null || fi.getBriefpapierDateiname().isBlank()) {
+            throw new IllegalArgumentException("Es ist noch kein Briefpapier hinterlegt.");
+        }
+        fi.setBriefpapierEnthaeltKopf(enthaeltKopf);
+        fi = repository.save(fi);
+        return toDto(fi);
+    }
+
+    private void loescheBriefpapierDateiFallsVorhanden(Path basis, String dateiname) {
+        if (dateiname == null || dateiname.isBlank()) {
+            return;
+        }
+        String baseName = Path.of(dateiname).getFileName().toString();
+        Path datei = basis.resolve(baseName).normalize();
+        if (!datei.startsWith(basis)) {
+            return;
+        }
+        try {
+            Files.deleteIfExists(datei);
+        } catch (IOException e) {
+            log.warn("Altes Briefpapier konnte nicht geloescht werden: {}", datei, e);
+        }
+    }
+
     private void loescheLogoDateiFallsVorhanden(Path basis, String dateiname) {
         if (dateiname == null || dateiname.isBlank()) {
             return;
@@ -343,6 +495,8 @@ public class FirmeninformationService {
         } else if (fi.getGewerk() != null) {
             dto.setBgSatzEffektiv(fi.getGewerk().getBgSatzProzent());
         }
+        dto.setBriefpapierDateiname(fi.getBriefpapierDateiname());
+        dto.setBriefpapierEnthaeltKopf(fi.isBriefpapierEnthaeltKopf());
         return dto;
     }
 }

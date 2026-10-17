@@ -36,6 +36,10 @@ public class FirmeninformationDto {
     private int tageBisZweiteMahnung;
     private int mahnverfahrenNeuesZahlungszielTage;
 
+    // Briefpapier
+    private String briefpapierDateiname;
+    private boolean briefpapierEnthaeltKopf;
+
     // Gewerk + Unfallversicherung
     private Long gewerkId;
     private String gewerkName;

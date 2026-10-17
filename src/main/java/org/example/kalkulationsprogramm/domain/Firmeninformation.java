@@ -107,4 +107,11 @@ public class Firmeninformation {
     // Default-Satz aus dem zugeordneten Gewerk.
     @Column(name = "bg_satz_override", precision = 5, scale = 2)
     private BigDecimal bgSatzOverride;
+
+    // Briefpapier der Firma (Bild oder PDF), liegt als Hintergrund hinter allen PDFs.
+    @Column(name = "briefpapier_dateiname")
+    private String briefpapierDateiname;
+
+    @Column(name = "briefpapier_enthaelt_kopf", nullable = false)
+    private boolean briefpapierEnthaeltKopf = false;
 }

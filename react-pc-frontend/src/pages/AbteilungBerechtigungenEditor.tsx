@@ -4,8 +4,9 @@ import { RechteReiter } from '../features/rechte/RechteReiter';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { useToast } from '../components/ui/toast';
+import { useConfirm } from '../components/ui/confirm-dialog';
 import { FunktionsrechteBereich } from '../features/funktionsrechte/FunktionsrechteBereich';
-import { CalendarCheck, Shield, Users, Save, Loader2, Check, Eye, FileText, Wallet, Bell, Phone } from 'lucide-react';
+import { CalendarCheck, Shield, Users, Save, Loader2, Check, Eye, FileText, Wallet, Bell, Phone, Plus, Trash2 } from 'lucide-react';
 
 interface TypBerechtigung {
     typ: string;
@@ -35,6 +36,7 @@ const DOKUMENT_TYP_LABELS: Record<string, string> = {
 
 export default function AbteilungBerechtigungenEditor() {
     const toast = useToast();
+    const confirm = useConfirm();
     // Stabile Referenz, damit loadBerechtigungen keine wechselnde Abhaengigkeit bekommt.
     const toastRef = useRef(toast);
     toastRef.current = toast;
@@ -43,6 +45,9 @@ export default function AbteilungBerechtigungenEditor() {
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState<number | null>(null);
     const [saveSuccess, setSaveSuccess] = useState<number | null>(null);
+    const [neuerName, setNeuerName] = useState('');
+    const [anlegenLaeuft, setAnlegenLaeuft] = useState(false);
+    const [loeschenLaeuft, setLoeschenLaeuft] = useState<number | null>(null);
 
     const loadBerechtigungen = useCallback(async () => {
         setLoading(true);
@@ -66,6 +71,47 @@ export default function AbteilungBerechtigungenEditor() {
     useEffect(() => {
         loadBerechtigungen();
     }, [loadBerechtigungen]);
+
+    const handleAbteilungAnlegen = async () => {
+        const name = neuerName.trim();
+        if (!name) return;
+        setAnlegenLaeuft(true);
+        try {
+            const res = await fetch('/api/abteilungen', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name }),
+            });
+            if (!res.ok) throw new Error('Abteilung konnte nicht angelegt werden.');
+            toast.success(`Abteilung „${name}" angelegt.`);
+            setNeuerName('');
+            await loadBerechtigungen();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Abteilung konnte nicht angelegt werden.');
+        }
+        setAnlegenLaeuft(false);
+    };
+
+    const handleAbteilungLoeschen = async (abteilungId: number, abteilungName: string) => {
+        const ok = await confirm({
+            title: 'Abteilung löschen?',
+            message: `Abteilung „${abteilungName}" dauerhaft löschen? Abteilungen mit Arbeitsgängen können nicht gelöscht werden.`,
+            confirmLabel: 'Löschen',
+            variant: 'danger',
+        });
+        if (!ok) return;
+        setLoeschenLaeuft(abteilungId);
+        try {
+            const res = await fetch(`/api/abteilungen/${abteilungId}`, { method: 'DELETE' });
+            if (res.status === 409) throw new Error(`„${abteilungName}" hat noch Arbeitsgänge und kann nicht gelöscht werden.`);
+            if (!res.ok) throw new Error('Abteilung konnte nicht gelöscht werden.');
+            toast.success(`Abteilung „${abteilungName}" gelöscht.`);
+            await loadBerechtigungen();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Abteilung konnte nicht gelöscht werden.');
+        }
+        setLoeschenLaeuft(null);
+    };
 
     const handleToggle = (abteilungId: number, typ: string, field: 'darfSehen' | 'darfScannen') => {
         setBerechtigungen(prev => prev.map(abt => {
@@ -158,6 +204,63 @@ export default function AbteilungBerechtigungenEditor() {
                     </p>
                 </div>
             </div>
+
+            {/* Abteilungsverwaltung */}
+            <Card className="mb-8 p-6">
+                <div className="flex items-center gap-3 mb-4">
+                    <div className="w-9 h-9 bg-rose-100 rounded-lg flex items-center justify-center">
+                        <Users className="w-5 h-5 text-rose-600" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900">Abteilungen</h2>
+                        <p className="text-sm text-slate-500">Werkstatt, Büro, Montage und eigene Abteilungen verwalten</p>
+                    </div>
+                </div>
+                <ul className="mb-4 divide-y divide-slate-100">
+                    {berechtigungen.map(abt => (
+                        <li key={abt.abteilungId} className="flex items-center justify-between py-2">
+                            <span className="text-sm font-medium text-slate-900">{abt.abteilungName}</span>
+                            <button
+                                type="button"
+                                title={`„${abt.abteilungName}" löschen`}
+                                aria-label={`Abteilung „${abt.abteilungName}" löschen`}
+                                disabled={loeschenLaeuft === abt.abteilungId}
+                                onClick={() => void handleAbteilungLoeschen(abt.abteilungId, abt.abteilungName)}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                            >
+                                {loeschenLaeuft === abt.abteilungId
+                                    ? <Loader2 className="w-4 h-4 animate-spin" aria-hidden="true" />
+                                    : <Trash2 className="w-4 h-4" aria-hidden="true" />}
+                            </button>
+                        </li>
+                    ))}
+                    {berechtigungen.length === 0 && !loading && (
+                        <li className="py-3 text-sm text-slate-400">Noch keine Abteilungen vorhanden.</li>
+                    )}
+                </ul>
+                <form
+                    onSubmit={e => { e.preventDefault(); void handleAbteilungAnlegen(); }}
+                    className="flex gap-2"
+                >
+                    <input
+                        type="text"
+                        value={neuerName}
+                        onChange={e => setNeuerName(e.target.value)}
+                        placeholder="Name der neuen Abteilung"
+                        maxLength={80}
+                        className="flex-1 rounded-md border border-slate-300 px-3 py-2 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                    />
+                    <Button
+                        type="submit"
+                        size="sm"
+                        disabled={anlegenLaeuft || !neuerName.trim()}
+                        className="bg-rose-600 text-white hover:bg-rose-700"
+                    >
+                        {anlegenLaeuft ? <Loader2 className="w-4 h-4 animate-spin mr-1" aria-hidden="true" /> : <Plus className="w-4 h-4 mr-1" aria-hidden="true" />}
+                        Anlegen
+                    </Button>
+                </form>
+            </Card>
 
             <FunktionsrechteBereich />
 
@@ -377,9 +480,9 @@ export default function AbteilungBerechtigungenEditor() {
                 {!loadError && berechtigungen.length === 0 && (
                     <Card className="p-12 text-center">
                         <Users className="w-12 h-12 mx-auto text-slate-300 mb-4" />
-                        <p className="text-slate-500">Keine Abteilungen vorhanden.</p>
+                        <p className="text-slate-500">Noch keine Abteilungen angelegt.</p>
                         <p className="text-slate-400 text-sm mt-1">
-                            Erstellen Sie zuerst Abteilungen im Mitarbeiter-Editor.
+                            Legen Sie oben eine Abteilung an, um Berechtigungen zu verwalten.
                         </p>
                     </Card>
                 )}

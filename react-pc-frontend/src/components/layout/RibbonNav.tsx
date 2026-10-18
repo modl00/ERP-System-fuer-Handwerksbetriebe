@@ -10,7 +10,7 @@ import { useTelefonBerechtigung } from '../../features/telefon/useTelefonBerecht
 import { useNeueSprachnachrichten } from '../../features/telefon/useNeueSprachnachrichten';
 import { useKiAktiv } from '../../features/ki/useKiAktiv';
 import { useZeiterfassungSichtbarkeit } from '../../features/zeiterfassung/useZeiterfassungSichtbarkeit';
-import { useWartungAktiv, useLagerAktiv } from '../../features/modulschalter/useFeatures';
+import { useWartungAktiv, useLagerAktiv, useModulAktiv } from '../../features/modulschalter/useFeatures';
 import { NAVIGATION, ZEITERFASSUNG_KATEGORIE, type NavCategory } from './navigation';
 
 
@@ -19,6 +19,7 @@ const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/be
 const TELEFON_PATHS = new Set(['/telefon/anrufe', '/telefon/anrufbeantworter']);
 const WARTUNG_PATHS = new Set(['/wartung']);
 const LAGER_PATHS = new Set(['/lager']);
+const PLANTAFEL_PATHS = new Set(['/plantafel']);
 
 
 export function RibbonNavigation() {
@@ -31,6 +32,7 @@ export function RibbonNavigation() {
     const darfZeiterfassung = useZeiterfassungSichtbarkeit() === true;
     const wartungAktiv = useWartungAktiv() === true;
     const lagerAktiv = useLagerAktiv() === true;
+    const plantafelAktiv = useModulAktiv('plantafel') !== false;
     // Zähler neuer Nachrichten am Menüpunkt "Anrufbeantworter".
     const neueSprachnachrichten = useNeueSprachnachrichten(darfTelefon);
     const zaehler: Record<string, number> = { '/telefon/anrufbeantworter': neueSprachnachrichten };
@@ -48,12 +50,13 @@ export function RibbonNavigation() {
                             && (isAdmin || !ADMIN_ONLY_PATHS.has(item.href))
                             && (darfTelefon || !TELEFON_PATHS.has(item.href))
                             && (wartungAktiv || !WARTUNG_PATHS.has(item.href))
-                            && (lagerAktiv || !LAGER_PATHS.has(item.href))),
+                            && (lagerAktiv || !LAGER_PATHS.has(item.href))
+                            && (plantafelAktiv || !PLANTAFEL_PATHS.has(item.href))),
                     }))
                     .filter((subgroup) => subgroup.items.length > 0),
             }))
             .filter((category) => category.subgroups.length > 0);
-    }, [isAdmin, darfTelefon, darfZeiterfassung]);
+    }, [isAdmin, darfTelefon, darfZeiterfassung, wartungAktiv, lagerAktiv, plantafelAktiv]);
 
     const [selectedCategory, setSelectedCategory] = useState<string>(NAVIGATION[0].category);
     // Track the pathname when the user explicitly clicked a tab.

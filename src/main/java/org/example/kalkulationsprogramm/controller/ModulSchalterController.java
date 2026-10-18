@@ -32,7 +32,7 @@ public class ModulSchalterController {
     private final ObjectProvider<ModulSchalterService> modulSchalter;
 
     /** {@code miete} und {@code website} stehen im allgemeinen Schalter ({@link Modul}); fehlt der Dienst, gelten sie als eingeschaltet. */
-    public record FeaturesDto(boolean wartung, boolean lager, boolean miete, boolean website) { }
+    public record FeaturesDto(boolean wartung, boolean lager, boolean miete, boolean website, boolean plantafel) { }
 
     public record SchalterDto(@NotNull(message = "Bitte angeben, ob das Modul eingeschaltet ist.") Boolean aktiv) { }
 
@@ -73,6 +73,7 @@ public class ModulSchalterController {
         LagerModulSchalterService lager = lagerSchalter.getIfAvailable();
         ModulSchalterService dienst = modulSchalter.getIfAvailable();
         return new FeaturesDto(wartungSchalter.istAktiv(), lager == null || lager.istAktiv(),
-                dienst == null || dienst.istAktiv(Modul.MIETE), dienst == null || dienst.istAktiv(Modul.WEBSITE));
+                dienst == null || dienst.istAktiv(Modul.MIETE), dienst == null || dienst.istAktiv(Modul.WEBSITE),
+                dienst == null || dienst.istAktiv(Modul.PLANTAFEL));
     }
 }

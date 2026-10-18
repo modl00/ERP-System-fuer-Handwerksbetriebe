@@ -5,6 +5,7 @@ export interface Features {
     /** Wie beim Lager: fehlt die Angabe, gilt das Modul als eingeschaltet. */
     miete?: boolean;
     website?: boolean;
+    plantafel?: boolean;
 }
 
 async function lese(res: Response, fallback: string): Promise<Features> {
@@ -44,8 +45,8 @@ export async function schalteLagermodul(aktiv: boolean): Promise<Features> {
     }), 'Das Lagermodul konnte nicht umgeschaltet werden.');
 }
 
-/** Schaltet eines der allgemeinen Module (zum Beispiel "miete" oder "website") ein oder aus (nur Admin). Es werden keine Daten gelöscht. */
-export async function schalteModul(modul: 'miete' | 'website', aktiv: boolean): Promise<Features> {
+/** Schaltet eines der allgemeinen Module (zum Beispiel "miete", "website" oder "plantafel") ein oder aus (nur Admin). Es werden keine Daten gelöscht. */
+export async function schalteModul(modul: 'miete' | 'website' | 'plantafel', aktiv: boolean): Promise<Features> {
     return lese(await fetch(`/api/settings/features/${encodeURIComponent(modul)}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },

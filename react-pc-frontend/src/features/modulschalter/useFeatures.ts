@@ -94,7 +94,7 @@ export function useLagerAktiv(): boolean | null {
 }
 
 /** Module, die über den allgemeinen Schalter laufen (siehe {@code Modul} im Backend). */
-export type AllgemeinesModul = 'miete' | 'website';
+export type AllgemeinesModul = 'miete' | 'website' | 'plantafel';
 
 /** Ist das Modul eingeschaltet? {@code null} = wird noch geprüft. Fehlt die Angabe, gilt es als eingeschaltet. */
 export function useModulAktiv(modul: AllgemeinesModul): boolean | null {

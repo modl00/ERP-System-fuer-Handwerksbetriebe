@@ -11,7 +11,8 @@ import java.util.Optional;
 public enum Modul {
 
     MIETE("miete", "miete.modul.aktiv", "Das Mietabrechnungsmodul", "/api/miete/**"),
-    WEBSITE("website", "website.modul.aktiv", "Das Neuigkeiten-Modul", "/api/beitraege/**", "/api/website-analytics/**");
+    WEBSITE("website", "website.modul.aktiv", "Das Neuigkeiten-Modul", "/api/beitraege/**", "/api/website-analytics/**"),
+    PLANTAFEL("plantafel", "plantafel.modul.aktiv", "Das Plantafel-Modul", "/api/plantafel/**");
 
     private final String name;
     private final String schluessel;

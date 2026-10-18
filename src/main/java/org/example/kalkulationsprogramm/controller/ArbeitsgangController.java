@@ -37,33 +37,6 @@ public class ArbeitsgangController {
         return ResponseEntity.ok(dtos);
     }
 
-    @PostMapping("/abteilungen")
-    public ResponseEntity<AbteilungResponseDto> erstelleAbteilung(@RequestBody Map<String, String> body) {
-        String name = body.get("name");
-        if (name == null || name.trim().isEmpty()) {
-            return ResponseEntity.badRequest().build();
-        }
-        Abteilung abteilung = new Abteilung();
-        abteilung.setName(name.trim());
-        Abteilung saved = abteilungRepository.save(abteilung);
-        return ResponseEntity.status(HttpStatus.CREATED).body(toAbteilungDto(saved));
-    }
-
-    @DeleteMapping("/abteilungen/{id}")
-    public ResponseEntity<Void> loescheAbteilung(@PathVariable Long id) {
-        try {
-            Abteilung abteilung = abteilungRepository.findById(id)
-                    .orElseThrow(() -> new RuntimeException("Abteilung nicht gefunden"));
-            if (!abteilung.getArbeitsgaenge().isEmpty()) {
-                return ResponseEntity.status(HttpStatus.CONFLICT).build();
-            }
-            abteilungRepository.delete(abteilung);
-            return ResponseEntity.noContent().build();
-        } catch (Exception e) {
-            return ResponseEntity.notFound().build();
-        }
-    }
-
     private AbteilungResponseDto toAbteilungDto(Abteilung abteilung) {
         AbteilungResponseDto dto = new AbteilungResponseDto();
         dto.setId(abteilung.getId());

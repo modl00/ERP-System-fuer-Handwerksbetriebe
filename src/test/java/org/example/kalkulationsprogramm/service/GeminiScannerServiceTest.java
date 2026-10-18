@@ -2,61 +2,60 @@ package org.example.kalkulationsprogramm.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
-import static org.mockito.ArgumentMatchers.anyDouble;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.anyList;
-import static org.mockito.ArgumentMatchers.anyString;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
-import java.io.IOException;
+import java.util.List;
 
+import org.example.kalkulationsprogramm.service.ki.KiAnbieter;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
 import org.example.kalkulationsprogramm.service.ki.KiFunktion;
-import org.example.kalkulationsprogramm.service.ki.KiTextWeiche;
-import org.junit.jupiter.api.BeforeEach;
+import org.example.kalkulationsprogramm.service.ki.KiTypen;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
-
-import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
 /** Der Scanner benennt Fotos über den gewählten KI-Anbieter. Nur Dummy-Daten. */
+@ExtendWith(MockitoExtension.class)
 class GeminiScannerServiceTest {
 
-    KiTextWeiche weiche = mock(KiTextWeiche.class);
-    GeminiScannerService service = new GeminiScannerService(new ObjectMapper(), mock(SystemSettingsService.class));
+    @Mock KiAnbieterService kiAnbieterService;
+    @Mock KiAnbieter kiAnbieter;
 
-    @BeforeEach
-    void setUp() {
-        ReflectionTestUtils.setField(service, "weiche", weiche);
-        when(weiche.istGemini(KiFunktion.SCANNER)).thenReturn(false);
+    @InjectMocks
+    GeminiScannerService service;
+
+    @Test
+    void einAnbieterBenenntDasFotoUndDerNameWirdBereinigt() throws Exception {
+        when(kiAnbieterService.waehle(KiFunktion.SCANNER)).thenReturn(kiAnbieter);
+        when(kiAnbieter.chat(any())).thenReturn(
+                new KiTypen.KiAntwort("  Rechnung Müller/GmbH_2026-10-11.pdf ", List.of()));
+
+        assertThat(service.generateFilename(new byte[] {1, 2, 3})).isEqualTo("Rechnung_MllerGmbH_2026-10-11pdf");
     }
 
     @Test
-    void einAnbieterAusserGeminiBenenntDasFotoUndDerNameWirdBereinigt() throws Exception {
-        when(weiche.frageMitDateien(eq(KiFunktion.SCANNER), anyString(), anyString(), anyList(), anyDouble(), anyInt(), anyBoolean()))
-                .thenReturn("  Rechnung Müller/GmbH_2026-10-11.pdf ");
+    void keinAnbieterKonfiguriert_gibtErsatzname() throws Exception {
+        when(kiAnbieterService.waehle(KiFunktion.SCANNER)).thenThrow(new KiAnbieterFehler("kein Anbieter"));
 
-        assertThat(service.generateFilename(new byte[] { 1, 2, 3 })).isEqualTo("Rechnung_MllerGmbH_2026-10-11pdf");
+        assertThat(service.generateFilename(new byte[] {1})).startsWith("Scan_");
     }
 
     @Test
-    void fehltDemAnbieterEtwasGibtEsEinenErsatznamenStattEinesFehlers() throws Exception {
-        when(weiche.frageMitDateien(any(), any(), any(), any(), anyDouble(), anyInt(), anyBoolean())).thenThrow(new IOException("kein Schlüssel"));
+    void kiFehler_gibtErsatzname() throws Exception {
+        when(kiAnbieterService.waehle(KiFunktion.SCANNER)).thenReturn(kiAnbieter);
+        when(kiAnbieter.chat(any())).thenThrow(new RuntimeException("Verbindung unterbrochen"));
 
-        assertThat(service.generateFilename(new byte[] { 1 })).startsWith("Scan_");
+        assertThat(service.generateFilename(new byte[] {1, 2, 3})).startsWith("Scan_");
     }
 
     @Test
-    void einLeeresFotoGibtEinenErsatznamen() {
-        assertThat(service.generateFilename(new byte[0])).startsWith("Scan_");
-    }
+    void nurSonderzeichen_gibtErsatzname() throws Exception {
+        when(kiAnbieterService.waehle(KiFunktion.SCANNER)).thenReturn(kiAnbieter);
+        when(kiAnbieter.chat(any())).thenReturn(new KiTypen.KiAntwort("***", List.of()));
 
-    @Test
-    void bereinigenLaesstNurBuchstabenZiffernUnterstrichUndBindestrichStehen() {
-        assertThat(GeminiScannerService.bereinige("Brief Finanzamt 2024-01-05")).isEqualTo("Brief_Finanzamt_2024-01-05");
-        assertThat(GeminiScannerService.bereinige("***")).startsWith("Scan_");
-        assertThat(GeminiScannerService.bereinige(null)).startsWith("Scan_");
+        assertThat(service.generateFilename(new byte[] {1, 2, 3})).startsWith("Scan_");
     }
 }

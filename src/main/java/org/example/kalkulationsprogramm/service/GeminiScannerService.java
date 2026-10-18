@@ -1,34 +1,24 @@
 package org.example.kalkulationsprogramm.service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Value;
+import java.util.List;
+
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
+import org.example.kalkulationsprogramm.service.ki.KiTypen.Anhang;
+import org.example.kalkulationsprogramm.service.ki.KiTypen.KiAnfrage;
+import org.example.kalkulationsprogramm.service.ki.KiTypen.Nutzer;
 import org.springframework.stereotype.Service;
 
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
-import java.time.Duration;
-import java.util.Base64;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
 @Service
 @RequiredArgsConstructor
 public class GeminiScannerService {
 
-    private final ObjectMapper objectMapper;
-    private final SystemSettingsService systemSettingsService;
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(15))
-            .build();
-
-    @Value("${ai.gemini.model.scanner:gemini-3-flash-preview}")
-    private String geminiModel;
+    private final KiAnbieterService kiAnbieterService;
 
     private static final String SYSTEM_PROMPT_FILENAME = """
             You are a smart file naming assistant.
@@ -53,72 +43,18 @@ public class GeminiScannerService {
 
     public String generateFilename(byte[] imageBytes) {
         try {
-            // Key zur Laufzeit aus System-Setup lesen.
-            String geminiApiKey = systemSettingsService.getGeminiApiKey();
-            if (geminiApiKey == null || geminiApiKey.isBlank())
-                return "Scan_" + System.currentTimeMillis();
-
-            String base64Image = Base64.getEncoder().encodeToString(imageBytes);
-
-            // Build Request
-            ObjectNode requestBody = objectMapper.createObjectNode();
-
-            // System Prompt
-            ObjectNode systemInstruction = objectMapper.createObjectNode();
-            ArrayNode sysParts = objectMapper.createArrayNode();
-            sysParts.add(objectMapper.createObjectNode().put("text", SYSTEM_PROMPT_FILENAME));
-            systemInstruction.set("parts", sysParts);
-            requestBody.set("systemInstruction", systemInstruction);
-
-            // User Content
-            ArrayNode contents = objectMapper.createArrayNode();
-            ObjectNode userMsg = objectMapper.createObjectNode().put("role", "user");
-            ArrayNode parts = objectMapper.createArrayNode();
-
-            ObjectNode imgPart = objectMapper.createObjectNode();
-            ObjectNode inlineData = objectMapper.createObjectNode();
-            inlineData.put("mimeType", "image/jpeg");
-            inlineData.put("data", base64Image);
-            imgPart.set("inlineData", inlineData);
-            parts.add(imgPart);
-
-            parts.add(objectMapper.createObjectNode().put("text", "Generate a filename."));
-
-            userMsg.set("parts", parts);
-            contents.add(userMsg);
-            requestBody.set("contents", contents);
-
-            // Config
-            ObjectNode config = objectMapper.createObjectNode();
-            config.put("temperature", 0.0);
-            config.put("responseMimeType", "text/plain");
-            requestBody.set("generationConfig", config);
-
-            // Send
-            String body = objectMapper.writeValueAsString(requestBody);
-            HttpRequest request = GeminiAnfrage.generateContent(geminiModel, geminiApiKey)
-                    .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request,
-                    HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-
-            if (response.statusCode() != 200) {
-                log.error("Gemini Naming Error {}: {}", response.statusCode(), GeminiAnfrage.fuerLog(response.body()));
-                return "Scan_" + System.currentTimeMillis();
-            }
-
-            // Parse
-            JsonNode root = objectMapper.readTree(response.body());
-            String text = root.path("candidates").get(0).path("content").path("parts").get(0).path("text").asText()
-                    .trim();
-
-            // Cleanup
+            KiAnfrage anfrage = new KiAnfrage(
+                    SYSTEM_PROMPT_FILENAME,
+                    List.of(new Nutzer("Generate a filename.", List.of(new Anhang("image/jpeg", imageBytes)))),
+                    List.of(), 0.0, 200);
+            String text = kiAnbieterService.waehle(KiFunktion.SCANNER).chat(anfrage).text().trim();
             text = text.replace(" ", "_").replaceAll("[^a-zA-Z0-9_\\-]", "");
             return text.isEmpty() ? "Scan_" + System.currentTimeMillis() : text;
-
+        } catch (KiAnbieterFehler e) {
+            log.warn("[Scanner] KI nicht eingerichtet: {}", e.getMessage());
+            return "Scan_" + System.currentTimeMillis();
         } catch (Exception e) {
-            log.error("Failed to generate filename: {}", e.getClass().getSimpleName());
+            log.error("[Scanner] Fehler beim Dateinamen: {}", e.getClass().getSimpleName());
             return "Scan_" + System.currentTimeMillis();
         }
     }

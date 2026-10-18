@@ -3,6 +3,11 @@ package org.example.kalkulationsprogramm.service;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.example.kalkulationsprogramm.dto.SpracheingabeErgebnis;
+import org.example.kalkulationsprogramm.service.ki.AnbieterTyp;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService.FunktionsEinstellung;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService.AnbieterStand;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -37,15 +42,24 @@ import static org.mockito.Mockito.when;
 class SpracheingabeServiceTest {
 
     private SystemSettingsService systemSettingsService;
+    private KiAnbieterService kiAnbieterService;
     private HttpClient httpClient;
     private SpracheingabeService service;
 
     @BeforeEach
     void setUp() {
         systemSettingsService = mock(SystemSettingsService.class);
+        kiAnbieterService = mock(KiAnbieterService.class);
         httpClient = mock(HttpClient.class);
+        // Standard: Gemini als konfigurierter Anbieter (eingerichtet).
+        // lenient: einige Tests (Format-Prüfung, normalisiereInhaltstyp) erreichen den Anbieter-Check gar nicht.
+        FunktionsEinstellung geminiEinstellung = new FunktionsEinstellung(
+                "spracheingabe", "Spracheingabe", AnbieterTyp.GEMINI, KiFunktion.Datenschutz.CLOUD_ERLAUBT);
+        Mockito.lenient().when(kiAnbieterService.einstellung(KiFunktion.SPRACHEINGABE)).thenReturn(geminiEinstellung);
+        Mockito.lenient().when(kiAnbieterService.stand(AnbieterTyp.GEMINI)).thenReturn(
+                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, true, "", true));
         service = new SpracheingabeService(
-                systemSettingsService, new ObjectMapper(), httpClient, "gemini-flash-latest");
+                systemSettingsService, kiAnbieterService, new ObjectMapper(), httpClient, "gemini-flash-latest");
     }
 
     private static byte[] audioBytes(int laenge) {
@@ -242,17 +256,38 @@ class SpracheingabeServiceTest {
     }
 
     @Test
-    void ohneApiSchluesselIstDieSpracheingabeAus() {
-        when(systemSettingsService.isGeminiConfigured()).thenReturn(false);
+    void ohneEingerichtetenAnbieterIstDieSpracheingabeAus() {
+        when(kiAnbieterService.stand(AnbieterTyp.GEMINI)).thenReturn(
+                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, false, "", false));
 
         assertThat(service.istVerfuegbar()).isFalse();
     }
 
     @Test
-    void mitApiSchluesselIstDieSpracheingabeAn() {
-        when(systemSettingsService.isGeminiConfigured()).thenReturn(true);
+    void mitEingerichtetemGeminiIstDieSpracheingabeAn() {
+        // setUp setzt eingerichtet=true; hier noch einmal explizit, um den Intent zu dokumentieren.
+        when(kiAnbieterService.stand(AnbieterTyp.GEMINI)).thenReturn(
+                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, true, "", true));
 
         assertThat(service.istVerfuegbar()).isTrue();
+    }
+
+    @Test
+    void nichtUnterstuetzterAnbieterWirdOhneAudiolesenAbgewiesen() {
+        // Wenn ein anderer Anbieter als Gemini konfiguriert ist, wirft der Dienst sofort KiNichtEingerichtet,
+        // ohne die Aufnahme zu lesen (kein unnötiger Speicherverbrauch, kein Datentransfer).
+        when(kiAnbieterService.einstellung(KiFunktion.SPRACHEINGABE)).thenReturn(
+                new FunktionsEinstellung("spracheingabe", "Spracheingabe", AnbieterTyp.CLAUDE, KiFunktion.Datenschutz.CLOUD_ERLAUBT));
+        ZaehlenderStrom audio = new ZaehlenderStrom(10);
+
+        assertThatThrownBy(() -> service.transkribiere(audio, "audio/webm"))
+                .isInstanceOf(SpracheingabeService.KiNichtEingerichtet.class)
+                .hasMessageContaining("Gemini");
+
+        assertThat(audio.geleseneBytes())
+                .as("ohne unterstuetzten Anbieter wird die Aufnahme gar nicht gelesen")
+                .isZero();
+        Mockito.verifyNoInteractions(httpClient);
     }
 
     @Test

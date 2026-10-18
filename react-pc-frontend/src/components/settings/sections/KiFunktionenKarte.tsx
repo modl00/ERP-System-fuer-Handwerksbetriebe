@@ -30,8 +30,15 @@ const ANBIETER = '/api/settings/ki-anbieter';
 const MODELLE = '/api/settings/ki-modelle';
 const json = { 'Content-Type': 'application/json' };
 
-/** Funktionen, die schon über die Anbieterwahl laufen, haben im Modell-Dienst von Gemini einen eigenen Schlüssel; die übrigen sind noch fest bei Gemini. */
-const MIT_ANBIETERWAHL = new Set(['ki-hilfe', 'assistent', 'email-classification', 'email-text', 'pdf-extractor', 'plantafel', 'testbox']);
+/**
+ * Gemini-Schlüssel, die unterdrückt werden, weil die Funktion jetzt über KiFunktion/KiAnbieterService läuft.
+ * 'dokument-analyse' → DOKUMENT_ERKENNEN, 'scanner' → SCANNER, 'spracheingabe' → SPRACHEINGABE (alle in KiFunktion).
+ * 'pro' (Schwierige Fälle) war ein Gemini-internes Modell-Tier, das durch die Modellauswahl pro Funktion abgelöst wurde.
+ */
+const MIT_ANBIETERWAHL = new Set([
+    'ki-hilfe', 'assistent', 'email-classification', 'email-text', 'pdf-extractor', 'plantafel', 'testbox',
+    'dokument-analyse', 'scanner', 'pro', 'spracheingabe',
+]);
 
 const DATENSCHUTZ = [
     { value: 'NUR_LOKAL', label: 'Nur lokal' },

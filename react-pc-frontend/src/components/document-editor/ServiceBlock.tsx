@@ -12,6 +12,9 @@ import { createPortal } from 'react-dom';
 import { KategorieAnalyseModal } from '../KategorieAnalyseModal';
 import { AddBelowButton } from './TextBlock';
 import { WahlpositionMenu } from './WahlpositionMenu';
+import { EigenePositionKalkulieren } from './EigenePositionKalkulieren';
+import { EigenePositionAlsArtikel } from './EigenePositionAlsArtikel';
+import { AlternativeKalkulation } from './AlternativeKalkulation';
 
 interface ServiceBlockProps {
     block: DocBlock;
@@ -228,7 +231,7 @@ export function ServiceBlock({
             </div>
             )}
 
-            {/* Calculation row - nur aufgeklappt */}
+            {/* Calculation row + Positions-Aktionen - nur aufgeklappt */}
             {!collapsed && (
             <div className="mx-4 mb-4 bg-slate-50 rounded-lg border border-slate-100 p-3">
                 <div className="flex items-center gap-3">
@@ -333,6 +336,28 @@ export function ServiceBlock({
                 {prognoseLoading && (
                     <div className="mt-2 pt-2 border-t border-slate-100">
                         <span className="text-[10px] text-slate-400 animate-pulse">Zeitprognose wird berechnet...</span>
+                    </div>
+                )}
+                {/* Einmalige Positions-Aktionen: Kalkulieren / Als Artikel / Alternative */}
+                {!isLocked && (block.eigenePosition || block.leistungId != null || block.artikelId != null) && (
+                    <div className="mt-2 pt-2 border-t border-slate-100 pl-0">
+                        {block.eigenePosition ? (
+                            <div className="flex flex-wrap gap-2">
+                                <EigenePositionKalkulieren
+                                    block={block}
+                                    onUpdate={(updates) => onUpdate(block.id, updates)}
+                                />
+                                <EigenePositionAlsArtikel
+                                    block={block}
+                                    onUebernommen={(artikelId) => onUpdate(block.id, { artikelId, eigenePosition: false })}
+                                />
+                            </div>
+                        ) : (
+                            <AlternativeKalkulation
+                                block={block}
+                                onUpdate={(updates) => onUpdate(block.id, updates)}
+                            />
+                        )}
                     </div>
                 )}
             </div>

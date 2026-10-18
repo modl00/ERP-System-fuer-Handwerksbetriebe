@@ -1,4 +1,4 @@
-import { AlertTriangle, Search, Wrench, Clock, X, Printer, Folder, FolderOpen, ChevronDown, ChevronRight, Loader2, Eye, FileText } from 'lucide-react';
+import { AlertTriangle, Search, Wrench, Clock, X, Printer, Folder, FolderOpen, ChevronDown, ChevronRight, Loader2, Eye, FileText, Pencil } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { LeistungApiDto, ArbeitszeitartApiDto } from './types';
@@ -23,7 +23,7 @@ export function AddTypeDialog({
     title = 'Was hinzufügen?',
     description = 'Wählen Sie, welches Element an dieser Stelle eingefügt werden soll.',
 }: {
-    onPick: (type: 'LEISTUNG' | 'STUNDENSATZ' | 'TEXTBAUSTEIN') => void;
+    onPick: (type: 'LEISTUNG' | 'STUNDENSATZ' | 'TEXTBAUSTEIN' | 'EIGENE') => void;
     onClose: () => void;
     title?: string;
     description?: string;
@@ -103,6 +103,19 @@ export function AddTypeDialog({
                         <div className="flex-1 min-w-0">
                             <p className="text-sm font-semibold text-slate-800">Textbaustein</p>
                             <p className="text-xs text-slate-500">Hinweis oder Beschreibungstext</p>
+                        </div>
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => onPick('EIGENE')}
+                        className="flex items-center gap-3 p-3 rounded-xl border border-slate-200 hover:border-rose-300 hover:bg-rose-50/40 focus:outline-none focus:ring-2 focus:ring-rose-500/30 focus:border-rose-300 transition-colors text-left"
+                    >
+                        <div className="p-2 bg-rose-50 rounded-lg flex-shrink-0">
+                            <Pencil className="w-4 h-4 text-rose-600" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                            <p className="text-sm font-semibold text-slate-800">Eigene Position</p>
+                            <p className="text-xs text-slate-500">Einmalige Leistung ohne Katalog</p>
                         </div>
                     </button>
                 </div>

@@ -1984,11 +1984,13 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
      * gesetzten pendingAnchorRef zu verlieren. Wichtig: Wir resetten den
      * Anker NICHT in closeAddTypeDialog, weil der Picker ihn noch braucht.
      */
-    const openPickerForType = useCallback((picker: 'TEXTBAUSTEIN' | 'LEISTUNG' | 'STUNDENSATZ') => {
+    const openPickerForType = useCallback((picker: 'TEXTBAUSTEIN' | 'LEISTUNG' | 'STUNDENSATZ' | 'EIGENE') => {
         setShowAddTypeDialog(false);
         if (picker === 'TEXTBAUSTEIN') setShowTextbausteinPicker(true);
         else if (picker === 'LEISTUNG') setShowLeistungPicker(true);
+        else if (picker === 'EIGENE') addBlock('SERVICE', { eigenePosition: true });
         else setShowStundensatzPicker(true);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     /** Plus-Symbol unter einer Karte (Textbaustein/Leistung) auf Root oder im Bauabschnitt. */

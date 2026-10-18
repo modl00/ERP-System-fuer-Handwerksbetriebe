@@ -10,13 +10,17 @@ jobs:
   build:
     runs-on: docker
     steps:
-      - uses: actions/checkout@v4
+      - name: Repository auschecken
+        run: |
+          git clone ${{ gitea.server_url }}/${{ gitea.repository }}.git repo --depth=1 --branch=${{ gitea.ref_name }}
+          cd repo && git checkout ${{ gitea.sha }}
 
       - name: Image bauen und taggen
         run: |
+          cd repo
           docker build \
             -t erp-handwerk:main \
-            -t "erp-handwerk:${{ github.sha }}" \
+            -t "erp-handwerk:${{ gitea.sha }}" \
             .
           echo "Image erp-handwerk:main gebaut"
 

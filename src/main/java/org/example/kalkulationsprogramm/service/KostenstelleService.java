@@ -76,7 +76,7 @@ public class KostenstelleService {
      */
     @Transactional
     public void erstelleStandardKostenstellen() {
-        if (repository.count() == 0) {
+        if (repository.findByAktivTrueOrderBySortierungAsc().isEmpty()) {
             Kostenstelle lager = new Kostenstelle();
             lager.setBezeichnung("Lager");
             lager.setTyp(KostenstellenTyp.LAGER);

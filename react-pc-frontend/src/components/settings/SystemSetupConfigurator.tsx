@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Blocks, Brain, Check, Clock, DatabaseZap, FolderOpen, Globe, Hash, Mail, Palette, Phone, Shield, CalendarRange } from 'lucide-react';
+import { Blocks, Brain, CalendarDays, Check, Clock, DatabaseZap, FolderOpen, Globe, Hash, Mail, Palette, Phone, Shield, CalendarRange } from 'lucide-react';
 import { EmailSettingsSection } from './sections/EmailSettingsSection';
 import { DateiOrdnerSection } from './sections/DateiOrdnerSection';
 import { LesbareAblageBereich } from '../../features/ablage/LesbareAblageBereich';
@@ -11,6 +11,7 @@ import { TelefonSettingsSection } from './sections/TelefonSettingsSection';
 import { ModuleSection } from './sections/ModuleSection';
 import { DarstellungSection } from './sections/DarstellungSection';
 import { PlanungSection } from './sections/PlanungSection';
+import { PlantafelEinstellungenSection } from './sections/PlantafelEinstellungenSection';
 import { WebsiteZugangKarte } from './sections/WebsiteZugangKarte';
 import { AngebotsLinkKarte } from './sections/AngebotsLinkKarte';
 import { NummernkreiseSection } from './sections/NummernkreiseSection';
@@ -32,7 +33,7 @@ import { BerechtigungenSection } from './sections/BerechtigungenSection';
  * mehr an.</p>
  */
 
-type TabId = 'email' | 'dateien' | 'ki' | 'zeiterfassung' | 'telefon' | 'website' | 'nummern' | 'module' | 'darstellung' | 'planung' | 'import' | 'berechtigungen';
+type TabId = 'email' | 'dateien' | 'ki' | 'zeiterfassung' | 'telefon' | 'website' | 'nummern' | 'module' | 'darstellung' | 'planung' | 'plantafel' | 'import' | 'berechtigungen';
 
 interface TabDefinition {
     id: TabId;
@@ -46,11 +47,12 @@ const TABS: TabDefinition[] = [
     { id: 'ki', label: 'KI-Funktionen', icon: <Brain className="w-4 h-4" /> },
     { id: 'zeiterfassung', label: 'Zeiterfassung', icon: <Clock className="w-4 h-4" /> },
     { id: 'telefon', label: 'Telefon', icon: <Phone className="w-4 h-4" /> },
-    { id: 'website', label: 'Website', icon: <Globe className="w-4 h-4" /> },
+    { id: 'website', label: 'Neuigkeiten', icon: <Globe className="w-4 h-4" /> },
     { id: 'nummern', label: 'Nummernkreise', icon: <Hash className="w-4 h-4" /> },
     { id: 'module', label: 'Module', icon: <Blocks className="w-4 h-4" /> },
     { id: 'darstellung', label: 'Darstellung', icon: <Palette className="w-4 h-4" /> },
     { id: 'planung', label: 'Planung', icon: <CalendarRange className="w-4 h-4" /> },
+    { id: 'plantafel', label: 'Plantafel', icon: <CalendarDays className="w-4 h-4" /> },
     { id: 'import', label: 'Datenübernahme', icon: <DatabaseZap className="w-4 h-4" /> },
     { id: 'berechtigungen', label: 'Berechtigungen', icon: <Shield className="w-4 h-4" /> },
 ];
@@ -247,6 +249,7 @@ export function SystemSetupConfigurator({ onSaved }: SystemSetupConfiguratorProp
                 {activeTab === 'module' && <ModuleSection />}
                 {activeTab === 'darstellung' && <DarstellungSection />}
                 {activeTab === 'planung' && <PlanungSection />}
+                {activeTab === 'plantafel' && <PlantafelEinstellungenSection />}
                 {activeTab === 'import' && (
                     <>
                         <HeroVerbindungKarte />

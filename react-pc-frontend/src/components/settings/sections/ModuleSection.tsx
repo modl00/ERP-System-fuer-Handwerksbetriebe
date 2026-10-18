@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ClipboardCheck, Globe, Home, Loader2, Warehouse, type LucideIcon } from 'lucide-react';
+import { CalendarDays, ClipboardCheck, Globe, Home, Loader2, Warehouse, type LucideIcon } from 'lucide-react';
 import { Card } from '../../ui/card';
 import { useConfirm } from '../../ui/confirm-dialog';
 import { useToast } from '../../ui/toast';
@@ -92,6 +92,7 @@ export function ModuleSection() {
     const lager = useLagerAktiv();
     const miete = useModulAktiv('miete');
     const website = useModulAktiv('website');
+    const plantafel = useModulAktiv('plantafel');
 
     return (
         <Card className="p-4 sm:p-6">
@@ -137,6 +138,16 @@ export function ModuleSection() {
                 warnung="Menüpunkt und Seite „Neuigkeiten“ verschwinden für alle Benutzer. Die Beiträge liegen auf der Website und bleiben dort unverändert."
                 aktiv={website}
                 schalten={(aktiv) => schalteModul('website', aktiv)}
+            />
+            <ModulKarte
+                id="plantafel"
+                icon={CalendarDays}
+                titel="Plantafel"
+                beschreibung="Auftraege planen, Mitarbeiter und Ressourcen zuweisen, Lieferzeiten berechnen. Ausgeschaltet verschwinden Menuepunkt und Seite; die Daten bleiben erhalten."
+                modulName="Plantafel-Modul"
+                warnung="Menuepunkt und Seite Plantafel verschwinden fuer alle Benutzer. Alle Planungsdaten bleiben erhalten und sind nach dem Einschalten wieder da."
+                aktiv={plantafel}
+                schalten={(aktiv) => schalteModul('plantafel', aktiv)}
             />
         </Card>
     );

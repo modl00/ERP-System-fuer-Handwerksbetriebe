@@ -132,6 +132,36 @@ function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string 
                 return;
             }
             const blob = await res.blob();
+
+            if (blob.type === 'application/pdf') {
+                // pdf.js ist global via index.html geladen (Version 3.11.174)
+                // eslint-disable-next-line @typescript-eslint/no-explicit-any
+                const pdfjsLib = (window as any).pdfjsLib;
+                if (!pdfjsLib) {
+                    toast.error('PDF-Verarbeitung ist nicht verfügbar.');
+                    return;
+                }
+                const pdfDaten = await blob.arrayBuffer();
+                const pdf = await pdfjsLib.getDocument({ data: pdfDaten }).promise;
+                const seite = await pdf.getPage(1);
+                // A4 bei ~150 dpi → Breite 1240 px
+                const massstab = 1240 / seite.getViewport({ scale: 1 }).width;
+                const viewport = seite.getViewport({ scale: massstab });
+                const canvas = document.createElement('canvas');
+                canvas.width = Math.round(viewport.width);
+                canvas.height = Math.round(viewport.height);
+                const ctx = canvas.getContext('2d');
+                if (!ctx) {
+                    toast.error('Das Briefpapier konnte nicht verarbeitet werden.');
+                    return;
+                }
+                await seite.render({ canvasContext: ctx, viewport }).promise;
+                onBild(canvas.toDataURL('image/png'));
+                toast.success('Briefpapier aus den Firmen-Einstellungen übernommen.');
+                return;
+            }
+
+            // Bild-Formate: bisheriger FileReader-Pfad
             const reader = new FileReader();
             reader.onload = () => {
                 const ergebnis = typeof reader.result === 'string' ? reader.result : '';

@@ -2,9 +2,6 @@ package org.example.kalkulationsprogramm.service;
 
 import java.lang.reflect.Method;
 import java.math.BigDecimal;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.time.LocalDate;
@@ -39,6 +36,11 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieter;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
+import org.example.kalkulationsprogramm.service.ki.KiTypen;
 import org.example.kalkulationsprogramm.testsupport.LogMitschnitt;
 import org.springframework.context.ApplicationEventPublisher;
 
@@ -56,6 +58,8 @@ class GeminiDokumentAnalyseServiceTest {
     @Mock private ApplicationEventPublisher eventPublisher;
     @Mock private org.example.kalkulationsprogramm.repository.LieferantDokumentVerknuepfungSperreRepository sperreRepository;
     @Mock private LieferantDokumentPositionService positionService;
+    @Mock private KiAnbieterService kiAnbieterService;
+    @Mock private KiAnbieter kiAnbieter;
 
     private GeminiDokumentAnalyseService service;
 
@@ -81,7 +85,8 @@ class GeminiDokumentAnalyseServiceTest {
                         mock(org.springframework.transaction.PlatformTransactionManager.class)),
                 new LieferantDokumentDateiService(ablage.toString(), ablage.toString(),
                         ablage.resolve("attachments").toString(),
-                        ablage.resolve("attachments").resolve("lieferanten").toString())
+                        ablage.resolve("attachments").resolve("lieferanten").toString()),
+                kiAnbieterService
         );
     }
 
@@ -997,15 +1002,12 @@ class GeminiDokumentAnalyseServiceTest {
      *
      * <p>Dafuer laeuft hier der komplette Weg: {@code analysiereDokument()} ->
      * ZUGFeRD-Versuch (schlaegt fuer die Test-Dummy-Datei erwartungsgemaess
-     * fehl) -> KI-Fallback -> {@code rufGeminiApi} (mit gemocktem
-     * {@code httpClient}) -> {@code mapJsonToData} ->
+     * fehl) -> KI-Fallback -> {@code rufGemini} (ueber gemockten
+     * {@code KiAnbieterService}) -> {@code mapJsonToData} ->
      * {@code verarbeiteArtikelPositionen} -> {@code eventPublisher.publishEvent}.
      *
-     * <p>Der {@code httpClient} ist inline gebaut und kein Konstruktor-Parameter
-     * - deshalb per Reflection ersetzt, genau wie in
-     * {@code BelegKiAnalyseServiceTest} (dortiges {@code setField}-Muster).
-     * Der {@code objectMapper} IST ein Konstruktor-Parameter; damit der volle
-     * JSON-Roundtrip (Request bauen, Gemini-Antwort parsen, Positionen mappen)
+     * <p>Der {@code objectMapper} IST ein Konstruktor-Parameter; damit der volle
+     * JSON-Roundtrip (Gemini-Antwort parsen, Positionen mappen)
      * tatsaechlich laeuft statt an einem unbestueckten Mock zu scheitern,
      * bekommt der Service hier eine eigene Instanz mit einem echten
      * {@link ObjectMapper} statt des klassenweiten Mock-Feldes.
@@ -1020,11 +1022,10 @@ class GeminiDokumentAnalyseServiceTest {
                 "0b1c2d3e-4f50-4617-8899-aabbccddeeff_" + ORIGINALNAME_MIT_NAMEN;
 
         private GeminiDokumentAnalyseService serviceMitEchtemMapper;
-        private HttpClient httpClientMock;
         private Path tempUploadRoot;
 
         @BeforeEach
-        void baueServiceMitGemocktemHttpClientAuf() throws Exception {
+        void baueServiceAuf() throws Exception {
             // Eigenes Upload-Verzeichnis pro Test, damit nichts im echten
             // uploads/-Ordner landet (Sperrzone fuer Commits, siehe CLAUDE.md).
             tempUploadRoot = Files.createTempDirectory("gemini-analyse-test-uploads");
@@ -1037,7 +1038,7 @@ class GeminiDokumentAnalyseServiceTest {
                     tempUploadRoot.resolve("attachments").resolve("lieferanten").toString()));
         }
 
-        /** Service mit echtem Mapper, gemocktem {@code httpClient} und der übergebenen Dateisuche. */
+        /** Service mit echtem Mapper, gemocktem {@code KiAnbieterService} und der übergebenen Dateisuche. */
         private GeminiDokumentAnalyseService baueService(LieferantDokumentDateiService dateiService)
                 throws Exception {
             GeminiDokumentAnalyseService neu = new GeminiDokumentAnalyseService(
@@ -1054,9 +1055,8 @@ class GeminiDokumentAnalyseServiceTest {
                     new LieferantDokumentPositionLeser(new ObjectMapper()),
                     new org.springframework.transaction.support.TransactionTemplate(
                             mock(org.springframework.transaction.PlatformTransactionManager.class)),
-                    dateiService);
-            httpClientMock = mock(HttpClient.class);
-            setField(neu, "httpClient", httpClientMock);
+                    dateiService,
+                    kiAnbieterService);
             return neu;
         }
 
@@ -1258,11 +1258,11 @@ class GeminiDokumentAnalyseServiceTest {
             String positionen = """
                     {"artikelPositionen":[{"bezeichnung":"Flachstahl 50x5","gesamtpreisNetto":100},
                      {"bezeichnung":"Rundrohr 42,4x2","gesamtpreisNetto":150}]}""";
-            HttpResponse<String> abgeschnitten = antwort("{\"dokumentTyp\":\"RECHNUNG\",\"artikelPos", "MAX_TOKENS");
-            HttpResponse<String> kopfAntwort = antwort(kopf, "STOP");
-            HttpResponse<String> positionsAntwort = antwort(positionen, "STOP");
-            when(httpClientMock.<String>send(any(HttpRequest.class), any()))
-                    .thenReturn(abgeschnitten, kopfAntwort, positionsAntwort);
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any()))
+                    .thenReturn(new KiTypen.KiAntwort("{\"dokumentTyp\":\"RECHNUNG\",\"artikelPos", List.of()))
+                    .thenReturn(new KiTypen.KiAntwort(kopf, List.of()))
+                    .thenReturn(new KiTypen.KiAntwort(positionen, List.of()));
 
             LieferantGeschaeftsdokument result = serviceMitEchtemMapper.analysiereDokument(dokument);
 
@@ -1287,10 +1287,9 @@ class GeminiDokumentAnalyseServiceTest {
             gd.setAiRawJson("{\"dokumentNummer\":\"AB-1\",\"artikelPositionen\":[]}");
             dokument.setGeschaeftsdaten(gd);
             when(dokumentRepository.findById(604L)).thenReturn(Optional.of(dokument));
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("dummy-test-key");
-            HttpResponse<String> positionen = antwort(
-                    "{\"artikelPositionen\":[{\"bezeichnung\":\"Glasklemme V2A\",\"menge\":16}]}", "STOP");
-            when(httpClientMock.<String>send(any(HttpRequest.class), any())).thenReturn(positionen);
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any())).thenReturn(new KiTypen.KiAntwort(
+                    "{\"artikelPositionen\":[{\"bezeichnung\":\"Glasklemme V2A\",\"menge\":16}]}", List.of()));
             when(positionService.ersetzePositionen(any(), any(), any())).thenReturn(1);
 
             int anzahl = serviceMitEchtemMapper.positionenNachlesen(604L);
@@ -1323,14 +1322,13 @@ class GeminiDokumentAnalyseServiceTest {
             gd.setAiRawJson("{\"dokumentNummer\":\"AB-2\",\"artikelPositionen\":[]}");
             dokument.setGeschaeftsdaten(gd);
             when(dokumentRepository.findById(607L)).thenReturn(Optional.of(dokument));
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("dummy-test-key");
-            HttpResponse<String> positionen = antwort(
-                    "{\"artikelPositionen\":[{\"bezeichnung\":\"Glasklemme V2A\",\"menge\":4}]}", "STOP");
-            when(httpClientMock.<String>send(any(HttpRequest.class), any())).thenReturn(positionen);
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any())).thenReturn(new KiTypen.KiAntwort(
+                    "{\"artikelPositionen\":[{\"bezeichnung\":\"Glasklemme V2A\",\"menge\":4}]}", List.of()));
             when(positionService.ersetzePositionen(any(), any(), any())).thenReturn(1);
 
             assertThat(serviceMitEchtemMapper.positionenNachlesen(607L)).isEqualTo(1);
-            verify(httpClientMock).send(any(HttpRequest.class), any());
+            verify(kiAnbieter).chat(any());
         }
 
         @Test
@@ -1361,7 +1359,7 @@ class GeminiDokumentAnalyseServiceTest {
             org.assertj.core.api.Assertions.assertThatThrownBy(() -> serviceMitEchtemMapper.positionenNachlesen(606L))
                     .isInstanceOf(PositionenNichtLesbarException.class)
                     .hasMessageNotContaining(tempUploadRoot.toString());
-            verifyNoInteractions(positionService, httpClientMock);
+            verifyNoInteractions(positionService, kiAnbieter);
         }
 
         @Test
@@ -1419,7 +1417,7 @@ class GeminiDokumentAnalyseServiceTest {
                     "Fehler bei Dateianalyse: IllegalArgumentException",
                     "Fehler bei analyzeAndReturnData: IllegalArgumentException",
                     "Fehler bei Dokumentanalyse für Dokument 608: SecurityException");
-            verifyNoInteractions(httpClientMock);
+            verifyNoInteractions(kiAnbieter);
         }
 
         @Test
@@ -1441,7 +1439,7 @@ class GeminiDokumentAnalyseServiceTest {
             assertThat(log).contains(
                     "KI-Analyse fehlgeschlagen für Dokument 609: NoSuchFileException",
                     "KI-Preview fehlgeschlagen: NoSuchFileException");
-            verifyNoInteractions(httpClientMock);
+            verifyNoInteractions(kiAnbieter);
         }
 
         @Test
@@ -1467,7 +1465,7 @@ class GeminiDokumentAnalyseServiceTest {
             assertThat(log).contains(
                     "Konnte Datei nicht finden für Dokument 610",
                     "Konnte Datei nicht finden für Dokument 611");
-            verifyNoInteractions(httpClientMock);
+            verifyNoInteractions(kiAnbieter);
         }
 
         @Test
@@ -1503,8 +1501,8 @@ class GeminiDokumentAnalyseServiceTest {
         void kiFehlerOhneInhaltImLog() throws Exception {
             String abgeschnitten = "{\"dokumentNummer\":\"RE-2026-0904\",\"lieferant\":\"Max_Mustermann\","
                     + "\"betragBrutto\":";
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("dummy-test-key");
-            when(httpClientMock.<String>send(any(HttpRequest.class), any()))
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any()))
                     .thenThrow(new java.io.IOException("Verbindung abgebrochen bei " + DATEINAME_MIT_NAMEN));
             Class<?>[] text = {String.class};
 
@@ -1520,33 +1518,23 @@ class GeminiDokumentAnalyseServiceTest {
                     .anyMatch(zeile -> zeile.startsWith(
                             "Fehler beim Parsen der KI-Response (" + abgeschnitten.length() + " Zeichen): "))
                     .anyMatch(zeile -> zeile.startsWith("Fehler beim Parsen der KI-Antwort"))
-                    .contains("Gemini Multi-Doc API-Aufruf fehlgeschlagen: IOException");
-            // Der Schlüssel reist im Header, nie in der URL – die steht in Fehlermeldungen.
-            ArgumentCaptor<HttpRequest> anfrage = ArgumentCaptor.forClass(HttpRequest.class);
-            verify(httpClientMock).send(anfrage.capture(), any());
-            assertThat(anfrage.getValue().uri().toString()).doesNotContain("dummy-test-key");
-            assertThat(anfrage.getValue().headers().firstValue("x-goog-api-key")).hasValue("dummy-test-key");
+                    .anyMatch(zeile -> zeile.contains("[Dokument-Analyse] Fehler:") && zeile.contains("IOException"));
         }
 
         @Test
-        @org.junit.jupiter.api.DisplayName("Gemini-Fehler mit Wiederholung: Log nennt nur Fehlerart, Schluessel im Header")
-        void geminiWiederholungOhneInhaltImLog() throws Exception {
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("dummy-test-key");
-            when(httpClientMock.<String>send(any(HttpRequest.class), any()))
+        @org.junit.jupiter.api.DisplayName("KI-Fehler: Log verrät keinen Dokumentinhalt")
+        void kiFehlerVerraetKeinenInhalt() throws Exception {
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any()))
                     .thenThrow(new IllegalStateException("Antwort nicht lesbar: Max_Mustermann"));
 
-            List<String> log = mitLog(() -> assertThat(rufePrivat("rufGeminiApi",
-                    new Class<?>[] {byte[].class, String.class, boolean.class},
-                    new byte[] {1, 2, 3}, "application/pdf", false)).isNull());
+            List<String> log = mitLog(() -> assertThat(
+                    serviceMitEchtemMapper.rufGeminiApiMitPrompt(
+                            new byte[] {1, 2, 3}, "application/pdf", "Was steht drin?")).isNull());
 
             assertThat(log).noneMatch(zeile -> zeile.contains("Max_Mustermann"));
-            assertThat(log).contains(
-                    "[Gemini API] Exception bei Attempt 1/3: IllegalStateException",
-                    "[Gemini API] Alle 3 Retries fehlgeschlagen. Letzte Exception: IllegalStateException");
-            ArgumentCaptor<HttpRequest> anfrage = ArgumentCaptor.forClass(HttpRequest.class);
-            verify(httpClientMock).send(anfrage.capture(), any());
-            assertThat(anfrage.getValue().uri().toString()).doesNotContain("dummy-test-key");
-            assertThat(anfrage.getValue().headers().firstValue("x-goog-api-key")).hasValue("dummy-test-key");
+            assertThat(log).anyMatch(zeile ->
+                    zeile.contains("[Dokument-Analyse] Fehler:") && zeile.contains("IllegalStateException"));
         }
 
         /** Ruft eine private Methode des Service auf; Fehler kommen ohne Reflection-Hülle heraus. */
@@ -1581,15 +1569,15 @@ class GeminiDokumentAnalyseServiceTest {
         }
 
         @Test
-        @org.junit.jupiter.api.DisplayName("Ohne KI-Schlüssel verlässt kein Dokument den Betrieb")
-        void ohneSchluesselKeinAufrufAnGemini() {
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("");
+        @org.junit.jupiter.api.DisplayName("Ohne konfigurierten KI-Anbieter gibt rufGeminiApiMitPrompt null zurück")
+        void ohneAnbieterKeinAufruf() throws Exception {
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN))
+                    .thenThrow(new KiAnbieterFehler("kein Anbieter konfiguriert"));
 
             String antwort = serviceMitEchtemMapper.rufGeminiApiMitPrompt(
                     new byte[] {1, 2, 3}, "application/pdf", "Wie viele Dokumente?");
 
             org.assertj.core.api.Assertions.assertThat(antwort).isNull();
-            verifyNoInteractions(httpClientMock);
         }
 
         @SuppressWarnings("unchecked")
@@ -1805,13 +1793,12 @@ class GeminiDokumentAnalyseServiceTest {
         @Test
         @org.junit.jupiter.api.DisplayName("Neuer Anhang, KI sagt Sonstiges (Widerrufsbelehrung) -> genau ein Aufruf, keine Pruefung")
         void neuerAnhangSonstigesKostetEinenAufruf() throws Exception {
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("dummy-test-key");
-            HttpResponse<String> sonstig = antwort(SONSTIG_ANTWORT, "STOP");
-            when(httpClientMock.<String>send(any(HttpRequest.class), any())).thenReturn(sonstig);
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any())).thenReturn(new KiTypen.KiAntwort(SONSTIG_ANTWORT, List.of()));
 
             LieferantGeschaeftsdokument result = serviceMitEchtemMapper.analyzeAndReturnData(musterDatei(), DATEINAME);
 
-            verify(httpClientMock, org.mockito.Mockito.times(1)).send(any(HttpRequest.class), any());
+            verify(kiAnbieter, org.mockito.Mockito.times(1)).chat(any());
             assertThat(result.getDetectedTyp()).isEqualTo(LieferantDokumentTyp.SONSTIG);
             assertThat(result.getManuellePruefungErforderlich()).isFalse();
             assertThat(result.getDatenquelle()).isNull();
@@ -1820,10 +1807,9 @@ class GeminiDokumentAnalyseServiceTest {
         @Test
         @org.junit.jupiter.api.DisplayName("Sonstiges mit Belegnummer -> KI ist unsicher, alter Weg mit Pruefung")
         void sonstigesMitBelegnummerBleibtZurPruefung() throws Exception {
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("dummy-test-key");
-            HttpResponse<String> unsicher = antwort(
-                    "{\"dokumentTyp\":\"SONSTIG\",\"dokumentNummer\":\"RE-2026-0701\"}", "STOP");
-            when(httpClientMock.<String>send(any(HttpRequest.class), any())).thenReturn(unsicher);
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any())).thenReturn(new KiTypen.KiAntwort(
+                    "{\"dokumentTyp\":\"SONSTIG\",\"dokumentNummer\":\"RE-2026-0701\"}", List.of()));
 
             LieferantGeschaeftsdokument result = serviceMitEchtemMapper.analyzeAndReturnData(musterDatei(), DATEINAME);
 
@@ -1866,7 +1852,7 @@ class GeminiDokumentAnalyseServiceTest {
 
             LieferantGeschaeftsdokument result = serviceMitEchtemMapper.analysiereDokument(dokument);
 
-            verify(httpClientMock, org.mockito.Mockito.times(1)).send(any(HttpRequest.class), any());
+            verify(kiAnbieter, org.mockito.Mockito.times(1)).chat(any());
             assertThat(result.getManuellePruefungErforderlich()).isFalse();
             assertThat(dokument.getTyp()).isEqualTo(LieferantDokumentTyp.SONSTIG);
         }
@@ -2062,64 +2048,20 @@ class GeminiDokumentAnalyseServiceTest {
             assertThat(GeminiDokumentAnalyseService.gleicherBelegTyp(rechnung.getTyp(), anders)).isTrue();
         }
 
-        private HttpResponse<String> antwort(String text, String finishReason) throws Exception {
-            ObjectMapper baumapper = new ObjectMapper();
-            var envelope = baumapper.createObjectNode();
-            var kandidat = envelope.putArray("candidates").addObject();
-            kandidat.putObject("content").putArray("parts").addObject().put("text", text);
-            kandidat.put("finishReason", finishReason);
-            @SuppressWarnings("unchecked")
-            HttpResponse<String> response = mock(HttpResponse.class);
-            when(response.statusCode()).thenReturn(200);
-            when(response.body()).thenReturn(baumapper.writeValueAsString(envelope));
-            return response;
-        }
-
-        /**
-         * Stellt Repository- und API-Antworten so bereit, dass
-         * {@code analysiereDokument()} den KI-Zweig durchlaeuft: kein
-         * ZUGFeRD/XML-Treffer (Dummy-Datei), Gemini-API antwortet mit
-         * {@code analyseJson}.
-         */
         private void stelleKiAntwortBereit(LieferantDokument dokument, String analyseJson) throws Exception {
             stelleRepositoriesBereit(dokument);
-
-            String antwortEnvelope = baueGeminiAntwortEnvelope(analyseJson);
-            @SuppressWarnings("unchecked")
-            HttpResponse<String> httpResponse = mock(HttpResponse.class);
-            when(httpResponse.statusCode()).thenReturn(200);
-            when(httpResponse.body()).thenReturn(antwortEnvelope);
-            when(httpClientMock.<String>send(any(HttpRequest.class), any())).thenReturn(httpResponse);
+            when(kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN)).thenReturn(kiAnbieter);
+            when(kiAnbieter.chat(any())).thenReturn(new KiTypen.KiAntwort(analyseJson, List.of()));
         }
 
         private void stelleRepositoriesBereit(LieferantDokument dokument) {
             when(dokumentRepository.findById(dokument.getId())).thenReturn(Optional.of(dokument));
-            when(systemSettingsService.getGeminiApiKey()).thenReturn("dummy-test-key");
             when(dokumentRepository.saveAndFlush(any(LieferantDokument.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
             when(lieferantGeschaeftsdokumentRepository.saveAndFlush(any(LieferantGeschaeftsdokument.class)))
                     .thenAnswer(inv -> inv.getArgument(0));
         }
 
-        /**
-         * Baut die Huelle, in der Gemini seine Antwort verpackt (candidates ->
-         * content -> parts -> text), mit {@code analyseJsonText} als Inhalt des
-         * text-Feldes - unabhaengig vom (gemockten) {@code objectMapper} der
-         * Service-Instanz.
-         */
-        private String baueGeminiAntwortEnvelope(String analyseJsonText) throws Exception {
-            ObjectMapper baumapper = new ObjectMapper();
-            var envelope = baumapper.createObjectNode();
-            var content = envelope.putArray("candidates").addObject().putObject("content");
-            content.putArray("parts").addObject().put("text", analyseJsonText);
-            return baumapper.writeValueAsString(envelope);
-        }
-
-        private void setField(Object target, String feldName, Object wert) throws Exception {
-            var feld = GeminiDokumentAnalyseService.class.getDeclaredField(feldName);
-            feld.setAccessible(true);
-            feld.set(target, wert);
-        }
     }
 
     @org.junit.jupiter.params.ParameterizedTest
@@ -2434,19 +2376,8 @@ class GeminiDokumentAnalyseServiceTest {
         }
 
         @Test
-        void gleichesModelHeisstKeinNachversuch() throws Exception {
-            ReflectionTestUtils.setField(service, "geminiModel", "gemini-flash");
-            ReflectionTestUtils.setField(service, "geminiProModel", "gemini-flash");
-
+        void keinEigenesProModelNachAbstraktion() throws Exception {
             assertThat(hatEigenesProModel()).isFalse();
-        }
-
-        @Test
-        void anderesModelHeisstNachversuch() throws Exception {
-            ReflectionTestUtils.setField(service, "geminiModel", "gemini-flash");
-            ReflectionTestUtils.setField(service, "geminiProModel", "gemini-pro");
-
-            assertThat(hatEigenesProModel()).isTrue();
         }
     }
 

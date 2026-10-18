@@ -1,28 +1,22 @@
 package org.example.kalkulationsprogramm.service;
 
 import java.math.BigDecimal;
-import java.net.http.HttpClient;
-import java.net.http.HttpRequest;
-import java.net.http.HttpResponse;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.ZoneId;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.Collection;
 import java.util.Comparator;
-import java.util.Base64;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 import java.util.Set;
-import java.util.concurrent.locks.ReentrantLock;
 
 import org.example.kalkulationsprogramm.domain.AusgelesenePosition;
 import org.example.kalkulationsprogramm.domain.LieferantDokument;
@@ -38,6 +32,10 @@ import org.example.kalkulationsprogramm.repository.LieferantDokumentVerknuepfung
 import org.example.kalkulationsprogramm.repository.LieferantGeschaeftsdokumentRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
 import org.example.kalkulationsprogramm.service.LieferantDokumentPositionLeser.KiAntwort;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
+import org.example.kalkulationsprogramm.service.ki.KiTypen;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -79,30 +77,9 @@ public class GeminiDokumentAnalyseService {
     private final LieferantDokumentPositionLeser positionLeser;
     private final TransactionTemplate transactionTemplate;
     private final LieferantDokumentDateiService dokumentDateiService;
+    private final KiAnbieterService kiAnbieterService;
 
-    private final HttpClient httpClient = HttpClient.newBuilder()
-            .connectTimeout(Duration.ofSeconds(30))
-            .build();
-
-    // Synchronized lock to ensure sequential API calls (prevents rate limiting &
-    // race conditions)
-    private static final ReentrantLock API_LOCK = new ReentrantLock(true); // fair lock
-
-    // Minimum delay between API calls (ms) to prevent rate limiting
-    private static final long API_CALL_DELAY_MS = 500;
-    private static volatile long lastApiCallTime = 0;
-
-    // Retry configuration for transient failures
-    private static final int MAX_RETRIES = 3;
-    private static final long INITIAL_RETRY_DELAY_MS = 2000; // 2 seconds, doubles each retry
-
-    @Value("${ai.gemini.model.dokument-analyse:gemini-3-flash-preview}")
-    private String geminiModel;
-
-    @Value("${ai.gemini.model.pro:gemini-3.1-pro-preview}")
-    private String geminiProModel;
-
-    /** Ausgabelimit je Gemini-Aufruf; Flash-Modelle erlauben bis 65.536. */
+    /** Ausgabelimit je KI-Aufruf. */
     @Value("${ai.gemini.dokument-analyse.max-output-tokens:65536}")
     private int maxOutputTokens = 65536;
 
@@ -635,85 +612,36 @@ public class GeminiDokumentAnalyseService {
     }
 
     public String rufGeminiApiMitPrompt(byte[] bytes, String mimeType, String customPrompt, boolean useProModel) {
-        // Ohne Schlüssel ist die KI aus: das Dokument verlässt den Betrieb gar nicht erst.
-        String geminiApiKey = systemSettingsService.getGeminiApiKey();
-        if (geminiApiKey == null || geminiApiKey.isBlank()) {
-            log.debug("[Gemini API] Kein Schlüssel hinterlegt – Multi-Doc-Aufruf übersprungen");
-            return null;
-        }
-        API_LOCK.lock();
         try {
-            // Ensure minimum delay between API calls to prevent rate limiting
-            long now = System.currentTimeMillis();
-            long elapsed = now - lastApiCallTime;
-            if (elapsed < API_CALL_DELAY_MS && lastApiCallTime > 0) {
-                try {
-                    Thread.sleep(API_CALL_DELAY_MS - elapsed);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-            log.debug("[Gemini API] Starte Multi-Doc API-Aufruf (Lock erworben)");
-
-            String base64Data = Base64.getEncoder().encodeToString(bytes);
-            String modelToUse = useProModel ? geminiProModel : geminiModel;
-            ObjectNode requestBody = objectMapper.createObjectNode();
-            ArrayNode contents = requestBody.putArray("contents");
-            ObjectNode content = contents.addObject();
-            ArrayNode parts = content.putArray("parts");
-
-            // Bild/PDF Teil
-            ObjectNode inlineData = parts.addObject().putObject("inline_data");
-            inlineData.put("mime_type", mimeType);
-            inlineData.put("data", base64Data);
-
-            // Custom Prompt Teil
-            parts.addObject().put("text", customPrompt);
-
-            HttpRequest request = GeminiAnfrage.generateContent(modelToUse, geminiApiKey)
-                    .timeout(Duration.ofSeconds(120))
-                    .POST(HttpRequest.BodyPublishers.ofString(objectMapper.writeValueAsString(requestBody)))
-                    .build();
-
-            HttpResponse<String> response = httpClient.send(request, HttpResponse.BodyHandlers.ofString());
-            lastApiCallTime = System.currentTimeMillis();
-
-            if (response.statusCode() != 200) {
-                log.error("Gemini API Fehler: {} - {}", response.statusCode(), GeminiAnfrage.fuerLog(response.body()));
-                return null;
-            }
-
-            JsonNode responseJson = objectMapper.readTree(response.body());
-            JsonNode candidates = responseJson.path("candidates");
-            if (candidates.isEmpty()) {
-                return null;
-            }
-
-            String text = candidates.get(0).path("content").path("parts").get(0).path("text").asText();
-
+            KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
+                    null,
+                    List.of(new KiTypen.Nutzer(customPrompt, List.of(new KiTypen.Anhang(mimeType, bytes)))),
+                    List.of(), 0.0, maxOutputTokens);
+            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text().trim();
             // JSON aus Markdown extrahieren falls vorhanden
             if (text.contains("```json")) {
                 int start = text.indexOf("```json") + 7;
                 int end = text.indexOf("```", start);
                 if (end > start) {
-                    text = text.substring(start, end).trim();
+                    return text.substring(start, end).trim();
                 }
             } else if (text.contains("```")) {
                 int start = text.indexOf("```") + 3;
                 int end = text.indexOf("```", start);
                 if (end > start) {
-                    text = text.substring(start, end).trim();
+                    return text.substring(start, end).trim();
                 }
             }
-
-            log.debug("[Gemini API] Multi-Doc API-Aufruf erfolgreich");
-            return text.trim();
-
-        } catch (Exception e) {
-            log.error("Gemini Multi-Doc API-Aufruf fehlgeschlagen: {}", e.getClass().getSimpleName());
+            return text;
+        } catch (KiAnbieterFehler e) {
+            log.debug("[Dokument-Analyse] KI nicht eingerichtet – Aufruf übersprungen: {}", e.getMessage());
             return null;
-        } finally {
-            API_LOCK.unlock();
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
+        } catch (Exception e) {
+            log.error("[Dokument-Analyse] Fehler: {}", e.getClass().getSimpleName());
+            return null;
         }
     }
 
@@ -1993,9 +1921,9 @@ public class GeminiDokumentAnalyseService {
         }
     }
 
-    /** Ein Pro-Retry lohnt nur, wenn dafür wirklich ein anderes Model konfiguriert ist. */
+    /** Mit dem abstrakten Anbieter gibt es kein separates Pro-Model mehr. */
     private boolean hatEigenesProModel() {
-        return geminiProModel != null && !geminiProModel.equals(geminiModel);
+        return false;
     }
 
     /**
@@ -2407,187 +2335,28 @@ public class GeminiDokumentAnalyseService {
     }
 
     /**
-     * Ein Gemini-Aufruf mit Dokument, System-Anweisung und Nutzertext. Meldet
-     * über {@link KiAntwort#abgeschnitten()}, ob die Antwort am Ausgabelimit
-     * endete ({@code finishReason = MAX_TOKENS}).
+     * Ein KI-Aufruf mit Dokument, System-Anweisung und Nutzertext über den konfigurierten Anbieter.
+     * {@link KiAntwort#abgeschnitten()} wird über {@link #isJsonTruncated(String)} ermittelt.
      */
     private KiAntwort rufGemini(byte[] dokumentBytes, String mimeType, String systemPrompt, String userText,
             boolean useProModel) {
-        API_LOCK.lock();
         try {
-            // Ensure minimum delay between API calls to prevent rate limiting
-            long now = System.currentTimeMillis();
-            long elapsed = now - lastApiCallTime;
-            if (elapsed < API_CALL_DELAY_MS && lastApiCallTime > 0) {
-                try {
-                    Thread.sleep(API_CALL_DELAY_MS - elapsed);
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                }
-            }
-            log.debug("[Gemini API] Starte Dokumentanalyse API-Aufruf (Lock erworben, Model: {})",
-                    useProModel ? "Pro" : "Standard");
-
-            // Key zur Laufzeit aus System-Setup lesen.
-            String geminiApiKey = systemSettingsService.getGeminiApiKey();
-            if (geminiApiKey == null || geminiApiKey.isBlank()) {
-                log.warn("Gemini API Key nicht konfiguriert");
-                return null;
-            }
-
-            String base64Data = Base64.getEncoder().encodeToString(dokumentBytes);
-
-            // Build Request
-            ObjectNode requestBody = objectMapper.createObjectNode();
-
-            // System Prompt
-            ObjectNode systemInstruction = objectMapper.createObjectNode();
-            ArrayNode sysParts = objectMapper.createArrayNode();
-            sysParts.add(objectMapper.createObjectNode().put("text", systemPrompt));
-            systemInstruction.set("parts", sysParts);
-            requestBody.set("systemInstruction", systemInstruction);
-
-            // User Content
-            ArrayNode contents = objectMapper.createArrayNode();
-            ObjectNode userMsg = objectMapper.createObjectNode().put("role", "user");
-            ArrayNode parts = objectMapper.createArrayNode();
-
-            ObjectNode dataPart = objectMapper.createObjectNode();
-            ObjectNode inlineData = objectMapper.createObjectNode();
-            inlineData.put("mimeType", mimeType);
-            inlineData.put("data", base64Data);
-            dataPart.set("inlineData", inlineData);
-            parts.add(dataPart);
-
-            parts.add(objectMapper.createObjectNode().put("text", userText));
-
-            userMsg.set("parts", parts);
-            contents.add(userMsg);
-            requestBody.set("contents", contents);
-
-            // Config - maxOutputTokens wichtig für PDFs mit vielen Artikeln
-            ObjectNode config = objectMapper.createObjectNode();
-            config.put("temperature", 0.0);
-            config.put("responseMimeType", "application/json");
-            // Lange Rechnungen haben hunderte Positionen – 16k reichten dafür nicht.
-            config.put("maxOutputTokens", maxOutputTokens);
-            requestBody.set("generationConfig", config);
-
-            // Send with RETRY logic
-            String body = objectMapper.writeValueAsString(requestBody);
-
-            // RETRY LOOP: Bei Fehlern bis zu MAX_RETRIES versuchen
-            // Beim 3. Versuch (attempt == 2) wird das Pro-Model als Fallback verwendet
-            HttpResponse<String> response = null;
-            Exception lastException = null;
-
-            for (int attempt = 0; attempt < MAX_RETRIES; attempt++) {
-                try {
-                    // Beim letzten Versuch (3.) auf Pro-Model wechseln als Fallback
-                    String modelToUse;
-                    if (attempt == MAX_RETRIES - 1 && !useProModel) {
-                        modelToUse = geminiProModel;
-                        log.info("[Gemini API] Letzter Versuch - wechsle zu Pro-Model: {}", geminiProModel);
-                    } else {
-                        modelToUse = useProModel ? geminiProModel : geminiModel;
-                    }
-
-                    HttpRequest request = GeminiAnfrage.generateContent(modelToUse, geminiApiKey)
-                            .timeout(Duration.ofSeconds(180))
-                            .POST(HttpRequest.BodyPublishers.ofString(body, StandardCharsets.UTF_8))
-                            .build();
-
-                    response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-                    lastApiCallTime = System.currentTimeMillis();
-
-                    // Erfolg (2xx) - Parse Response
-                    if (response.statusCode() >= 200 && response.statusCode() < 300) {
-                        JsonNode root = objectMapper.readTree(response.body());
-
-                        // Prüfe ob candidates vorhanden
-                        JsonNode candidates = root.path("candidates");
-                        if (candidates.isEmpty() || candidates.get(0) == null) {
-                            log.warn("[Gemini API] Keine candidates in Antwort - mglw. Safety-Block");
-                            // Log safety ratings if present
-                            if (root.has("promptFeedback")) {
-                                log.warn("[Gemini API] promptFeedback: {}", root.get("promptFeedback"));
-                            }
-                            return null;
-                        }
-
-                        String result = candidates.get(0).path("content").path("parts").path(0).path("text").asText();
-                        boolean abgeschnitten = "MAX_TOKENS".equals(candidates.get(0).path("finishReason").asText());
-                        if (abgeschnitten) {
-                            log.warn("[Gemini API] Antwort am Ausgabelimit ({} Tokens) abgeschnitten (Model: {})",
-                                    maxOutputTokens, modelToUse);
-                        }
-
-                        // Nur Länge und Model loggen: die Antwort enthält Geschäftsdaten (DSGVO).
-                        log.info("[Gemini API] Dokumentanalyse erfolgreich (Attempt {}, Model: {}, {} Zeichen)",
-                                attempt + 1, modelToUse, result.length());
-                        return new KiAntwort(result, abgeschnitten);
-                    }
-
-                    // Rate Limiting (429) oder Server-Fehler (5xx) - Retry mit Backoff
-                    if (response.statusCode() == 429 || response.statusCode() >= 500) {
-                        long delay = INITIAL_RETRY_DELAY_MS * (1L << attempt); // Exponential backoff
-                        log.warn("[Gemini API] Fehler {} bei Attempt {}/{} - Retry in {}ms. Body: {}",
-                                response.statusCode(), attempt + 1, MAX_RETRIES, delay,
-                                GeminiAnfrage.fuerLog(response.body()));
-                        Thread.sleep(delay);
-                        continue;
-                    }
-
-                    // Client-Fehler (4xx außer 429) - Nicht retryable
-                    log.error("[Gemini API] Client-Fehler {} - kein Retry. Body: {}",
-                            response.statusCode(), GeminiAnfrage.fuerLog(response.body()));
-                    return null;
-
-                } catch (java.net.http.HttpTimeoutException timeoutEx) {
-                    // Timeout - Retry mit Backoff
-                    lastException = timeoutEx;
-                    long delay = INITIAL_RETRY_DELAY_MS * (1L << attempt);
-                    log.warn("[Gemini API] Timeout bei Attempt {}/{} - Retry in {}ms: {}",
-                            attempt + 1, MAX_RETRIES, delay, timeoutEx.getMessage());
-                    try {
-                        Thread.sleep(delay);
-                    } catch (InterruptedException ie) {
-                        Thread.currentThread().interrupt();
-                        break;
-                    }
-                } catch (InterruptedException ie) {
-                    Thread.currentThread().interrupt();
-                    break;
-                } catch (Exception e) {
-                    lastException = e;
-                    // Nur die Fehlerart: Parse-Fehler zitieren die Antwort (Rechnungsdaten).
-                    log.error("[Gemini API] Exception bei Attempt {}/{}: {}",
-                            attempt + 1, MAX_RETRIES, e.getClass().getSimpleName());
-                    // Nur bei bestimmten Exceptions retry
-                    if (e instanceof java.io.IOException) {
-                        long delay = INITIAL_RETRY_DELAY_MS * (1L << attempt);
-                        try {
-                            Thread.sleep(delay);
-                        } catch (InterruptedException ie) {
-                            Thread.currentThread().interrupt();
-                            break;
-                        }
-                    } else {
-                        break; // Andere Exceptions nicht retryable
-                    }
-                }
-            }
-
-            // Alle Retries erschöpft
-            log.error("[Gemini API] Alle {} Retries fehlgeschlagen. Letzte Exception: {}",
-                    MAX_RETRIES, lastException != null ? lastException.getClass().getSimpleName() : "keine");
+            KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
+                    systemPrompt,
+                    List.of(new KiTypen.Nutzer(userText, List.of(new KiTypen.Anhang(mimeType, dokumentBytes)))),
+                    List.of(), 0.0, maxOutputTokens);
+            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text();
+            log.info("[KI-Analyse] Dokumentanalyse erfolgreich ({} Zeichen)", text.length());
+            return new KiAntwort(text, isJsonTruncated(text));
+        } catch (KiAnbieterFehler e) {
+            log.warn("[KI-Analyse] KI nicht eingerichtet: {}", e.getMessage());
             return null;
-
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+            return null;
         } catch (Exception e) {
-            log.error("Fehler beim Aufruf der Gemini API: {}", e.getClass().getSimpleName());
+            log.error("[KI-Analyse] Fehler: {}", e.getClass().getSimpleName());
             return null;
-        } finally {
-            API_LOCK.unlock();
         }
     }
 

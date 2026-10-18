@@ -80,6 +80,7 @@ import { alsKettenTyp, type KettenLinienDokument, type KettenVerbindung } from '
 import { FreigabeRechtsnachweis } from '../features/freigabe/FreigabeRechtsnachweis';
 import type { FreigabeRechtsnachweisDaten } from '../features/freigabe/rechtsnachweisLogik';
 import { ProjektWartungReiter } from '../features/wartung/ProjektWartungReiter';
+import { ProjektTermineTab } from '../components/ProjektTermineTab';
 import { AuftragPlanenDialog } from '../features/plantafel/AuftragPlanenDialog';
 import { useWartungAktiv } from '../features/modulschalter/useFeatures';
 import { MaterialAbrechnungPanel } from '../features/material/MaterialAbrechnungPanel';
@@ -202,9 +203,9 @@ type FreigabeAuditData = {
 
 // ==================== DETAIL VIEW ====================
 
-type ProjektDetailTab = 'zeiten' | 'materialkosten' | 'emails' | 'geschaeftsdokumente' | 'dokumente' | 'beschreibung' | 'notizen' | 'wartung';
+type ProjektDetailTab = 'zeiten' | 'materialkosten' | 'emails' | 'geschaeftsdokumente' | 'dokumente' | 'beschreibung' | 'notizen' | 'wartung' | 'termine';
 const ALLOWED_PROJEKT_TABS: ReadonlyArray<ProjektDetailTab> =
-    ['zeiten', 'materialkosten', 'emails', 'geschaeftsdokumente', 'dokumente', 'beschreibung', 'notizen', 'wartung'];
+    ['zeiten', 'materialkosten', 'emails', 'geschaeftsdokumente', 'dokumente', 'beschreibung', 'notizen', 'wartung', 'termine'];
 function parseProjektTab(raw: string | null): ProjektDetailTab | undefined {
     return raw && (ALLOWED_PROJEKT_TABS as readonly string[]).includes(raw)
         ? raw as ProjektDetailTab
@@ -1377,6 +1378,18 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                         Wartung
                     </button>
                 )}
+                <button
+                    onClick={() => setActiveTab('termine')}
+                    className={cn(
+                        "px-1.5 2xl:px-2 py-2 text-sm font-medium rounded-t-lg transition whitespace-nowrap",
+                        activeTab === 'termine'
+                            ? "bg-rose-50 text-rose-700 border-b-2 border-rose-600"
+                            : "text-slate-500 hover:text-slate-700 hover:bg-slate-50"
+                    )}
+                >
+                    <Calendar className="w-4 h-4 inline-block mr-1 2xl:mr-2" />
+                    Termine
+                </button>
             </div>
 
             {/* Tab Content */}
@@ -1388,6 +1401,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     dateienAnzahl={dokumenteCount}
                     onOeffneReiter={setActiveTab}
                 />
+            )}
+            {activeTab === 'termine' && (
+                <ProjektTermineTab projektId={projekt.id} projektName={projekt.bauvorhaben ?? undefined} />
             )}
             {activeTab === 'notizen' && (
                 <div className="space-y-4">

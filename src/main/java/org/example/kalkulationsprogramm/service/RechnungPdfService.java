@@ -2561,8 +2561,9 @@ public class RechnungPdfService {
                         String.format("%.0f", rect.urx()), String.format("%.0f", rect.ury()),
                         text.length() > 80 ? text.substring(0, 80) + "..." : text);
 
-                // ── Font aus Styles parsen (oder Default) ──
+                // ── Font und Ausrichtung aus Styles parsen (oder Default) ──
                 Font font = parseBlockFont(block);
+                int alignment = parseBlockAlignment(block);
 
                 // ── Typ-spezifisches Rendering ──
                 if (isWatermark) {
@@ -2572,7 +2573,7 @@ public class RechnungPdfService {
                 } else if (text.contains("{{SEITENZAHL}}")) {
                     renderTextWithSeitenzahl(cb, text, rect, font, currentPage, totalPages, totalPagesBaseFontHolder, totalPagesFontSizeHolder);
                 } else {
-                    renderTextBlock(cb, text, rect, font);
+                    renderTextBlock(cb, text, rect, font, alignment);
                 }
 
             } catch (Exception e) {
@@ -2622,6 +2623,18 @@ public class RechnungPdfService {
             log.warn("Fehler beim Parsen der Styles für Block {}: {}", block.id(), ex.getMessage());
             return FONT_NORMAL;
         }
+    }
+
+    private int parseBlockAlignment(FormBlockDto block) {
+        if (block.styles() == null) return Element.ALIGN_LEFT;
+        Object raw = block.styles().get("textAlign");
+        if (raw == null) return Element.ALIGN_LEFT;
+        return switch (String.valueOf(raw)) {
+            case "center" -> Element.ALIGN_CENTER;
+            case "right" -> Element.ALIGN_RIGHT;
+            case "justify" -> Element.ALIGN_JUSTIFIED;
+            default -> Element.ALIGN_LEFT;
+        };
     }
 
     /**
@@ -2751,7 +2764,7 @@ public class RechnungPdfService {
      * OpenPDF's ColumnText rendert NICHTS, wenn die Leading größer als die
      * verfügbare Höhe ist.
      */
-    private void renderTextBlock(PdfContentByte cb, String text, RectDto rect, Font font)
+    private void renderTextBlock(PdfContentByte cb, String text, RectDto rect, Font font, int alignment)
             throws DocumentException {
         float blockHeight = rect.ury() - rect.lly();
         String[] lines = text.split("\n");
@@ -2763,16 +2776,16 @@ public class RechnungPdfService {
         for (float groesse = font.getSize(); groesse >= MIN_BLOCK_SCHRIFT; groesse -= 0.5f) {
             passend = new Font(font);
             passend.setSize(groesse);
-            ColumnText probe = baueTextSpalte(cb, lines, rect, blockHeight, passend);
+            ColumnText probe = baueTextSpalte(cb, lines, rect, blockHeight, passend, alignment);
             if (!ColumnText.hasMoreText(probe.go(true))) {
                 break;
             }
         }
-        baueTextSpalte(cb, lines, rect, blockHeight, passend).go();
+        baueTextSpalte(cb, lines, rect, blockHeight, passend, alignment).go();
     }
 
     private ColumnText baueTextSpalte(PdfContentByte cb, String[] lines, RectDto rect,
-                                      float blockHeight, Font font) {
+                                      float blockHeight, Font font, int alignment) {
         float idealLeading = font.getSize() * 1.4f;
         // Wenn der Block zu klein für die Standard-Leading ist, passe an
         float leading = blockHeight < idealLeading ? blockHeight : idealLeading;
@@ -2782,6 +2795,7 @@ public class RechnungPdfService {
 
         Paragraph p = new Paragraph();
         p.setLeading(leading);
+        p.setAlignment(alignment);
         for (int l = 0; l < lines.length; l++) {
             p.add(new Chunk(lines[l], font));
             if (l < lines.length - 1) p.add(Chunk.NEWLINE);

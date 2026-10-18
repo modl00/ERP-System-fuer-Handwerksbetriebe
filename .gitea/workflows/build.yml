@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 jobs:
   build:
@@ -15,19 +16,16 @@ jobs:
         run: |
           docker build \
             -t erp-handwerk:main \
-            -t erp-handwerk:${{ gitea.sha }} \
-            --label "gitea.commit=${{ gitea.sha }}" \
-            --label "gitea.ref=${{ gitea.ref }}" \
+            -t "erp-handwerk:${{ github.sha }}" \
             .
-          echo "✓ Image erp-handwerk:main gebaut (Commit: ${{ gitea.sha }})"
+          echo "Image erp-handwerk:main gebaut"
 
       - name: Alte Images aufräumen (behalten: letzten 5)
         run: |
-          docker images erp-handwerk --format "{{.ID}} {{.CreatedAt}}" \
+          docker images erp-handwerk --format '{{.ID}} {{.CreatedAt}}' \
             | sort -k2 -r \
             | awk 'NR>5 {print $1}' \
             | xargs -r docker rmi || true
 
       - name: Build-Ergebnis
-        run: |
-          docker images erp-handwerk:main --format "✓ {{.Repository}}:{{.Tag}} – {{.Size}} – gebaut {{.CreatedAt}}"
+        run: docker images erp-handwerk:main

@@ -81,20 +81,10 @@ package-lock.json
 .claude/scheduled_tasks.lock
 .claude/reviews/
 
-# Graphify — Cache und interne Marker werden überall ignoriert (Root + Sub-Projects).
-# Persistente Wissens-Repräsentationen wie graph.json / GRAPH_REPORT.md im Root
-# bleiben getrackt, weil sie geräteübergreifend nutzbar sein müssen.
-**/graphify-out/cache/
-**/graphify-out/manifest.json
-**/graphify-out/.graphify_*
-**/graphify-out/.rebuild.lock
-# graph.html ist eine aus graph.json abgeleitete Visualisierung (~800 KB, wird
+# Graphify — alle generierten Dateien ignorieren (42 MB graph.json, GRAPH_REPORT.md).
+# Lokal neu erzeugen mit: scripts/graphify update .
+**/graphify-out/
 # bei jedem Lauf komplett neu geschrieben) -> kein Mehrwert in der Historie.
-**/graphify-out/graph.html
-# Datierte Sicherungskopien, die graphify vor einem Rebuild anlegt (je ~31 MB).
-**/graphify-out/[0-9][0-9][0-9][0-9]-[0-9][0-9]-[0-9][0-9]/
-# Sub-Project-Graphen (z.B. in react-pc-frontend/, react-zeiterfassung/) werden
-# komplett ignoriert — Quelle der Wahrheit ist der Root-Graph.
 react-pc-frontend/graphify-out/
 react-zeiterfassung/graphify-out/
 # Lokale Graphify-Installation (projekt-eigenes venv, nicht systemweit).
@@ -136,10 +126,10 @@ previewConfig.json
 /.codex/hooks.json
 /.codex/hooks/
 
-# Lokale Alt-Builds; die aktuellen, von static/index.html referenzierten Assets
-# werden weiterhin zusammen mit Frontend-Änderungen eingecheckt.
-/src/main/resources/static/assets/index-BD0n02sF.css
-/src/main/resources/static/assets/index-kgi4Icbh.js
+# Kompilierte Frontend-Assets gehören nicht ins Repository.
+# Der Docker-Build erzeugt sie frisch (npm run build im Dockerfile).
+/src/main/resources/static/assets/
+/src/main/resources/static/index.html
 
 # Unter macOS/Linux von Windows-UNC-Pfadtests erzeugtes lokales Verzeichnis.
 /\\\\server\\share/

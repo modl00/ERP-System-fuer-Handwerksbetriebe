@@ -154,6 +154,7 @@ import { ZahlungszielTageEingabe } from './ZahlungszielTageEingabe';
 import { LivePreviewPanel } from './LivePreviewPanel';
 import { ExportWarningModal, UnsavedChangesModal, PrintOptionsModal, TextbausteinPickerModal, LeistungPickerModal, StundensatzPickerModal, AddTypeDialog } from './Modals';
 import { RabattDialog } from './RabattDialog';
+import { leseVorlagenEinstellungen } from '../formularwesen/vorlagenEinstellungen';
 import { KategorieBestaetigenDialog } from './KategorieBestaetigenDialog';
 import { EmailComposeModal } from '../EmailComposeModal';
 import { anredeEnumToText } from '../EmailComposeForm';
@@ -3293,6 +3294,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                     <div data-block-type="table" data-x="40" data-y="160" data-width="515" data-height="500"></div>
                 `;
             }
+            const tabellenSchriftgroesse = leseVorlagenEinstellungen(html)?.tabellenSchriftgroesse ?? 10;
             const parsedBlocks = deserializeTemplate(html);
             // Nur in der Entwicklung: laeuft bei offener Vorschau alle zwei Sekunden.
             if (import.meta.env.DEV) {
@@ -3316,10 +3318,10 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                 content: b.content || '',
                 styles: b.styles
             }));
-            return { layoutBlocks, backgroundImage, backgroundImagePage2 };
+            return { layoutBlocks, backgroundImage, backgroundImagePage2, tabellenSchriftgroesse };
         } catch (error) {
             console.error('Error fetching template:', error);
-            return { layoutBlocks: [], backgroundImage: null, backgroundImagePage2: null };
+            return { layoutBlocks: [], backgroundImage: null, backgroundImagePage2: null, tabellenSchriftgroesse: 10 };
         }
     };
 
@@ -3341,7 +3343,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     }, [dokumentTyp, basisdokumentBlocks, blocks, basisdokumentBetragNetto, globalRabatt]);
 
     const createPdfRequest = async (isPreview: boolean, withDraftWatermark: boolean = false) => {
-        const { layoutBlocks, backgroundImage, backgroundImagePage2 } = await fetchTemplateData(dokumentTyp);
+        const { layoutBlocks, backgroundImage, backgroundImagePage2, tabellenSchriftgroesse } = await fetchTemplateData(dokumentTyp);
 
         const filledLayoutBlocks: PreviewLayoutBlock[] = layoutBlocks.map(b => {
             const copy = { ...b };
@@ -3531,6 +3533,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
             abrechnungsverlauf,
             betragNetto: expliziterNettoBetrag,
             abschlagInfo: dokumentTyp === 'ABSCHLAGSRECHNUNG' && abschlagInfo ? abschlagInfo : undefined,
+            tabellenSchriftgroesse,
         };
     };
 

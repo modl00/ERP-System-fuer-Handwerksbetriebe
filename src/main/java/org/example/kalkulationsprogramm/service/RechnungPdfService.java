@@ -96,7 +96,18 @@ public class RechnungPdfService {
             BigDecimal globalRabattProzent, // Globaler Rabatt in % auf das gesamte Dokument
             AbrechnungsverlaufPdfDto abrechnungsverlauf, // Abrechnungsverlauf für Abzüge
             BigDecimal betragNetto, // Überschreibt berechnete Nettosumme (z.B. für Abschlagsrechnungen)
-            AbschlagInfoPdfDto abschlagInfo) { // Info zum Abschlag-Eingabemodus
+            AbschlagInfoPdfDto abschlagInfo, // Info zum Abschlag-Eingabemodus
+            int tabellenSchriftgroesse) { // Schriftgröße der Positionen-Tabelle in pt (Standard: 10)
+
+        // Backwards-compatible constructor without tabellenSchriftgroesse
+        public RechnungDto(LayoutDto layout, KopfdatenDto kopfdaten, List<ContentBlockDto> contentBlocks,
+                           List<FormBlockDto> formBlocks, String schlusstext,
+                           String backgroundImagePage1, String backgroundImagePage2,
+                           BigDecimal globalRabattProzent, AbrechnungsverlaufPdfDto abrechnungsverlauf,
+                           BigDecimal betragNetto, AbschlagInfoPdfDto abschlagInfo) {
+            this(layout, kopfdaten, contentBlocks, formBlocks, schlusstext,
+                 backgroundImagePage1, backgroundImagePage2, globalRabattProzent, abrechnungsverlauf, betragNetto, abschlagInfo, 10);
+        }
 
         // Backwards-compatible constructor without abschlagInfo
         public RechnungDto(LayoutDto layout, KopfdatenDto kopfdaten, List<ContentBlockDto> contentBlocks,
@@ -105,7 +116,7 @@ public class RechnungPdfService {
                            BigDecimal globalRabattProzent, AbrechnungsverlaufPdfDto abrechnungsverlauf,
                            BigDecimal betragNetto) {
             this(layout, kopfdaten, contentBlocks, formBlocks, schlusstext,
-                 backgroundImagePage1, backgroundImagePage2, globalRabattProzent, abrechnungsverlauf, betragNetto, null);
+                 backgroundImagePage1, backgroundImagePage2, globalRabattProzent, abrechnungsverlauf, betragNetto, null, 10);
         }
 
         // Backwards-compatible constructor without betragNetto
@@ -114,7 +125,7 @@ public class RechnungPdfService {
                            String backgroundImagePage1, String backgroundImagePage2,
                            BigDecimal globalRabattProzent, AbrechnungsverlaufPdfDto abrechnungsverlauf) {
             this(layout, kopfdaten, contentBlocks, formBlocks, schlusstext,
-                 backgroundImagePage1, backgroundImagePage2, globalRabattProzent, abrechnungsverlauf, null, null);
+                 backgroundImagePage1, backgroundImagePage2, globalRabattProzent, abrechnungsverlauf, null, null, 10);
         }
 
         // Backwards-compatible constructor without abrechnungsverlauf
@@ -123,7 +134,7 @@ public class RechnungPdfService {
                            String backgroundImagePage1, String backgroundImagePage2,
                            BigDecimal globalRabattProzent) {
             this(layout, kopfdaten, contentBlocks, formBlocks, schlusstext,
-                 backgroundImagePage1, backgroundImagePage2, globalRabattProzent, null, null, null);
+                 backgroundImagePage1, backgroundImagePage2, globalRabattProzent, null, null, null, 10);
         }
 
         // Backwards-compatible constructor without globalRabattProzent
@@ -131,7 +142,7 @@ public class RechnungPdfService {
                            List<FormBlockDto> formBlocks, String schlusstext,
                            String backgroundImagePage1, String backgroundImagePage2) {
             this(layout, kopfdaten, contentBlocks, formBlocks, schlusstext,
-                 backgroundImagePage1, backgroundImagePage2, null, null, null, null);
+                 backgroundImagePage1, backgroundImagePage2, null, null, null, null, 10);
         }
     }
 
@@ -351,19 +362,19 @@ public class RechnungPdfService {
                     List<ContentBlockDto> serviceBlocks = data.contentBlocks().subList(0, lastServiceIdx + 1);
                     List<ContentBlockDto> trailingBlocks = data.contentBlocks().subList(lastServiceIdx + 1, data.contentBlocks().size());
 
-                    addMixedContent(ct, serviceBlocks, data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp());
+                    addMixedContent(ct, serviceBlocks, data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp(), null, null, data.tabellenSchriftgroesse());
                     addSummenBlock(ct, data.contentBlocks(), data.globalRabattProzent(), data.abrechnungsverlauf(), data.betragNetto(), data.kopfdaten().dokumentTyp(), data.abschlagInfo());
-                    addMixedContent(ct, trailingBlocks, data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp());
+                    addMixedContent(ct, trailingBlocks, data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp(), null, null, data.tabellenSchriftgroesse());
                 } else {
                     // Keine nachfolgenden Textblöcke - normaler Ablauf
-                    addMixedContent(ct, data.contentBlocks(), data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp());
+                    addMixedContent(ct, data.contentBlocks(), data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp(), null, null, data.tabellenSchriftgroesse());
                     addSummenBlock(ct, data.contentBlocks(), data.globalRabattProzent(), data.abrechnungsverlauf(), data.betragNetto(), data.kopfdaten().dokumentTyp(), data.abschlagInfo());
                 }
             } else {
                 // CLOSURE vorhanden oder keine Blöcke - Summenblock wird in addMixedContent gehandelt.
                 // betragNetto + abschlagInfo durchreichen, damit Abschlags-/Schlussrechnungen
                 // ihren korrekten Nettobetrag und Eingabe-Hint behalten (sonst Regression!).
-                addMixedContent(ct, data.contentBlocks(), data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp(), data.betragNetto(), data.abschlagInfo());
+                addMixedContent(ct, data.contentBlocks(), data.globalRabattProzent(), data.abrechnungsverlauf(), data.kopfdaten().dokumentTyp(), data.betragNetto(), data.abschlagInfo(), data.tabellenSchriftgroesse());
             }
 
             addSchlusstext(ct, data.schlusstext());
@@ -475,16 +486,18 @@ public class RechnungPdfService {
      * SUBTOTAL erzeugt eine Zwischensumme der vorherigen SERVICE-Blöcke bis zum letzten SECTION_HEADER/SUBTOTAL.
      */
     private void addMixedContent(ColumnText ct, List<ContentBlockDto> blocks, BigDecimal globalRabattProzent, AbrechnungsverlaufPdfDto abrechnungsverlauf, String dokumentTyp) throws DocumentException {
-        addMixedContent(ct, blocks, globalRabattProzent, abrechnungsverlauf, dokumentTyp, null, null);
+        addMixedContent(ct, blocks, globalRabattProzent, abrechnungsverlauf, dokumentTyp, null, null, 10);
+    }
+
+    private void addMixedContent(ColumnText ct, List<ContentBlockDto> blocks, BigDecimal globalRabattProzent, AbrechnungsverlaufPdfDto abrechnungsverlauf, String dokumentTyp, BigDecimal overrideBetragNetto, AbschlagInfoPdfDto abschlagInfo) throws DocumentException {
+        addMixedContent(ct, blocks, globalRabattProzent, abrechnungsverlauf, dokumentTyp, overrideBetragNetto, abschlagInfo, 10);
     }
 
     /**
-     * Erweiterte Variante: Reicht overrideBetragNetto und abschlagInfo an den
-     * CLOSURE-Branch durch. Diese werden vom Summenblock nur bei Abschlags-/
-     * Schlussrechnungen ausgewertet (overrideBetragNetto != null) und sind fuer
-     * normale Rechnungen unkritisch. Backwards-kompatibel via 5-args-Delegate.
+     * Erweiterte Variante: Reicht overrideBetragNetto, abschlagInfo und tabellenSchriftgroesse an den
+     * CLOSURE-Branch durch. Backwards-kompatibel via Delegate-Methoden.
      */
-    private void addMixedContent(ColumnText ct, List<ContentBlockDto> blocks, BigDecimal globalRabattProzent, AbrechnungsverlaufPdfDto abrechnungsverlauf, String dokumentTyp, BigDecimal overrideBetragNetto, AbschlagInfoPdfDto abschlagInfo) throws DocumentException {
+    private void addMixedContent(ColumnText ct, List<ContentBlockDto> blocks, BigDecimal globalRabattProzent, AbrechnungsverlaufPdfDto abrechnungsverlauf, String dokumentTyp, BigDecimal overrideBetragNetto, AbschlagInfoPdfDto abschlagInfo, int tabellenSchriftgroesse) throws DocumentException {
         if (blocks == null || blocks.isEmpty()) return;
 
         NumberFormat nf = NumberFormat.getNumberInstance(Locale.GERMANY);
@@ -493,10 +506,11 @@ public class RechnungPdfService {
 
         Color textColor = PdfSchriften.TEXTFARBE;
         Color headerColor = TEXT_GEDAEMPFT;
-        Font textFont = PdfSchriften.brieftext(10, Font.NORMAL, textColor);
-        Font posFont = PdfSchriften.brieftext(10, Font.NORMAL, textColor);
-        Font labelFont = PdfSchriften.brieftext(10, Font.BOLD, textColor);
-        Font headerFont = PdfSchriften.brieftext(9, Font.BOLD, headerColor);
+        int tabelleGr = (tabellenSchriftgroesse >= 7 && tabellenSchriftgroesse <= 14) ? tabellenSchriftgroesse : 10;
+        Font textFont = PdfSchriften.brieftext(tabelleGr, Font.NORMAL, textColor);
+        Font posFont = PdfSchriften.brieftext(tabelleGr, Font.NORMAL, textColor);
+        Font labelFont = PdfSchriften.brieftext(tabelleGr, Font.BOLD, textColor);
+        Font headerFont = PdfSchriften.brieftext(Math.max(7, tabelleGr - 1), Font.BOLD, headerColor);
 
         PdfPTable currentTable = null;
 

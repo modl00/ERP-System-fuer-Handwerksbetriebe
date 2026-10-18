@@ -61,7 +61,8 @@ public class DokumentGeneratorController {
             Double globalRabattProzent, // Globaler Rabatt in % (0-100)
             AbrechnungsverlaufRequest abrechnungsverlauf, // Abrechnungsverlauf für Rechnungsabzüge
             Double betragNetto, // Überschreibt berechnete Nettosumme (z.B. für Abschlagsrechnungen)
-            AbschlagInfoRequest abschlagInfo) { // Info zum Abschlag-Eingabemodus
+            AbschlagInfoRequest abschlagInfo, // Info zum Abschlag-Eingabemodus
+            Integer tabellenSchriftgroesse) { // Schriftgröße der Positionen-Tabelle in pt (null = 10)
     }
 
     public record AbschlagInfoRequest(
@@ -436,6 +437,11 @@ public class DokumentGeneratorController {
             );
         }
 
+        int tabelleGr = (request.tabellenSchriftgroesse() != null
+                && request.tabellenSchriftgroesse() >= 7
+                && request.tabellenSchriftgroesse() <= 14)
+                ? request.tabellenSchriftgroesse() : 10;
+
         RechnungDto rechnungDto = new RechnungDto(
                 layout,
                 kopfdaten,
@@ -447,7 +453,8 @@ public class DokumentGeneratorController {
                 globalRabatt,
                 abrechnungsverlaufPdf,
                 request.betragNetto() != null ? BigDecimal.valueOf(request.betragNetto()) : null,
-                abschlagInfoPdf);
+                abschlagInfoPdf,
+                tabelleGr);
         return rechnungDto;
     }
 

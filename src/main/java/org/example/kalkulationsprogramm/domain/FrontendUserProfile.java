@@ -64,6 +64,7 @@ public class FrontendUserProfile {
     @Enumerated(EnumType.STRING)
     private Set<FrontendUserRole> roleSet = new LinkedHashSet<>();
 
+    @JsonIncludeProperties({"id", "name"})
     @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "default_signature_id")
     private EmailSignature defaultSignature;

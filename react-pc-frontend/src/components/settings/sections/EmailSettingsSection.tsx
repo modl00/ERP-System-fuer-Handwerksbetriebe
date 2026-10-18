@@ -1,18 +1,14 @@
 import { PostfachSettings } from './postfach/PostfachSettings';
+import { MailOrdnerAuswahl } from './MailOrdnerAuswahl';
 
 /**
- * Einstellungen → E-Mail.
- *
- * <p>Früher standen hier zwei feste Kästen („Ihr Postfach“ und „Postfach für
- * Rechnungen und Mahnungen“) plus getrennte SMTP-/IMAP-Server. Seit es beliebig
- * viele Postfächer gibt, sind das alles normale Postfächer: das Hauptpostfach
- * trägt den Haken „Hauptpostfach“, das Rechnungs-Postfach den Haken „Für
- * Rechnungen &amp; Mahnungen“, und die Server-Angaben stehen je Postfach.</p>
+ * Einstellungen -> E-Mail.
  */
 export function EmailSettingsSection({ onSaved }: { onSaved?: () => void }) {
     return (
         <div className="space-y-6">
             <PostfachSettings onSaved={onSaved} />
+            <MailOrdnerAuswahl />
         </div>
     );
 }

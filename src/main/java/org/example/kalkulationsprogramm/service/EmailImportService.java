@@ -248,6 +248,23 @@ public class EmailImportService {
             store.connect(zugang.imapHost(), zugang.imapPort(), zugang.benutzername(), zugang.passwort());
             log.debug("[EmailImport] IMAP-Verbindung zu Postfach {} hergestellt", zugang.postfachId());
 
+            if (zugang.hauptpostfach()) {
+                List<MailOrdnerService.Eintrag> auswahl = MailOrdnerService.lies(systemSettingsService.get(MailOrdnerService.SCHLUESSEL, ""));
+                if (!auswahl.isEmpty()) {
+                    for (MailOrdnerService.Eintrag e : auswahl) {
+                        java.time.LocalDate seit = null;
+                        try {
+                            seit = e.seit() == null ? null : java.time.LocalDate.parse(e.seit());
+                        } catch (java.time.format.DateTimeParseException ignored) {
+                        }
+                        imported += importFromFolder(store, e.name(),
+                                "GESENDET".equals(e.richtung()) ? EmailDirection.OUT : EmailDirection.IN,
+                                zugang.postfachId(), seit);
+                    }
+                    return imported;
+                }
+            }
+
             List<String> eingang = zugang.hauptpostfach() ? INCOMING_FOLDERS : WEITERE_INCOMING_FOLDERS;
             List<String> gesendet = zugang.hauptpostfach() ? OUTGOING_FOLDERS : WEITERE_OUTGOING_FOLDERS;
             for (String folderName : eingang) {
@@ -261,10 +278,27 @@ public class EmailImportService {
     }
 
 
+    private int importFromFolder(Store store, String folderName, EmailDirection direction, Long postfachId) {
+        return importFromFolder(store, folderName, direction, postfachId, null);
+    }
+
+    /** Ist die Mail älter als das Datum, ab dem der Ordner gelesen werden soll? Ohne erkennbares Datum gilt sie als neu genug. */
+    static boolean vorSeit(Message msg, java.time.LocalDate seit) {
+        if (seit == null) {
+            return false;
+        }
+        try {
+            java.util.Date d = msg.getReceivedDate() != null ? msg.getReceivedDate() : msg.getSentDate();
+            return d != null && d.toInstant().atZone(ZoneId.systemDefault()).toLocalDate().isBefore(seit);
+        } catch (MessagingException e) {
+            return false;
+        }
+    }
+
     /**
      * Importiert E-Mails aus einem einzelnen IMAP-Ordner.
      */
-    private int importFromFolder(Store store, String folderName, EmailDirection direction, Long postfachId) {
+    private int importFromFolder(Store store, String folderName, EmailDirection direction, Long postfachId, java.time.LocalDate seit) {
         try {
             Folder genericFolder = store.getFolder(folderName);
             if (!(genericFolder instanceof IMAPFolder folder) || !folder.exists()) {
@@ -283,6 +317,9 @@ public class EmailImportService {
 
                 int imported = 0;
                 for (Message msg : messages) {
+                    if (vorSeit(msg, seit)) {
+                        continue;
+                    }
                     try {
                         // Über self-Proxy aufrufen, damit @Transactional auf
                         // importMessage greift (eigene Tx pro Mail).

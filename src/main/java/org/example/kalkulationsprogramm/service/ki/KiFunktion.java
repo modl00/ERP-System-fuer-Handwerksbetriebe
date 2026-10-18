@@ -35,7 +35,12 @@ public enum KiFunktion {
      */
     DOKUMENT_ERKENNEN("dokument-erkennen", "Dokumente und Belege erkennen", "ki.dokument-erkennen.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
             KiModellService.Funktion.DOKUMENT_ANALYSE),
-    TESTBOX("testbox", "Test-Box: Rückmeldungen aufbereiten", "ki.testbox.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.TESTBOX);
+    TESTBOX("testbox", "Test-Box: Rückmeldungen aufbereiten", "ki.testbox.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.TESTBOX),
+    /**
+     * Bautagebuch-Diktat aus der mobilen Zeiterfassung. Audio geht an Gemini (inlineData);
+     * weitere Anbieter können ergänzt werden, sobald ihr Audio-Format in SpracheingabeService implementiert ist.
+     */
+    SPRACHEINGABE("spracheingabe", "Spracheingabe (Bautagebuch)", "ki.spracheingabe.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SPRACHEINGABE);
 
     /** Wohin die Daten gehen dürfen. */
     public enum Datenschutz {

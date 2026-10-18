@@ -134,29 +134,8 @@ function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string 
             const blob = await res.blob();
 
             if (blob.type === 'application/pdf') {
-                // pdf.js ist global via index.html geladen (Version 3.11.174)
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                const pdfjsLib = (window as any).pdfjsLib;
-                if (!pdfjsLib) {
-                    toast.error('PDF-Verarbeitung ist nicht verfügbar.');
-                    return;
-                }
-                const pdfDaten = await blob.arrayBuffer();
-                const pdf = await pdfjsLib.getDocument({ data: pdfDaten }).promise;
-                const seite = await pdf.getPage(1);
-                // A4 bei ~150 dpi → Breite 1240 px
-                const massstab = 1240 / seite.getViewport({ scale: 1 }).width;
-                const viewport = seite.getViewport({ scale: massstab });
-                const canvas = document.createElement('canvas');
-                canvas.width = Math.round(viewport.width);
-                canvas.height = Math.round(viewport.height);
-                const ctx = canvas.getContext('2d');
-                if (!ctx) {
-                    toast.error('Das Briefpapier konnte nicht verarbeitet werden.');
-                    return;
-                }
-                await seite.render({ canvasContext: ctx, viewport }).promise;
-                onBild(canvas.toDataURL('image/png'));
+                const bild = await pdfZuBild(await blob.arrayBuffer());
+                onBild(bild);
                 toast.success('Briefpapier aus den Firmen-Einstellungen übernommen.');
                 return;
             }
@@ -181,11 +160,37 @@ function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string 
         }
     };
 
+    const pdfZuBild = async (daten: ArrayBuffer): Promise<string> => {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const pdfjsLib = (window as any).pdfjsLib;
+        if (!pdfjsLib) throw new Error('PDF-Verarbeitung ist nicht verfügbar.');
+        const pdf = await pdfjsLib.getDocument({ data: daten }).promise;
+        const seite = await pdf.getPage(1);
+        const massstab = 1240 / seite.getViewport({ scale: 1 }).width;
+        const viewport = seite.getViewport({ scale: massstab });
+        const canvas = document.createElement('canvas');
+        canvas.width = Math.round(viewport.width);
+        canvas.height = Math.round(viewport.height);
+        const ctx = canvas.getContext('2d');
+        if (!ctx) throw new Error('Canvas nicht verfügbar.');
+        await seite.render({ canvasContext: ctx, viewport }).promise;
+        return canvas.toDataURL('image/png');
+    };
+
     const laden = (datei: File | undefined) => {
         if (!datei) return;
         if (datei.size > MAX_BRIEFPAPIER_BYTES) {
             const mb = (datei.size / 1024 / 1024).toLocaleString('de-DE', { maximumFractionDigits: 1 });
-            toast.error(`Das Bild ist zu groß (${mb} MB). Bitte ein Bild unter 3,5 MB wählen.`);
+            toast.error(`Die Datei ist zu groß (${mb} MB). Bitte eine Datei unter 3,5 MB wählen.`);
+            return;
+        }
+        if (datei.type === 'application/pdf') {
+            setLaedt(true);
+            datei.arrayBuffer()
+                .then(pdfZuBild)
+                .then(bild => { onBild(bild); })
+                .catch(() => toast.error('Das PDF konnte nicht verarbeitet werden.'))
+                .finally(() => setLaedt(false));
             return;
         }
         const leser = new FileReader();
@@ -206,7 +211,7 @@ function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string 
             <input
                 ref={eingabe}
                 type="file"
-                accept="image/png,image/jpeg,image/gif,image/webp"
+                accept="image/png,image/jpeg,image/gif,image/webp,application/pdf"
                 className="hidden"
                 aria-label={`Briefpapier ${titel} hochladen`}
                 onChange={e => { laden(e.target.files?.[0]); e.target.value = ''; }}
@@ -225,26 +230,28 @@ function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string 
             <div className="min-w-0 flex-1">
                 <p className="text-sm font-medium text-slate-800">{titel}</p>
                 <p className="text-xs text-slate-500">{quelle ? 'Bild hinterlegt' : 'Kein Briefpapier'}</p>
-                <div className="mt-1 flex items-center gap-1">
+                <div className="mt-1 flex flex-wrap items-center gap-1">
                     <Button
                         size="sm"
                         variant="outline"
                         className="h-7 px-2 text-xs"
-                        aria-label={quelle ? `Briefpapier ${titel} ändern` : `Briefpapier ${titel} wählen`}
+                        aria-label={quelle ? `Briefpapier ${titel} ändern` : `Briefpapier ${titel} hochladen`}
                         onClick={() => eingabe.current?.click()}
+                        disabled={laedt}
                     >
-                        {quelle ? 'Ändern' : 'Bild wählen'}
+                        {quelle ? 'Ändern' : 'Bild oder PDF'}
                     </Button>
-                    <button
-                        type="button"
+                    <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 px-2 text-xs"
                         onClick={ausFirmaUebernehmen}
                         disabled={laedt}
                         aria-label={`Briefpapier ${titel} aus Firmen-Einstellungen übernehmen`}
-                        title="Aus Firmen-Einstellungen übernehmen"
-                        className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                     >
-                        <Download aria-hidden="true" className="h-4 w-4" />
-                    </button>
+                        <Download aria-hidden="true" className="mr-1 h-3 w-3" />
+                        Aus Firma
+                    </Button>
                     {quelle && (
                         <button
                             type="button"

@@ -10,8 +10,8 @@
 
 | Kategorie | Anzahl |
 |---|---|
-| Bestätigte Bugs (P1) | 3 |
-| Bestätigte Bugs (P2/P3) | 1 |
+| Bestätigte Bugs (P1) – behoben in PR #403 | 2 |
+| Bestätigte Bugs (P2) – behoben in PR #403 | 1 |
 | In PR #393/#394 bereits behoben | 6 |
 | Feature-Requests als Issues erfasst | 6 |
 
@@ -80,11 +80,19 @@ registry.addInterceptor(aktivitaetInterceptor);
 | Dokumenten-Editor (index.tsx) | ⚠️ Issue #395 (Einfügen) |
 | Lock-Mechanismus (useDatensatzLock) | ✅ korrekt |
 | Programmfarbe (darstellung.ts / useProgrammfarbe) | ✅ behoben in PR #394 |
-| Aktivitätenprotokoll (AktivitaetService) | ❌ Issue #396 – Interceptor fehlt |
-| Abteilungsverwaltung (AbteilungBerechtigungController) | ❌ Issue #401 – POST/DELETE fehlen |
+| Aktivitätenprotokoll (AktivitaetService) | ✅ behoben in PR #403 |
+| Abteilungsverwaltung (AbteilungBerechtigungController) | ✅ behoben in PR #403 |
+| Formularwesen PDF (RechnungPdfService) | ✅ behoben in PR #403 |
 | Kostenstellen (KostenstelleService) | ✅ behoben in PR #393 |
 | Arbeitsgänge Vorlagen (ArbeitsgangMapper) | ✅ behoben in PR #394 |
 | Briefpapier (FirmaController + V9054) | ✅ vorhanden |
 | Datei-Upload-Sicherheit | ✅ Path-Traversal-Schutz vorhanden |
 | E-Mail-Anhänge | ✅ sicher (ByteArrayDataSource) |
+| Kostenrechnung (KostenrechnungController) | ✅ korrekt |
+| Plantafel (PlanBelegung + KalenderEintrag) | ✅ Kalender-Termine integriert |
+| Zeiterfassung Mobile API | ✅ Fehler durch catch(RuntimeException) abgedeckt |
+| Leistungsmodul (LeistungKalkulationService) | ✅ Formelvariablen korrekt |
+| Bestellwesen (LieferantenBestellungController) | ✅ vollständiges CRUD |
+| Lager (LagerController) | ✅ korrekt |
+| Offene Posten / Buchhaltung | ✅ deaktivierte Mitarbeiter korrekt behandelt |
 | TypeScript (Frontend) | ✅ 0 Fehler |

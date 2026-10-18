@@ -9,18 +9,14 @@ import static org.mockito.Mockito.when;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
-
 import org.example.kalkulationsprogramm.domain.Dokumenttyp;
 import org.example.kalkulationsprogramm.domain.Firmeninformation;
-import org.example.kalkulationsprogramm.repository.FirmeninformationRepository;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.ContentBlockDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.FormBlockDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.KopfdatenDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.RechnungDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
 
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.parser.PdfTextExtractor;
@@ -33,8 +29,6 @@ class StandardVorlagenPdfTest {
 
     @BeforeEach
     void setUp() {
-        pdf = new RechnungPdfService();
-        FirmeninformationRepository repo = mock(FirmeninformationRepository.class);
         Firmeninformation f = new Firmeninformation();
         f.setFirmenname("Muster Metallbau GmbH");
         f.setStrasse("Werkstraße 5");
@@ -43,8 +37,9 @@ class StandardVorlagenPdfTest {
         f.setTelefon("0931 123456");
         f.setIban("DE00 0000 0000 0000 0000 00");
         f.setSteuernummer("123/456/78901");
-        when(repo.findById(1L)).thenReturn(Optional.of(f));
-        ReflectionTestUtils.setField(pdf, "firmeninformationRepository", repo);
+        FirmeninformationService firmiServ = mock(FirmeninformationService.class);
+        when(firmiServ.ladeEntityFuerPdf()).thenReturn(f);
+        pdf = new RechnungPdfService(firmiServ);
         bloecke = AutoAuftragsbestaetigungVersandService.parseVorlagenHtml(StandardVorlagenInhalt.layoutHtml()).formBlocks();
     }
 

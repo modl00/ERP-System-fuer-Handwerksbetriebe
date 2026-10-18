@@ -8,7 +8,7 @@ class MailSecretServiceTest {
 
     @Test
     void verschluesseltMitZufaelligemNonceUndEntschluesseltWieder() {
-        MailSecretService service = new MailSecretService("0123456789abcdef0123456789abcdef");
+        MailSecretService service = new MailSecretService("0123456789abcdef0123456789abcdef", "uploads");
 
         String first = service.encrypt("geheimes-passwort");
         String second = service.encrypt("geheimes-passwort");
@@ -20,7 +20,7 @@ class MailSecretServiceTest {
 
     @Test
     void verweigertSpeichernOhneSchluesselUndVerraetFehlerursacheNicht() {
-        MailSecretService service = new MailSecretService("");
+        MailSecretService service = new MailSecretService("", "uploads");
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> service.encrypt("geheimes-passwort"));
@@ -30,7 +30,7 @@ class MailSecretServiceTest {
 
     @Test
     void authentifiziertCiphertextUndMeldetManipulationOhneSecret() {
-        MailSecretService service = new MailSecretService("0123456789abcdef0123456789abcdef");
+        MailSecretService service = new MailSecretService("0123456789abcdef0123456789abcdef", "uploads");
         String cipherText = service.encrypt("geheimes-passwort");
 
         IllegalStateException error = assertThrows(IllegalStateException.class,

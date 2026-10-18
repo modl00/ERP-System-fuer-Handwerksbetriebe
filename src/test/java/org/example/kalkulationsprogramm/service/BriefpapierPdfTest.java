@@ -12,21 +12,17 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.time.LocalDate;
 import java.util.List;
-import java.util.Optional;
 import java.util.regex.Pattern;
 
 import javax.imageio.ImageIO;
 
 import org.example.kalkulationsprogramm.domain.Firmeninformation;
-import org.example.kalkulationsprogramm.repository.FirmeninformationRepository;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.ContentBlockDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.FormBlockDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.KopfdatenDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.RechnungDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.test.util.ReflectionTestUtils;
-
 import com.lowagie.text.Document;
 import com.lowagie.text.Image;
 import com.lowagie.text.Paragraph;
@@ -56,18 +52,15 @@ class BriefpapierPdfTest {
 
     @BeforeEach
     void setUp() throws Exception {
-        pdf = new RechnungPdfService();
-        FirmeninformationRepository repo = mock(FirmeninformationRepository.class);
         firma = new Firmeninformation();
         firma.setFirmenname("Muster Metallbau GmbH");
         firma.setStrasse("Werkstraße 5");
         firma.setPlz("97070");
         firma.setOrt("Würzburg");
         firma.setIban("DE00 0000 0000 0000 0000 00");
-        when(repo.findById(1L)).thenReturn(Optional.of(firma));
-        ReflectionTestUtils.setField(pdf, "firmeninformationRepository", repo);
         firmenService = mock(FirmeninformationService.class);
-        ReflectionTestUtils.setField(pdf, "firmeninformationService", firmenService);
+        when(firmenService.ladeEntityFuerPdf()).thenReturn(firma);
+        pdf = new RechnungPdfService(firmenService);
         bloecke = AutoAuftragsbestaetigungVersandService.parseVorlagenHtml(StandardVorlagenInhalt.layoutHtml()).formBlocks();
     }
 

@@ -77,7 +77,7 @@ class FirmeninformationBriefpapierTest {
         assertEquals("briefpapier.png", dto.getBriefpapierDateiname(), "der Name kommt vom Server, nie vom Client");
         FirmeninformationService.Briefpapier bp = service.loadBriefpapier();
         assertNotNull(bp);
-        assertFalse(bp.pdf());
+        assertFalse(bp.istPdf());
         assertEquals(MediaType.IMAGE_PNG_VALUE, bp.contentType());
     }
 
@@ -96,7 +96,7 @@ class FirmeninformationBriefpapierTest {
         service.speichereBriefpapier(new MockMultipartFile("datei", "x.pdf", MediaType.APPLICATION_PDF_VALUE, pdf()));
 
         FirmeninformationService.Briefpapier bp = service.loadBriefpapier();
-        assertTrue(bp.pdf());
+        assertTrue(bp.istPdf());
         assertEquals("briefpapier.pdf", firma.getBriefpapierDateiname());
     }
 

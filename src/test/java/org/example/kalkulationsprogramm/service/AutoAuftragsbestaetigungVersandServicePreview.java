@@ -11,6 +11,7 @@ import org.example.kalkulationsprogramm.service.RechnungPdfService.ContentBlockD
 import org.example.kalkulationsprogramm.service.RechnungPdfService.KopfdatenDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.RechnungDto;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -104,7 +105,7 @@ class AutoAuftragsbestaetigungVersandServicePreview {
                 null
         );
 
-        byte[] pdf = new RechnungPdfService().generatePdfBytes(dto);
+        byte[] pdf = new RechnungPdfService(mock(FirmeninformationService.class)).generatePdfBytes(dto);
 
         Files.createDirectories(OUTPUT.getParent());
         Files.write(OUTPUT, pdf);

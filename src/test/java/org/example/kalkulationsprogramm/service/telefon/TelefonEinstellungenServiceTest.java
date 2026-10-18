@@ -34,7 +34,7 @@ class TelefonEinstellungenServiceTest {
 
     @Mock SystemSettingsService settings;
     private final Map<String, String> werte = new HashMap<>();
-    private final MailSecretService secrets = new MailSecretService("0123456789abcdef0123456789abcdef");
+    private final MailSecretService secrets = new MailSecretService("0123456789abcdef0123456789abcdef", "uploads");
     private TelefonEinstellungenService service;
 
     @BeforeEach
@@ -101,7 +101,7 @@ class TelefonEinstellungenServiceTest {
     @Test
     @DisplayName("Ohne Verschlüsselungsschlüssel lässt sich kein Passwort speichern, Zugang bleibt leer")
     void ohneSchluessel() {
-        TelefonEinstellungenService ohne = new TelefonEinstellungenService(settings, new MailSecretService(""), new ObjectMapper());
+        TelefonEinstellungenService ohne = new TelefonEinstellungenService(settings, new MailSecretService("", "uploads"), new ObjectMapper());
         assertThatThrownBy(() -> ohne.speichere(dto("fritz.box", "erp", "geheim"))).hasMessageContaining("encryption-key");
         werte.put(TelefonEinstellungenService.PASSWORT, "v1:irgendwas");
         werte.put(TelefonEinstellungenService.BENUTZER, "erp");

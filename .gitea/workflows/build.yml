@@ -13,9 +13,21 @@ jobs:
 
       - name: Image bauen und taggen
         run: |
-          docker build -t erp-handwerk:main -t erp-handwerk:${{ gitea.sha }} .
-          echo "✓ Image erp-handwerk:main gebaut"
+          docker build \
+            -t erp-handwerk:main \
+            -t erp-handwerk:${{ gitea.sha }} \
+            --label "gitea.commit=${{ gitea.sha }}" \
+            --label "gitea.ref=${{ gitea.ref }}" \
+            .
+          echo "✓ Image erp-handwerk:main gebaut (Commit: ${{ gitea.sha }})"
 
-      - name: Build-Info ausgeben
+      - name: Alte Images aufräumen (behalten: letzten 5)
         run: |
-          docker images erp-handwerk
+          docker images erp-handwerk --format "{{.ID}} {{.CreatedAt}}" \
+            | sort -k2 -r \
+            | awk 'NR>5 {print $1}' \
+            | xargs -r docker rmi || true
+
+      - name: Build-Ergebnis
+        run: |
+          docker images erp-handwerk:main --format "✓ {{.Repository}}:{{.Tag}} – {{.Size}} – gebaut {{.CreatedAt}}"

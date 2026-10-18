@@ -20,7 +20,7 @@ jobs:
             .
           echo "Image erp-handwerk:main gebaut"
 
-      - name: Alte Images aufräumen (behalten: letzten 5)
+      - name: "Alte Images aufräumen (letzte 5 behalten)"
         run: |
           docker images erp-handwerk --format '{{.ID}} {{.CreatedAt}}' \
             | sort -k2 -r \

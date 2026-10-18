@@ -33,6 +33,7 @@ import com.lowagie.text.pdf.PdfPTable;
 import com.lowagie.text.pdf.PdfTemplate;
 import com.lowagie.text.pdf.PdfWriter;
 
+import org.example.kalkulationsprogramm.domain.Firmeninformation;
 import org.example.kalkulationsprogramm.util.HtmlKlartext;
 import org.example.kalkulationsprogramm.util.PdfSchriften;
 import org.example.kalkulationsprogramm.util.RabattRechner;
@@ -56,6 +57,8 @@ public class RechnungPdfService {
 
     /** Kleinste Schrift, auf die ein Textblock schrumpft, damit sein Inhalt noch ins Rechteck passt. */
     private static final float MIN_BLOCK_SCHRIFT = 6f;
+
+    private final FirmeninformationService firmeninformationService;
 
     // ======================= DTOs =======================
 
@@ -2508,6 +2511,13 @@ public class RechnungPdfService {
         placeholders.put("BETREFF",              nullSafe(kopf.betreff()));
         placeholders.put("ZAHLUNGSZIEL_TAGE",    kopf.zahlungszielTage() != null ? String.valueOf(kopf.zahlungszielTage()) : "");
         placeholders.put("ANSPRECHPARTNER",      ""); // Kunden-Ansprechpartner – wird ggf. vom Frontend befüllt
+
+        try {
+            Firmeninformation firma = firmeninformationService.ladeEntityFuerPdf();
+            FirmenPlatzhalter.werte(firma).forEach((k, v) -> placeholders.putIfAbsent(k, v));
+        } catch (RuntimeException ex) {
+            log.warn("Firmen-Platzhalter konnten nicht geladen werden – sie bleiben leer: {}", ex.getMessage());
+        }
 
         String result = text;
         for (var entry : placeholders.entrySet()) {

@@ -1,5 +1,5 @@
-import { useRef } from 'react';
-import { Check, ImagePlus, MousePointerClick, RotateCcw, Trash2 } from 'lucide-react';
+import { useRef, useState } from 'react';
+import { Check, Download, ImagePlus, MousePointerClick, RotateCcw, Trash2 } from 'lucide-react';
 import { Button } from '../ui/button';
 import { InfoAbschnitt, InfoButton } from '../ui/info-button';
 import { useToast } from '../ui/toast';
@@ -116,7 +116,40 @@ const MAX_BRIEFPAPIER_BYTES = 3.5 * 1024 * 1024;
 function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string | null; onBild: (bild: string | null) => void }) {
     const toast = useToast();
     const eingabe = useRef<HTMLInputElement>(null);
+    const [laedt, setLaedt] = useState(false);
     const quelle = sichereBildQuelle(bild);
+
+    const ausFirmaUebernehmen = async () => {
+        setLaedt(true);
+        try {
+            const res = await fetch('/api/firma/briefpapier');
+            if (res.status === 404) {
+                toast.error('In den Firmen-Einstellungen ist kein Briefpapier hinterlegt.');
+                return;
+            }
+            if (!res.ok) {
+                toast.error('Das Briefpapier konnte nicht geladen werden.');
+                return;
+            }
+            const blob = await res.blob();
+            const reader = new FileReader();
+            reader.onload = () => {
+                const ergebnis = typeof reader.result === 'string' ? reader.result : '';
+                if (!sichereBildQuelle(ergebnis)) {
+                    toast.error('Das Briefpapier aus den Firmen-Einstellungen hat ein nicht unterstütztes Format.');
+                    return;
+                }
+                onBild(ergebnis);
+                toast.success('Briefpapier aus den Firmen-Einstellungen übernommen.');
+            };
+            reader.onerror = () => toast.error('Das Briefpapier konnte nicht gelesen werden.');
+            reader.readAsDataURL(blob);
+        } catch {
+            toast.error('Das Briefpapier konnte nicht geladen werden.');
+        } finally {
+            setLaedt(false);
+        }
+    };
 
     const laden = (datei: File | undefined) => {
         if (!datei) return;
@@ -172,6 +205,16 @@ function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string 
                     >
                         {quelle ? 'Ändern' : 'Bild wählen'}
                     </Button>
+                    <button
+                        type="button"
+                        onClick={ausFirmaUebernehmen}
+                        disabled={laedt}
+                        aria-label={`Briefpapier ${titel} aus Firmen-Einstellungen übernehmen`}
+                        title="Aus Firmen-Einstellungen übernehmen"
+                        className="inline-flex h-7 w-7 items-center justify-center rounded text-slate-400 hover:bg-slate-100 hover:text-slate-700 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                    >
+                        <Download aria-hidden="true" className="h-4 w-4" />
+                    </button>
                     {quelle && (
                         <button
                             type="button"

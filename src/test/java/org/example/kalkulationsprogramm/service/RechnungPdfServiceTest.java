@@ -2,6 +2,7 @@ package org.example.kalkulationsprogramm.service;
 
 import com.lowagie.text.pdf.PdfReader;
 import com.lowagie.text.pdf.parser.PdfTextExtractor;
+import org.example.kalkulationsprogramm.domain.Firmeninformation;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -31,7 +32,9 @@ class RechnungPdfServiceTest {
 
     @BeforeEach
     void setUp() {
-        service = new RechnungPdfService();
+        FirmeninformationService firmeninformationService = mock(FirmeninformationService.class);
+        when(firmeninformationService.ladeEntityFuerPdf()).thenReturn(new Firmeninformation());
+        service = new RechnungPdfService(firmeninformationService);
     }
 
     // ======================= Test-Daten Hilfsmethoden =======================

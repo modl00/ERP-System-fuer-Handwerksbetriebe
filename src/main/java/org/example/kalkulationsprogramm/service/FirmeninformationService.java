@@ -79,6 +79,12 @@ public class FirmeninformationService {
         return toDto(fi);
     }
 
+    /** Liefert die Entity fuer interne Dienste (z. B. PDF-Platzhalter). */
+    @Transactional(readOnly = true)
+    Firmeninformation ladeEntityFuerPdf() {
+        return repository.getOrCreate();
+    }
+
     /**
      * Bankverbindung und Bewertungslink für die Rechnungs-Mails – aus den gepflegten
      * Firmendaten statt fest im Code. Fehlende Werte bleiben leer, die Mail lässt den

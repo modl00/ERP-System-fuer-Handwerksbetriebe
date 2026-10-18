@@ -55,6 +55,7 @@ export function BlockInhalt({ item, daten, imEditor = false }: BlockInhaltProps)
         fontWeight: stil.betreff ? 600 : stil.fett ? 700 : 400,
         whiteSpace: 'pre-line',
         overflowWrap: 'anywhere',
+        textAlign: stil.ausrichtung,
     };
 
     if (item.type === 'logo') return <LogoBild quelle={item.content || '/image001.png'} />;

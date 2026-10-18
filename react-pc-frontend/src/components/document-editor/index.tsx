@@ -167,6 +167,7 @@ import { useConfirm } from '../ui/confirm-dialog';
 import { TabSchliessenHinweis } from '../lock/TabSchliessenHinweis';
 import { useKonfliktMeldung } from '../lock/useKonfliktMeldung';
 import { scrolleMittigInDenBlick } from '../../lib/scrollInDenBlick';
+import { generateId } from '../../lib/id';
 
 interface ImportedGaebBlock {
     type: string;
@@ -887,7 +888,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
 
                 const mapBlock = (b: ImportedGaebBlock): DocBlock => ({
                     ...b,
-                    id: crypto.randomUUID(),
+                    id: generateId(),
                     type: b.type === 'TEXT' ? 'TEXT' : (b.type === 'SECTION_HEADER' ? 'SECTION_HEADER' : 'SERVICE'),
                     quantity: b.type === 'TEXT' || b.type === 'SECTION_HEADER' ? undefined : (Number(b.quantity) || 1),
                     price: b.type === 'TEXT' || b.type === 'SECTION_HEADER' ? undefined : (Number(b.price) || 0),
@@ -1449,7 +1450,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                     // Chips gerendert (sonst friert "8 Tage" als Klartext ein).
                     const resolvedHtml = replacePlaceholders(rawHtml, false, true);
                     return {
-                        id: crypto.randomUUID(),
+                        id: generateId(),
                         type: 'TEXT',
                         content: resolvedHtml,
                         fontSize: 10,
@@ -2252,7 +2253,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
         // Build the block – spread payload LAST so caller values win,
         // but guard against undefined fontSize overwriting the default.
         const rawBlock: DocBlock = {
-            id: crypto.randomUUID(),
+            id: generateId(),
             type: type as DocBlock['type'],
             content: payload?.content || '',
             pos: type === 'SERVICE' ? (allServices.length + 1).toString() : undefined,
@@ -2321,7 +2322,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     const uebernehmeMaterial = (auswahl: ArtikelAuswahl[]) => {
         if (isLocked || auswahl.length === 0) return;
         const neueBloecke: DocBlock[] = auswahl.map((a) => ({
-            id: crypto.randomUUID(),
+            id: generateId(),
             type: 'SERVICE',
             title: a.titel,
             description: a.beschreibungHtml,

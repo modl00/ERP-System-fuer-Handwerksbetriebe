@@ -28,9 +28,11 @@ services:
 
   # ========== Spring Boot Anwendung ==========
   app:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    # Nutzt das vom Gitea-CI-Runner fertig gebaute Image (erp-handwerk:main).
+    # Einmalig oder nach runner.env-Einrichtung manuell bauen:
+    #   docker build -t erp-handwerk:main .
+    image: erp-handwerk:main
+    pull_policy: never
     container_name: kalkulationsprogramm-app
     ports:
       - "8080:8080"

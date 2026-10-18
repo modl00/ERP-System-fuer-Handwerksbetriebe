@@ -230,6 +230,7 @@ public class KundeController {
         kunde.setOrt(trimToNull(request.getOrt()));
         kunde.setTelefon(Telefonnummer.ohneReineVorwahl(request.getTelefon()));
         kunde.setMobiltelefon(Telefonnummer.ohneReineVorwahl(request.getMobiltelefon()));
+        kunde.setZahlungsziel(request.getZahlungsziel() != null ? request.getZahlungsziel() : 8);
         kunde.setKundenEmails(new ArrayList<>(normalizeEmails(request.getKundenEmails())));
     }
 

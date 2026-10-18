@@ -3,6 +3,7 @@ package org.example.kalkulationsprogramm.controller;
 import lombok.RequiredArgsConstructor;
 import org.example.kalkulationsprogramm.domain.KalenderEintrag;
 import org.example.kalkulationsprogramm.domain.Mitarbeiter;
+import org.example.kalkulationsprogramm.repository.KalenderEintragRepository;
 import org.example.kalkulationsprogramm.repository.MitarbeiterRepository;
 import org.example.kalkulationsprogramm.service.KalenderService;
 import org.springframework.http.ResponseEntity;
@@ -22,6 +23,7 @@ public class KalenderController {
 
     private final KalenderService kalenderService;
     private final MitarbeiterRepository mitarbeiterRepository;
+    private final KalenderEintragRepository kalenderEintragRepository;
 
     /**
      * DTO für Teilnehmer.
@@ -248,5 +250,17 @@ public class KalenderController {
     public ResponseEntity<Map<String, Boolean>> deleteEintrag(@PathVariable Long id) {
         kalenderService.deleteEintrag(id);
         return ResponseEntity.ok(Map.of("deleted", true));
+    }
+
+    /**
+     * Alle Kalendereinträge für ein Projekt (neueste zuerst).
+     */
+    @GetMapping("/projekt/{projektId}")
+    public ResponseEntity<List<KalenderEintragDto>> getEintraegeForProjekt(@PathVariable Long projektId) {
+        return ResponseEntity.ok(
+            kalenderEintragRepository.findByProjektIdOrderByDatumDesc(projektId).stream()
+                .map(KalenderEintragDto::fromEntity)
+                .collect(Collectors.toList())
+        );
     }
 }

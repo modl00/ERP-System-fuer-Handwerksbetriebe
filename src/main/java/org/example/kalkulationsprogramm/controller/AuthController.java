@@ -9,6 +9,7 @@ import org.example.kalkulationsprogramm.domain.FrontendUserRole;
 import org.example.kalkulationsprogramm.repository.FrontendUserProfileRepository;
 import org.example.kalkulationsprogramm.service.FrontendUserProfileService;
 import org.example.kalkulationsprogramm.service.SystemSettingsService;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -29,6 +30,7 @@ public class AuthController {
     private final FrontendUserProfileService profileService;
     private final FrontendUserProfileRepository profileRepository;
     private final SystemSettingsService settingsService;
+    private final KiAnbieterService kiAnbieterService;
 
     @GetMapping("/bootstrap-status")
     public ResponseEntity<BootstrapStatusResponse> bootstrapStatus() {
@@ -80,8 +82,8 @@ public class AuthController {
 
         boolean isAdmin = profile.hasRole(FrontendUserRole.ADMIN);
         boolean requiresInitialSetup = isAdmin && settingsService.isInitialConfigurationRequired();
-        // Für alle Nutzer: ohne Gemini-Schlüssel blendet die Oberfläche KI-Knöpfe aus oder sperrt sie.
-        boolean kiAktiv = settingsService.isGeminiConfigured();
+        // Für alle Nutzer: ohne irgendeinen KI-Schlüssel blendet die Oberfläche KI-Knöpfe aus oder sperrt sie.
+        boolean kiAktiv = kiAnbieterService.irgendeinAnbieterEingerichtet();
 
         MitarbeiterInfo mitarbeiter = null;
         if (profile.getMitarbeiter() != null) {

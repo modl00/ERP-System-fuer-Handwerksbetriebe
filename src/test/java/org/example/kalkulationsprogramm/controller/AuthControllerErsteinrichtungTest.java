@@ -14,6 +14,7 @@ import org.example.kalkulationsprogramm.domain.FrontendUserRole;
 import org.example.kalkulationsprogramm.repository.FrontendUserProfileRepository;
 import org.example.kalkulationsprogramm.service.FrontendUserProfileService;
 import org.example.kalkulationsprogramm.service.SystemSettingsService;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -45,6 +46,9 @@ class AuthControllerErsteinrichtungTest {
     @MockBean
     private SystemSettingsService settingsService;
 
+    @MockBean
+    private KiAnbieterService kiAnbieterService;
+
     private static FrontendUserProfile profil(FrontendUserRole rolle) {
         FrontendUserProfile profil = new FrontendUserProfile();
         profil.setId(42L);
@@ -67,10 +71,10 @@ class AuthControllerErsteinrichtungTest {
     class Me {
 
         @Test
-        @DisplayName("Admin mit Mailserver, ohne Gemini: keine Ersteinrichtung, KI aus")
-        void adminOhneGeminiMussNichtZurErsteinrichtung() throws Exception {
+        @DisplayName("Admin ohne KI-Schlüssel: keine Ersteinrichtung, KI aus")
+        void adminOhneKiMussNichtZurErsteinrichtung() throws Exception {
             given(settingsService.isInitialConfigurationRequired()).willReturn(false);
-            given(settingsService.isGeminiConfigured()).willReturn(false);
+            given(kiAnbieterService.irgendeinAnbieterEingerichtet()).willReturn(false);
 
             mockMvc.perform(get("/api/auth/me").principal(anmeldung(FrontendUserRole.ADMIN)))
                     .andExpect(status().isOk())
@@ -83,7 +87,7 @@ class AuthControllerErsteinrichtungTest {
         @DisplayName("Admin ohne Mailserver: muss zur Ersteinrichtung")
         void adminOhneMailserverMussZurErsteinrichtung() throws Exception {
             given(settingsService.isInitialConfigurationRequired()).willReturn(true);
-            given(settingsService.isGeminiConfigured()).willReturn(true);
+            given(kiAnbieterService.irgendeinAnbieterEingerichtet()).willReturn(true);
 
             mockMvc.perform(get("/api/auth/me").principal(anmeldung(FrontendUserRole.ADMIN)))
                     .andExpect(status().isOk())
@@ -95,7 +99,7 @@ class AuthControllerErsteinrichtungTest {
         @DisplayName("Normaler Nutzer: nie Ersteinrichtung, KI-Status kommt trotzdem mit")
         void nutzerSiehtKiStatusAberNieErsteinrichtung() throws Exception {
             given(settingsService.isInitialConfigurationRequired()).willReturn(true);
-            given(settingsService.isGeminiConfigured()).willReturn(true);
+            given(kiAnbieterService.irgendeinAnbieterEingerichtet()).willReturn(true);
 
             mockMvc.perform(get("/api/auth/me").principal(anmeldung(FrontendUserRole.USER)))
                     .andExpect(status().isOk())

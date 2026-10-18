@@ -27,6 +27,7 @@ import org.example.kalkulationsprogramm.domain.Werkstoff;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDetailDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumentDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumenttexteRequest;
+import org.example.kalkulationsprogramm.dto.Artikel.ArtikelStammdatenRequest;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelResponseDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelSearchResponseDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ExterneNummerDto;
@@ -56,6 +57,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -356,6 +358,15 @@ public class ArtikelController {
         }
         artikelService.fuegeExterneNummerHinzu(artikelId, lieferant, dto.getNummer());
         return ResponseEntity.ok().build();
+    }
+
+    @PutMapping("/{id}/stammdaten")
+    @Transactional
+    public ResponseEntity<ArtikelResponseDto> aktualisiereStammdaten(
+            @PathVariable Long id,
+            @RequestBody ArtikelStammdatenRequest request) {
+        Artikel aktualisiert = artikelService.aktualisiereStammdaten(id, request);
+        return ResponseEntity.ok(mappeArtikelZuDto(aktualisiert, null));
     }
 
     /**

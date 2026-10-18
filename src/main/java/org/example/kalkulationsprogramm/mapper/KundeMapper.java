@@ -22,6 +22,7 @@ public class KundeMapper {
         dto.setOrt(kunde.getOrt());
         dto.setTelefon(kunde.getTelefon());
         dto.setMobiltelefon(kunde.getMobiltelefon());
+        dto.setZahlungsziel(kunde.getZahlungsziel());
         dto.setKundenEmails(kunde.getKundenEmails());
         dto.setHatProjekte(kunde.getProjekts() != null && !kunde.getProjekts().isEmpty());
         return dto;

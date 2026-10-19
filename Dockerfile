@@ -9,7 +9,8 @@ WORKDIR /build
 # Erst nur die Paketlisten -> npm ci wird gecacht, solange sie sich nicht aendern
 COPY react-pc-frontend/package.json react-pc-frontend/package-lock.json react-pc-frontend/
 COPY react-zeiterfassung/package.json react-zeiterfassung/package-lock.json react-zeiterfassung/
-RUN npm ci --prefix react-pc-frontend --no-audit --no-fund \
+RUN --mount=type=cache,target=/root/.npm \
+    npm ci --prefix react-pc-frontend --no-audit --no-fund \
  && npm ci --prefix react-zeiterfassung --no-audit --no-fund
 
 COPY react-pc-frontend react-pc-frontend
@@ -31,7 +32,8 @@ COPY mvnw mvnw.cmd pom.xml ./
 COPY .mvn .mvn
 
 # Download dependencies (cached unless pom.xml changes)
-RUN chmod +x mvnw && ./mvnw dependency:go-offline -B
+RUN --mount=type=cache,target=/root/.m2 \
+    chmod +x mvnw && ./mvnw dependency:go-offline -B
 
 # Copy source code
 COPY src src
@@ -46,7 +48,8 @@ COPY --from=frontend /build/src/main/resources/static src/main/resources/static
 # Bauen und das Ergebnis auf einen festen Namen legen. Ohne das muesste hier
 # die Projektversion stehen — die laeuft erfahrungsgemaess auseinander
 # (pom stand auf 1.0.3, das Dockerfile noch auf 1.0.0).
-RUN ./mvnw clean package -Dmaven.test.skip=true -B \
+RUN --mount=type=cache,target=/root/.m2 \
+    ./mvnw clean package -Dmaven.test.skip=true -B \
  && cp target/Kalkulationsprogramm-*.jar /app/app.jar
 
 # ===== Wissen der KI-Hilfe (RAG-Datei) =====

@@ -68,7 +68,7 @@ class DokumentGeneratorControllerZugferdExportTest {
 
     @BeforeEach
     void setUp() {
-        controller = new DokumentGeneratorController(new RechnungPdfService(),
+        controller = new DokumentGeneratorController(new RechnungPdfService(firmeninformationService),
                 new ZugferdErstellService(firmeninformationService), new ZugferdRechnungMapper());
         mvc = MockMvcBuilders.standaloneSetup(controller)
                 .setControllerAdvice(new RestExceptionHandler(null))
@@ -146,7 +146,7 @@ class DokumentGeneratorControllerZugferdExportTest {
                 leistung("3", "Bedarfsposition Abdichtung", 1, "psch", 100, null, true));
 
         Export export = exportiere(new GeneratePdfRequest("RECHNUNG", "Standard", kopf("RE-2026-0042", 30),
-                List.of(), bloecke, null, null, null, 5.0, null, null, null));
+                List.of(), bloecke, null, null, null, 5.0, null, null, null, null));
 
         assertGueltig(export);
         // 534,94 + 35,00 = 569,94 − Rabatt 28,50 = 541,44 netto + 102,87 USt = 644,31
@@ -166,7 +166,7 @@ class DokumentGeneratorControllerZugferdExportTest {
                 List.of(), AUFTRAGSPOSITIONEN, null, null, null, null,
                 verlauf(new AbrechnungspositionRequest("AR-2026-0001", "ABSCHLAGSRECHNUNG", "2026-09-15", 600.0, 1),
                         new AbrechnungspositionRequest("AR-2026-0002", "ABSCHLAGSRECHNUNG", "2026-09-29", 400.0, 2)),
-                null, null));
+                null, null, null));
 
         assertGueltig(export);
         // 1951,25 − 1000,00 = 951,25 netto + 180,74 USt = 1131,99
@@ -182,7 +182,7 @@ class DokumentGeneratorControllerZugferdExportTest {
     void abschlagsrechnungFordertDenFestenBetrag_ohneZahlungszielGeltenAchtTage() throws Exception {
         Export export = exportiere(new GeneratePdfRequest("ABSCHLAGSRECHNUNG", "Standard", kopf("AR-2026-0001", null),
                 List.of(), AUFTRAGSPOSITIONEN, null, null, null, null, verlauf(), 1000.0,
-                new AbschlagInfoRequest("prozent", 50.0)));
+                new AbschlagInfoRequest("prozent", 50.0), null));
 
         assertGueltig(export);
         assertThat(export.xml()).contains("<ram:Name>Abschlagsrechnung</ram:Name>",
@@ -196,13 +196,13 @@ class DokumentGeneratorControllerZugferdExportTest {
     @Test
     void stornoUndAngebotSindGueltig_ohneZahlungsziel() throws Exception {
         Export storno = exportiere(new GeneratePdfRequest("STORNO", "Standard", kopf("ST-2026-0001", 14),
-                List.of(), AUFTRAGSPOSITIONEN, null, null, null, null, null, null, null));
+                List.of(), AUFTRAGSPOSITIONEN, null, null, null, null, null, null, null, null));
         assertGueltig(storno);
         assertThat(storno.xml()).contains("<ram:TypeCode>381</ram:TypeCode>", "Keine Zahlung fällig.")
                 .doesNotContain("DueDateDateTime");
 
         Export angebot = exportiere(new GeneratePdfRequest("ANGEBOT", "Standard", kopf("AN-2026-0001", 14),
-                List.of(), AUFTRAGSPOSITIONEN, null, null, null, null, null, null, null));
+                List.of(), AUFTRAGSPOSITIONEN, null, null, null, null, null, null, null, null));
         assertGueltig(angebot);
         assertThat(angebot.xml()).contains("Keine Zahlung fällig.").doesNotContain("DueDateDateTime");
     }
@@ -212,7 +212,7 @@ class DokumentGeneratorControllerZugferdExportTest {
         Export export = exportiere(new GeneratePdfRequest("SCHLUSSRECHNUNG", "Standard", kopf("RE-2026-0050", 14),
                 List.of(), AUFTRAGSPOSITIONEN, null, null, null, null,
                 verlauf(new AbrechnungspositionRequest("AR-2026-0001", "ABSCHLAGSRECHNUNG", "2026-09-15", 600.0, 1)),
-                null, null));
+                null, null, null));
 
         assertGueltig(export);
         assertThat(export.xml()).contains("<ram:InvoiceReferencedDocument>",
@@ -227,7 +227,7 @@ class DokumentGeneratorControllerZugferdExportTest {
         private GeneratePdfRequest rechnung(KopfdatenRequest kopf, List<DocBlockRequest> bloecke,
                 AbrechnungsverlaufRequest verlauf) {
             return new GeneratePdfRequest("RECHNUNG", "Standard", kopf, List.of(), bloecke, null, null, null, null,
-                    verlauf, null, null);
+                    verlauf, null, null, null);
         }
 
         @Test
@@ -302,7 +302,7 @@ class DokumentGeneratorControllerZugferdExportTest {
         when(firmeninformationService.getFirmeninformation()).thenReturn(new FirmeninformationDto());
 
         assertThatThrownBy(() -> controller.generateZugferdPdf(new GeneratePdfRequest("RECHNUNG", "Standard",
-                kopf("RE-2026-0042", 14), List.of(), AUFTRAGSPOSITIONEN, null, null, null, null, null, null, null)))
+                kopf("RE-2026-0042", 14), List.of(), AUFTRAGSPOSITIONEN, null, null, null, null, null, null, null, null)))
                 .isInstanceOf(FirmenstammdatenUnvollstaendigException.class);
     }
 }

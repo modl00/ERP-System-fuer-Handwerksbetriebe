@@ -69,7 +69,7 @@ class EntwicklungsWunschAbgleichTest {
             ex.close();
         });
         server.start();
-        service = new EntwicklungsWunschService(einstellungen, new MailSecretService("test-schluessel-test-schluessel-12"));
+        service = new EntwicklungsWunschService(einstellungen, new MailSecretService("test-schluessel-test-schluessel-12", "uploads"));
         service.speichern("http://127.0.0.1:" + server.getAddress().getPort(), "M/ERP", "dummy-token-1234567890");
     }
 

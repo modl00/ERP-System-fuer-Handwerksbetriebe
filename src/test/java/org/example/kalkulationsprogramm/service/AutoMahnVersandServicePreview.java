@@ -13,6 +13,7 @@ import org.example.kalkulationsprogramm.service.RechnungPdfService.KopfdatenDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.LayoutDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.RechnungDto;
 import org.junit.jupiter.api.Test;
+import static org.mockito.Mockito.mock;
 
 import java.io.File;
 import java.math.BigDecimal;
@@ -142,7 +143,7 @@ class AutoMahnVersandServicePreview
                 null,
                 rechnung.getBruttoBetrag(),
                 null);
-        return new RechnungPdfService().generatePdfBytes(dto);
+        return new RechnungPdfService(mock(FirmeninformationService.class)).generatePdfBytes(dto);
     }
 
     private static ProjektGeschaeftsdokument baueDemoRechnung()

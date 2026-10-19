@@ -65,7 +65,7 @@ class EntwicklungsWunschServiceTest {
     }
 
     private EntwicklungsWunschService mitSchluessel(String schluessel) {
-        return new EntwicklungsWunschService(einstellungen, new MailSecretService(schluessel));
+        return new EntwicklungsWunschService(einstellungen, new MailSecretService(schluessel, "uploads"));
     }
 
     @Test

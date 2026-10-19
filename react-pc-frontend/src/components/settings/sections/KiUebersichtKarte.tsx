@@ -32,9 +32,21 @@ const FARBE: Record<Status['art'], string> = {
     schlecht: 'bg-rose-50 text-rose-800',
 };
 
-/** Die Funktionen, bei denen der Anbieter wählbar ist, gehören zu diesen Modell-Schlüsseln (die Gemini-Modelle stehen dort). */
-const MODELL_SCHLUESSEL: Record<string, string> = { hilfe: 'ki-hilfe', scanner: 'scanner', 'dokument-erkennen': 'dokument-analyse', beitrag: 'pro' };
-/** Wie ein nicht wählbarer Gemini-Eintrag heißt, wenn er schon als wählbare Funktion in der Liste steht. */
+/** KiFunktion.schluessel → KiModellService.Funktion.schluessel (für die Gemini-Modell-Anzeige je Funktion). */
+const MODELL_SCHLUESSEL: Record<string, string> = {
+    hilfe: 'ki-hilfe',
+    scanner: 'scanner',
+    'dokument-erkennen': 'dokument-analyse',
+    beitrag: 'pro',
+    assistent: 'assistent',
+    'email-einordnen': 'email-classification',
+    'email-text': 'email-text',
+    'pdf-auslesen': 'pdf-extractor',
+    plantafel: 'plantafel',
+    testbox: 'testbox',
+    spracheingabe: 'spracheingabe',
+};
+/** Alle Modell-Schlüssel, die über KiFunktion/KiAnbieterService konfigurierbar sind – kein Gemini-Fest-Eintrag nötig. */
 const WAEHLBAR_ALS_MODELL = new Set(Object.values(MODELL_SCHLUESSEL));
 
 function statusVon(a: AnbieterStand | undefined, o: Obergrenze | null, dieseFunktionPruefenObergrenze: boolean): Status {

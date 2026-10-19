@@ -9,6 +9,7 @@ on:
 jobs:
   build:
     runs-on: docker
+    timeout-minutes: 90
     steps:
       - name: Repository auschecken
         run: |
@@ -16,6 +17,8 @@ jobs:
           git clone ${{ gitea.server_url }}/${{ gitea.repository }}.git repo --depth=1 --branch=${{ gitea.ref_name }}
 
       - name: Image bauen und taggen
+        env:
+          DOCKER_BUILDKIT: "1"
         run: |
           cd repo
           docker build \

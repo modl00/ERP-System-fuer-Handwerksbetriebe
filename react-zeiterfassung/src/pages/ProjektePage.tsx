@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Search, Briefcase, MapPin, User, Loader2, Image, ChevronRight, Navigation, Phone, X, Camera, Plus, Smartphone, FolderOpen, RefreshCw, MessageCircle } from 'lucide-react'
+import { ArrowLeft, Search, Briefcase, MapPin, User, Loader2, Image, ChevronRight, Navigation, Phone, X, Camera, Plus, Smartphone, FolderOpen, RefreshCw, MessageCircle, Wrench } from 'lucide-react'
 import { OfflineService } from '../services/OfflineService'
 import { ImageViewer } from '../components/ui/image-viewer'
 import { useToast } from '../components/ui/toast'
@@ -529,6 +529,21 @@ export default function ProjektePage({ mitarbeiter, syncStatus, onSync }: Projek
                                     <div className="flex-1 text-left">
                                         <p className="font-medium text-slate-900">Bau Tagebuch</p>
                                         <p className="text-xs text-slate-500">Einträge anzeigen & hinzufügen</p>
+                                    </div>
+                                    <ChevronRight className="w-5 h-5 text-slate-400" />
+                                </button>
+
+                                {/* Wartung Button */}
+                                <button
+                                    onClick={() => navigate(`/projekte/${selectedProjekt.id}/wartung`)}
+                                    className="w-full bg-white rounded-2xl p-4 border border-slate-200 flex items-center gap-3 active:scale-98 transition-transform"
+                                >
+                                    <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                                        <Wrench className="w-5 h-5 text-amber-600" />
+                                    </div>
+                                    <div className="flex-1 text-left">
+                                        <p className="font-medium text-slate-900">Wartung</p>
+                                        <p className="text-xs text-slate-500">Feldeinsatz starten oder fortsetzen</p>
                                     </div>
                                     <ChevronRight className="w-5 h-5 text-slate-400" />
                                 </button>

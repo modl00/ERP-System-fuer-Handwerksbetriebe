@@ -95,6 +95,8 @@ import MwstRechnerPage from './pages/MwstRechnerPage'
 import { LieferantReklamationDetailPage } from './pages/LieferantReklamationDetailPage'
 import KalenderPage from './pages/KalenderPage'
 import TerminDetailPage from './pages/TerminDetailPage'
+import WartungAnlagenPage from './pages/WartungAnlagenPage'
+import FeldeinsatzPage from './pages/FeldeinsatzPage'
 import { OfflineService } from './services/OfflineService'
 import { starteBenachrichtigungenFallsErlaubt, stoppeBenachrichtigungsIntervall } from './services/notificationBootstrap'
 import { NotificationService } from './services/NotificationService'
@@ -351,6 +353,8 @@ function App() {
         <Route path="/tagesbuchungen" element={<TagesbuchungenPage syncStatus={syncStatus} onSync={syncData} />} />
         <Route path="/kalender" element={<KalenderPage mitarbeiter={mitarbeiter} token={localStorage.getItem('zeiterfassung_token')} syncStatus={syncStatus} onSync={syncData} />} />
         <Route path="/kalender/termin/:datum/:key" element={<TerminDetailPage token={localStorage.getItem('zeiterfassung_token')} />} />
+        <Route path="/projekte/:projektId/wartung" element={<WartungAnlagenPage />} />
+        <Route path="/wartung/protokoll/:id" element={<FeldeinsatzPage />} />
         <Route path="/belege" element={<BelegScannerPage />} />
         <Route path="/belege/:id/positionen" element={<BelegPositionenAuswahlPage />} />
         <Route path="/mwst-rechner" element={<MwstRechnerPage />} />

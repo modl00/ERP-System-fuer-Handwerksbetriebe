@@ -2,6 +2,8 @@ package org.example.kalkulationsprogramm.controller.wartung;
 
 import java.util.List;
 
+import org.example.kalkulationsprogramm.dto.wartung.AppAnlageAktualisierenDto;
+import org.example.kalkulationsprogramm.dto.wartung.WartungAnlageDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungDatenfeldWertDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungInhaltAenderungDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProjektWartungDto;
@@ -18,6 +20,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -45,6 +48,19 @@ public class ZeiterfassungWartungController {
     @GetMapping("/projekte/{projektId}/anlagen")
     public List<WartungProjektWartungDto> anlagen(@RequestHeader(ZUGANG) String token, @PathVariable Long projektId) {
         return service.anlagenDesProjekts(token, projektId);
+    }
+
+    /** Stammdaten einer Anlage für die Bearbeitungsseite in der App. */
+    @GetMapping("/anlagen/{id}")
+    public WartungAnlageDto anlage(@RequestHeader(ZUGANG) String token, @PathVariable Long id) {
+        return service.anlage(token, id);
+    }
+
+    /** Bezeichnung, Notizen und Intervall einer Anlage speichern. */
+    @PatchMapping("/anlagen/{id}")
+    public WartungAnlageDto anlageSpeichern(@RequestHeader(ZUGANG) String token, @PathVariable Long id,
+            @Valid @RequestBody AppAnlageAktualisierenDto dto) {
+        return service.anlageSpeichern(token, id, dto);
     }
 
     /** Startet den Feldeinsatz der Wartung (Tür/Anlage) oder gibt den laufenden zurück. */

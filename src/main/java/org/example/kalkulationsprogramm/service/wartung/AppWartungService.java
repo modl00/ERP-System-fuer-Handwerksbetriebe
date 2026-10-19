@@ -5,6 +5,7 @@ import java.util.List;
 import org.example.kalkulationsprogramm.domain.Funktion;
 import org.example.kalkulationsprogramm.domain.FunktionsAktion;
 import org.example.kalkulationsprogramm.domain.Mitarbeiter;
+import org.example.kalkulationsprogramm.dto.wartung.AppAnlageAktualisierenDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungAnlageDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungDatenfeldWertDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungInhaltAenderungDto;
@@ -44,6 +45,18 @@ public class AppWartungService {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Das Wartungsmodul ist ausgeschaltet.");
         }
         return rechte.verlangeFuerToken(token, Funktion.WARTUNG, aktion);
+    }
+
+    /** Stammdaten einer Anlage für die Bearbeitungsseite in der App. */
+    public WartungAnlageDto anlage(String token, Long id) {
+        pruefe(token, FunktionsAktion.ANSEHEN);
+        return anlageService.laden(id);
+    }
+
+    /** Speichert Bezeichnung, Notizen und Intervall – die Felder, die der Techniker vor Ort anpassen kann. */
+    public WartungAnlageDto anlageSpeichern(String token, Long id, AppAnlageAktualisierenDto dto) {
+        pruefe(token, FunktionsAktion.AENDERN);
+        return anlageService.aktualisieren(id, dto);
     }
 
     /** Die Wartungen eines Projekts mit offenem Feldeinsatz und den abgelegten Berichten. */

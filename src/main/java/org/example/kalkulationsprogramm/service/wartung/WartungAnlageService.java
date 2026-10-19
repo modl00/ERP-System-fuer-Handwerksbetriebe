@@ -12,6 +12,7 @@ import org.example.kalkulationsprogramm.domain.wartung.WartungObjekt;
 import org.example.kalkulationsprogramm.domain.wartung.WartungProtokoll;
 import org.example.kalkulationsprogramm.domain.wartung.WartungStatus;
 import org.example.kalkulationsprogramm.domain.wartung.WartungTuer;
+import org.example.kalkulationsprogramm.dto.wartung.AppAnlageAktualisierenDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungAnlageDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProjektWartungDto;
 import org.example.kalkulationsprogramm.mapper.wartung.WartungMapper;
@@ -88,6 +89,17 @@ public class WartungAnlageService {
                 offen == null ? null : offen.getId(), offen == null ? null : offen.getNummer(),
                 letzte == null ? null : letzte.getId(),
                 historie);
+    }
+
+    /** Aktualisiert die Stammdaten einer Anlage (Bezeichnung, Notizen, Intervall) — für den App-Feldeinsatz. */
+    @Transactional
+    public WartungAnlageDto aktualisieren(Long tuerId, AppAnlageAktualisierenDto dto) {
+        WartungTuer tuer = ladeTuer(tuerId);
+        tuer.setBezeichnung(dto.bezeichnung().trim());
+        tuer.setNotizen(dto.notizen());
+        tuer.setIntervallMonate(dto.intervallMonate());
+        tuerRepository.save(tuer);
+        return laden(tuerId);
     }
 
     /**

@@ -3,6 +3,19 @@
 export type Ergebnis = 'IO' | 'NIO' | 'NA'
 export type Status = 'OFFEN' | 'IN_BEARBEITUNG' | 'ABGESCHLOSSEN' | 'ARCHIVIERT'
 
+export interface AnlageStammdaten {
+    id: number
+    bezeichnung: string
+    notizen: string | null
+    intervallMonate: number | null
+    naechsteFaelligkeit: string | null
+    aktiv: boolean
+    kunde: { id: number; name: string } | null
+    objekt: { id: number; bezeichnung: string; strasse: string | null; plz: string | null; ort: string | null } | null
+    module: { modulId: number; name: string; bauart: string | null }[]
+    offenerFeldeinsatzId: number | null
+}
+
 export interface ProjektWartung {
     id: number
     bezeichnung: string
@@ -73,6 +86,9 @@ async function aufruf<T>(token: string, pfad: string, methode = 'GET', body?: un
 }
 
 export const ladeAnlagen = (token: string, projektId: number | string) => aufruf<ProjektWartung[]>(token, `/projekte/${projektId}/anlagen`, 'GET', undefined, 'Die Wartungen konnten nicht geladen werden.')
+export const ladeAnlage = (token: string, id: number) => aufruf<AnlageStammdaten>(token, `/anlagen/${id}`, 'GET', undefined, 'Die Anlage konnte nicht geladen werden.')
+export const speichereAnlage = (token: string, id: number, daten: { bezeichnung: string; notizen: string | null; intervallMonate: number | null }) =>
+    aufruf<AnlageStammdaten>(token, `/anlagen/${id}`, 'PATCH', daten, 'Die Anlage konnte nicht gespeichert werden.')
 export const starteFeldeinsatz = (token: string, anlageId: number) => aufruf<Protokoll>(token, `/anlagen/${anlageId}/feldeinsatz`, 'POST', undefined, 'Der Feldeinsatz konnte nicht gestartet werden.')
 export const ladeProtokoll = (token: string, id: number | string) => aufruf<Protokoll>(token, `/protokolle/${id}`, 'GET', undefined, 'Der Feldeinsatz konnte nicht geladen werden.')
 export const bewertePruefpunkt = (token: string, id: number, pruefpunktId: number, ergebnis: Ergebnis | null, bemerkung: string | null) =>

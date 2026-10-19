@@ -45,7 +45,19 @@ public final class MobileApiPolicy {
         route("PUT", "/api/buchhaltung/mobile/belege/" + ID + "/positionen"),
         route("POST", "/api/spracheingabe/transkribieren"),
         route("GET", "/api/spracheingabe/verfuegbar"),
-        route("GET", "/api/(?:images|dokumente)/[^/]+(?:/(?:thumbnail|anzeige))?")
+        route("GET", "/api/(?:images|dokumente)/[^/]+(?:/(?:thumbnail|anzeige))?"),
+        // Wartung-Feldeinsatz: Anlagenliste, Anlage-Stammdaten, Feldeinsatz starten, Protokoll bearbeiten
+        route("GET", "/api/zeiterfassung/wartung/projekte/" + ID + "/anlagen"),
+        route("GET", "/api/zeiterfassung/wartung/anlagen/" + ID),
+        route("PATCH", "/api/zeiterfassung/wartung/anlagen/" + ID),
+        route("POST", "/api/zeiterfassung/wartung/anlagen/" + ID + "/feldeinsatz"),
+        route("GET", "/api/zeiterfassung/wartung/protokolle/" + ID),
+        route("PUT", "/api/zeiterfassung/wartung/protokolle/" + ID + "/pruefpunkte/" + ID),
+        route("PUT", "/api/zeiterfassung/wartung/protokolle/" + ID + "/datenfelder/" + ID),
+        route("PUT", "/api/zeiterfassung/wartung/protokolle/" + ID + "/unterschrift"),
+        route("POST", "/api/zeiterfassung/wartung/protokolle/" + ID + "/unterschrift/gespeichert"),
+        route("PUT", "/api/zeiterfassung/wartung/protokolle/" + ID + "/status"),
+        route("GET", "/api/zeiterfassung/wartung/protokolle/" + ID + "/pdf")
     );
     private MobileApiPolicy() {}
     public static boolean allows(String method, String path) {

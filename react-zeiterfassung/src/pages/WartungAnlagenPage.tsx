@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Wrench, ChevronRight, Loader2, Clock, AlertCircle } from 'lucide-react'
+import { ArrowLeft, Wrench, ChevronRight, Loader2, Clock, AlertCircle, Pencil } from 'lucide-react'
 import { ladeAnlagen, starteFeldeinsatz, type ProjektWartung, WartungFehler } from '../features/wartung/wartungApi'
 import { useToast } from '../components/ui/toast'
 
@@ -78,45 +78,57 @@ export default function WartungAnlagenPage() {
                         const offen = anlage.offenerFeldeinsatzId != null
                         const istStartend = startend === anlage.id
                         return (
-                            <button key={anlage.id} onClick={() => oeffne(anlage)}
-                                disabled={startend != null}
-                                className="w-full bg-white border border-slate-200 rounded-xl p-4 text-left transition-all hover:border-amber-200 hover:shadow-sm active:scale-98 disabled:opacity-60">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
-                                        {istStartend
-                                            ? <Loader2 className="w-5 h-5 text-amber-600 animate-spin" />
-                                            : <Wrench className="w-5 h-5 text-amber-600" />}
-                                    </div>
-                                    <div className="flex-1 min-w-0">
-                                        <p className="font-medium text-slate-900 truncate">{anlage.bezeichnung}</p>
-                                        {anlage.objektBezeichnung && (
-                                            <p className="text-sm text-slate-500 truncate">{anlage.objektBezeichnung}</p>
-                                        )}
-                                        {anlage.kundeName && (
-                                            <p className="text-xs text-slate-400 truncate">{anlage.kundeName}</p>
-                                        )}
-                                        <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
-                                            {offen && (
-                                                <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
-                                                    <Clock className="w-3 h-3" />
-                                                    Läuft: {anlage.offenerFeldeinsatzNummer}
-                                                </span>
-                                            )}
-                                            {badge && (
-                                                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.klasse}`}>
-                                                    {badge.text}
-                                                </span>
-                                            )}
-                                            {anlage.anzahlPruefungen > 0 && (
-                                                <span className="text-xs text-slate-400">
-                                                    {anlage.anzahlPruefungen} Prüfung{anlage.anzahlPruefungen !== 1 ? 'en' : ''}
-                                                </span>
-                                            )}
+                            <div key={anlage.id} className="bg-white border border-slate-200 rounded-xl overflow-hidden">
+                                <button onClick={() => oeffne(anlage)}
+                                    disabled={startend != null}
+                                    className="w-full p-4 text-left transition-all hover:bg-amber-50/50 active:bg-amber-50 disabled:opacity-60">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-12 h-12 bg-amber-50 rounded-xl flex items-center justify-center flex-shrink-0">
+                                            {istStartend
+                                                ? <Loader2 className="w-5 h-5 text-amber-600 animate-spin" />
+                                                : <Wrench className="w-5 h-5 text-amber-600" />}
                                         </div>
+                                        <div className="flex-1 min-w-0">
+                                            <p className="font-medium text-slate-900 truncate">{anlage.bezeichnung}</p>
+                                            {anlage.objektBezeichnung && (
+                                                <p className="text-sm text-slate-500 truncate">{anlage.objektBezeichnung}</p>
+                                            )}
+                                            {anlage.kundeName && (
+                                                <p className="text-xs text-slate-400 truncate">{anlage.kundeName}</p>
+                                            )}
+                                            <div className="flex flex-wrap items-center gap-1.5 mt-1.5">
+                                                {offen && (
+                                                    <span className="inline-flex items-center gap-1 text-xs bg-amber-100 text-amber-700 px-2 py-0.5 rounded-full font-medium">
+                                                        <Clock className="w-3 h-3" />
+                                                        Läuft: {anlage.offenerFeldeinsatzNummer}
+                                                    </span>
+                                                )}
+                                                {badge && (
+                                                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${badge.klasse}`}>
+                                                        {badge.text}
+                                                    </span>
+                                                )}
+                                                {anlage.anzahlPruefungen > 0 && (
+                                                    <span className="text-xs text-slate-400">
+                                                        {anlage.anzahlPruefungen} Prüfung{anlage.anzahlPruefungen !== 1 ? 'en' : ''}
+                                                    </span>
+                                                )}
+                                            </div>
+                                        </div>
+                                        <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
                                     </div>
-                                    <ChevronRight className="w-4 h-4 text-slate-400 flex-shrink-0" />
+                                </button>
+                                {/* Bearbeiten-Button */}
+                                <div className="border-t border-slate-100 px-4 py-2 flex justify-end">
+                                    <button
+                                        onClick={() => navigate(`/wartung/anlagen/${anlage.id}/bearbeiten`)}
+                                        className="flex items-center gap-1.5 text-xs text-slate-500 hover:text-slate-700 py-1 px-2 rounded-lg hover:bg-slate-100 transition-colors"
+                                        aria-label="Anlage bearbeiten">
+                                        <Pencil className="w-3.5 h-3.5" />
+                                        Anlage bearbeiten
+                                    </button>
                                 </div>
-                            </button>
+                            </div>
                         )
                     })
                 )}

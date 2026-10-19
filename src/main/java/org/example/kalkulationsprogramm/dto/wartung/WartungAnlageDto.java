@@ -31,7 +31,7 @@ public record WartungAnlageDto(
 
     public record Bezug(Long id, String name) { }
 
-    public record Objekt(Long id, String bezeichnung, String strasse, String plz, String ort) { }
+    public record Objekt(Long id, String bezeichnung, String strasse, String plz, String ort, String ansprechpartnerName, String ansprechpartnerTelefon) { }
 
     /** {@code bauartSchluessel} braucht der Start eines Feldeinsatzes ohne Vorlage, {@code bauart} ist die Anzeige. */
     public record Modul(Long modulId, String name, String bauart, String bauartSchluessel) { }

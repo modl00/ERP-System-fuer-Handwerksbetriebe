@@ -57,7 +57,10 @@ public final class MobileApiPolicy {
         route("PUT", "/api/zeiterfassung/wartung/protokolle/" + ID + "/unterschrift"),
         route("POST", "/api/zeiterfassung/wartung/protokolle/" + ID + "/unterschrift/gespeichert"),
         route("PUT", "/api/zeiterfassung/wartung/protokolle/" + ID + "/status"),
-        route("GET", "/api/zeiterfassung/wartung/protokolle/" + ID + "/pdf")
+        route("GET", "/api/zeiterfassung/wartung/protokolle/" + ID + "/pdf"),
+        route("GET", "/api/zeiterfassung/wartung/module"),
+        route("PATCH", "/api/zeiterfassung/wartung/anlagen/" + ID + "/module"),
+        route("PATCH", "/api/zeiterfassung/wartung/objekte/" + ID)
     );
     private MobileApiPolicy() {}
     public static boolean allows(String method, String path) {

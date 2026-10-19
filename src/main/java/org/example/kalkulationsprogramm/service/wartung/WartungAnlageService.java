@@ -14,7 +14,9 @@ import org.example.kalkulationsprogramm.domain.wartung.WartungStatus;
 import org.example.kalkulationsprogramm.domain.wartung.WartungTuer;
 import org.example.kalkulationsprogramm.dto.wartung.AppAnlageAktualisierenDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungAnlageDto;
+import org.example.kalkulationsprogramm.dto.wartung.WartungModulAuswahlDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProjektWartungDto;
+import org.example.kalkulationsprogramm.service.wartung.WartungModulAuswahlPruefer.GewaehltesModul;
 import org.example.kalkulationsprogramm.mapper.wartung.WartungMapper;
 import org.example.kalkulationsprogramm.repository.ProjektDokumentRepository;
 import org.example.kalkulationsprogramm.repository.ProjektRepository;
@@ -55,6 +57,7 @@ public class WartungAnlageService {
     private final WartungModulUntertypRepository untertypRepository;
     private final ProjektRepository projektRepository;
     private final ProjektDokumentRepository dokumentRepository;
+    private final WartungModulAuswahlPruefer auswahlPruefer;
 
     @Transactional(readOnly = true)
     public WartungAnlageDto laden(Long tuerId) {
@@ -83,12 +86,25 @@ public class WartungAnlageService {
         return new WartungAnlageDto(
                 tuer.getId(), tuer.getBezeichnung(), tuer.getNotizen(), tuer.getIntervallMonate(), tuer.getNaechsteFaelligkeit(), tuer.isAktiv(),
                 new WartungAnlageDto.Bezug(kunde.getId(), kunde.getName()),
-                new WartungAnlageDto.Objekt(objekt.getId(), objekt.getBezeichnung(), objekt.getStrasse(), objekt.getPlz(), objekt.getOrt()),
+                new WartungAnlageDto.Objekt(objekt.getId(), objekt.getBezeichnung(), objekt.getStrasse(), objekt.getPlz(), objekt.getOrt(), objekt.getAnsprechpartnerName(), objekt.getAnsprechpartnerTelefon()),
                 projekt == null ? null : new WartungAnlageDto.Bezug(projekt.getId(), WartungMapper.projektName(projekt)),
                 module(tuer),
                 offen == null ? null : offen.getId(), offen == null ? null : offen.getNummer(),
                 letzte == null ? null : letzte.getId(),
                 historie);
+    }
+
+    /** Setzt die Module einer Anlage neu — für den App-Feldeinsatz. */
+    @Transactional
+    public WartungAnlageDto modulSpeichern(Long tuerId, List<WartungModulAuswahlDto> module) {
+        WartungTuer tuer = ladeTuer(tuerId);
+        List<GewaehltesModul> geprueft = auswahlPruefer.pruefe(module, false);
+        Map<Long, String> neu = new HashMap<>();
+        geprueft.forEach(g -> neu.put(g.modul().getId(), g.untertyp() == null ? null : g.untertyp().getSchluessel()));
+        tuer.getModule().clear();
+        neu.forEach((modulId, bauart) -> tuer.getModule().add(new WartungModulAuswahl(modulId, bauart)));
+        tuerRepository.save(tuer);
+        return laden(tuerId);
     }
 
     /** Aktualisiert die Stammdaten einer Anlage (Bezeichnung, Notizen, Intervall) — für den App-Feldeinsatz. */

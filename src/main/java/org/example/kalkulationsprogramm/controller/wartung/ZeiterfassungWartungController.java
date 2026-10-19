@@ -3,9 +3,13 @@ package org.example.kalkulationsprogramm.controller.wartung;
 import java.util.List;
 
 import org.example.kalkulationsprogramm.dto.wartung.AppAnlageAktualisierenDto;
+import org.example.kalkulationsprogramm.dto.wartung.AppModulAuswahlListeDto;
+import org.example.kalkulationsprogramm.dto.wartung.AppObjektAktualisierenDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungAnlageDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungDatenfeldWertDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungInhaltAenderungDto;
+import org.example.kalkulationsprogramm.dto.wartung.WartungModulDto;
+import org.example.kalkulationsprogramm.dto.wartung.WartungObjektDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProjektWartungDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProtokollDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungPruefpunktErgebnisDto;
@@ -50,6 +54,12 @@ public class ZeiterfassungWartungController {
         return service.anlagenDesProjekts(token, projektId);
     }
 
+    /** Alle aktiven Katalog-Module für die Modul-Auswahl in der App. */
+    @GetMapping("/module")
+    public List<WartungModulDto> module(@RequestHeader(ZUGANG) String token) {
+        return service.module(token);
+    }
+
     /** Stammdaten einer Anlage für die Bearbeitungsseite in der App. */
     @GetMapping("/anlagen/{id}")
     public WartungAnlageDto anlage(@RequestHeader(ZUGANG) String token, @PathVariable Long id) {
@@ -61,6 +71,20 @@ public class ZeiterfassungWartungController {
     public WartungAnlageDto anlageSpeichern(@RequestHeader(ZUGANG) String token, @PathVariable Long id,
             @Valid @RequestBody AppAnlageAktualisierenDto dto) {
         return service.anlageSpeichern(token, id, dto);
+    }
+
+    /** Module einer Anlage neu setzen. */
+    @PatchMapping("/anlagen/{id}/module")
+    public WartungAnlageDto anlageModule(@RequestHeader(ZUGANG) String token, @PathVariable Long id,
+            @Valid @RequestBody AppModulAuswahlListeDto dto) {
+        return service.anlageModulSpeichern(token, id, dto);
+    }
+
+    /** Standortdaten (Objekt) einer Anlage aktualisieren. */
+    @PatchMapping("/objekte/{objektId}")
+    public WartungObjektDto objekt(@RequestHeader(ZUGANG) String token, @PathVariable Long objektId,
+            @Valid @RequestBody AppObjektAktualisierenDto dto) {
+        return service.objektSpeichern(token, objektId, dto);
     }
 
     /** Startet den Feldeinsatz der Wartung (Tür/Anlage) oder gibt den laufenden zurück. */

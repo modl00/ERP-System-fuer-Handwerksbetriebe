@@ -11,9 +11,24 @@ export interface AnlageStammdaten {
     naechsteFaelligkeit: string | null
     aktiv: boolean
     kunde: { id: number; name: string } | null
-    objekt: { id: number; bezeichnung: string; strasse: string | null; plz: string | null; ort: string | null } | null
-    module: { modulId: number; name: string; bauart: string | null }[]
+    objekt: {
+        id: number
+        bezeichnung: string
+        strasse: string | null
+        plz: string | null
+        ort: string | null
+        ansprechpartnerName: string | null
+        ansprechpartnerTelefon: string | null
+    } | null
+    module: { modulId: number; name: string; bauart: string | null; bauartSchluessel: string | null }[]
     offenerFeldeinsatzId: number | null
+}
+
+export interface KatalogModul {
+    id: number
+    name: string
+    icon: string | null
+    untertypen: { schluessel: string; label: string }[]
 }
 
 export interface ProjektWartung {
@@ -89,6 +104,11 @@ export const ladeAnlagen = (token: string, projektId: number | string) => aufruf
 export const ladeAnlage = (token: string, id: number) => aufruf<AnlageStammdaten>(token, `/anlagen/${id}`, 'GET', undefined, 'Die Anlage konnte nicht geladen werden.')
 export const speichereAnlage = (token: string, id: number, daten: { bezeichnung: string; notizen: string | null; intervallMonate: number | null }) =>
     aufruf<AnlageStammdaten>(token, `/anlagen/${id}`, 'PATCH', daten, 'Die Anlage konnte nicht gespeichert werden.')
+export const ladeKatalogModule = (token: string) => aufruf<KatalogModul[]>(token, '/module', 'GET', undefined, 'Die Module konnten nicht geladen werden.')
+export const speichereAnlageModule = (token: string, id: number, module: { modulId: number; untertypSchluessel: string | null }[]) =>
+    aufruf<AnlageStammdaten>(token, `/anlagen/${id}/module`, 'PATCH', { module }, 'Die Module konnten nicht gespeichert werden.')
+export const speichereObjekt = (token: string, objektId: number, daten: { bezeichnung: string; strasse: string | null; plz: string | null; ort: string | null; ansprechpartnerName: string | null; ansprechpartnerTelefon: string | null }) =>
+    aufruf<unknown>(token, `/objekte/${objektId}`, 'PATCH', daten, 'Der Standort konnte nicht gespeichert werden.')
 export const starteFeldeinsatz = (token: string, anlageId: number) => aufruf<Protokoll>(token, `/anlagen/${anlageId}/feldeinsatz`, 'POST', undefined, 'Der Feldeinsatz konnte nicht gestartet werden.')
 export const ladeProtokoll = (token: string, id: number | string) => aufruf<Protokoll>(token, `/protokolle/${id}`, 'GET', undefined, 'Der Feldeinsatz konnte nicht geladen werden.')
 export const bewertePruefpunkt = (token: string, id: number, pruefpunktId: number, ergebnis: Ergebnis | null, bemerkung: string | null) =>

@@ -6,10 +6,15 @@ import org.example.kalkulationsprogramm.domain.Funktion;
 import org.example.kalkulationsprogramm.domain.FunktionsAktion;
 import org.example.kalkulationsprogramm.domain.Mitarbeiter;
 import org.example.kalkulationsprogramm.dto.wartung.AppAnlageAktualisierenDto;
+import org.example.kalkulationsprogramm.dto.wartung.AppModulAuswahlListeDto;
+import org.example.kalkulationsprogramm.dto.wartung.AppObjektAktualisierenDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungAnlageDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungDatenfeldWertDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungInhaltAenderungDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungModulAuswahlDto;
+import org.example.kalkulationsprogramm.dto.wartung.WartungModulDto;
+import org.example.kalkulationsprogramm.dto.wartung.WartungObjektDto;
+import org.example.kalkulationsprogramm.dto.wartung.WartungObjektSpeichernDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProjektWartungDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProtokollAnlegenDto;
 import org.example.kalkulationsprogramm.dto.wartung.WartungProtokollDto;
@@ -37,6 +42,8 @@ public class AppWartungService {
     private final WartungAnlageService anlageService;
     private final WartungProtokollService protokollService;
     private final WartungProtokollPdfService pdfService;
+    private final WartungKatalogService katalogService;
+    private final WartungObjektService objektService;
     private final ObjectProvider<WartungModulSchalterService> modulSchalter;
 
     private Mitarbeiter pruefe(String token, FunktionsAktion aktion) {
@@ -57,6 +64,26 @@ public class AppWartungService {
     public WartungAnlageDto anlageSpeichern(String token, Long id, AppAnlageAktualisierenDto dto) {
         pruefe(token, FunktionsAktion.AENDERN);
         return anlageService.aktualisieren(id, dto);
+    }
+
+    /** Alle aktiven Katalog-Module – für die Modul-Auswahl in der App. */
+    public List<WartungModulDto> module(String token) {
+        pruefe(token, FunktionsAktion.ANSEHEN);
+        return katalogService.aktiveModule();
+    }
+
+    /** Setzt die Module einer Anlage neu. */
+    public WartungAnlageDto anlageModulSpeichern(String token, Long id, AppModulAuswahlListeDto dto) {
+        pruefe(token, FunktionsAktion.AENDERN);
+        return anlageService.modulSpeichern(id, dto.module());
+    }
+
+    /** Aktualisiert die Standortdaten (Objekt) einer Anlage. */
+    public WartungObjektDto objektSpeichern(String token, Long objektId, AppObjektAktualisierenDto dto) {
+        pruefe(token, FunktionsAktion.AENDERN);
+        return objektService.objektAendern(objektId, new WartungObjektSpeichernDto(
+                dto.bezeichnung(), dto.strasse(), dto.plz(), dto.ort(),
+                dto.ansprechpartnerName(), dto.ansprechpartnerTelefon(), null));
     }
 
     /** Die Wartungen eines Projekts mit offenem Feldeinsatz und den abgelegten Berichten. */

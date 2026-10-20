@@ -84,7 +84,7 @@ public class KiBelegService {
                 throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
             }
             throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
-                    "Den Beleg konnte ich nicht auslesen. Wenn das Modell unter Einstellungen → KI-Funktionen → „Dokumente und Belege erkennen" kein multimodales Modell ist (kein Bild-/PDF-Lesen), bitte dort ein passendes wählen (z. B. Gemini Flash). Sonst den Beleg über den Lieferanten von Hand ablegen.");
+                    "Den Beleg konnte ich nicht auslesen. Wenn das Modell unter Einstellungen → KI-Funktionen → „Dokumente und Belege erkennen\" kein multimodales Modell ist (kein Bild-/PDF-Lesen), bitte dort ein passendes wählen (z. B. Gemini Flash). Sonst den Beleg über den Lieferanten von Hand ablegen.");
         }
         return vorschlag(beleg);
     }
@@ -135,7 +135,7 @@ public class KiBelegService {
 
     private void sperreBeachten() {
         if (anbieterService.eingriff() == KiObergrenze.Eingriff.AUS) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, “Die KI ist ausgeschaltet (Einstellungen → KI → Grenzen).”);
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Die KI ist ausgeschaltet (Einstellungen → KI → Grenzen).");
         }
         try {
             anbieterService.pruefeDatenschutz(KiFunktion.DOKUMENT_ERKENNEN);

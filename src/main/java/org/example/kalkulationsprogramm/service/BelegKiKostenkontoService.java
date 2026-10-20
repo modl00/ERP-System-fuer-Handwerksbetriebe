@@ -12,6 +12,9 @@ import org.example.kalkulationsprogramm.domain.Sachkonto;
 import org.example.kalkulationsprogramm.repository.BelegRepository;
 import org.example.kalkulationsprogramm.repository.KostenstelleRepository;
 import org.example.kalkulationsprogramm.repository.SachkontoRepository;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
+import org.example.kalkulationsprogramm.service.ki.KiTextWeiche;
+import org.example.kalkulationsprogramm.service.ki.KiTypen;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -93,6 +96,7 @@ public class BelegKiKostenkontoService {
     private final BelegRepository belegRepository;
     private final SystemSettingsService systemSettingsService;
     private final ObjectMapper objectMapper;
+    private final KiTextWeiche weiche;
 
     private final HttpClient httpClient = HttpClient.newBuilder()
             .connectTimeout(Duration.ofSeconds(20))
@@ -117,6 +121,16 @@ public class BelegKiKostenkontoService {
                     "Es war schon eine Baustelle zugeordnet – die KI hat nicht nachgeschaut.");
             log.debug("Beleg {} hat schon Kostenstelle {} — Agent uebersprungen",
                     beleg.getId(), beleg.getKostenstelle().getId());
+            return;
+        }
+
+        if (!weiche.istGemini(KiFunktion.DOKUMENT_ERKENNEN)) {
+            if (!weiche.bereit(KiFunktion.DOKUMENT_ERKENNEN)) {
+                beleg.setKiKostenkontoHinweis(
+                        "Kein KI-Schlüssel hinterlegt – das Programm kann nichts vorschlagen.");
+                return;
+            }
+            klassifizierePerWeiche(beleg);
             return;
         }
 
@@ -552,11 +566,89 @@ public class BelegKiKostenkontoService {
     }
 
     // ---------------------------------------------------------------------
-    // Konversations-Bausteine
+    // Nicht-Gemini-Pfad: alle Daten vorab laden, einmaliger Prompt
     // ---------------------------------------------------------------------
 
-    // Der erste Turn wird separat aufgebaut, damit Datei-Auswahl und Prompt
-    // ohne HTTP getestet werden koennen. Folgeturns enthalten nur Tool-Antworten.
+    private static final String SYSTEM_EINMAL = """
+            Du bist ein Buchhaltungs-Experte fuer einen deutschen Handwerksbetrieb.
+
+            EISERNE REGEL — WANN DU DICH ENTHALTEN MUSST:
+            Du darfst eine Kostenstelle NUR vorschlagen, wenn der Beleg EINDEUTIG ein
+            laufender Fixkosten-/Gemeinkosten-Posten ist. Beispiele, wo du JA zuordnen darfst:
+              - Tankquittung, Sprit, Diesel, AdBlue
+              - Telefonrechnung, Internet, Mobilfunk (Telekom, Vodafone, 1&1, o2)
+              - Strom, Gas, Wasser, Heizung
+              - Miete, Pacht, Leasing-Rate Fuhrpark
+              - Versicherung, Steuerberater, Werkstatt-Versicherung
+              - Bueromaterial, Druckerpatronen, Briefmarken
+              - Werkzeug-Kleinkram (Bohrer, Schraubendreher unter Geringwertgrenze)
+              - Wartung Werkstattgeraete
+
+            Beispiele, wo du DICH ENTHALTEN MUSST (kostenstelleId=null, confidence<0.5):
+              - Material wie Roh-/Halbzeug, Stahl, Bleche, Rohre, Profile
+              - Baustellen-Geraetemieten, Fremdleistungen, Subunternehmer-Rechnungen
+              - Alles, was einem konkreten Projekt zuzuordnen ist
+
+            REGELN:
+            1. Verwende NUR IDs aus den mitgelieferten Listen.
+            2. Kostenstellen vom Typ PROJEKT NIEMALS waehlen.
+            3. Confidence-Skala: >=0.95 sicher, 0.70-0.94 wahrscheinlich, 0.30-0.69 unsicher, <0.30 bitte null.
+            4. Antworte AUSSCHLIESSLICH mit einem JSON-Objekt — kein Fliesstext, keine Markdown-Zaune:
+               {"kostenstelleId":<id oder null>,"sachkontoId":<id oder null>,"confidence":<0.0-1.0>,"begruendung":"<kurz>"}
+            """;
+
+    private void klassifizierePerWeiche(Beleg beleg) {
+        try {
+            String belegText = buildInitialPrompt(beleg)
+                    .replace("Beginne jetzt mit den Tool-Aufrufen wie in der System-Instruktion beschrieben.", "");
+
+            String nutzerPrompt = belegText
+                    + "\n\nVERFUEGBARE KOSTENSTELLEN:\n" + objectMapper.writeValueAsString(toolListeKostenstellen())
+                    + "\n\nVERFUEGBARE SACHKONTEN:\n" + objectMapper.writeValueAsString(toolListeSachkonten())
+                    + "\n\nAEHNLICHE BELEGE DIESES LIEFERANTEN:\n" + objectMapper.writeValueAsString(toolAehnlicheBelege(beleg))
+                    + "\n\nGib jetzt das JSON-Ergebnis aus.";
+
+            String antwort = ladeBelegDateiUndFrage(beleg, nutzerPrompt);
+            if (antwort == null || antwort.isBlank()) {
+                beleg.setKiKostenkontoHinweis("Die KI hat nicht geantwortet. Bitte von Hand wählen.");
+                return;
+            }
+            AgentErgebnis ergebnis = parseFreienText(antwort);
+            if (ergebnis == null) {
+                beleg.setKiKostenkontoHinweis("Die KI hat kein lesbares Ergebnis geliefert. Bitte von Hand wählen.");
+                return;
+            }
+            wendeErgebnisAn(beleg, ergebnis);
+        } catch (Exception e) {
+            log.warn("KI-Kostenkonto (Weiche) Beleg {}: {}", beleg.getId(), e.getClass().getSimpleName());
+            beleg.setKiKostenkontoHinweis("Die KI hat nicht geantwortet. Bitte von Hand wählen.");
+        }
+    }
+
+    private String ladeBelegDateiUndFrage(Beleg beleg, String nutzerPrompt) throws Exception {
+        String dateiname = beleg.getGespeicherterDateiname();
+        if (dateiname != null && !dateiname.isBlank()) {
+            try {
+                Path basis = Path.of(uploadPath, "belege").toAbsolutePath().normalize();
+                Path datei = basis.resolve(dateiname).normalize();
+                if (datei.startsWith(basis) && Files.isRegularFile(datei)
+                        && datei.toRealPath().startsWith(basis.toRealPath())
+                        && Files.size(datei) < MAX_INLINE_BYTES) {
+                    String lower = dateiname.toLowerCase(Locale.ROOT);
+                    String mimeType = lower.endsWith(".pdf") ? "application/pdf" : Files.probeContentType(datei);
+                    if (mimeType != null && (mimeType.startsWith("image/") || mimeType.equals("application/pdf"))) {
+                        byte[] bytes = Files.readAllBytes(datei);
+                        return weiche.frageMitDateien(KiFunktion.DOKUMENT_ERKENNEN, SYSTEM_EINMAL, nutzerPrompt,
+                                List.of(new KiTypen.Anhang(mimeType, bytes)), 0.0, 1024, true);
+                    }
+                }
+            } catch (IOException e) {
+                log.debug("KI-Kostenkonto (Weiche) Beleg {}: Datei nicht lesbar — ohne Datei", beleg.getId());
+            }
+        }
+        return weiche.frage(KiFunktion.DOKUMENT_ERKENNEN, SYSTEM_EINMAL, nutzerPrompt, 0.0, 1024, true);
+    }
+
     ObjectNode buildInitialTurn(Beleg beleg) {
         String text = buildInitialPrompt(beleg);
         String dateiname = beleg.getGespeicherterDateiname();

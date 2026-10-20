@@ -37,17 +37,17 @@ public class KiModellService {
 
     /** Die KI-Funktionen, für die ein Modell gewählt werden kann. */
     public enum Funktion {
-        HILFE("ki-hilfe", "KI-Hilfe (Chat)", "ai.ki-hilfe.model", "gemini-3-flash-preview"),
-        DOKUMENT_ANALYSE("dokument-analyse", "Dokumente und Belege erkennen", "ai.gemini.model.dokument-analyse", "gemini-3-flash-preview"),
-        PRO("pro", "Schwierige Fälle (genaues Modell)", "ai.gemini.model.pro", "gemini-3.1-pro-preview"),
-        SCANNER("scanner", "Scanner", "ai.gemini.model.scanner", "gemini-3-flash-preview"),
-        PDF_EXTRAKTION("pdf-extractor", "PDF-Auslesen", "ai.gemini.model.pdf-extractor", "gemini-3-flash-preview"),
-        SPRACHEINGABE("spracheingabe", "Spracheingabe", "ai.gemini.model.spracheingabe", "gemini-flash-latest"),
+        HILFE("ki-hilfe", "KI-Hilfe (Chat)", "ai.ki-hilfe.model", "gemini-2.5-flash"),
+        DOKUMENT_ANALYSE("dokument-analyse", "Dokumente und Belege erkennen", "ai.gemini.model.dokument-analyse", "gemini-2.5-flash"),
+        PRO("pro", "Schwierige Fälle (genaues Modell)", "ai.gemini.model.pro", "gemini-2.5-pro"),
+        SCANNER("scanner", "Scanner", "ai.gemini.model.scanner", "gemini-2.5-flash"),
+        PDF_EXTRAKTION("pdf-extractor", "PDF-Auslesen", "ai.gemini.model.pdf-extractor", "gemini-2.5-flash"),
+        SPRACHEINGABE("spracheingabe", "Spracheingabe", "ai.gemini.model.spracheingabe", "gemini-2.5-flash"),
         EMAIL_KLASSIFIZIERUNG("email-classification", "E-Mails einordnen", "ai.gemini.model.email-classification", "gemini-2.5-flash-lite"),
-        ASSISTENT("assistent", "KI-Assistent mit Auskünften", "ai.assistent.model", "gemini-3-flash-preview"),
-        EMAIL_TEXT("email-text", "E-Mail-Texte verbessern", "ai.email.model", "gemini-3-flash-preview"),
-        PLANUNG("plantafel", "Plantafel: Vorschläge und Erklärungen", "ai.plantafel.model", "gemini-3-flash-preview"),
-        TESTBOX("testbox", "Test-Box: Rückmeldungen aufbereiten", "ai.testbox.model", "gemini-3-flash-preview");
+        ASSISTENT("assistent", "KI-Assistent mit Auskünften", "ai.assistent.model", "gemini-2.5-flash"),
+        EMAIL_TEXT("email-text", "E-Mail-Texte verbessern", "ai.email.model", "gemini-2.5-flash"),
+        PLANUNG("plantafel", "Plantafel: Vorschläge und Erklärungen", "ai.plantafel.model", "gemini-2.5-flash"),
+        TESTBOX("testbox", "Test-Box: Rückmeldungen aufbereiten", "ai.testbox.model", "gemini-2.5-flash");
 
         private final String schluessel;
         private final String anzeige;

@@ -5,6 +5,7 @@ import { istFreigegeben } from '../../lib/freigaben';
 import { Gem, ChevronUp, ChevronDown, User, LogOut } from 'lucide-react';
 import { Button } from '../ui/button';
 import { NotificationBell } from './NotificationBell';
+import { WasIstNeu } from './WasIstNeu';
 import { useAuth } from '../../auth/AuthContext';
 import { useTelefonBerechtigung } from '../../features/telefon/useTelefonBerechtigung';
 import { useNeueSprachnachrichten } from '../../features/telefon/useNeueSprachnachrichten';
@@ -162,6 +163,9 @@ export function RibbonNavigation() {
                 <div className="flex items-center">
                     <NotificationBell />
                 </div>
+
+                {/* Was ist neu */}
+                <WasIstNeu />
 
                 {/* User Selector */}
                 <div className="relative pl-3 border-l border-slate-200">

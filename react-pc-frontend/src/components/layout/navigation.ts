@@ -1,6 +1,5 @@
 import { BarChart3, Briefcase, Building2, Calculator, Calendar, CalendarDays, ClipboardCheck, Clock, Euro, Factory, FileCheck, FileJson, FileText, Globe, History, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShoppingBag, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet, Warehouse } from 'lucide-react';
 import type { ComponentType } from 'react';
-import { BESTELLBEDARF_PFAD } from '../../lib/freigaben';
 
 // Navigation structure with subgroups for better organization
 export interface NavItem {
@@ -91,7 +90,6 @@ export const NAVIGATION: NavCategory[] = [
                 items: [
                     { name: 'Bestellungen', href: '/bestellungen', icon: ShoppingCart },
                     { name: 'Bestellscheine', href: '/bestellungen/liste', icon: ShoppingBag },
-                    { name: 'Bedarf', href: BESTELLBEDARF_PFAD, icon: List },
                 ]
             }
         ]

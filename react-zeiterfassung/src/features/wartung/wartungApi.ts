@@ -44,9 +44,10 @@ export interface ProjektWartung {
     offenerFeldeinsatzNummer: string | null
 }
 
-export interface Pruefpunkt { id: number; abschnittId: number; label: string; ergebnis: Ergebnis | null; bemerkung: string | null; vorherigesErgebnis: Ergebnis | null; sortierung: number }
-export interface Datenfeld { id: number; abschnittId: number; label: string; feldtyp: 'TEXT' | 'JA_NEIN' | 'AUSWAHL' | 'JAHR'; optionen: string[] | null; wert: string | null; sortierung: number }
+export interface Pruefpunkt { id: number; abschnittId: number | null; label: string; ergebnis: Ergebnis | null; bemerkung: string | null; vorherigesErgebnis: Ergebnis | null; sortierung: number }
+export interface Datenfeld { id: number; abschnittId: number | null; modulKey: string | null; label: string; feldtyp: 'TEXT' | 'JA_NEIN' | 'AUSWAHL' | 'JAHR'; optionen: string[] | null; wert: string | null; sortierung: number }
 export interface Abschnitt { id: number; bereich: string; label: string; sortierung: number }
+export interface ProtokollModul { modulId: number; modulKey: string; name: string; untertypSchluessel: string | null; untertypLabel: string | null }
 export interface Unterschrift { bild: string | null; name: string | null }
 export interface Statistik { gesamt: number; bewertet: number; inOrdnung: number; nichtInOrdnung: number; nichtAnwendbar: number }
 
@@ -63,6 +64,7 @@ export interface Protokoll {
     moeglicheStatus: Status[]
     unterschriftTechniker: Unterschrift | null
     unterschriftKunde: Unterschrift | null
+    module: ProtokollModul[]
     abschnitte: Abschnitt[]
     pruefpunkte: Pruefpunkt[]
     datenfelder: Datenfeld[]

@@ -236,6 +236,84 @@ export default function FeldeinsatzPage() {
             {/* Inhalt */}
             <div className="flex-1 overflow-y-auto overflow-x-hidden p-4 space-y-4">
 
+                {/* Datenfelder ohne Abschnitt (globale Felder + Modul-Felder ohne Abschnitt-Zuweisung) */}
+                {(() => {
+                    const unzugeordnet = protokoll.datenfelder
+                        .filter(d => d.abschnittId == null)
+                        .sort((a, b) => a.sortierung - b.sortierung)
+                    if (unzugeordnet.length === 0) return null
+
+                    const modulNamen = new Map<string | null, string>()
+                    modulNamen.set(null, 'Allgemein')
+                    for (const m of protokoll.module) {
+                        modulNamen.set(m.modulKey, m.name)
+                    }
+
+                    const gruppen = new Map<string | null, typeof unzugeordnet>()
+                    for (const d of unzugeordnet) {
+                        const key = d.modulKey ?? null
+                        if (!gruppen.has(key)) gruppen.set(key, [])
+                        gruppen.get(key)!.push(d)
+                    }
+                    const sortierteKeys = [...gruppen.keys()].sort((a, b) =>
+                        a === null ? -1 : b === null ? 1 : 0
+                    )
+
+                    return sortierteKeys.map(key => {
+                        const felder = gruppen.get(key)!
+                        const sectionLabel = modulNamen.get(key) ?? key ?? 'Allgemein'
+                        return (
+                            <div key={key ?? '__global__'} className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+                                <div className="px-4 py-3 bg-slate-50 border-b border-slate-100">
+                                    <p className="font-semibold text-slate-700 text-sm uppercase tracking-wide">{sectionLabel}</p>
+                                </div>
+                                <div className="divide-y divide-slate-100">
+                                    {felder.map(feld => (
+                                        <div key={feld.id} className="px-4 py-3">
+                                            <label className="block text-sm font-medium text-slate-700 mb-1.5">{feld.label}</label>
+                                            {feld.feldtyp === 'TEXT' && (
+                                                <input type="text" defaultValue={feld.wert ?? ''}
+                                                    disabled={!bearbeitbar}
+                                                    onBlur={e => { if (e.target.value !== (feld.wert ?? '')) void setzeFeld(feld.id, e.target.value) }}
+                                                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white disabled:bg-slate-50 disabled:text-slate-400" />
+                                            )}
+                                            {feld.feldtyp === 'JAHR' && (
+                                                <input type="number" min={1900} max={2100} defaultValue={feld.wert ?? ''}
+                                                    disabled={!bearbeitbar}
+                                                    onBlur={e => { if (e.target.value !== (feld.wert ?? '')) void setzeFeld(feld.id, e.target.value) }}
+                                                    className="w-32 px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white disabled:bg-slate-50 disabled:text-slate-400" />
+                                            )}
+                                            {feld.feldtyp === 'JA_NEIN' && (
+                                                <div className="flex gap-2">
+                                                    {(['Ja', 'Nein'] as const).map(opt => (
+                                                        <button key={opt} type="button" disabled={!bearbeitbar}
+                                                            onClick={() => void setzeFeld(feld.id, opt)}
+                                                            className={`px-4 py-2 text-sm rounded-lg font-medium transition-colors disabled:opacity-50 ${
+                                                                feld.wert === opt
+                                                                    ? opt === 'Ja' ? 'bg-emerald-600 text-white' : 'bg-rose-600 text-white'
+                                                                    : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}`}>
+                                                            {opt}
+                                                        </button>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {feld.feldtyp === 'AUSWAHL' && feld.optionen && (
+                                                <select defaultValue={feld.wert ?? ''}
+                                                    disabled={!bearbeitbar}
+                                                    onChange={e => void setzeFeld(feld.id, e.target.value)}
+                                                    className="w-full px-3 py-2 text-sm border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-amber-400 bg-white disabled:bg-slate-50 disabled:text-slate-400">
+                                                    <option value="">– bitte wählen –</option>
+                                                    {feld.optionen.map(o => <option key={o} value={o}>{o}</option>)}
+                                                </select>
+                                            )}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        )
+                    })
+                })()}
+
                 {/* Abschnitte */}
                 {protokoll.abschnitte.map(abschnitt => {
                     const pruefpunkte = protokoll.pruefpunkte

@@ -9,13 +9,13 @@
  */
 
 /** Seite „Bedarf“ (Einkauf): Material, das für Projekte noch bestellt werden muss. */
-export const BESTELLBEDARF_AKTIV = false;
+export const BESTELLBEDARF_AKTIV = true;
 
 /**
  * Knopf „E-Mail“ je Lieferant auf der Seite „Bedarf“ (Bestellanfrage per E-Mail).
  * Der Dialog dahinter (`BestellungEmailModal`) ist vorbereitet und getestet.
  */
-export const BESTELLANFRAGE_PER_EMAIL_AKTIV = false;
+export const BESTELLANFRAGE_PER_EMAIL_AKTIV = true;
 
 export const BESTELLBEDARF_PFAD = '/bestellungen/bedarf';
 

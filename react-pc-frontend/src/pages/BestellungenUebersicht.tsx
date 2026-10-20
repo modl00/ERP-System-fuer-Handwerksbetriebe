@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DocumentPreviewModal from '../components/DocumentPreviewModal';
 import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
-import { RefreshCw, FileText, FilePlus2, Package, Clock, CheckCircle, AlertCircle, X, FolderOpen, EyeOff, Eye, Archive, Search, ChevronDown, ChevronRight, Check, Sparkles } from 'lucide-react';
+import { RefreshCw, FileText, FilePlus2, Package, Clock, CheckCircle, AlertCircle, X, FolderOpen, EyeOff, Eye, Archive, Search, ChevronDown, ChevronRight, Check, Sparkles, Plus } from 'lucide-react';
 import { useToast } from '../components/ui/toast';
 import { ZuordnungModal as BelegZuordnungModal } from '../components/ZuordnungModal';
 import { useConfirm } from '../components/ui/confirm-dialog';
@@ -399,6 +400,7 @@ function BelegZuordnungAuswahlModal({ belege, loading, onSelect, onClose }: Bele
 
 // ========== Hauptkomponente ==========
 export default function BestellungenUebersicht() {
+    const navigate = useNavigate();
     const toast = useToast();
     const confirm = useConfirm();
     const [tab, setTab] = useState<TabKey>('laufend');
@@ -658,6 +660,14 @@ export default function BestellungenUebersicht() {
                     </p>
                 </div>
                 <div className="flex flex-col sm:flex-row gap-2">
+                    <Button
+                        onClick={() => navigate('/bestellungen/bestellung/neu')}
+                        size="sm"
+                        className="gap-2"
+                    >
+                        <Plus className="w-4 h-4" />
+                        Neue Bestellung
+                    </Button>
                     <Button
                         onClick={() => {
                             setShowBelegAuswahl(true);

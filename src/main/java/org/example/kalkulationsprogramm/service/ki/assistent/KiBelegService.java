@@ -16,8 +16,9 @@ import org.example.kalkulationsprogramm.dto.LieferantDokumentDto.AnalyzeResponse
 import org.example.kalkulationsprogramm.repository.LieferantGeschaeftsdokumentRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
 import org.example.kalkulationsprogramm.service.GeminiDokumentAnalyseService;
-import org.example.kalkulationsprogramm.service.ki.AnbieterTyp;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
 import org.example.kalkulationsprogramm.service.ki.KiObergrenze;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -77,7 +78,13 @@ public class KiBelegService {
             }
         }
         if (beleg == null) {
-            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, "Den Beleg konnte ich nicht auslesen. Bitte über den Lieferanten von Hand ablegen.");
+            try {
+                anbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN);
+            } catch (KiAnbieterFehler e) {
+                throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY, e.getMessage());
+            }
+            throw new ResponseStatusException(HttpStatus.UNPROCESSABLE_ENTITY,
+                    "Den Beleg konnte ich nicht auslesen. Wenn das Modell unter Einstellungen → KI-Funktionen → „Dokumente und Belege erkennen" kein multimodales Modell ist (kein Bild-/PDF-Lesen), bitte dort ein passendes wählen (z. B. Gemini Flash). Sonst den Beleg über den Lieferanten von Hand ablegen.");
         }
         return vorschlag(beleg);
     }
@@ -128,11 +135,12 @@ public class KiBelegService {
 
     private void sperreBeachten() {
         if (anbieterService.eingriff() == KiObergrenze.Eingriff.AUS) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Die KI ist ausgeschaltet (Einstellungen → KI → Grenzen).");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, “Die KI ist ausgeschaltet (Einstellungen → KI → Grenzen).”);
         }
-        if (anbieterService.sperrtProgrammdaten(AnbieterTyp.GEMINI)) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN,
-                    "Nach der Einstellung „Wie weit darf die KI gehen?“ darf ein Beleg nicht an einen Cloud-Anbieter gehen. Bitte den Beleg über den Lieferanten von Hand ablegen.");
+        try {
+            anbieterService.pruefeDatenschutz(KiFunktion.DOKUMENT_ERKENNEN);
+        } catch (KiAnbieterFehler e) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, e.getMessage());
         }
     }
 

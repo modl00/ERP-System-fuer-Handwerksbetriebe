@@ -15,8 +15,9 @@ import org.example.kalkulationsprogramm.dto.LieferantDokumentDto.AnalyzeResponse
 import org.example.kalkulationsprogramm.repository.LieferantGeschaeftsdokumentRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
 import org.example.kalkulationsprogramm.service.GeminiDokumentAnalyseService;
-import org.example.kalkulationsprogramm.service.ki.AnbieterTyp;
+import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
 import org.example.kalkulationsprogramm.service.ki.KiObergrenze;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -101,10 +102,13 @@ class KiBelegServiceTest {
     @Test
     void dieObergrenzeStopptDieAuswertungBevorDieDateiAnDieKiGeht() throws Exception {
         var datei = new MockMultipartFile("datei", "rechnung.pdf", "application/pdf", new byte[] { 1, 2, 3 });
-        when(anbieter.sperrtProgrammdaten(AnbieterTyp.GEMINI)).thenReturn(true);
+        org.mockito.Mockito.doThrow(new KiAnbieterFehler("Cloud-Anbieter nicht erlaubt"))
+                .when(anbieter).pruefeDatenschutz(KiFunktion.DOKUMENT_ERKENNEN);
 
         assertThatThrownBy(() -> service.pruefe(datei)).isInstanceOf(ResponseStatusException.class)
-                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN)).hasMessageContaining("Cloud-Anbieter");
+                .satisfies(e -> assertThat(((ResponseStatusException) e).getStatusCode()).isEqualTo(HttpStatus.FORBIDDEN))
+                .hasMessageContaining("Cloud-Anbieter");
+        org.mockito.Mockito.doNothing().when(anbieter).pruefeDatenschutz(KiFunktion.DOKUMENT_ERKENNEN);
         when(anbieter.eingriff()).thenReturn(KiObergrenze.Eingriff.AUS);
         assertThatThrownBy(() -> service.pruefe(datei)).hasMessageContaining("ausgeschaltet");
         verify(analyse, never()).analyzeFile(any(), any());

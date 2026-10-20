@@ -59,7 +59,6 @@ import RechnungsuebersichtEditor from './pages/RechnungsuebersichtEditor';
 import BelegeKasseEditor from './pages/BelegeKasseEditor';
 import DokumentUebersichtEditor from './pages/DokumentUebersichtEditor';
 import FirmaEditor from './pages/FirmaEditor';
-import BestellungEditor from './pages/BestellungEditor';
 import DocumentEditorPage from './pages/DocumentEditorPage';
 import ArbeitszeitartEditor from './pages/ArbeitszeitartEditor';
 import EinstellungenEditor from './pages/EinstellungenEditor';
@@ -69,7 +68,6 @@ import WebsiteEditor from './pages/WebsiteEditor';
 import TelefonPage from './pages/TelefonPage';
 import BenachrichtigungenPage from './pages/BenachrichtigungenPage';
 import { AnrufFensterHost } from './features/telefon/AnrufFensterHost';
-import { BESTELLBEDARF_PFAD, istFreigegeben } from './lib/freigaben';
 
 // Install the global fetch interceptor once at module load time so that
 // any HTTP 401 response from a non-auth endpoint triggers a session-expiry event.
@@ -110,9 +108,7 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/bestellungen" element={<ErrorBoundary><BestellungenUebersicht /></ErrorBoundary>} />
                 <Route path="/bestellungen/liste" element={<ErrorBoundary><BestellListe /></ErrorBoundary>} />
                 <Route path="/bestellungen/bestellung/:id" element={<ErrorBoundary><BestellungBearbeiten /></ErrorBoundary>} />
-                <Route path={BESTELLBEDARF_PFAD} element={istFreigegeben(BESTELLBEDARF_PFAD)
-                    ? <ErrorBoundary><BestellungEditor /></ErrorBoundary>
-                    : <Navigate to="/bestellungen" replace />} />
+                <Route path="/bestellungen/bedarf" element={<Navigate to="/bestellungen/liste" replace />} />
                 <Route path="/wartung" element={<RequireWartungModul><ErrorBoundary><WartungUebersicht /></ErrorBoundary></RequireWartungModul>} />
                 <Route path="/wartung/:id" element={<RequireWartungModul><ErrorBoundary><WartungProtokoll /></ErrorBoundary></RequireWartungModul>} />
                 <Route path="/wartung/anlagen/:tuerId" element={<RequireWartungModul><ErrorBoundary><WartungAnlage /></ErrorBoundary></RequireWartungModul>} />

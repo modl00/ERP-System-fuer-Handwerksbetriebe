@@ -45,9 +45,6 @@ public class KiHilfeService {
     /** Begrenzt den Firmennamen im System-Prompt. */
     private static final int MAX_BETRIEBSNAME_LAENGE = 120;
 
-    // Die Seite "Bedarf" (/bestellungen/bedarf) fehlt hier mit Absicht: Sie ist
-    // noch nicht freigegeben (react-pc-frontend/src/lib/freigaben.ts). Bei der
-    // Freigabe unter "Einkauf" und in der Linkliste wieder eintragen.
     private static final String BASE_SYSTEM_PROMPT = """
             Du bist der KI-Assistent für {{BETRIEB}}.
             Du hilfst Mitarbeitern bei Fragen zur Bedienung und Navigation des Programms,
@@ -171,7 +168,7 @@ public class KiHilfeService {
             ### 2. Projektmanagement
             - **Aufträge:** Projekte, Anfragen
             - **Planung:** Kalender
-            - **Einkauf:** Bestellungen
+            - **Einkauf:** Bestellungen, Bedarf
             
             ### 3. Zeiterfassung
             - **Übersicht:** Kalender (Zeitbuchungen)
@@ -202,6 +199,7 @@ public class KiHilfeService {
             | Lieferanten | [Lieferanten](/lieferanten) |
             | Artikel | [Artikel](/artikel) |
             | Bestellungen | [Bestellungen](/bestellungen) |
+            | Bedarf | [Bedarf](/bestellungen/bedarf) |
             | Textvorlagen | [Textvorlagen](/textbausteine) |
             | Leistungen | [Leistungen](/leistungen) |
             | Arbeitsgänge | [Arbeitsgänge](/arbeitsgaenge) |

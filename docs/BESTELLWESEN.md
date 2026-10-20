@@ -6,23 +6,19 @@
 
 Dieses Dokument beschreibt den Einkauf im Programm – vom Material, das ein Projekt braucht, über die Bestellung beim Lieferanten bis zur Lieferantenrechnung, die die Kosten ins Projekt bringt.
 
-Unter **Projektmanagement › Einkauf** gibt es zwei Seiten. Im Menü steht derzeit nur **Bestellungen**, die Seite **Bedarf** ist noch nicht freigegeben (siehe „Noch nicht freigegeben“ unten):
+Unter **Projektmanagement › Einkauf** gibt es zwei Seiten:
 
 | Menüpunkt | Seite (Überschrift) | Wofür |
 |---|---|---|
-| **Bedarf** (`/bestellungen/bedarf`, ausgeblendet) | „Bestellungen“ – „Offene Bestellungen nach Lieferanten verwalten und versenden.“ | Material, das für Projekte noch bestellt werden muss. Von hier kommt das Bestell-PDF für den Lieferanten. |
-| **Bestellungen** (`/bestellungen`) | „BESTELLUNGEN“ – „Angefragt, bestellt, geliefert – und was noch abgerechnet werden muss. Alles an einem Ort.“ | Die Unterlagen der Lieferanten (Angebot, Auftragsbestätigung, Lieferschein, Werkstoffzeugnis, Rechnung) als Kette. Hier werden Rechnungen Projekten oder Kostenstellen zugeordnet (Abschnitt 7). |
+| **Bedarf** (`/bestellungen/bedarf`) | „Bestellungen” – „Offene Bestellungen nach Lieferanten verwalten und versenden.” | Material, das für Projekte noch bestellt werden muss. Von hier kommt das Bestell-PDF für den Lieferanten. |
+| **Bestellungen** (`/bestellungen`) | „BESTELLUNGEN” – „Angefragt, bestellt, geliefert – und was noch abgerechnet werden muss. Alles an einem Ort.” | Die Unterlagen der Lieferanten (Angebot, Auftragsbestätigung, Lieferschein, Werkstoffzeugnis, Rechnung) als Kette. Hier werden Rechnungen Projekten oder Kostenstellen zugeordnet (Abschnitt 7). |
 
-### Noch nicht freigegeben
+Die Schalter liegen zentral in `react-pc-frontend/src/lib/freigaben.ts` (beide seit Oktober 2026 auf `true`):
 
-Das Bestellen aus dem Programm ist fachlich noch nicht fertig. Die Schalter dafür liegen zentral in `react-pc-frontend/src/lib/freigaben.ts`:
-
-| Schalter | Wirkung bei `false` (Stand heute) |
+| Schalter | Wirkung |
 |---|---|
-| `BESTELLBEDARF_AKTIV` | Kein Menüpunkt „Bedarf“. Die Adresse `/bestellungen/bedarf` leitet auf `/bestellungen` um, und die KI-Hilfe verlinkt die Seite nicht. Die Seite selbst (`BestellungEditor`) bleibt im Code. Positionen mit „Bestellen“ entstehen im Projekt weiterhin, sie sind nur nicht als Liste je Lieferant zu sehen. |
-| `BESTELLANFRAGE_PER_EMAIL_AKTIV` | Kein Knopf „E-Mail“ je Lieferant auf der Seite „Bedarf“ (Abschnitt 4.2). |
-
-Bei der Freigabe von „Bedarf“ außerdem den KI-Hilfe-Prompt wieder ergänzen (`KiHilfeService.BASE_SYSTEM_PROMPT`: Menüpunkt unter „Einkauf“ und Zeile in der Linkliste).
+| `BESTELLBEDARF_AKTIV` | Menüpunkt „Bedarf” sichtbar. |
+| `BESTELLANFRAGE_PER_EMAIL_AKTIV` | Knopf „E-Mail” je Lieferant auf der Seite „Bedarf” (Abschnitt 4.2). |
 
 **Vor der Freigabe zu klären:** Bringt ein Lieferanten-Angebot einen neuen Preis, legt `OfferPriceService` einen neuen Preisstand an und schreibt den Preis je Einheit in `preisProStueck` der offenen Positionen. Die Positionen zeigen aber weiter auf den alten Preisstand (`lieferantenArtikelPreis`), und der hat in Anzeige, Nachkalkulation und beim Abhaken Vorrang (Abschnitt 3.2). Deshalb wirkt der Angebotspreis heute nur bei offenen Positionen ohne Preisstand. Ob offene Positionen auf den Angebotspreis umgehängt werden sollen oder bis zum Abhaken beim Kalkulationspreis bleiben, ist noch nicht entschieden.
 

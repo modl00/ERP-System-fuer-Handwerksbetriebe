@@ -8,6 +8,8 @@ import org.example.kalkulationsprogramm.domain.Sachkonto;
 import org.example.kalkulationsprogramm.repository.BelegRepository;
 import org.example.kalkulationsprogramm.repository.KostenstelleRepository;
 import org.example.kalkulationsprogramm.repository.SachkontoRepository;
+import org.example.kalkulationsprogramm.service.ki.KiFunktion;
+import org.example.kalkulationsprogramm.service.ki.KiTextWeiche;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.junit.jupiter.params.ParameterizedTest;
@@ -64,17 +66,22 @@ class BelegKiKostenkontoServiceTest {
     private KostenstelleRepository kostenstelleRepository;
     private SachkontoRepository sachkontoRepository;
     private SystemSettingsService systemSettingsService;
+    private KiTextWeiche weiche;
 
     private BelegKiKostenkontoService service() {
         kostenstelleRepository = Mockito.mock(KostenstelleRepository.class);
         sachkontoRepository = Mockito.mock(SachkontoRepository.class);
         systemSettingsService = Mockito.mock(SystemSettingsService.class);
+        weiche = Mockito.mock(KiTextWeiche.class);
+        // Existing tests exercise the Gemini path — configure weiche accordingly.
+        Mockito.when(weiche.istGemini(Mockito.any(KiFunktion.class))).thenReturn(true);
         return new BelegKiKostenkontoService(
                 kostenstelleRepository,
                 sachkontoRepository,
                 Mockito.mock(BelegRepository.class),
                 systemSettingsService,
-                new ObjectMapper());
+                new ObjectMapper(),
+                weiche);
     }
 
     @Test

@@ -45,7 +45,7 @@ class KiModellServiceTest {
     @Test
     void ohneAuswahlGiltDerStandardDesDienstes() {
         assertEquals("gemini-a", service.modell(Funktion.HILFE, "gemini-a"));
-        assertEquals("gemini-3-flash-preview", service.modell(Funktion.HILFE, null), "ohne alles: die eingebaute Reserve");
+        assertEquals("gemini-2.5-flash", service.modell(Funktion.HILFE, null), "ohne alles: die eingebaute Reserve");
     }
 
     @Test

@@ -121,6 +121,9 @@ public class ProjektMapper {
                         aDto.setBestellt(aip.isBestellt());
                         aDto.setAusLager(aip.isAusLager());
                         aDto.setBestelltAm(aip.getBestelltAm());
+                        aDto.setReserviert(aip.isReserviert());
+                        aDto.setReserviertAm(aip.getReserviertAm());
+                        aDto.setReserviertMenge(aip.getReserviertMenge());
                         aDto.setKommentar(aip.getKommentar());
                         aDto.setSchnittForm(aip.getSchnittForm());
                         aDto.setAnschnittWinkelLinks(aip.getAnschnittWinkelLinks());
@@ -272,6 +275,42 @@ public class ProjektMapper {
                 ? aip.getLieferantenArtikelPreis().getPreis()
                 : aip.getPreisProStueck();
         return jeEinheit != null ? jeEinheit.multiply(menge) : null;
+    }
+
+    /** Einzelne ArtikelInProjekt-Position in ein DTO überführen (für ProjektMaterialService). */
+    public ArtikelInProjektResponseDto toArtikelInProjektDto(ArtikelInProjekt aip) {
+        ArtikelInProjektResponseDto aDto = new ArtikelInProjektResponseDto();
+        aDto.setId(aip.getId());
+        if (aip.getArtikel() != null) {
+            aDto.setArtikelId(aip.getArtikel().getId());
+            aDto.setExterneArtikelnummer(aip.getArtikel().getExterneArtikelnummer());
+            aDto.setProduktname(aip.getArtikel().getProduktname());
+            aDto.setProdukttext(aip.getArtikel().getProdukttext());
+            if (aip.getArtikel().getWerkstoff() != null) {
+                aDto.setWerkstoffName(aip.getArtikel().getWerkstoff().getName());
+            }
+        }
+        aDto.setStueckzahl(aip.getStueckzahl());
+        aDto.setMeter(aip.getMeter());
+        aDto.setKilogramm(aip.getKilogramm());
+        BigDecimal menge = ermittleMenge(aip);
+        aDto.setPreisProStueck(aip.getPreisProStueck());
+        aDto.setGesamtpreis(ermittleGesamtpreis(aip, menge));
+        aDto.setHinzugefuegtAm(aip.getHinzugefuegtAm());
+        aDto.setBestellt(aip.isBestellt());
+        aDto.setAusLager(aip.isAusLager());
+        aDto.setBestelltAm(aip.getBestelltAm());
+        aDto.setReserviert(aip.isReserviert());
+        aDto.setReserviertAm(aip.getReserviertAm());
+        aDto.setReserviertMenge(aip.getReserviertMenge());
+        aDto.setKommentar(aip.getKommentar());
+        aDto.setSchnittForm(aip.getSchnittForm());
+        aDto.setAnschnittWinkelLinks(aip.getAnschnittWinkelLinks());
+        aDto.setAnschnittWinkelRechts(aip.getAnschnittWinkelRechts());
+        if (aip.getLieferant() != null) {
+            aDto.setLieferantName(aip.getLieferant().getLieferantenname());
+        }
+        return aDto;
     }
 
 }

@@ -287,6 +287,14 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     };
     const [showMaterialModal, setShowMaterialModal] = useState(false);
     const [showLagerArtikelModal, setShowLagerArtikelModal] = useState(false);
+    // Bedarfsliste: Aus-Lager / Reservierung
+    const [ausLagerDialogPosition, setAusLagerDialogPosition] = useState<ArtikelInProjekt | null>(null);
+    const [lagerbestand, setLagerbestand] = useState<Record<number, number>>({});
+    const [lagerOrte, setLagerOrte] = useState<{ id: number; name: string }[]>([]);
+    const [ausLagerLagerortId, setAusLagerLagerortId] = useState<string>('');
+    const [ausLagerMenge, setAusLagerMenge] = useState<string>('');
+    const [ausLagerModus, setAusLagerModus] = useState<'buchen' | 'reservieren'>('buchen');
+    const [ausLagerLaeuft, setAusLagerLaeuft] = useState(false);
     const [newMaterial, setNewMaterial] = useState<{ beschreibung: string, betrag: string, lieferantId?: string, rechnungsnummer: string }>({ beschreibung: '', betrag: '', rechnungsnummer: '' });
     const [savingMaterial, setSavingMaterial] = useState(false);
     const [savingLagerArtikel, setSavingLagerArtikel] = useState(false);
@@ -979,6 +987,92 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
             toast.error('Artikel konnte nicht entfernt werden.');
         } finally {
             setLoeschendeArtikelId(null);
+        }
+    };
+
+    // ── Bedarfsliste: Aus-Lager-Dialog öffnen ───────────────────────────────────
+    const oeffneAusLagerDialog = async (pos: ArtikelInProjekt) => {
+        setAusLagerDialogPosition(pos);
+        setAusLagerModus('buchen');
+        setAusLagerMenge(String(pos.stueckzahl ?? pos.meter ?? pos.kilogramm ?? 1));
+        setAusLagerLagerortId('');
+        // Lagerorte laden (gecacht)
+        if (lagerOrte.length === 0) {
+            try {
+                const r = await fetch('/api/lager/orte');
+                if (r.ok) {
+                    const data = await r.json() as { id: number; name: string }[];
+                    setLagerOrte(data);
+                    if (data.length === 1) setAusLagerLagerortId(String(data[0].id));
+                }
+            } catch { /* ignorieren */ }
+        } else if (lagerOrte.length === 1) {
+            setAusLagerLagerortId(String(lagerOrte[0].id));
+        }
+        // Lagerbestand für diesen Artikel abrufen
+        if (pos.artikelId) {
+            try {
+                const r = await fetch(`/api/projekte/${projekt.id}/material/lagerbestand`);
+                if (r.ok) {
+                    const data = await r.json() as { artikelId: number; menge: number }[];
+                    const map: Record<number, number> = {};
+                    data.forEach(d => { map[d.artikelId] = d.menge; });
+                    setLagerbestand(map);
+                }
+            } catch { /* ignorieren */ }
+        }
+    };
+
+    const handleAusLagerOderReservieren = async () => {
+        if (!ausLagerDialogPosition) return;
+        const lagerortId = ausLagerModus === 'buchen' ? Number(ausLagerLagerortId) : null;
+        const menge = parseFloat(ausLagerMenge.replace(',', '.'));
+        if (isNaN(menge) || menge <= 0) {
+            toast.error('Bitte eine gültige Menge eingeben.');
+            return;
+        }
+        if (ausLagerModus === 'buchen' && !lagerortId) {
+            toast.error('Bitte einen Lagerort auswählen.');
+            return;
+        }
+        setAusLagerLaeuft(true);
+        try {
+            const url = ausLagerModus === 'buchen'
+                ? `/api/projekte/${projekt.id}/material/${ausLagerDialogPosition.id}/aus-lager`
+                : `/api/projekte/${projekt.id}/material/${ausLagerDialogPosition.id}/reservieren`;
+            const body = ausLagerModus === 'buchen'
+                ? { lagerortId, menge }
+                : { menge };
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+                toast.error(await leseFehlermeldung(res, 'Die Aktion konnte nicht ausgeführt werden.'));
+                return;
+            }
+            toast.success(ausLagerModus === 'buchen' ? 'Aus Lager entnommen.' : 'Reserviert.');
+            setAusLagerDialogPosition(null);
+            await onRefresh();
+        } catch {
+            toast.error('Die Aktion konnte nicht ausgeführt werden.');
+        } finally {
+            setAusLagerLaeuft(false);
+        }
+    };
+
+    const handleReservierungAufheben = async (pos: ArtikelInProjekt) => {
+        try {
+            const res = await fetch(`/api/projekte/${projekt.id}/material/${pos.id}/reservierung-aufheben`, { method: 'POST' });
+            if (!res.ok) {
+                toast.error(await leseFehlermeldung(res, 'Reservierung konnte nicht aufgehoben werden.'));
+                return;
+            }
+            toast.success('Reservierung aufgehoben.');
+            await onRefresh();
+        } catch {
+            toast.error('Reservierung konnte nicht aufgehoben werden.');
         }
     };
 
@@ -1758,17 +1852,51 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                             projekt.artikel.map((a) => (
                                 <div key={a.id} className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-slate-100">
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-slate-900 break-words">{a.produktname || a.beschreibung || 'Artikel'}</p>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="font-medium text-slate-900 break-words">{a.produktname || a.beschreibung || 'Artikel'}</p>
+                                            {/* Status-Badge */}
+                                            {a.ausLager && (
+                                                <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">Aus Lager</span>
+                                            )}
+                                            {!a.ausLager && a.reserviert && (
+                                                <span className="text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">Reserviert</span>
+                                            )}
+                                            {!a.ausLager && !a.reserviert && a.bestellt && (
+                                                <span className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Bestellt</span>
+                                            )}
+                                            {!a.ausLager && !a.reserviert && !a.bestellt && (
+                                                <span className="text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">Offen</span>
+                                            )}
+                                        </div>
                                         <p className="text-xs text-slate-500 mt-0.5 break-words">
                                             {a.externeArtikelnummer ? `Nr. ${a.externeArtikelnummer} · ` : ''}
                                             {a.lieferantName ? `${a.lieferantName} · ` : ''}
                                             {a.stueckzahl ? `${a.stueckzahl} Stück` : a.meter ? `${a.meter} m` : a.kilogramm ? `${a.kilogramm} kg` : '-'}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        {/* Bestellte Ware steht mit in der Liste, zaehlt aber nicht in
-                                            die Materialkosten - sie kommt erst mit der Lieferantenrechnung.
-                                            Der blasse Preis sagt das schon, der Vermerk daneben sagt warum. */}
+                                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                                        {/* Aktions-Buttons für offene Positionen */}
+                                        {!a.ausLager && !a.bestellt && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                                onClick={() => void oeffneAusLagerDialog(a)}
+                                            >
+                                                Aus Lager
+                                            </Button>
+                                        )}
+                                        {a.reserviert && !a.ausLager && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-7 text-xs text-slate-500 hover:text-slate-700"
+                                                onClick={() => void handleReservierungAufheben(a)}
+                                            >
+                                                Reservierung aufheben
+                                            </Button>
+                                        )}
+                                        {/* Preis */}
                                         {a.ausLager ? (
                                             <p className="font-semibold text-slate-900">{formatCurrency(a.gesamtpreis ?? a.preisProStueck ?? 0)}</p>
                                         ) : (
@@ -3160,6 +3288,89 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                         await onRefresh();
                     }}
                 />
+            )}
+
+            {/* Aus-Lager / Reservieren Dialog */}
+            {ausLagerDialogPosition && (
+                <Dialog open onOpenChange={(open) => { if (!open) setAusLagerDialogPosition(null); }}>
+                    <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                            <DialogTitle>
+                                {ausLagerDialogPosition.produktname || ausLagerDialogPosition.beschreibung || 'Artikel'}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                            {/* Modus-Wahl */}
+                            <div className="flex gap-2">
+                                <Button
+                                    size="sm"
+                                    variant={ausLagerModus === 'buchen' ? 'default' : 'outline'}
+                                    className={ausLagerModus === 'buchen' ? 'bg-rose-600 hover:bg-rose-700 flex-1' : 'flex-1'}
+                                    onClick={() => setAusLagerModus('buchen')}
+                                >
+                                    Entnehmen
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant={ausLagerModus === 'reservieren' ? 'default' : 'outline'}
+                                    className={ausLagerModus === 'reservieren' ? 'bg-rose-600 hover:bg-rose-700 flex-1' : 'flex-1'}
+                                    onClick={() => setAusLagerModus('reservieren')}
+                                >
+                                    Reservieren
+                                </Button>
+                            </div>
+                            {ausLagerModus === 'buchen' && (
+                                <p className="text-xs text-slate-500">Die Ware wird sofort aus dem Lager gebucht und gilt als Materialkosten des Projekts.</p>
+                            )}
+                            {ausLagerModus === 'reservieren' && (
+                                <p className="text-xs text-slate-500">Die Menge wird für dieses Projekt zurückgehalten. Die eigentliche Entnahme erfolgt später.</p>
+                            )}
+                            {/* Verfügbarer Bestand */}
+                            {ausLagerDialogPosition.artikelId && lagerbestand[ausLagerDialogPosition.artikelId] !== undefined && (
+                                <p className="text-sm text-slate-600">
+                                    Verfügbar im Lager: <span className="font-semibold">{lagerbestand[ausLagerDialogPosition.artikelId]}</span>
+                                </p>
+                            )}
+                            {/* Menge */}
+                            <div className="space-y-1">
+                                <Label htmlFor="aus-lager-menge">Menge</Label>
+                                <Input
+                                    id="aus-lager-menge"
+                                    type="number"
+                                    min="0.001"
+                                    step="1"
+                                    value={ausLagerMenge}
+                                    onChange={e => setAusLagerMenge(e.target.value)}
+                                />
+                            </div>
+                            {/* Lagerort – nur bei Entnahme */}
+                            {ausLagerModus === 'buchen' && (
+                                <div className="space-y-1">
+                                    <Label htmlFor="aus-lager-ort">Lagerort</Label>
+                                    <Select
+                                        id="aus-lager-ort"
+                                        value={ausLagerLagerortId}
+                                        onChange={setAusLagerLagerortId}
+                                        options={lagerOrte.map(o => ({ value: String(o.id), label: o.name }))}
+                                        placeholder="Bitte wählen …"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setAusLagerDialogPosition(null)} disabled={ausLagerLaeuft}>
+                                Abbrechen
+                            </Button>
+                            <Button
+                                className="bg-rose-600 text-white hover:bg-rose-700"
+                                onClick={() => void handleAusLagerOderReservieren()}
+                                disabled={ausLagerLaeuft}
+                            >
+                                {ausLagerLaeuft ? 'Wird ausgeführt …' : ausLagerModus === 'buchen' ? 'Entnehmen' : 'Reservieren'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             )}
 
             {/* Material Modal */}

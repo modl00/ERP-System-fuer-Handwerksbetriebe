@@ -5,6 +5,7 @@ import lombok.Setter;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Getter
 @Setter
@@ -24,6 +25,9 @@ public class ArtikelInProjektResponseDto {
     private boolean bestellt;
     /** Aus dem eigenen Lager entnommen - nur diese Positionen sind Materialkosten. */
     private boolean ausLager;
+    private boolean reserviert;
+    private LocalDateTime reserviertAm;
+    private BigDecimal reserviertMenge;
     private LocalDate bestelltAm;
     private String kommentar;
     private String lieferantName;

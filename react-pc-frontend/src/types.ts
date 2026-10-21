@@ -846,6 +846,13 @@ export interface ArtikelInProjekt {
   ausLager?: boolean;
   /** false heisst "muss noch bestellt werden" - siehe offene Bestellliste. */
   bestellt?: boolean;
+  /** Im Lager für dieses Projekt zurückgehalten, aber noch nicht entnommen. */
+  reserviert?: boolean;
+  reserviertAm?: string;
+  reserviertMenge?: number;
+  hinzugefuegtAm?: string;
+  werkstoffName?: string;
+  kommentar?: string;
 }
 
 export interface ProjektDetail extends Projekt {

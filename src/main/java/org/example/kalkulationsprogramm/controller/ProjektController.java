@@ -31,8 +31,10 @@ import org.example.kalkulationsprogramm.domain.ProjektDokument;
 import org.example.kalkulationsprogramm.domain.ProjektGeschaeftsdokument;
 import org.example.kalkulationsprogramm.domain.ProjektNotiz;
 import org.example.kalkulationsprogramm.domain.ProjektNotizBild;
+import org.example.kalkulationsprogramm.dto.Artikel.ArtikelInProjektResponseDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelInProjektUpdateDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelMengeDto;
+import org.example.kalkulationsprogramm.dto.Lager.LagerBestandDto;
 import org.example.kalkulationsprogramm.dto.Bestellung.Verbindung;
 import org.example.kalkulationsprogramm.dto.Freigabe.FreigabeStatusKurzDto;
 import org.example.kalkulationsprogramm.dto.Materialkosten.MaterialkostenErfassenDto;
@@ -61,6 +63,7 @@ import org.example.kalkulationsprogramm.service.AngemeldeterMitarbeiterService;
 import org.example.kalkulationsprogramm.service.LieferantDokumentKette;
 import org.example.kalkulationsprogramm.service.PdfAiExtractorService;
 import org.example.kalkulationsprogramm.service.ProjektManagementService;
+import org.example.kalkulationsprogramm.service.ProjektMaterialService;
 import org.example.kalkulationsprogramm.service.ProjektListenPdfService;
 import org.example.kalkulationsprogramm.service.StuecklistePdfService;
 import org.example.kalkulationsprogramm.service.ZugferdErstellService;
@@ -120,6 +123,7 @@ public class ProjektController {
     private final ProjektRepository projektRepository;
     private final ZeitbuchungRepository zeitbuchungRepository;
     private final DokumentFreigabeService dokumentFreigabeService;
+    private final ProjektMaterialService projektMaterialService;
 
     /**
      * Liefert pro angefragter Projekt-ID die jüngste relevante digitale Freigabe
@@ -318,6 +322,46 @@ public class ProjektController {
             @PathVariable Long materialID) {
         return ResponseEntity.ok(projektManagementService.entferneMaterialkosten(projektID, materialID));
     }
+
+    // ── Bedarfsliste: Aus-Lager / Reservierung ────────────────────────────────
+
+    /** Lagerbestand aller Artikel, die im Projekt als ArtikelInProjekt stehen. */
+    @GetMapping("/{projektID}/material/lagerbestand")
+    public ResponseEntity<List<LagerBestandDto>> materialLagerbestand(@PathVariable Long projektID) {
+        return ResponseEntity.ok(projektMaterialService.lagerbestandFuerProjekt(projektID));
+    }
+
+    /**
+     * Bucht eine Position direkt aus dem Lager (physische Entnahme).
+     * Body: { lagerortId, menge }
+     */
+    @PostMapping("/{projektID}/material/{positionId}/aus-lager")
+    public ResponseEntity<ArtikelInProjektResponseDto> ausLagerBuchen(
+            @PathVariable Long projektID,
+            @PathVariable Long positionId,
+            @RequestBody AusLagerEingabe eingabe) {
+        return ResponseEntity.ok(projektMaterialService.ausLagerBuchen(positionId, eingabe.lagerortId(), eingabe.menge()));
+    }
+
+    /** Reserviert eine Menge im Lager für diese Position (logisch, ohne Buchung). */
+    @PostMapping("/{projektID}/material/{positionId}/reservieren")
+    public ResponseEntity<ArtikelInProjektResponseDto> reservieren(
+            @PathVariable Long projektID,
+            @PathVariable Long positionId,
+            @RequestBody ReservierungEingabe eingabe) {
+        return ResponseEntity.ok(projektMaterialService.reservieren(positionId, eingabe.menge()));
+    }
+
+    /** Hebt eine bestehende Reservierung auf. */
+    @PostMapping("/{projektID}/material/{positionId}/reservierung-aufheben")
+    public ResponseEntity<ArtikelInProjektResponseDto> reservierungAufheben(
+            @PathVariable Long projektID,
+            @PathVariable Long positionId) {
+        return ResponseEntity.ok(projektMaterialService.reservierungAufheben(positionId));
+    }
+
+    record AusLagerEingabe(Long lagerortId, BigDecimal menge) {}
+    record ReservierungEingabe(BigDecimal menge) {}
 
     @PostMapping("/{projektID}/produktkategorien")
     public ResponseEntity<?> fuegeProduktkategorienHinzu(@PathVariable Long projektID,

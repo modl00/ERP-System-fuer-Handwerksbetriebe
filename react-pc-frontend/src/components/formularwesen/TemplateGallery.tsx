@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, LayoutTemplate, Copy, Trash2, Pencil, Filter, Sparkles } from 'lucide-react';
+import { Plus, Search, LayoutTemplate, Copy, Trash2, Pencil, Filter, Sparkles, Calendar } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';

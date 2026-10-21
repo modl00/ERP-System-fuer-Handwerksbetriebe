@@ -93,21 +93,18 @@ export function ArtikelFertigungsunterlagen({ artikelId }: Props) {
         <section className="bg-white border border-slate-200 rounded-lg p-5">
             <div className="flex items-center gap-2 mb-1">
                 <h2 className="text-lg font-semibold text-slate-900">Fertigungsunterlagen</h2>
-                <InfoButton
-                    titel="Fertigungsunterlagen"
-                    content={
-                        <div className="space-y-2 text-sm">
-                            <div>
-                                <p className="font-medium text-slate-700">Was passiert im Hintergrund?</p>
-                                <p className="text-slate-600">Die Dateien werden dem Artikel fest zugeordnet und auf dem Server gespeichert.</p>
-                            </div>
-                            <div>
-                                <p className="font-medium text-slate-700">Was bewirkt das?</p>
-                                <p className="text-slate-600">Beim Anlegen einer Bestellung für diesen Artikel werden die Fertigungsunterlagen automatisch als Vorlage für den Anhang der Bestellposition angeboten. Bei individuellen Maßfertigungen (z. B. lasergeschnittene Teile) können Sie die Zeichnung hier hinterlegen.</p>
-                            </div>
+                <InfoButton titel="Fertigungsunterlagen">
+                    <div className="space-y-2 text-sm">
+                        <div>
+                            <p className="font-medium text-slate-700">Was passiert im Hintergrund?</p>
+                            <p className="text-slate-600">Die Dateien werden dem Artikel fest zugeordnet und auf dem Server gespeichert.</p>
                         </div>
-                    }
-                />
+                        <div>
+                            <p className="font-medium text-slate-700">Was bewirkt das?</p>
+                            <p className="text-slate-600">Beim Anlegen einer Bestellung für diesen Artikel werden die Fertigungsunterlagen automatisch als Vorlage für den Anhang der Bestellposition angeboten. Bei individuellen Maßfertigungen (z. B. lasergeschnittene Teile) können Sie die Zeichnung hier hinterlegen.</p>
+                        </div>
+                    </div>
+                </InfoButton>
             </div>
             <p className="text-sm text-slate-500 mb-4">
                 DXF, STEP, STP, DWG, DXB oder PDF – max. 25 MB je Datei. Werden beim Bestellen automatisch vorgeschlagen.

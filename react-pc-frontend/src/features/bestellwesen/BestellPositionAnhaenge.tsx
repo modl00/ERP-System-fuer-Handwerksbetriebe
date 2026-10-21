@@ -135,21 +135,18 @@ export function BestellPositionAnhaenge({ bestellung, onGeaendert }: Props) {
                 {anzahlGesamt > 0 && (
                     <span className="ml-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-medium text-slate-600">{anzahlGesamt}</span>
                 )}
-                <InfoButton
-                    titel="Fertigungsunterlagen an Bestellpositionen"
-                    content={
-                        <div className="space-y-2 text-sm">
-                            <div>
-                                <p className="font-medium text-slate-700">Was passiert im Hintergrund?</p>
-                                <p className="text-slate-600">Die Dateien werden der jeweiligen Bestellposition zugeordnet. Bei Vorschlägen wird die Datei aus dem Artikelstamm kopiert und dieser Position fest zugeordnet.</p>
-                            </div>
-                            <div>
-                                <p className="font-medium text-slate-700">Was bewirkt das?</p>
-                                <p className="text-slate-600">Beim Versenden der Bestellung per E-Mail werden alle Anhänge automatisch beigefügt – DXF, STEP und ähnliche Zeichnungen, die der Lieferant zur Fertigung braucht.</p>
-                            </div>
+                <InfoButton titel="Fertigungsunterlagen an Bestellpositionen">
+                    <div className="space-y-2 text-sm">
+                        <div>
+                            <p className="font-medium text-slate-700">Was passiert im Hintergrund?</p>
+                            <p className="text-slate-600">Die Dateien werden der jeweiligen Bestellposition zugeordnet. Bei Vorschlägen wird die Datei aus dem Artikelstamm kopiert und dieser Position fest zugeordnet.</p>
                         </div>
-                    }
-                />
+                        <div>
+                            <p className="font-medium text-slate-700">Was bewirkt das?</p>
+                            <p className="text-slate-600">Beim Versenden der Bestellung per E-Mail werden alle Anhänge automatisch beigefügt – DXF, STEP und ähnliche Zeichnungen, die der Lieferant zur Fertigung braucht.</p>
+                        </div>
+                    </div>
+                </InfoButton>
             </div>
             <ul className="divide-y divide-slate-100">
                 {positionen.map(p => {

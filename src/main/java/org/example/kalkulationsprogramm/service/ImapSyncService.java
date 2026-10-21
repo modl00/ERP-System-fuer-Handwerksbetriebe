@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.Properties;
 
 import org.example.kalkulationsprogramm.domain.Email;
+import org.example.kalkulationsprogramm.domain.EmailPostfachZuordnung;
 import org.example.kalkulationsprogramm.repository.EmailPostfachZuordnungRepository;
 import org.example.kalkulationsprogramm.service.mail.PostfachZugang;
 import org.example.kalkulationsprogramm.service.mail.PostfachZugangService;
@@ -102,7 +103,7 @@ public class ImapSyncService {
             return;
         }
 
-        var zuordnungen = email.getId() == null
+        List<EmailPostfachZuordnung> zuordnungen = email.getId() == null
                 ? List.of()
                 : emailPostfachZuordnungRepository.findByEmailId(email.getId());
 

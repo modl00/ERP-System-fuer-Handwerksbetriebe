@@ -405,6 +405,8 @@ interface AnfrageErstellenModalProps {
     editAnfrage?: Anfrage | null;
     /** Neue Anfrage für diesen Kunden (zum Beispiel aus dem Kundenstamm): der Kunde ist vorbelegt und lässt sich nicht ändern */
     vorbelegterKunde?: Kunde | null;
+    /** Vorausgefülltes Bauvorhaben (z.B. aus E-Mail-Betreff) */
+    vorbelegterBauvorhaben?: string;
 }
 
 /** Auch im Kundenstamm benutzt (Reiter Anfragen, „Neue Anfrage“): eine Maske für beide Stellen. */
@@ -414,6 +416,7 @@ export const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
     onSuccess,
     editAnfrage,
     vorbelegterKunde,
+    vorbelegterBauvorhaben,
 }) => {
     const isEditMode = !!editAnfrage;
     const kundeFest = !isEditMode && !!vorbelegterKunde;
@@ -436,6 +439,13 @@ export const AnfrageErstellenModal: React.FC<AnfrageErstellenModalProps> = ({
     useEffect(() => {
         if (isOpen && kundeFest && vorbelegterKunde) setSelectedKunde(vorbelegterKunde);
     }, [isOpen, kundeFest, vorbelegterKunde]);
+
+    // Aus E-Mail geöffnet: Bauvorhaben vorausfüllen
+    useEffect(() => {
+        if (isOpen && vorbelegterBauvorhaben && !editAnfrage) {
+            setFormData(prev => ({ ...prev, bauvorhaben: vorbelegterBauvorhaben }));
+        }
+    }, [isOpen, vorbelegterBauvorhaben, editAnfrage]);
 
     // Reset beim Öffnen/Schließen
     useEffect(() => {

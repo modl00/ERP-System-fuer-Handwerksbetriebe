@@ -104,6 +104,7 @@ public class UnifiedEmailController {
     private final org.example.kalkulationsprogramm.service.FreigabeEmpfaengerService freigabeEmpfaengerService;
     private final org.example.kalkulationsprogramm.service.FreigabeAbloesungService freigabeAbloesungService;
     private final org.example.kalkulationsprogramm.service.ImapSyncService imapSyncService;
+    private final org.example.kalkulationsprogramm.service.EmailAnlageVorschlagService emailAnlageVorschlagService;
     private final org.example.kalkulationsprogramm.service.SystemSettingsService systemSettingsService;
 
     @org.springframework.beans.factory.annotation.Value("${file.mail-attachment-dir}")
@@ -1639,6 +1640,18 @@ public class UnifiedEmailController {
                         "Email nicht gefunden: " + id));
 
         return ResponseEntity.ok(emailAutoAssignmentService.findPossibleAssignments(email));
+    }
+
+    /**
+     * Schlägt Felder für ein neues Projekt oder eine neue Anfrage aus der E-Mail vor.
+     */
+    @GetMapping("/{id}/ki-anlage-vorschlag")
+    public ResponseEntity<org.example.kalkulationsprogramm.dto.KiAnlageVorschlagDto> kiAnlageVorschlag(
+            @PathVariable Long id, org.springframework.security.core.Authentication authentication) {
+        Email email = findeLesbar(id, authentication)
+                .orElseThrow(() -> new org.example.kalkulationsprogramm.exception.NotFoundException(
+                        "Email nicht gefunden: " + id));
+        return ResponseEntity.ok(emailAnlageVorschlagService.ermittleVorschlag(email));
     }
 
     /**

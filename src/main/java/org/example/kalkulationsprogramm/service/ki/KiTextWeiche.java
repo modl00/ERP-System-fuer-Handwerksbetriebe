@@ -82,16 +82,17 @@ public class KiTextWeiche {
         }
     }
 
-    /** Aus {@code ```json ... ```} wird der JSON-Inhalt; ohne Zäune bleibt der Text, nur getrimmt. */
+    /** Aus {@code ```json ... ```} wird der JSON-Inhalt; Thinking-Text vor dem Block wird verworfen; ohne Zäune bleibt der Text, nur getrimmt. */
     static String ohneCodeZaeune(String text) {
         if (text == null) {
             return "";
         }
         String t = text.strip();
-        if (t.startsWith("```")) {
-            int zeilenende = t.indexOf('\n');
+        if (t.contains("```")) {
+            int zaun = t.indexOf("```");
+            int zeilenende = t.indexOf('\n', zaun);
             int ende = t.lastIndexOf("```");
-            if (zeilenende > 0 && ende > zeilenende) {
+            if (zeilenende > zaun && ende > zeilenende) {
                 return t.substring(zeilenende + 1, ende).strip();
             }
         }

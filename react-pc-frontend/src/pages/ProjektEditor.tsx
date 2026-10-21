@@ -35,6 +35,7 @@ import {
     Upload,
     User,
     X,
+    ShoppingCart,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -295,6 +296,18 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [ausLagerMenge, setAusLagerMenge] = useState<string>('');
     const [ausLagerModus, setAusLagerModus] = useState<'buchen' | 'reservieren'>('buchen');
     const [ausLagerLaeuft, setAusLagerLaeuft] = useState(false);
+
+    // Bedarfsliste: Bestellen
+    interface BestellDialogPosition { id: number; artikelId: number; name: string; menge: number; einheit: string; lieferantId?: number; lieferantName?: string; }
+    interface OffeneBestellung { id: number; nummer: string; lieferantName: string; }
+    const [bestellDialogPositionen, setBestellDialogPositionen] = useState<BestellDialogPosition[]>([]);
+    const [bestellDialogOffen, setBestellDialogOffen] = useState(false);
+    const [bestellModus, setBestellModus] = useState<'neu' | 'vorhandene'>('neu');
+    const [bestellLieferantId, setBestellLieferantId] = useState<string>('');
+    const [bestellNotiz, setBestellNotiz] = useState('');
+    const [offeneBestellungen, setOffeneBestellungen] = useState<OffeneBestellung[]>([]);
+    const [gewaehlteBestNr, setGewaehlteBestNr] = useState<string>('');
+    const [bestellLaeuft, setBestellLaeuft] = useState(false);
     const [newMaterial, setNewMaterial] = useState<{ beschreibung: string, betrag: string, lieferantId?: string, rechnungsnummer: string }>({ beschreibung: '', betrag: '', rechnungsnummer: '' });
     const [savingMaterial, setSavingMaterial] = useState(false);
     const [savingLagerArtikel, setSavingLagerArtikel] = useState(false);
@@ -1073,6 +1086,88 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
             await onRefresh();
         } catch {
             toast.error('Reservierung konnte nicht aufgehoben werden.');
+        }
+    };
+
+    const oeffneBestellDialog = async (pos: ArtikelInProjekt) => {
+        const menge = pos.stueckzahl ?? pos.meter ?? pos.kilogramm ?? 1;
+        const einheit = pos.stueckzahl ? 'Stück' : pos.meter ? 'm' : 'kg';
+        setBestellDialogPositionen([{
+            id: pos.id,
+            artikelId: pos.artikelId,
+            name: pos.produktname ?? pos.beschreibung ?? 'Artikel',
+            menge,
+            einheit,
+            lieferantId: pos.lieferantId ?? undefined,
+            lieferantName: pos.lieferantName ?? undefined,
+        }]);
+        setBestellLieferantId(pos.lieferantId ? String(pos.lieferantId) : '');
+        setBestellNotiz('');
+        setBestellModus('neu');
+        setGewaehlteBestNr('');
+        setOffeneBestellungen([]);
+        setBestellDialogOffen(true);
+    };
+
+    const ladeOffeneBestellungen = async (lieferantId: string) => {
+        if (!lieferantId) { setOffeneBestellungen([]); return; }
+        try {
+            const res = await fetch(`/api/bestellungen?stand=OFFEN&lieferantId=${lieferantId}`);
+            if (res.ok) {
+                const data = await res.json() as { id: number; bestellNummer?: string; lieferantName?: string }[];
+                setOffeneBestellungen(data.map(b => ({ id: b.id, nummer: b.bestellNummer ?? String(b.id), lieferantName: b.lieferantName ?? '' })));
+            }
+        } catch { /* ignore */ }
+    };
+
+    const handleBestellen = async () => {
+        if (!projekt.id) return;
+        setBestellLaeuft(true);
+        try {
+            if (bestellModus === 'neu') {
+                if (!bestellLieferantId) { toast.error('Bitte einen Lieferanten auswählen.'); return; }
+                const body = {
+                    lieferantId: Number(bestellLieferantId),
+                    notiz: bestellNotiz || null,
+                    positionen: bestellDialogPositionen.map(p => ({
+                        artikelId: p.artikelId,
+                        menge: p.menge,
+                        einheit: p.einheit,
+                        einzelpreis: null,
+                        herkunft: 'PROJEKT',
+                        projektId: projekt.id,
+                        artikelInProjektId: p.id,
+                        kommentar: null,
+                    })),
+                };
+                const res = await fetch('/api/bestellungen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) { toast.error(await leseFehlermeldung(res, 'Bestellung konnte nicht angelegt werden.')); return; }
+                toast.success('Bestellung angelegt.');
+            } else {
+                if (!gewaehlteBestNr) { toast.error('Bitte eine Bestellung auswählen.'); return; }
+                const bestId = Number(gewaehlteBestNr);
+                const bestellung = await fetch(`/api/bestellungen/${bestId}`).then(r => r.json()) as { lieferantId: number; notiz?: string; positionen: unknown[] };
+                const neuePositionen = bestellDialogPositionen.map(p => ({
+                    artikelId: p.artikelId,
+                    menge: p.menge,
+                    einheit: p.einheit,
+                    einzelpreis: null,
+                    herkunft: 'PROJEKT',
+                    projektId: projekt.id,
+                    artikelInProjektId: p.id,
+                    kommentar: null,
+                }));
+                const body = { lieferantId: bestellung.lieferantId, notiz: bestellung.notiz ?? null, positionen: [...(bestellung.positionen as object[]), ...neuePositionen] };
+                const res = await fetch(`/api/bestellungen/${bestId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) { toast.error(await leseFehlermeldung(res, 'Bestellung konnte nicht erweitert werden.')); return; }
+                toast.success('Position zur Bestellung hinzugefügt.');
+            }
+            setBestellDialogOffen(false);
+            await onRefresh();
+        } catch {
+            toast.error('Bestellung fehlgeschlagen.');
+        } finally {
+            setBestellLaeuft(false);
         }
     };
 
@@ -1884,6 +1979,16 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                                 onClick={() => void oeffneAusLagerDialog(a)}
                                             >
                                                 Aus Lager
+                                            </Button>
+                                        )}
+                                        {!a.ausLager && !a.bestellt && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                                                onClick={() => void oeffneBestellDialog(a)}
+                                            >
+                                                <ShoppingCart className="h-3 w-3 mr-1" />Bestellen
                                             </Button>
                                         )}
                                         {a.reserviert && !a.ausLager && (
@@ -3367,6 +3472,112 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                 disabled={ausLagerLaeuft}
                             >
                                 {ausLagerLaeuft ? 'Wird ausgeführt …' : ausLagerModus === 'buchen' ? 'Entnehmen' : 'Reservieren'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* Bestellen-Dialog */}
+            {bestellDialogOffen && (
+                <Dialog open onOpenChange={(open) => { if (!open) setBestellDialogOffen(false); }}>
+                    <DialogContent className="max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <ShoppingCart className="h-5 w-5 text-blue-600" />
+                                Artikel bestellen
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                            {/* Positionsliste */}
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                                {bestellDialogPositionen.map(p => (
+                                    <div key={p.id} className="flex items-center justify-between">
+                                        <span className="font-medium">{p.name}</span>
+                                        <span className="text-slate-500">{p.menge} {p.einheit}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Modus-Wahl */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setBestellModus('neu')}
+                                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${bestellModus === 'neu' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                >
+                                    Neue Bestellung
+                                </button>
+                                <button
+                                    onClick={() => { setBestellModus('vorhandene'); void ladeOffeneBestellungen(bestellLieferantId); }}
+                                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${bestellModus === 'vorhandene' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                >
+                                    Zu bestehender Bestellung
+                                </button>
+                            </div>
+
+                            {/* Lieferant (immer) */}
+                            <div className="space-y-1">
+                                <Label htmlFor="bestell-lieferant">Lieferant</Label>
+                                <Select
+                                    value={bestellLieferantId}
+                                    onChange={(e) => {
+                                        setBestellLieferantId(e.target.value);
+                                        if (bestellModus === 'vorhandene') void ladeOffeneBestellungen(e.target.value);
+                                    }}
+                                    className="w-full"
+                                >
+                                    <option value="">-- Lieferant wählen --</option>
+                                    {suppliers.map(s => (
+                                        <option key={s.id} value={String(s.id)}>{s.lieferantenname}</option>
+                                    ))}
+                                </Select>
+                            </div>
+
+                            {/* Bestehende Bestellung wählen */}
+                            {bestellModus === 'vorhandene' && (
+                                <div className="space-y-1">
+                                    <Label htmlFor="bestell-vorhandene">Offene Bestellung</Label>
+                                    {offeneBestellungen.length === 0 ? (
+                                        <p className="text-sm text-slate-500">Keine offenen Bestellungen für diesen Lieferanten.</p>
+                                    ) : (
+                                        <Select
+                                            value={gewaehlteBestNr}
+                                            onChange={(e) => setGewaehlteBestNr(e.target.value)}
+                                            className="w-full"
+                                        >
+                                            <option value="">-- Bestellung wählen --</option>
+                                            {offeneBestellungen.map(b => (
+                                                <option key={b.id} value={String(b.id)}>#{b.nummer} – {b.lieferantName}</option>
+                                            ))}
+                                        </Select>
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Notiz */}
+                            {bestellModus === 'neu' && (
+                                <div className="space-y-1">
+                                    <Label htmlFor="bestell-notiz">Notiz (optional)</Label>
+                                    <Input
+                                        id="bestell-notiz"
+                                        value={bestellNotiz}
+                                        onChange={(e) => setBestellNotiz(e.target.value)}
+                                        placeholder="z. B. dringend, bis KW 45"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setBestellDialogOffen(false)} disabled={bestellLaeuft}>
+                                Abbrechen
+                            </Button>
+                            <Button
+                                onClick={() => void handleBestellen()}
+                                disabled={bestellLaeuft}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                <ShoppingCart className="h-4 w-4 mr-1" />
+                                {bestellLaeuft ? 'Wird gespeichert …' : bestellModus === 'neu' ? 'Bestellung anlegen' : 'Hinzufügen'}
                             </Button>
                         </DialogFooter>
                     </DialogContent>

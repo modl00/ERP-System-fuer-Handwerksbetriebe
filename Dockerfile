@@ -95,7 +95,8 @@ COPY --from=builder /app/app.jar app.jar
 # RAG-Datei der KI-Hilfe (siehe oben). Gehoert root, das ERP liest sie nur. Als letzte grosse
 # Schicht nach dem JAR: Aendert sich nur die Doku, laedt das Nachtupdate nur diese Schicht neu.
 COPY --from=ki-hilfe / /app/ki-hilfe/
-COPY --chmod=0755 deployment/docker-image/app-start.sh /usr/local/bin/erp-start
+COPY deployment/docker-image/app-start.sh /usr/local/bin/erp-start
+RUN chmod +x /usr/local/bin/erp-start
 
 # Expose server port
 EXPOSE 8080

@@ -72,6 +72,8 @@ interface ProjektErstellenModalProps {
     editProjekt?: ProjektBearbeiten | null;
     /** Neues Projekt für diesen Kunden (zum Beispiel aus dem Kundenstamm): der Kunde ist vorbelegt und lässt sich nicht ändern, die Maske beginnt direkt mit den Projektdaten */
     vorbelegterKunde?: Kunde | null;
+    /** Vorausgefülltes Bauvorhaben (z.B. aus E-Mail-Betreff) */
+    vorbelegterBauvorhaben?: string;
 }
 
 // Sub-view for customer search and selection
@@ -187,6 +189,7 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
     onSuccess,
     editProjekt,
     vorbelegterKunde,
+    vorbelegterBauvorhaben,
 }) => {
     const isEditMode = !!editProjekt;
     const kundeFest = !isEditMode && !!vorbelegterKunde;
@@ -361,6 +364,14 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
             setSelectedKunde(vorbelegterKunde);
         }
     }, [isOpen, kundeFest, vorbelegterKunde]);
+
+    // Aus E-Mail geöffnet: Bauvorhaben vorausfüllen und direkt zum Formular springen
+    useEffect(() => {
+        if (isOpen && vorbelegterBauvorhaben && !editProjekt) {
+            setMode('manual');
+            setFormData(prev => ({ ...prev, bauvorhaben: vorbelegterBauvorhaben }));
+        }
+    }, [isOpen, vorbelegterBauvorhaben, editProjekt]);
 
     // Reset form when closing OR initialize when opening in edit mode
     useEffect(() => {

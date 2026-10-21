@@ -1,9 +1,12 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Star, Briefcase, FileText, RefreshCw } from 'lucide-react';
+import { Star, Briefcase, FileText, RefreshCw, Plus } from 'lucide-react';
+import { InfoButton } from '../../components/ui/info-button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
 import { Input } from '../../components/ui/input';
 import { useToast } from '../../components/ui/toast';
+import { ProjektErstellenModal } from '../../components/ProjektErstellenModal';
+import { AnfrageErstellenModal } from '../../pages/AnfrageEditor';
 
 // Assignment Modal Component
 interface AssignModalProps {
@@ -22,6 +25,11 @@ interface EntityOption {
     anfrageNummer?: string;
 }
 
+interface KiVorschlag {
+    bauvorhaben: string;
+    absenderName: string;
+}
+
 export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }: AssignModalProps) {
     const toast = useToast();
     const [searchType, setSearchType] = useState<'projekt' | 'anfrage'>('projekt');
@@ -31,6 +39,11 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
     const [loading, setLoading] = useState(false);
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
     const [assigning, setAssigning] = useState(false);
+
+    const [showProjektModal, setShowProjektModal] = useState(false);
+    const [showAnfrageModal, setShowAnfrageModal] = useState(false);
+    const [kiVorschlag, setKiVorschlag] = useState<KiVorschlag | null>(null);
+    const [loadingVorschlag, setLoadingVorschlag] = useState(false);
 
     // Load suggestions when modal opens
     useEffect(() => {
@@ -53,6 +66,7 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
         if (!isOpen) {
             setSearchQuery('');
             setResults([]);
+            setKiVorschlag(null);
         }
     }, [isOpen]);
 
@@ -95,108 +109,209 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
         }
     };
 
+    const ladeKiVorschlagUndOeffne = async (typ: 'projekt' | 'anfrage') => {
+        if (!emailId) {
+            if (typ === 'projekt') setShowProjektModal(true);
+            else setShowAnfrageModal(true);
+            return;
+        }
+        setLoadingVorschlag(true);
+        try {
+            const res = await fetch(`/api/emails/${emailId}/ki-anlage-vorschlag`);
+            if (res.ok) {
+                const data = await res.json() as KiVorschlag;
+                setKiVorschlag(data);
+            } else {
+                toast.error('KI-Vorschlag konnte nicht geladen werden.');
+            }
+        } catch {
+            toast.error('KI-Vorschlag konnte nicht geladen werden.');
+        } finally {
+            setLoadingVorschlag(false);
+        }
+        if (typ === 'projekt') setShowProjektModal(true);
+        else setShowAnfrageModal(true);
+    };
+
+    const handleProjektErstellt = async (projektId: number) => {
+        setShowProjektModal(false);
+        setAssigning(true);
+        try {
+            await onAssign('projekt', projektId);
+            onClose();
+        } catch {
+            toast.error('E-Mail konnte dem neuen Projekt nicht zugeordnet werden.');
+        } finally {
+            setAssigning(false);
+        }
+    };
+
+    const handleAnfrageErstellt = async (anfrageId: number) => {
+        setShowAnfrageModal(false);
+        setAssigning(true);
+        try {
+            await onAssign('anfrage', anfrageId);
+            onClose();
+        } catch {
+            toast.error('E-Mail konnte der neuen Anfrage nicht zugeordnet werden.');
+        } finally {
+            setAssigning(false);
+        }
+    };
+
     const currentSuggestions = searchType === 'projekt' ? suggestions.projekte : suggestions.anfragen;
     const hasSuggestions = currentSuggestions.length > 0;
 
     return (
-        <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-            <DialogContent className="max-w-lg">
-                <DialogHeader>
-                    <DialogTitle>E-Mail zuordnen</DialogTitle>
-                </DialogHeader>
-                <div className="space-y-4">
-                    <p className="text-sm text-slate-600 truncate">"{emailSubject}"</p>
+        <>
+            <Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+                <DialogContent className="max-w-lg">
+                    <DialogHeader>
+                        <DialogTitle>E-Mail zuordnen</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-4">
+                        <p className="text-sm text-slate-600 truncate">"{emailSubject}"</p>
 
-                    <div className="flex gap-2">
-                        <Button
-                            variant={searchType === 'projekt' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setSearchType('projekt')}
-                            className={searchType === 'projekt' ? 'bg-rose-600 hover:bg-rose-700' : ''}
-                        >
-                            <Briefcase className="w-4 h-4 mr-1" />
-                            Projekt
-                            {suggestions.projekte.length > 0 && (
-                                <span className="ml-1 bg-white/20 px-1.5 rounded text-xs">{suggestions.projekte.length}</span>
-                            )}
-                        </Button>
-                        <Button
-                            variant={searchType === 'anfrage' ? 'default' : 'outline'}
-                            size="sm"
-                            onClick={() => setSearchType('anfrage')}
-                            className={searchType === 'anfrage' ? 'bg-rose-600 hover:bg-rose-700' : ''}
-                        >
-                            <FileText className="w-4 h-4 mr-1" />
-                            Anfrage
-                            {suggestions.anfragen.length > 0 && (
-                                <span className="ml-1 bg-white/20 px-1.5 rounded text-xs">{suggestions.anfragen.length}</span>
-                            )}
-                        </Button>
-                    </div>
-
-                    {/* Suggestions Section */}
-                    {loadingSuggestions ? (
-                        <div className="text-center text-slate-500 py-2">
-                            <RefreshCw className="w-4 h-4 animate-spin mx-auto" />
-                            <p className="text-xs mt-1">Lade Vorschläge...</p>
+                        <div className="flex gap-2">
+                            <Button
+                                variant={searchType === 'projekt' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setSearchType('projekt')}
+                                className={searchType === 'projekt' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+                            >
+                                <Briefcase className="w-4 h-4 mr-1" />
+                                Projekt
+                                {suggestions.projekte.length > 0 && (
+                                    <span className="ml-1 bg-white/20 px-1.5 rounded text-xs">{suggestions.projekte.length}</span>
+                                )}
+                            </Button>
+                            <Button
+                                variant={searchType === 'anfrage' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setSearchType('anfrage')}
+                                className={searchType === 'anfrage' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+                            >
+                                <FileText className="w-4 h-4 mr-1" />
+                                Anfrage
+                                {suggestions.anfragen.length > 0 && (
+                                    <span className="ml-1 bg-white/20 px-1.5 rounded text-xs">{suggestions.anfragen.length}</span>
+                                )}
+                            </Button>
                         </div>
-                    ) : hasSuggestions && (
-                        <div className="space-y-1">
-                            <p className="text-xs font-medium text-rose-600">Vorschläge (passende E-Mail-Adresse):</p>
-                            {currentSuggestions.map((item) => (
-                                <button
-                                    key={`suggestion-${item.id}`}
-                                    onClick={() => handleSelect(searchType, item.id)}
-                                    disabled={assigning}
-                                    className="w-full text-left p-3 rounded-lg bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-200"
-                                >
-                                    <p className="font-medium text-slate-900">
-                                        {item.projektNummer && <span className="text-rose-600 mr-2">{item.projektNummer}</span>}
-                                        {item.anfrageNummer && <span className="text-rose-600 mr-2">{item.anfrageNummer}</span>}
-                                        {item.name}
-                                    </p>
-                                    <p className="text-xs text-rose-600 flex items-center gap-1">
-                                        <Star className="w-3 h-3 fill-rose-500 text-rose-500" />
-                                        Empfohlen
-                                    </p>
-                                </button>
-                            ))}
-                        </div>
-                    )}
 
-                    {/* Manual Search Section */}
-                    <div className="pt-2 border-t border-slate-200">
-                        <p className="text-xs text-slate-500 mb-2">Oder manuell suchen:</p>
-                        <Input
-                            placeholder={`${searchType === 'projekt' ? 'Projekt' : 'Anfrage'} suchen...`}
-                            value={searchQuery}
-                            onChange={(e) => setSearchQuery(e.target.value)}
-                            className="border-slate-200"
-                        />
-                    </div>
-
-                    <div className="max-h-40 overflow-auto space-y-1">
-                        {loading ? (
-                            <p className="text-center text-slate-500 py-4">Suche...</p>
-                        ) : results.length === 0 && searchQuery ? (
-                            <p className="text-center text-slate-500 py-4">Keine Ergebnisse</p>
-                        ) : (
-                            results.map((item: { id: number; bauvorhaben?: string; name?: string; kunde?: string; kundenName?: string; anfragesnummer?: string }) => (
-                                <button
-                                    key={item.id}
-                                    onClick={() => handleSelect(searchType, item.id)}
-                                    disabled={assigning}
-                                    className="w-full text-left p-3 rounded-lg hover:bg-rose-50 transition-colors border border-slate-200"
-                                >
-                                    <p className="font-medium text-slate-900">{item.bauvorhaben || item.name || item.kundenName}</p>
-                                    {(item.kunde || item.kundenName) && <p className="text-sm text-slate-500">{item.kunde || item.kundenName}</p>}
-                                    {item.anfragesnummer && <p className="text-xs text-slate-400">{item.anfragesnummer}</p>}
-                                </button>
-                            ))
+                        {/* Suggestions Section */}
+                        {loadingSuggestions ? (
+                            <div className="text-center text-slate-500 py-2">
+                                <RefreshCw className="w-4 h-4 animate-spin mx-auto" />
+                                <p className="text-xs mt-1">Lade Vorschläge...</p>
+                            </div>
+                        ) : hasSuggestions && (
+                            <div className="space-y-1">
+                                <p className="text-xs font-medium text-rose-600">Vorschläge (passende E-Mail-Adresse):</p>
+                                {currentSuggestions.map((item) => (
+                                    <button
+                                        key={`suggestion-${item.id}`}
+                                        onClick={() => handleSelect(searchType, item.id)}
+                                        disabled={assigning}
+                                        className="w-full text-left p-3 rounded-lg bg-rose-50 hover:bg-rose-100 transition-colors border border-rose-200"
+                                    >
+                                        <p className="font-medium text-slate-900">
+                                            {item.projektNummer && <span className="text-rose-600 mr-2">{item.projektNummer}</span>}
+                                            {item.anfrageNummer && <span className="text-rose-600 mr-2">{item.anfrageNummer}</span>}
+                                            {item.name}
+                                        </p>
+                                        <p className="text-xs text-rose-600 flex items-center gap-1">
+                                            <Star className="w-3 h-3 fill-rose-500 text-rose-500" />
+                                            Empfohlen
+                                        </p>
+                                    </button>
+                                ))}
+                            </div>
                         )}
+
+                        {/* Manual Search Section */}
+                        <div className="pt-2 border-t border-slate-200">
+                            <p className="text-xs text-slate-500 mb-2">Oder manuell suchen:</p>
+                            <Input
+                                placeholder={`${searchType === 'projekt' ? 'Projekt' : 'Anfrage'} suchen...`}
+                                value={searchQuery}
+                                onChange={(e) => setSearchQuery(e.target.value)}
+                                className="border-slate-200"
+                            />
+                        </div>
+
+                        <div className="max-h-40 overflow-auto space-y-1">
+                            {loading ? (
+                                <p className="text-center text-slate-500 py-4">Suche...</p>
+                            ) : results.length === 0 && searchQuery ? (
+                                <p className="text-center text-slate-500 py-4">Keine Ergebnisse</p>
+                            ) : (
+                                results.map((item: { id: number; bauvorhaben?: string; name?: string; kunde?: string; kundenName?: string; anfragesnummer?: string }) => (
+                                    <button
+                                        key={item.id}
+                                        onClick={() => handleSelect(searchType, item.id)}
+                                        disabled={assigning}
+                                        className="w-full text-left p-3 rounded-lg hover:bg-rose-50 transition-colors border border-slate-200"
+                                    >
+                                        <p className="font-medium text-slate-900">{item.bauvorhaben || item.name || item.kundenName}</p>
+                                        {(item.kunde || item.kundenName) && <p className="text-sm text-slate-500">{item.kunde || item.kundenName}</p>}
+                                        {item.anfragesnummer && <p className="text-xs text-slate-400">{item.anfragesnummer}</p>}
+                                    </button>
+                                ))
+                            )}
+                        </div>
+
+                        {/* Neu anlegen Section */}
+                        <div className="pt-2 border-t border-slate-200">
+                            <p className="text-xs text-slate-500 mb-2">Noch kein passender Eintrag? Direkt neu anlegen:</p>
+                            <div className="flex gap-2">
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => ladeKiVorschlagUndOeffne('projekt')}
+                                    disabled={loadingVorschlag || assigning}
+                                    className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
+                                >
+                                    {loadingVorschlag ? (
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <Plus className="w-3.5 h-3.5" />
+                                    )}
+                                    Neues Projekt
+                                </Button>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={() => ladeKiVorschlagUndOeffne('anfrage')}
+                                    disabled={loadingVorschlag || assigning}
+                                    className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
+                                >
+                                    {loadingVorschlag ? (
+                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                    ) : (
+                                        <Plus className="w-3.5 h-3.5" />
+                                    )}
+                                    Neue Anfrage
+                                </Button>
+                            </div>
+                        </div>
                     </div>
-                </div>
-            </DialogContent>
-        </Dialog>
+                </DialogContent>
+            </Dialog>
+
+            <ProjektErstellenModal
+                isOpen={showProjektModal}
+                onClose={() => setShowProjektModal(false)}
+                onSuccess={handleProjektErstellt}
+                vorbelegterBauvorhaben={kiVorschlag?.bauvorhaben}
+            />
+
+            <AnfrageErstellenModal
+                isOpen={showAnfrageModal}
+                onClose={() => setShowAnfrageModal(false)}
+                onSuccess={handleAnfrageErstellt}
+                vorbelegterBauvorhaben={kiVorschlag?.bauvorhaben}
+            />
+        </>
     );
 }

@@ -8,6 +8,8 @@ import { ermittleEmailZuordnung } from '../features/email/emailZuordnung';
 import { EmailFolderSidebar } from '../features/email/EmailFolderSidebar';
 import { AssignModal } from '../features/email/EmailAssignmentDialog';
 import { KiAbgleichDialog } from '../features/email/KiAbgleichDialog';
+import { ProjektErstellenModal } from '../components/ProjektErstellenModal';
+import { AnfrageErstellenModal } from './AnfrageEditor';
 import { useEmailPaneWidth } from '../features/email/useEmailPaneWidth';
 import {
     buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, getSenderName,
@@ -301,6 +303,9 @@ export default function EmailCenter() {
     const [replyMode, setReplyMode] = useState<ReplyMode>('reply');
 
     const [showAssignModal, setShowAssignModal] = useState(false);
+    const [showProjektAnlegenModal, setShowProjektAnlegenModal] = useState(false);
+    const [showAnfrageAnlegenModal, setShowAnfrageAnlegenModal] = useState(false);
+    const [kiVorschlagBauvorhaben, setKiVorschlagBauvorhaben] = useState<string>('');
     // Nummern der Mails, die gerade mit der KI abgeglichen werden (null = Fenster zu): eine einzelne Mail oder die Mehrfachauswahl
     const [kiAbgleichIds, setKiAbgleichIds] = useState<number[] | null>(null);
     const [folderCounts, setFolderCounts] = useState({
@@ -1218,6 +1223,31 @@ export default function EmailCenter() {
         }
     };
 
+    const ladeKiVorschlagUndOeffne = async (typ: 'projekt' | 'anfrage') => {
+        if (!selectedEmail) return;
+        try {
+            const res = await fetch(`/api/emails/${selectedEmail.id}/ki-anlage-vorschlag`);
+            if (res.ok) {
+                const data = await res.json() as { bauvorhaben: string; absenderName: string };
+                setKiVorschlagBauvorhaben(data.bauvorhaben);
+            }
+        } catch {
+            setKiVorschlagBauvorhaben(selectedEmail.subject || '');
+        }
+        if (typ === 'projekt') setShowProjektAnlegenModal(true);
+        else setShowAnfrageAnlegenModal(true);
+    };
+
+    const handleNachAnlegenZuordnen = async (typ: 'projekt' | 'anfrage', id: number) => {
+        if (typ === 'projekt') setShowProjektAnlegenModal(false);
+        else setShowAnfrageAnlegenModal(false);
+        try {
+            await handleAssign(typ, id);
+        } catch {
+            toast.error('E-Mail konnte nicht zugeordnet werden.');
+        }
+    };
+
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return '-';
         try {
@@ -1739,6 +1769,8 @@ export default function EmailCenter() {
                         onKiAbgleich={() => setKiAbgleichIds([selectedEmail.id])}
                         onKiChat={() => { window.dispatchEvent(new CustomEvent('ki-email-anhaengen', { detail: { emailId: selectedEmail.id } })); }}
                         onBelegeErneut={selectedEmail.direction === 'IN' ? handleBelegeErneut : undefined}
+                        onProjektAnlegen={selectedEmail.direction === 'IN' ? () => ladeKiVorschlagUndOeffne('projekt') : undefined}
+                        onAnfrageAnlegen={selectedEmail.direction === 'IN' ? () => ladeKiVorschlagUndOeffne('anfrage') : undefined}
                         onStar={() => handleToggleStar(selectedEmail.id)}
                         onDelete={() => handleDelete(null, selectedEmail)}
                         onMove={(target) => handleMoveToFolder(target, [selectedEmail.id])}
@@ -2234,6 +2266,20 @@ export default function EmailCenter() {
                 onAssign={handleAssign}
                 emailSubject={selectedEmail?.subject || ''}
                 emailId={selectedEmail?.id}
+            />
+
+            <ProjektErstellenModal
+                isOpen={showProjektAnlegenModal}
+                onClose={() => setShowProjektAnlegenModal(false)}
+                onSuccess={(id) => void handleNachAnlegenZuordnen('projekt', id)}
+                vorbelegterBauvorhaben={kiVorschlagBauvorhaben}
+            />
+
+            <AnfrageErstellenModal
+                isOpen={showAnfrageAnlegenModal}
+                onClose={() => setShowAnfrageAnlegenModal(false)}
+                onSuccess={(id) => void handleNachAnlegenZuordnen('anfrage', id)}
+                vorbelegterBauvorhaben={kiVorschlagBauvorhaben}
             />
 
             <KiAbgleichDialog

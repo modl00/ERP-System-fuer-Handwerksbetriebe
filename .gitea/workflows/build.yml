@@ -14,11 +14,15 @@ jobs:
       - name: Repository auschecken
         run: |
           if [ -d repo/.git ]; then
+            git -C repo remote set-url origin ${{ gitea.server_url }}/${{ gitea.repository }}.git
             git -C repo fetch --depth=1 origin ${{ gitea.ref_name }}
             git -C repo reset --hard FETCH_HEAD
             git -C repo clean -fd
           else
-            git clone ${{ gitea.server_url }}/${{ gitea.repository }}.git repo --depth=1 --branch=${{ gitea.ref_name }}
+            git -c pack.windowMemory=0 -c pack.packSizeLimit=0 clone \
+              --depth=1 --no-tags \
+              --branch=${{ gitea.ref_name }} \
+              ${{ gitea.server_url }}/${{ gitea.repository }}.git repo
           fi
 
       - name: Image bauen und taggen

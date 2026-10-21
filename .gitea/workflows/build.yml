@@ -16,6 +16,9 @@ jobs:
           git config --global --add safe.directory /gitea-repos/m/erp-handwerk.git
           git clone --local --no-hardlinks /gitea-repos/m/erp-handwerk.git repo
 
+      - name: Docker CLI installieren
+        run: apk add --no-cache docker-cli
+
       - name: Image bauen und taggen
         env:
           DOCKER_BUILDKIT: "1"

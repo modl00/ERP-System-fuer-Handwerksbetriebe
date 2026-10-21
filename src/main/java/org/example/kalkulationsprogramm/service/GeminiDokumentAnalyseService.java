@@ -35,6 +35,7 @@ import org.example.kalkulationsprogramm.service.LieferantDokumentPositionLeser.K
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
 import org.example.kalkulationsprogramm.service.ki.KiFunktion;
+import org.example.kalkulationsprogramm.service.ki.KiPdfSeiten;
 import org.example.kalkulationsprogramm.service.ki.KiTypen;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
@@ -613,11 +614,14 @@ public class GeminiDokumentAnalyseService {
 
     public String rufGeminiApiMitPrompt(byte[] bytes, String mimeType, String customPrompt, boolean useProModel) {
         try {
+            var anbieter = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN);
+            var anhang = KiPdfSeiten.fuer(anbieter,
+                    List.of(new KiTypen.Anhang(mimeType, bytes)));
             KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
                     null,
-                    List.of(new KiTypen.Nutzer(customPrompt, List.of(new KiTypen.Anhang(mimeType, bytes)))),
+                    List.of(new KiTypen.Nutzer(customPrompt, anhang)),
                     List.of(), 0.0, maxOutputTokens);
-            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text();
+            String text = anbieter.chat(anfrage).text();
             return extrahiereJson(text);
         } catch (KiAnbieterFehler e) {
             log.debug("[Dokument-Analyse] KI nicht eingerichtet – Aufruf übersprungen: {}", e.getMessage());
@@ -2327,11 +2331,14 @@ public class GeminiDokumentAnalyseService {
     private KiAntwort rufGemini(byte[] dokumentBytes, String mimeType, String systemPrompt, String userText,
             boolean useProModel) {
         try {
+            var anbieter = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN);
+            var anhang = KiPdfSeiten.fuer(anbieter,
+                    List.of(new KiTypen.Anhang(mimeType, dokumentBytes)));
             KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
                     systemPrompt,
-                    List.of(new KiTypen.Nutzer(userText, List.of(new KiTypen.Anhang(mimeType, dokumentBytes)))),
+                    List.of(new KiTypen.Nutzer(userText, anhang)),
                     List.of(), 0.0, maxOutputTokens);
-            String roh = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text();
+            String roh = anbieter.chat(anfrage).text();
             String text = extrahiereJson(roh);
             log.info("[KI-Analyse] Dokumentanalyse erfolgreich ({} Zeichen)", text.length());
             return new KiAntwort(text, isJsonTruncated(text));

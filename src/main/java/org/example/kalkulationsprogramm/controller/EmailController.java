@@ -38,6 +38,7 @@ import org.springframework.core.io.Resource;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -55,6 +56,7 @@ public class EmailController {
     private final AnfrageDokumentRepository anfrageDokumentRepository;
     private final AnfrageRepository anfrageRepository;
     private final org.example.kalkulationsprogramm.repository.EmailRepository emailRepository;
+    private final org.example.kalkulationsprogramm.service.EmailAttachmentProcessingService emailAttachmentProcessingService;
     private final EmailAiService emailAiService;
     private final EmailSignatureService emailSignatureService;
     private final FrontendUserProfileService frontendUserProfileService;
@@ -694,5 +696,20 @@ public class EmailController {
             log.warn("Konnte gespeicherten Pfad für {} nicht ermitteln", storedFileName, ex);
         }
         return null;
+    }
+
+    /** Anhänge einer einzelnen E-Mail erneut durch die KI analysieren lassen. */
+    @PostMapping("/{id}/reprocess-attachments")
+    public ResponseEntity<java.util.Map<String, Object>> reprocessEmailAttachments(@PathVariable Long id) {
+        Email email = emailRepository.findById(id).orElse(null);
+        if (email == null) {
+            return ResponseEntity.notFound().build();
+        }
+        if (email.getLieferant() == null) {
+            return ResponseEntity.badRequest().body(java.util.Map.of(
+                    "error", "Diese E-Mail ist keinem Lieferanten zugeordnet. Bitte erst einen Lieferanten zuweisen."));
+        }
+        int processed = emailAttachmentProcessingService.processLieferantAttachments(email);
+        return ResponseEntity.ok(java.util.Map.of("processed", processed));
     }
 }

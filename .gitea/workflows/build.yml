@@ -14,7 +14,7 @@ jobs:
       - name: Repository auschecken
         run: |
           wget -q \
-            "${{ gitea.server_url }}/${{ gitea.repository }}/archive/${{ gitea.sha }}.tar.gz" \
+            "${{ gitea.server_url }}/${{ gitea.repository }}/archive/${{ gitea.ref_name }}.tar.gz" \
             -O /tmp/repo.tar.gz
           rm -rf repo
           mkdir repo

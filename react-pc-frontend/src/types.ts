@@ -501,6 +501,18 @@ export interface ArtikelDokument {
   url: string;
 }
 
+/** Fertigungsunterlage am Artikelstamm oder Anhang an einer Bestellposition (Backend: FertigungsunterlageDto). */
+export interface Fertigungsunterlage {
+  id: number;
+  originalDateiname: string;
+  erstelltAm?: string;
+  dateigroesseBytes?: number;
+  /** Download-URL */
+  url: string;
+  /** Bei aus Artikelstamm übernommenen Anteilen: ID der ArtikelFertigungsunterlage, sonst null. */
+  quellId?: number | null;
+}
+
 export interface Abteilung {
   id: number;
   name: string;

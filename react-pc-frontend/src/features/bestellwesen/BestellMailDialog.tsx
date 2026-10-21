@@ -43,6 +43,10 @@ export function BestellMailDialog({ bestellung, onGesendet, onSchliessen }: Prop
 
     const adresseOk = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(empfaenger.trim());
 
+    // Alle Positions-Anhänge aus dem bestellung-Objekt zusammensammeln
+    const alleAnhaenge = bestellung.positionen.flatMap(p => p.anhaenge ?? []);
+    const anzahlAnhaenge = alleAnhaenge.length;
+
     const senden = async () => {
         setSendet(true);
         setFehler('');
@@ -50,6 +54,16 @@ export function BestellMailDialog({ bestellung, onGesendet, onSchliessen }: Prop
             const pdf = await fetch(pdfAdresse(bestellung.id));
             if (!pdf.ok) throw new Error('Das Bestellformular konnte nicht erstellt werden.');
             const blob = await pdf.blob();
+
+            // Positions-Anhänge laden
+            const anhangBlobs = await Promise.all(
+                alleAnhaenge.map(async (a) => {
+                    const r = await fetch(a.url);
+                    if (!r.ok) return null;
+                    return { blob: await r.blob(), name: a.originalDateiname };
+                })
+            );
+
             const benutzer = aktuellerBenutzer();
             const dto = {
                 sender: null,
@@ -65,6 +79,9 @@ export function BestellMailDialog({ bestellung, onGesendet, onSchliessen }: Prop
             const form = new FormData();
             form.append('dto', new Blob([JSON.stringify(dto)], { type: 'application/json' }));
             form.append('attachments', blob, `Bestellung_${nummer.replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`);
+            anhangBlobs.forEach(a => {
+                if (a) form.append('attachments', a.blob, a.name);
+            });
             const res = await fetch('/api/emails/send', { method: 'POST', body: form });
             if (!res.ok) throw new Error('Die E-Mail konnte nicht gesendet werden. Bitte die E-Mail-Einstellungen prüfen.');
             onGesendet();
@@ -98,7 +115,12 @@ export function BestellMailDialog({ bestellung, onGesendet, onSchliessen }: Prop
                         <textarea id="mail-text" rows={8} value={text} onChange={(e) => setText(e.target.value)}
                             className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-rose-500" />
                     </div>
-                    <p className="flex items-center gap-2 text-sm text-slate-600"><Paperclip className="h-4 w-4" /> Bestellung_{nummer}.pdf</p>
+                    <div className="flex flex-col gap-1 text-sm text-slate-600">
+                        <p className="flex items-center gap-2"><Paperclip className="h-4 w-4" /> Bestellung_{nummer}.pdf</p>
+                        {anzahlAnhaenge > 0 && alleAnhaenge.map(a => (
+                            <p key={a.id} className="flex items-center gap-2 pl-6"><Paperclip className="h-3.5 w-3.5 text-slate-400" /> {a.originalDateiname}</p>
+                        ))}
+                    </div>
                     {fehler && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{fehler}</p>}
                 </div>
                 <DialogFooter className="gap-2">

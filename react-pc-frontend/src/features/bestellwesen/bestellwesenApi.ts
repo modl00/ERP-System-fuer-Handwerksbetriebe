@@ -18,6 +18,7 @@ export interface BestellPosition {
     artikelInProjektId: number | null;
     kommentar: string | null;
     geliefertAm: string | null;
+    anhaenge: import('../../types').Fertigungsunterlage[];
 }
 
 export interface Bestellung {
@@ -200,4 +201,64 @@ export function datum(iso: string | null): string {
     if (!iso) return '';
     const d = new Date(iso);
     return Number.isNaN(d.getTime()) ? '' : d.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' });
+}
+
+// ---- Fertigungsunterlagen am Artikelstamm ----
+
+import type { Fertigungsunterlage } from '../../types';
+
+export function ladeFertigungsunterlagenFuerArtikel(artikelId: number): Promise<Fertigungsunterlage[]> {
+    return anfrage<Fertigungsunterlage[]>(`/api/artikel/${artikelId}/fertigungsunterlagen`);
+}
+
+export async function ladeFertigungsunterlageHoch(artikelId: number, datei: File): Promise<Fertigungsunterlage> {
+    const form = new FormData();
+    form.append('datei', datei);
+    let antwort: Response;
+    try {
+        antwort = await fetch(`/api/artikel/${artikelId}/fertigungsunterlagen`, { method: 'POST', body: form });
+    } catch {
+        throw new BestellFehler('Keine Verbindung zum Server.', 0);
+    }
+    if (!antwort.ok) {
+        let msg = '';
+        try { msg = ((await antwort.json()) as { message?: string }).message ?? ''; } catch { /* ignore */ }
+        throw new BestellFehler(msg || 'Die Datei konnte nicht hochgeladen werden.', antwort.status);
+    }
+    return (await antwort.json()) as Fertigungsunterlage;
+}
+
+export function loescheFertigungsunterlage(id: number): Promise<void> {
+    return anfrage<void>(`/api/artikel/fertigungsunterlagen/${id}`, { method: 'DELETE' });
+}
+
+// ---- Anhänge an Bestellpositionen ----
+
+export function ladeAnhaengeVorschlaege(bestellungId: number, positionId: number): Promise<Fertigungsunterlage[]> {
+    return anfrage<Fertigungsunterlage[]>(`${BASIS}/${bestellungId}/positionen/${positionId}/anhaenge/vorschlaege`);
+}
+
+export async function ladeAnhangHoch(bestellungId: number, positionId: number, datei: File): Promise<Fertigungsunterlage> {
+    const form = new FormData();
+    form.append('datei', datei);
+    let antwort: Response;
+    try {
+        antwort = await fetch(`${BASIS}/${bestellungId}/positionen/${positionId}/anhaenge`, { method: 'POST', body: form });
+    } catch {
+        throw new BestellFehler('Keine Verbindung zum Server.', 0);
+    }
+    if (!antwort.ok) {
+        let msg = '';
+        try { msg = ((await antwort.json()) as { message?: string }).message ?? ''; } catch { /* ignore */ }
+        throw new BestellFehler(msg || 'Die Datei konnte nicht hochgeladen werden.', antwort.status);
+    }
+    return (await antwort.json()) as Fertigungsunterlage;
+}
+
+export function uebernehmeVomArtikel(bestellungId: number, positionId: number, fertigungsunterlageId: number): Promise<Fertigungsunterlage> {
+    return post<Fertigungsunterlage>(`${BASIS}/${bestellungId}/positionen/${positionId}/anhaenge/vom-artikel/${fertigungsunterlageId}`);
+}
+
+export function loescheAnhang(id: number): Promise<void> {
+    return anfrage<void>(`${BASIS}/position-anhaenge/${id}`, { method: 'DELETE' });
 }

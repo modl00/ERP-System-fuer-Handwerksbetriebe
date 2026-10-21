@@ -13,19 +13,13 @@ jobs:
     steps:
       - name: Repository auschecken
         run: |
-          REPO_DIR="/data/repo"
-          if [ -d "$REPO_DIR/.git" ]; then
-            git -C "$REPO_DIR" remote set-url origin ${{ gitea.server_url }}/${{ gitea.repository }}.git
-            git -C "$REPO_DIR" fetch --depth=1 origin ${{ gitea.ref_name }}
-            git -C "$REPO_DIR" reset --hard FETCH_HEAD
-            git -C "$REPO_DIR" clean -fd
-          else
-            git -c pack.windowMemory=0 -c pack.packSizeLimit=0 clone \
-              --depth=1 --no-tags \
-              --branch=${{ gitea.ref_name }} \
-              ${{ gitea.server_url }}/${{ gitea.repository }}.git "$REPO_DIR"
-          fi
-          ln -sfn "$REPO_DIR" repo
+          curl -fsSL \
+            "${{ gitea.server_url }}/${{ gitea.repository }}/archive/${{ gitea.sha }}.tar.gz" \
+            -o /tmp/repo.tar.gz
+          rm -rf repo
+          mkdir repo
+          tar -xzf /tmp/repo.tar.gz -C repo --strip-components=1
+          rm -f /tmp/repo.tar.gz
 
       - name: Image bauen und taggen
         env:

@@ -13,6 +13,7 @@ import { cn } from '../lib/utils';
 import { useDarf } from '../features/funktionsrechte/useFunktionsrechte';
 import { LagerArtikelWahl, type GewaehlterArtikel } from '../features/lager/LagerArtikelWahl';
 import { BestellMailDialog } from '../features/bestellwesen/BestellMailDialog';
+import { BestellPositionAnhaenge } from '../features/bestellwesen/BestellPositionAnhaenge';
 import { LieferantWahl } from '../features/bestellwesen/LieferantWahl';
 import { VorschlaegeDialog } from '../features/bestellwesen/VorschlaegeDialog';
 import {
@@ -361,6 +362,16 @@ const BestellungBearbeiten = () => {
                         </table>
                     )}
                 </Card>
+
+                {/* ---- Fertigungsunterlagen je Position ---- */}
+                {bestellung && bestellung.positionen.length > 0 && (
+                    <BestellPositionAnhaenge
+                        bestellung={bestellung}
+                        onGeaendert={() => {
+                            ladeBestellung(bestellung.id).then(uebernimm).catch(() => undefined);
+                        }}
+                    />
+                )}
 
                 <div className="flex flex-wrap items-center gap-2">
                     {istEntwurf && (

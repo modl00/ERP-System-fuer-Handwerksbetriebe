@@ -15,6 +15,7 @@ import { useToast } from "../components/ui/toast";
 import { TiptapEditor } from "../components/TiptapEditor";
 import { preisHinweisText, type PreisHinweis } from "../components/artikel/preisHinweis";
 import { ArtikelDokumente } from "../components/artikel/ArtikelDokumente";
+import { ArtikelFertigungsunterlagen } from "../components/artikel/ArtikelFertigungsunterlagen";
 import { ArtikelStammdatenForm } from "../components/artikel/ArtikelStammdatenForm";
 import { ArtikelLagerBereich } from "../features/lager/ArtikelLagerBereich";
 // Dieselbe Waehrungsformatierung wie in der Trefferliste - inklusive der
@@ -436,6 +437,9 @@ export default function ArtikelDetail() {
 
             {/* ============ Bilder & Unterlagen ============ */}
             <ArtikelDokumente artikelId={artikel.id} />
+
+            {/* ============ Fertigungsunterlagen (DXF, STEP, …) ============ */}
+            <ArtikelFertigungsunterlagen artikelId={artikel.id} />
 
             {/* ============ Lager (nur bei eingeschaltetem Lagermodul) ============ */}
             <ArtikelLagerBereich artikelId={artikel.id} einheitGeaendertStand={artikel.version} />

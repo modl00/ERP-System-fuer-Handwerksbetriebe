@@ -20,5 +20,5 @@ public record BestellungDto(Long id, String bestellnummer, BestellStatus status,
 
     public record Position(Long id, Long artikelId, String artikelnummer, String bezeichnung, BigDecimal menge, String einheit, BigDecimal einzelpreis,
             BigDecimal summe, BestellHerkunft herkunft, Long projektId, String projektName, Long artikelInProjektId, String kommentar,
-            LocalDate geliefertAm) { }
+            LocalDate geliefertAm, List<FertigungsunterlageDto> anhaenge) { }
 }

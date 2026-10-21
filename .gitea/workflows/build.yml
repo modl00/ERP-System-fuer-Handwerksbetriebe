@@ -13,9 +13,9 @@ jobs:
     steps:
       - name: Repository auschecken
         run: |
-          curl -fsSL \
+          wget -q \
             "${{ gitea.server_url }}/${{ gitea.repository }}/archive/${{ gitea.sha }}.tar.gz" \
-            -o /tmp/repo.tar.gz
+            -O /tmp/repo.tar.gz
           rm -rf repo
           mkdir repo
           tar -xzf /tmp/repo.tar.gz -C repo --strip-components=1

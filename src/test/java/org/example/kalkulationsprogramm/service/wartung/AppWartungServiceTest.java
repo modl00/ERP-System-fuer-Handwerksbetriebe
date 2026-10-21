@@ -33,6 +33,8 @@ class AppWartungServiceTest {
     WartungAnlageService anlagen = mock(WartungAnlageService.class);
     WartungProtokollService protokolle = mock(WartungProtokollService.class);
     WartungProtokollPdfService pdf = mock(WartungProtokollPdfService.class);
+    WartungKatalogService katalog = mock(WartungKatalogService.class);
+    WartungObjektService objekte = mock(WartungObjektService.class);
     WartungModulSchalterService schalter = mock(WartungModulSchalterService.class);
     @SuppressWarnings("unchecked")
     ObjectProvider<WartungModulSchalterService> provider = mock(ObjectProvider.class);
@@ -45,12 +47,12 @@ class AppWartungServiceTest {
         when(provider.getIfAvailable()).thenReturn(schalter);
         when(schalter.istAktiv()).thenReturn(true);
         when(rechte.verlangeFuerToken(any(), any(), any())).thenReturn(max);
-        service = new AppWartungService(rechte, anlagen, protokolle, pdf, provider);
+        service = new AppWartungService(rechte, anlagen, protokolle, pdf, katalog, objekte, provider);
     }
 
     private static WartungAnlageDto anlage(Long offen, Long letzte) {
         return new WartungAnlageDto(7L, "Brandschutztür EG", null, 12, null, true, new WartungAnlageDto.Bezug(3L, "Max Mustermann GmbH"),
-                new WartungAnlageDto.Objekt(4L, "Haus 1", null, null, null), new WartungAnlageDto.Bezug(9L, "Neubau"),
+                new WartungAnlageDto.Objekt(4L, "Haus 1", null, null, null, null, null), new WartungAnlageDto.Bezug(9L, "Neubau"),
                 List.of(new WartungAnlageDto.Modul(1L, "Brandschutztür", "Stahl", "STAHL")), offen, offen == null ? null : "W-1", letzte, List.of());
     }
 

@@ -58,7 +58,9 @@ public class FormularTemplateService {
             "{{KUNDENNUMMER}}",
             "{{DATUM}}",
             "{{SEITENZAHL}}",
-            "{{DOKUMENTTYP}}");
+            "{{DOKUMENTTYP}}",
+            "{{LIEFERANTNAME}}",   // Bestellformular: Lieferantname (entspricht {{KUNDENNAME}})
+            "{{POSITIONEN}}");
 
     public record NamedTemplateData(String name, String html, List<String> assignedDokumenttypen,
             List<Long> assignedUserIds, String created, String modified) {

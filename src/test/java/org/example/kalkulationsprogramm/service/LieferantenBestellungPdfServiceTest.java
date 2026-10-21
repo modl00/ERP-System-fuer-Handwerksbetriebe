@@ -1,12 +1,15 @@
 package org.example.kalkulationsprogramm.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.BestellHerkunft;
 import org.example.kalkulationsprogramm.domain.BestellStatus;
@@ -23,7 +26,16 @@ class LieferantenBestellungPdfServiceTest {
 
     private final LieferantenBestellungService bestellungen = mock(LieferantenBestellungService.class);
     private final FirmeninformationService firma = mock(FirmeninformationService.class);
-    private final LieferantenBestellungPdfService pdf = new LieferantenBestellungPdfService(bestellungen, firma);
+    private final FormularTemplateService formularTemplateService = mock(FormularTemplateService.class);
+    private final RechnungPdfService rechnungPdfService = mock(RechnungPdfService.class);
+    private final LieferantenBestellungPdfService pdf =
+            new LieferantenBestellungPdfService(bestellungen, firma, formularTemplateService, rechnungPdfService);
+
+    {
+        // Kein Formulareditor-Template → Fallback auf Hardcode-Layout
+        when(formularTemplateService.getPreferredTemplateForDokumenttyp(any(), isNull()))
+                .thenReturn(Optional.empty());
+    }
 
     private static BestellungDto bestellung(String nummer, BestellStatus status, BigDecimal preis) {
         BestellungDto.Position p1 = new BestellungDto.Position(1L, 10L, "R-4040", "Rohr 40x40", new BigDecimal("12.5"), "m", preis,

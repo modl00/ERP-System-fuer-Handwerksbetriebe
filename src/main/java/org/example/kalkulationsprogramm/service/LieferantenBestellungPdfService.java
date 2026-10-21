@@ -5,10 +5,17 @@ import java.io.ByteArrayOutputStream;
 import java.math.BigDecimal;
 import java.text.NumberFormat;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Locale;
+import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.BestellStatus;
 import org.example.kalkulationsprogramm.dto.Bestellwesen.BestellungDto;
+import org.example.kalkulationsprogramm.service.RechnungPdfService.ContentBlockDto;
+import org.example.kalkulationsprogramm.service.RechnungPdfService.KopfdatenDto;
+import org.example.kalkulationsprogramm.service.RechnungPdfService.LayoutDto;
+import org.example.kalkulationsprogramm.service.RechnungPdfService.RectDto;
 import org.springframework.stereotype.Service;
 
 import com.lowagie.text.Document;
@@ -26,7 +33,9 @@ import com.lowagie.text.pdf.PdfWriter;
 
 import lombok.RequiredArgsConstructor;
 
-/** Das Bestellformular als PDF (A4 hochkant): Bestellnummer, Lieferant, Positionen mit Menge und Projekt. Ein Entwurf trägt den Vermerk "Entwurf". */
+/** Das Bestellformular als PDF (A4 hochkant). Wenn im Formulareditor eine Vorlage für
+ * "Bestellformular" hinterlegt ist, wird diese genutzt (gleiche Variablen wie Angebot/Rechnung);
+ * sonst fällt der Service auf das eingebaute Standardlayout zurück. */
 @Service
 @RequiredArgsConstructor
 public class LieferantenBestellungPdfService {
@@ -38,9 +47,20 @@ public class LieferantenBestellungPdfService {
 
     private final LieferantenBestellungService bestellungen;
     private final FirmeninformationService firma;
+    private final FormularTemplateService formularTemplateService;
+    private final RechnungPdfService rechnungPdfService;
 
     public byte[] pdf(Long bestellungId) {
         BestellungDto b = bestellungen.lade(bestellungId);
+        Optional<String> templateName = formularTemplateService
+                .getPreferredTemplateForDokumenttyp("Bestellformular", null);
+        if (templateName.isPresent()) {
+            try {
+                return erzeugePerTemplate(b, templateName.get());
+            } catch (Exception e) {
+                // Fehler im Template-Weg → Fallback auf Hardcode-Layout
+            }
+        }
         return erzeuge(b);
     }
 
@@ -48,6 +68,73 @@ public class LieferantenBestellungPdfService {
     public static String dateiname(BestellungDto b) {
         String nr = b.bestellnummer() == null ? "Entwurf-" + b.id() : b.bestellnummer();
         return "Bestellung_" + nr.replaceAll("[^A-Za-z0-9._-]", "_") + ".pdf";
+    }
+
+    /** Erzeugt das PDF über RechnungPdfService mit dem hinterlegten Formulareditor-Template.
+     *  Dieselben Variablen wie Angebot/Rechnung: {{DOKUMENTNUMMER}} = Bestellnummer,
+     *  {{KUNDENNAME}} = Lieferantname, {{DATUM}} = Bestelldatum, {{DOKUMENTTYP}} = "Bestellung". */
+    private byte[] erzeugePerTemplate(BestellungDto b, String templateName) {
+        FormularTemplateService.NamedTemplateData data = formularTemplateService.loadNamedTemplate(templateName);
+        AutoAuftragsbestaetigungVersandService.VorlagenDaten vorlage =
+                AutoAuftragsbestaetigungVersandService.parseVorlagenHtml(data.html());
+
+        String bestellnummer = b.bestellnummer() != null ? b.bestellnummer() : "Entwurf";
+        java.time.LocalDate bestellDatum = b.bestelltAm() != null
+                ? b.bestelltAm().toLocalDate()
+                : b.erstelltAm().toLocalDate();
+        String erstesProjekt = b.positionen().stream()
+                .map(BestellungDto.Position::projektName)
+                .filter(n -> n != null && !n.isBlank())
+                .findFirst().orElse("");
+
+        KopfdatenDto kopfdaten = new KopfdatenDto(
+                bestellnummer,
+                bestellDatum,
+                null,               // kein Leistungsdatum
+                b.lieferantName(),  // kundenName → Lieferantname
+                b.lieferantName(),  // kundenAdresse → Lieferantname (keine separaten Adressdaten verfügbar)
+                "Bestellung",       // betreff
+                null,               // kundennummer
+                "Bestellung",       // dokumentTyp
+                null,               // bezugsdokument
+                erstesProjekt,      // projektnummer
+                erstesProjekt       // bauvorhaben
+        );
+
+        List<ContentBlockDto> blocks = new ArrayList<>();
+        int nr = 1;
+        for (BestellungDto.Position p : b.positionen()) {
+            blocks.add(new ContentBlockDto(
+                    "SERVICE", null, false, 10,
+                    String.valueOf(nr++),
+                    p.bezeichnung(),
+                    null,
+                    p.menge(),
+                    p.einheit() != null ? p.einheit() : "",
+                    p.einzelpreis(),
+                    p.summe(),
+                    false, null, null, null));
+        }
+        if (b.notiz() != null && !b.notiz().isBlank()) {
+            blocks.add(new ContentBlockDto(
+                    "TEXT", b.notiz(), false, 10,
+                    null, null, null, null, null, null, null, false, null, null, null));
+        }
+
+        LayoutDto layout = RechnungPdfService.createLayoutFromFormBlocks(vorlage.formBlocks(), 595f, 842f);
+
+        RechnungPdfService.RechnungDto dto = new RechnungPdfService.RechnungDto(
+                layout,
+                kopfdaten,
+                blocks,
+                vorlage.formBlocks(),
+                null,
+                vorlage.backgroundImagePage1(),
+                vorlage.backgroundImagePage2(),
+                null
+        );
+
+        return rechnungPdfService.generatePdfBytes(dto);
     }
 
     byte[] erzeuge(BestellungDto b) {

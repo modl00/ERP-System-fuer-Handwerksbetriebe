@@ -13,8 +13,8 @@ jobs:
     steps:
       - name: Repository auschecken
         run: |
-          git clone --local --no-hardlinks \
-            /gitea-repos/m/erp-handwerk.git repo
+          git config --global --add safe.directory /gitea-repos/m/erp-handwerk.git
+          git clone --local --no-hardlinks /gitea-repos/m/erp-handwerk.git repo
 
       - name: Image bauen und taggen
         env:

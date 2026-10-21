@@ -15,6 +15,7 @@ services:
     volumes:
       - runner-data:/data
       - /var/run/docker.sock:/var/run/docker.sock
+      - /volume2/docker/gitea/data/git/repositories:/gitea-repos:ro
     environment:
       GITEA_INSTANCE_URL: http://192.168.178.21:3050
       GITEA_RUNNER_NAME: erp-runner

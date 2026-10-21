@@ -20,8 +20,6 @@ jobs:
         run: apk add --no-cache docker-cli
 
       - name: Image bauen und taggen
-        env:
-          DOCKER_BUILDKIT: "1"
         run: |
           cd repo
           docker build \

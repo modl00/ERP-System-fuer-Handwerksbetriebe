@@ -1942,7 +1942,17 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     </div>
 
                     <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Artikel aus Lager</h4>
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Bedarfsliste</h4>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => setShowLagerArtikelModal(true)}
+                                className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                            >
+                                <Plus className="w-4 h-4 mr-1" /> Artikel hinzufügen
+                            </Button>
+                        </div>
                         {projekt.artikel && projekt.artikel.length > 0 ? (
                             projekt.artikel.map((a) => (
                                 <div key={a.id} className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-slate-100">

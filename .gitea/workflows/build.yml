@@ -13,7 +13,7 @@ jobs:
     steps:
       - name: Repository auschecken
         run: |
-          REPO_DIR="/volume2/@docker/volumes/gitea-runner_runner-data/_data/repo"
+          REPO_DIR="/data/repo"
           if [ -d "$REPO_DIR/.git" ]; then
             git -C "$REPO_DIR" remote set-url origin ${{ gitea.server_url }}/${{ gitea.repository }}.git
             git -C "$REPO_DIR" fetch --depth=1 origin ${{ gitea.ref_name }}

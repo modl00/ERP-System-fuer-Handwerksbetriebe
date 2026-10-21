@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
 import {
-    ArrowLeft, Minus, Package, Pencil, RefreshCw, Save, ShieldCheck, ShieldX,
-    TrendingDown, TrendingUp
+    Archive, ArrowLeft, Minus, Package, Pencil, RefreshCw, RotateCcw, Save, ShieldCheck, ShieldX,
+    Trash2, TrendingDown, TrendingUp
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
 import { PageLayout } from "../components/layout/PageLayout";
+import { useAuth } from "../auth/AuthContext";
+import { useConfirm } from "../components/ui/confirm-dialog";
 import { SupplierSelectModal } from "../components/SupplierSelectModal";
 import { useToast } from "../components/ui/toast";
 import { TiptapEditor } from "../components/TiptapEditor";
@@ -62,9 +64,13 @@ export default function ArtikelDetail() {
         else navigate("/artikel");
     }, [vonListe, navigate]);
 
+    const { isAdmin } = useAuth();
+    const confirm = useConfirm();
+
     const [daten, setDaten] = useState<ArtikelDetailData | null>(null);
     const [loading, setLoading] = useState(true);
     const [fehler, setFehler] = useState<string | null>(null);
+    const [archivAktion, setArchivAktion] = useState(false);
 
     // Preis-Eingabe
     const [zeigeLieferantenWahl, setZeigeLieferantenWahl] = useState(false);
@@ -149,6 +155,64 @@ export default function ArtikelDetail() {
 
     const artikel = daten?.artikel;
     const hinweis = (daten?.artikel.preisHinweis ?? "KEIN_PREIS") as PreisHinweis;
+
+    const archivieren = async () => {
+        if (!id || !artikel) return;
+        const ok = await confirm({
+            title: 'Artikel archivieren',
+            message: `„${artikel.produktname}" wird archiviert und aus der aktiven Artikelliste ausgeblendet.`,
+            confirmLabel: 'Archivieren',
+            variant: 'warning',
+        });
+        if (!ok) return;
+        setArchivAktion(true);
+        try {
+            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/archivieren`, { method: 'POST' });
+            if (!res.ok) throw new Error('Archivieren fehlgeschlagen');
+            toast.success('Artikel archiviert.');
+            void laden();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Der Artikel konnte nicht archiviert werden.');
+        } finally {
+            setArchivAktion(false);
+        }
+    };
+
+    const wiederherstellen = async () => {
+        if (!id) return;
+        setArchivAktion(true);
+        try {
+            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/wiederherstellen`, { method: 'POST' });
+            if (!res.ok) throw new Error('Wiederherstellen fehlgeschlagen');
+            toast.success('Artikel wiederhergestellt.');
+            void laden();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Der Artikel konnte nicht wiederhergestellt werden.');
+        } finally {
+            setArchivAktion(false);
+        }
+    };
+
+    const loeschen = async () => {
+        if (!id || !artikel) return;
+        const ok = await confirm({
+            title: 'Artikel endgültig löschen',
+            message: `„${artikel.produktname}" wird unwiderruflich gelöscht. Preise, Dokumente und Bestand werden ebenfalls gelöscht.`,
+            confirmLabel: 'Endgültig löschen',
+            variant: 'danger',
+        });
+        if (!ok) return;
+        setArchivAktion(true);
+        try {
+            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Löschen fehlgeschlagen');
+            toast.success('Artikel gelöscht.');
+            zurueckZurListe();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Der Artikel konnte nicht gelöscht werden.');
+            setArchivAktion(false);
+        }
+    };
 
     const preisSpeichern = async () => {
         if (!id || !neuerPreis.lieferantId) {
@@ -257,12 +321,38 @@ export default function ArtikelDetail() {
             title={artikel.produktname}
             subtitle={[artikel.artikelnummer, artikel.werkstoffName].filter(Boolean).join(" · ")}
             actions={
-                <div className="flex gap-2">
-                    {!stammdatenBearbeiten && (
+                <div className="flex flex-wrap gap-2">
+                    {artikel?.archiviert && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                            <Archive className="w-3.5 h-3.5" /> Archiviert
+                        </span>
+                    )}
+                    {!stammdatenBearbeiten && !artikel?.archiviert && (
                         <Button size="sm" className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700"
                             onClick={() => setStammdatenBearbeiten(true)}>
                             <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
                             Stammdaten bearbeiten
+                        </Button>
+                    )}
+                    {!artikel?.archiviert && (
+                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                            onClick={archivieren} disabled={archivAktion}>
+                            <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Archivieren
+                        </Button>
+                    )}
+                    {artikel?.archiviert && (
+                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                            onClick={wiederherstellen} disabled={archivAktion}>
+                            <RotateCcw className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Wiederherstellen
+                        </Button>
+                    )}
+                    {artikel?.archiviert && isAdmin && (
+                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                            onClick={loeschen} disabled={archivAktion}>
+                            <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Endgültig löschen
                         </Button>
                     )}
                     <Button variant="outline" size="sm"

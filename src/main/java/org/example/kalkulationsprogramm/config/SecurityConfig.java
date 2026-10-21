@@ -281,6 +281,10 @@ public class SecurityConfig {
                 // Massenläufe ohne Knopf in der Oberfläche: gehen über alle Mails, Lieferanten-
                 // Dokumente oder Zeitkonten und kosten teils KI-Aufrufe - nur Admin.
                 .requestMatchers(ADMIN_MASSENLAEUFE).hasRole("ADMIN")
+                // Stammdaten endgültig löschen ist eine irreversible Admin-Aktion (nur aus Archiv)
+                .requestMatchers(HttpMethod.DELETE, "/api/artikel/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/lieferanten/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/lager/orte/**").hasRole("ADMIN")
                 // Lieferantendokumente löschen ist eine irreversible Admin-Aktion
                 .requestMatchers(HttpMethod.DELETE, "/api/lieferant-dokumente/**").hasRole("ADMIN")
                 // Backfill der Dokumentenketten schreibt über den gesamten Lieferanten-Bestand.

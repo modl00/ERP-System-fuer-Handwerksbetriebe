@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 import org.example.kalkulationsprogramm.domain.LieferantRolle;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Set;
 
@@ -29,4 +30,6 @@ public class LieferantListItemDto {
     private String standardKostenstelleName;
     /** true = Rechnungen dieses Lieferanten gelten beim Import sofort als bezahlt. */
     private Boolean vorauskasse;
+    private boolean archiviert;
+    private LocalDateTime archiviertAm;
 }

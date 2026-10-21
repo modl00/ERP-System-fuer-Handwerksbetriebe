@@ -38,6 +38,8 @@ public class LieferantMapper {
             dto.setStandardKostenstelleId(lieferant.getStandardKostenstelle().getId());
             dto.setStandardKostenstelleName(lieferant.getStandardKostenstelle().getBezeichnung());
         }
+        dto.setArchiviert(lieferant.isArchiviert());
+        dto.setArchiviertAm(lieferant.getArchiviertAm());
         return dto;
     }
 

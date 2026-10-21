@@ -346,6 +346,8 @@ public class ArtikelController {
         dto.setPositionsEinheit(vorschlag.einheit());
         dto.setPositionsEinzelpreis(vorschlag.einzelpreis());
         dto.setPreisHinweis(vorschlag.hinweis().name());
+        dto.setArchiviert(artikel.isArchiviert());
+        dto.setArchiviertAm(artikel.getArchiviertAm());
         return dto;
     }
 
@@ -664,7 +666,8 @@ public class ArtikelController {
             String profilform,
             Boolean verzinkbar,
             Boolean pulverbeschichtbar) {
-        Specification<Artikel> specification = Specification.where((root, cq, cb) -> cb.conjunction());
+        Specification<Artikel> specification = Specification.where(
+                (root, cq, cb) -> cb.isFalse(root.get("archiviert")));
 
         if (StringUtils.hasText(query)) {
             // Die Eingabe wird in einzelne Woerter zerlegt, von denen jedes
@@ -842,6 +845,22 @@ public class ArtikelController {
         }
         Collections.reverse(parts);
         return String.join(" > ", parts);
+    }
+
+    @PostMapping("/{id}/archivieren")
+    public ResponseEntity<ArtikelResponseDto> archivieren(@PathVariable Long id) {
+        return ResponseEntity.ok(toDto(artikelService.archivieren(id), null));
+    }
+
+    @PostMapping("/{id}/wiederherstellen")
+    public ResponseEntity<ArtikelResponseDto> wiederherstellen(@PathVariable Long id) {
+        return ResponseEntity.ok(toDto(artikelService.wiederherstellen(id), null));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> loeschen(@PathVariable Long id) {
+        artikelService.loeschen(id);
+        return ResponseEntity.noContent().build();
     }
 
     private record SortField(String property, boolean ignoreCase) {

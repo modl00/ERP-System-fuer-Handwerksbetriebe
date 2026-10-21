@@ -14,6 +14,7 @@ import org.example.kalkulationsprogramm.dto.Lager.LagerortEingabe;
 import org.example.kalkulationsprogramm.dto.Lager.MindestbestandEingabe;
 import org.example.kalkulationsprogramm.service.LagerService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -97,5 +98,21 @@ public class LagerController {
     @PutMapping("/artikel/{artikelId}/mindestbestand")
     public ResponseEntity<LagerBestandDto> mindestbestand(@PathVariable Long artikelId, @RequestBody MindestbestandEingabe eingabe) {
         return ResponseEntity.ok(lagerService.setzeMindestbestand(artikelId, eingabe == null ? null : eingabe.mindestbestand()));
+    }
+
+    @PostMapping("/orte/{id}/archivieren")
+    public ResponseEntity<LagerortDto> ortArchivieren(@PathVariable Long id) {
+        return ResponseEntity.ok(lagerService.ortArchivieren(id));
+    }
+
+    @PostMapping("/orte/{id}/wiederherstellen")
+    public ResponseEntity<LagerortDto> ortWiederherstellen(@PathVariable Long id) {
+        return ResponseEntity.ok(lagerService.ortWiederherstellen(id));
+    }
+
+    @DeleteMapping("/orte/{id}")
+    public ResponseEntity<Void> ortLoeschen(@PathVariable Long id) {
+        lagerService.ortLoeschen(id);
+        return ResponseEntity.noContent().build();
     }
 }

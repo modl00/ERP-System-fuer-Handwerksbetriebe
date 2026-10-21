@@ -6,6 +6,8 @@ export interface Lagerort {
     beschreibung: string | null;
     aktiv: boolean;
     sortOrder: number;
+    archiviert: boolean;
+    archiviertAm: string | null;
 }
 
 export interface OrtBestand {
@@ -82,6 +84,20 @@ export const aendereOrt = (id: number, name: string, beschreibung: string) =>
 
 export const setzeOrtAktiv = (id: number, aktiv: boolean) =>
     anfrage<Lagerort>(`/api/lager/orte/${id}/aktiv`, { method: 'PUT', headers: json, body: JSON.stringify({ aktiv }) }, 'Der Lagerort konnte nicht geändert werden.');
+
+export const archiviereOrt = (id: number) =>
+    anfrage<Lagerort>(`/api/lager/orte/${id}/archivieren`, { method: 'POST' }, 'Der Lagerort konnte nicht archiviert werden.');
+
+export const stelleOrtWieder = (id: number) =>
+    anfrage<Lagerort>(`/api/lager/orte/${id}/wiederherstellen`, { method: 'POST' }, 'Der Lagerort konnte nicht wiederhergestellt werden.');
+
+export const loescheOrt = async (id: number): Promise<void> => {
+    const res = await fetch(`/api/lager/orte/${id}`, { method: 'DELETE' });
+    if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        throw new Error(text || 'Der Lagerort konnte nicht gelöscht werden.');
+    }
+};
 
 export const ladeBestand = (suche: string, nurHandlungsbedarf: boolean) => {
     const params = new URLSearchParams();

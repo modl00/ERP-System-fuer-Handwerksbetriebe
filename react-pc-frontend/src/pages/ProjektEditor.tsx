@@ -3530,17 +3530,16 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                 <Label htmlFor="bestell-lieferant">Lieferant</Label>
                                 <Select
                                     value={bestellLieferantId}
-                                    onChange={(e) => {
-                                        setBestellLieferantId(e.target.value);
-                                        if (bestellModus === 'vorhandene') void ladeOffeneBestellungen(e.target.value);
+                                    options={[
+                                        { value: '', label: '-- Lieferant wählen --' },
+                                        ...suppliers.map(s => ({ value: String(s.id), label: s.lieferantenname })),
+                                    ]}
+                                    onChange={(v) => {
+                                        setBestellLieferantId(v);
+                                        if (bestellModus === 'vorhandene') void ladeOffeneBestellungen(v);
                                     }}
                                     className="w-full"
-                                >
-                                    <option value="">-- Lieferant wählen --</option>
-                                    {suppliers.map(s => (
-                                        <option key={s.id} value={String(s.id)}>{s.lieferantenname}</option>
-                                    ))}
-                                </Select>
+                                />
                             </div>
 
                             {/* Bestehende Bestellung wählen */}
@@ -3552,14 +3551,13 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                     ) : (
                                         <Select
                                             value={gewaehlteBestNr}
-                                            onChange={(e) => setGewaehlteBestNr(e.target.value)}
+                                            options={[
+                                                { value: '', label: '-- Bestellung wählen --' },
+                                                ...offeneBestellungen.map(b => ({ value: String(b.id), label: `#${b.nummer} – ${b.lieferantName}` })),
+                                            ]}
+                                            onChange={(v) => setGewaehlteBestNr(v)}
                                             className="w-full"
-                                        >
-                                            <option value="">-- Bestellung wählen --</option>
-                                            {offeneBestellungen.map(b => (
-                                                <option key={b.id} value={String(b.id)}>#{b.nummer} – {b.lieferantName}</option>
-                                            ))}
-                                        </Select>
+                                        />
                                     )}
                                 </div>
                             )}

@@ -34,7 +34,8 @@ public final class LieferantenSuche {
      */
     public static Specification<Lieferanten> spezifikation(String freitext, String name, String typ, String ort,
             String email) {
-        Specification<Lieferanten> spec = Specification.where(null);
+        Specification<Lieferanten> spec = Specification.where(
+                (root, cq, cb) -> cb.isFalse(root.get("archiviert")));
         if (StringUtils.hasText(freitext)) {
             final String muster = muster(freitext);
             spec = spec.and((root, cq, cb) -> cb.or(

@@ -6,6 +6,7 @@ import lombok.Setter;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashSet;
@@ -100,5 +101,11 @@ public class Lieferanten {
 
     @Column(name = "standard_lieferzeit_tage")
     private Integer standardLieferzeitTage;
+
+    @Column(name = "archiviert", nullable = false)
+    private boolean archiviert = false;
+
+    @Column(name = "archiviert_am")
+    private LocalDateTime archiviertAm;
 
 }

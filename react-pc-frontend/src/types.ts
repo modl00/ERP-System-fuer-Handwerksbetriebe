@@ -324,6 +324,8 @@ export interface Lieferant {
   vorauskasse?: boolean;
   /** Übliche Lieferzeit in Arbeitstagen ab Bestellung; leer = unbekannt. */
   standardLieferzeitTage?: number | null;
+  archiviert?: boolean;
+  archiviertAm?: string | null;
 }
 
 /** Enum-Wert vom Backend: technischer Wert plus Klartext und Erklaerung. */
@@ -427,6 +429,8 @@ export interface Artikel {
   positionsEinzelpreis?: number;
   /** OK | KEIN_AUFSCHLAG | KEIN_PREIS | KEIN_GEWICHT */
   preisHinweis?: 'OK' | 'KEIN_AUFSCHLAG' | 'KEIN_PREIS' | 'KEIN_GEWICHT';
+  archiviert?: boolean;
+  archiviertAm?: string | null;
 }
 
 /** Ein Lieferant mit seiner Artikelnummer und seinem aktuellen Preis. */
@@ -837,6 +841,7 @@ export interface ArtikelInProjekt {
   /** Was die Position insgesamt kostet - Einzelpreis mal Menge. */
   gesamtpreis?: number;
   preisProStueck?: number;
+  lieferantId?: number;
   lieferantName?: string;
   /**
    * Aus dem eigenen Lager entnommen. Nur diese Positionen zaehlen als

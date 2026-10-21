@@ -37,4 +37,10 @@ public interface ArtikelServiceContract {
     Artikel aktualisiereDokumenttexte(Long id, ArtikelDokumenttexteRequest request);
 
     Artikel aktualisiereStammdaten(Long id, ArtikelStammdatenRequest r);
+
+    Artikel archivieren(Long id);
+
+    Artikel wiederherstellen(Long id);
+
+    void loeschen(Long id);
 }

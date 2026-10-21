@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Date;
 
@@ -115,5 +116,8 @@ public class ArtikelResponseDto {
      * in der Detailansicht einzeln - siehe {@code ArtikelController}.
      */
     private String vorschaubildUrl;
+
+    private boolean archiviert;
+    private LocalDateTime archiviertAm;
 }
 

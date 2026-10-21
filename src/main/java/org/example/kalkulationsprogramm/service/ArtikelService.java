@@ -378,4 +378,32 @@ public class ArtikelService implements ArtikelServiceContract {
     private static ResponseStatusException stammdatenUngueltig(String text) {
         return new ResponseStatusException(HttpStatus.BAD_REQUEST, text);
     }
+
+    @Transactional
+    public Artikel archivieren(Long id) {
+        Artikel artikel = artikelRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artikel nicht gefunden."));
+        artikel.setArchiviert(true);
+        artikel.setArchiviertAm(java.time.LocalDateTime.now());
+        return artikelRepository.save(artikel);
+    }
+
+    @Transactional
+    public Artikel wiederherstellen(Long id) {
+        Artikel artikel = artikelRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artikel nicht gefunden."));
+        artikel.setArchiviert(false);
+        artikel.setArchiviertAm(null);
+        return artikelRepository.save(artikel);
+    }
+
+    @Transactional
+    public void loeschen(Long id) {
+        Artikel artikel = artikelRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Artikel nicht gefunden."));
+        if (!artikel.isArchiviert()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nur archivierte Artikel dürfen gelöscht werden.");
+        }
+        artikelRepository.delete(artikel);
+    }
 }

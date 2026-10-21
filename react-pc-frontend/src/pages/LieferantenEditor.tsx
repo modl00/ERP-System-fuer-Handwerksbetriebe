@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Loader2, Plus, RefreshCw, X, Mail, Phone, MapPin, Building2, User, ArrowLeft, Edit2, ChevronLeft, ChevronRight, FileText, StickyNote, AlertTriangle, Package, Wallet } from "lucide-react";
+import { Archive, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, Mail, Phone, MapPin, Building2, User, ArrowLeft, Edit2, ChevronLeft, ChevronRight, FileText, StickyNote, AlertTriangle, Package, Wallet } from "lucide-react";
+import { useAuth } from "../auth/AuthContext";
+import { useConfirm } from "../components/ui/confirm-dialog";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { Input } from "../components/ui/input";
@@ -510,6 +512,8 @@ const LieferantDetailView: React.FC<LieferantDetailViewProps> = ({ lieferant, la
 
 export default function LieferantenEditor() {
     const toast = useToast();
+    const { isAdmin } = useAuth();
+    const confirm = useConfirm();
     const [searchParams, setSearchParams] = useSearchParams();
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [lieferanten, setLieferanten] = useState<Lieferant[]>([]);
@@ -760,6 +764,71 @@ export default function LieferantenEditor() {
         setSearchParams({});
     }, [setSearchParams]);
 
+    const [archivAktion, setArchivAktion] = useState(false);
+
+    const archivieren = async () => {
+        if (!selectedLieferant) return;
+        const ok = await confirm({
+            title: 'Lieferant archivieren',
+            message: `„${selectedLieferant.lieferantenname}" wird archiviert und aus der aktiven Lieferantenliste ausgeblendet.`,
+            confirmLabel: 'Archivieren',
+            variant: 'warning',
+        });
+        if (!ok) return;
+        setArchivAktion(true);
+        try {
+            const res = await fetch(`/api/lieferanten/${selectedLieferant.id}/archivieren`, { method: 'POST' });
+            if (!res.ok) throw new Error('Archivieren fehlgeschlagen');
+            const updated = await res.json();
+            toast.success('Lieferant archiviert.');
+            setSelectedLieferant(prev => prev ? { ...prev, archiviert: updated.archiviert, archiviertAm: updated.archiviertAm } : null);
+            setLadeVersion(v => v + 1);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Der Lieferant konnte nicht archiviert werden.');
+        } finally {
+            setArchivAktion(false);
+        }
+    };
+
+    const wiederherstellen = async () => {
+        if (!selectedLieferant) return;
+        setArchivAktion(true);
+        try {
+            const res = await fetch(`/api/lieferanten/${selectedLieferant.id}/wiederherstellen`, { method: 'POST' });
+            if (!res.ok) throw new Error('Wiederherstellen fehlgeschlagen');
+            const updated = await res.json();
+            toast.success('Lieferant wiederhergestellt.');
+            setSelectedLieferant(prev => prev ? { ...prev, archiviert: updated.archiviert, archiviertAm: updated.archiviertAm } : null);
+            setLadeVersion(v => v + 1);
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Der Lieferant konnte nicht wiederhergestellt werden.');
+        } finally {
+            setArchivAktion(false);
+        }
+    };
+
+    const loeschenLieferant = async () => {
+        if (!selectedLieferant) return;
+        const ok = await confirm({
+            title: 'Lieferant endgültig löschen',
+            message: `„${selectedLieferant.lieferantenname}" wird unwiderruflich gelöscht. Alle Preislisten und Dokumente werden mitgelöscht.`,
+            confirmLabel: 'Endgültig löschen',
+            variant: 'danger',
+        });
+        if (!ok) return;
+        setArchivAktion(true);
+        try {
+            const res = await fetch(`/api/lieferanten/${selectedLieferant.id}`, { method: 'DELETE' });
+            if (!res.ok) throw new Error('Löschen fehlgeschlagen');
+            toast.success('Lieferant gelöscht.');
+            zurueckZurListe();
+            loadLieferanten();
+        } catch (e) {
+            toast.error(e instanceof Error ? e.message : 'Der Lieferant konnte nicht gelöscht werden.');
+            setArchivAktion(false);
+        }
+    };
+
     const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
 
     // Zeigt die Seitenzahl hinter das Ergebnis (z.B. nachdem der letzte Eintrag einer
@@ -787,9 +856,34 @@ export default function LieferantenEditor() {
                 title="LIEFERANTENDETAILS"
                 subtitle={selectedLieferant.lieferantenname}
                 actions={
-                    <Button variant="outline" size="sm" onClick={zurueckZurListe}>
-                        <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
-                    </Button>
+                    <div className="flex flex-wrap gap-2">
+                        {selectedLieferant.archiviert && (
+                            <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                                <Archive className="w-3.5 h-3.5" /> Archiviert
+                            </span>
+                        )}
+                        {!selectedLieferant.archiviert && (
+                            <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                                onClick={archivieren} disabled={archivAktion}>
+                                <Archive className="w-4 h-4 mr-2" /> Archivieren
+                            </Button>
+                        )}
+                        {selectedLieferant.archiviert && (
+                            <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                                onClick={wiederherstellen} disabled={archivAktion}>
+                                <RotateCcw className="w-4 h-4 mr-2" /> Wiederherstellen
+                            </Button>
+                        )}
+                        {selectedLieferant.archiviert && isAdmin && (
+                            <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                                onClick={loeschenLieferant} disabled={archivAktion}>
+                                <Trash2 className="w-4 h-4 mr-2" /> Endgültig löschen
+                            </Button>
+                        )}
+                        <Button variant="outline" size="sm" onClick={zurueckZurListe}>
+                            <ArrowLeft className="w-4 h-4 mr-2" /> Zurück
+                        </Button>
+                    </div>
                 }
             >
                 <LieferantDetailView

@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { AlertTriangle, ArrowRightLeft, ClipboardList, History, Loader2, PackageMinus, PackagePlus, Pencil, Search, BellRing, Warehouse } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/ui/button';
@@ -19,6 +20,7 @@ interface BuchungsZiel { art: Buchungsart; artikel: LagerBestand | null }
 
 const LagerEditor = () => {
     const toast = useToast();
+    const { isAdmin } = useAuth();
     const [reiter, setReiter] = useState<Reiter>('bestand');
     const [sucheText, setSucheText] = useState('');
     const [suche, setSuche] = useState('');
@@ -101,7 +103,7 @@ const LagerEditor = () => {
             </div>
 
             {reiter === 'orte' ? (
-                <LagerorteBereich orte={orte} onGeaendert={() => { ladeListe(); }} />
+                <LagerorteBereich orte={orte} istAdmin={isAdmin} onGeaendert={() => { ladeListe(); }} />
             ) : (
                 <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center">

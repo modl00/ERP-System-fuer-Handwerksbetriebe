@@ -541,7 +541,36 @@ public class LagerService {
     }
 
     private static LagerortDto dto(Lagerort o) {
-        return new LagerortDto(o.getId(), o.getName(), o.getBeschreibung(), o.isAktiv(), o.getSortOrder());
+        return new LagerortDto(o.getId(), o.getName(), o.getBeschreibung(), o.isAktiv(), o.getSortOrder(),
+                o.isArchiviert(), o.getArchiviertAm());
+    }
+
+    @Transactional
+    public LagerortDto ortArchivieren(Long id) {
+        Lagerort o = ort(id);
+        o.setArchiviert(true);
+        o.setArchiviertAm(java.time.LocalDateTime.now());
+        return dto(orte.save(o));
+    }
+
+    @Transactional
+    public LagerortDto ortWiederherstellen(Long id) {
+        Lagerort o = ort(id);
+        o.setArchiviert(false);
+        o.setArchiviertAm(null);
+        return dto(orte.save(o));
+    }
+
+    @Transactional
+    public void ortLoeschen(Long id) {
+        Lagerort o = ort(id);
+        if (!o.isArchiviert()) {
+            throw fehler("Nur archivierte Lagerorte dürfen gelöscht werden.");
+        }
+        if (buchungen.existsByLagerortId(id)) {
+            throw fehler("Dieser Lagerort hat Buchungen und kann nicht gelöscht werden. Die Buchungshistorie muss erhalten bleiben.");
+        }
+        orte.delete(o);
     }
 
     private static String projektName(Projekt p) {

@@ -1,4 +1,5 @@
-# NAS-Betrieb: Portainer Repository-Stack mit lokalem Image-Build.
+# NAS-Betrieb: Portainer Repository-Stack.
+# Das Image "erp-handwerk:main" wird vom Gitea Action Runner bei jedem Push auf main gebaut.
 # Portainer: Repository-URL + Compose-Pfad "deployment/docker-compose.nas.yml"
 # Umgebungsvariablen in Portainer setzen:
 #   DB_PASSWORD            Datenbankpasswort
@@ -24,11 +25,8 @@ services:
     restart: unless-stopped
 
   app:
-    image: erp-handwerk:lokal
-    build:
-      context: ..
-      dockerfile: Dockerfile
-    pull_policy: build
+    image: erp-handwerk:main
+    pull_policy: never
     container_name: erp-app
     ports:
       - "8080:8080"

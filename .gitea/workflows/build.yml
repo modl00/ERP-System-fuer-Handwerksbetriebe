@@ -13,17 +13,19 @@ jobs:
     steps:
       - name: Repository auschecken
         run: |
-          if [ -d repo/.git ]; then
-            git -C repo remote set-url origin ${{ gitea.server_url }}/${{ gitea.repository }}.git
-            git -C repo fetch --depth=1 origin ${{ gitea.ref_name }}
-            git -C repo reset --hard FETCH_HEAD
-            git -C repo clean -fd
+          REPO_DIR="/volume2/@docker/volumes/gitea-runner_runner-data/_data/repo"
+          if [ -d "$REPO_DIR/.git" ]; then
+            git -C "$REPO_DIR" remote set-url origin ${{ gitea.server_url }}/${{ gitea.repository }}.git
+            git -C "$REPO_DIR" fetch --depth=1 origin ${{ gitea.ref_name }}
+            git -C "$REPO_DIR" reset --hard FETCH_HEAD
+            git -C "$REPO_DIR" clean -fd
           else
             git -c pack.windowMemory=0 -c pack.packSizeLimit=0 clone \
               --depth=1 --no-tags \
               --branch=${{ gitea.ref_name }} \
-              ${{ gitea.server_url }}/${{ gitea.repository }}.git repo
+              ${{ gitea.server_url }}/${{ gitea.repository }}.git "$REPO_DIR"
           fi
+          ln -sfn "$REPO_DIR" repo
 
       - name: Image bauen und taggen
         env:

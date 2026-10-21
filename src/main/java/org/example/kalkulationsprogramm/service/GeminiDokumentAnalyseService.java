@@ -617,22 +617,8 @@ public class GeminiDokumentAnalyseService {
                     null,
                     List.of(new KiTypen.Nutzer(customPrompt, List.of(new KiTypen.Anhang(mimeType, bytes)))),
                     List.of(), 0.0, maxOutputTokens);
-            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text().trim();
-            // JSON aus Markdown extrahieren falls vorhanden
-            if (text.contains("```json")) {
-                int start = text.indexOf("```json") + 7;
-                int end = text.indexOf("```", start);
-                if (end > start) {
-                    return text.substring(start, end).trim();
-                }
-            } else if (text.contains("```")) {
-                int start = text.indexOf("```") + 3;
-                int end = text.indexOf("```", start);
-                if (end > start) {
-                    return text.substring(start, end).trim();
-                }
-            }
-            return text;
+            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text();
+            return extrahiereJson(text);
         } catch (KiAnbieterFehler e) {
             log.debug("[Dokument-Analyse] KI nicht eingerichtet – Aufruf übersprungen: {}", e.getMessage());
             return null;
@@ -2345,7 +2331,8 @@ public class GeminiDokumentAnalyseService {
                     systemPrompt,
                     List.of(new KiTypen.Nutzer(userText, List.of(new KiTypen.Anhang(mimeType, dokumentBytes)))),
                     List.of(), 0.0, maxOutputTokens);
-            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text();
+            String roh = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text();
+            String text = extrahiereJson(roh);
             log.info("[KI-Analyse] Dokumentanalyse erfolgreich ({} Zeichen)", text.length());
             return new KiAntwort(text, isJsonTruncated(text));
         } catch (KiAnbieterFehler e) {
@@ -2358,6 +2345,38 @@ public class GeminiDokumentAnalyseService {
             log.error("[KI-Analyse] Fehler: {}", e.getClass().getSimpleName());
             return null;
         }
+    }
+
+    /**
+     * Extrahiert das JSON-Objekt aus einer Gemini-Antwort, die Markdown-Code-Blöcke
+     * oder Thinking-Text enthalten kann. Gibt den unveränderten Text zurück, wenn kein
+     * Wrapper erkannt wird.
+     */
+    private static String extrahiereJson(String text) {
+        if (text == null) {
+            return null;
+        }
+        String t = text.trim();
+        if (t.contains("```json")) {
+            int start = t.indexOf("```json") + 7;
+            int end = t.indexOf("```", start);
+            if (end > start) {
+                return t.substring(start, end).trim();
+            }
+        } else if (t.contains("```")) {
+            int start = t.indexOf("```") + 3;
+            int end = t.indexOf("```", start);
+            if (end > start) {
+                return t.substring(start, end).trim();
+            }
+        }
+        // Thinking-Text vor dem JSON: erstes { bis letztes }
+        int jsonStart = t.indexOf('{');
+        int jsonEnd = t.lastIndexOf('}');
+        if (jsonStart > 0 && jsonEnd > jsonStart) {
+            return t.substring(jsonStart, jsonEnd + 1);
+        }
+        return t;
     }
 
     /** Die KI sagt ausdrücklich: kein Geschäftsdokument bzw. Typ SONSTIG. */

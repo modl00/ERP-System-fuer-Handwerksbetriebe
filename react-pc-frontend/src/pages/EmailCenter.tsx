@@ -1206,6 +1206,18 @@ export default function EmailCenter() {
         }
     };
 
+    const handleBelegeErneut = async () => {
+        if (!selectedEmail) return;
+        const res = await fetch(`/api/email/${selectedEmail.id}/reprocess-attachments`, { method: 'POST' });
+        const data = await res.json() as { processed?: number; error?: string };
+        if (!res.ok) throw new Error(data.error ?? 'Belege konnten nicht neu analysiert werden.');
+        if (data.processed === 0) {
+            toast.info('Keine neuen Anhänge zum Verarbeiten gefunden.');
+        } else {
+            toast.success(`${data.processed} Anhang/Anhänge werden erneut analysiert.`);
+        }
+    };
+
     const formatDate = (dateStr?: string) => {
         if (!dateStr) return '-';
         try {
@@ -1726,6 +1738,7 @@ export default function EmailCenter() {
                         onAssign={() => setShowAssignModal(true)}
                         onKiAbgleich={() => setKiAbgleichIds([selectedEmail.id])}
                         onKiChat={() => { window.dispatchEvent(new CustomEvent('ki-email-anhaengen', { detail: { emailId: selectedEmail.id } })); }}
+                        onBelegeErneut={selectedEmail.direction === 'IN' ? handleBelegeErneut : undefined}
                         onStar={() => handleToggleStar(selectedEmail.id)}
                         onDelete={() => handleDelete(null, selectedEmail)}
                         onMove={(target) => handleMoveToFolder(target, [selectedEmail.id])}

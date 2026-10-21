@@ -1230,9 +1230,13 @@ export default function EmailCenter() {
             if (res.ok) {
                 const data = await res.json() as { bauvorhaben: string; absenderName: string };
                 setKiVorschlagBauvorhaben(data.bauvorhaben);
+            } else {
+                setKiVorschlagBauvorhaben(selectedEmail.subject || '');
+                toast.error('KI-Vorschlag konnte nicht geladen werden.');
             }
         } catch {
             setKiVorschlagBauvorhaben(selectedEmail.subject || '');
+            toast.error('KI-Vorschlag konnte nicht geladen werden.');
         }
         if (typ === 'projekt') setShowProjektAnlegenModal(true);
         else setShowAnfrageAnlegenModal(true);

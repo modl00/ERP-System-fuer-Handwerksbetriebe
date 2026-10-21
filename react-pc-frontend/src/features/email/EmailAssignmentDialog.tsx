@@ -43,7 +43,8 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
     const [showProjektModal, setShowProjektModal] = useState(false);
     const [showAnfrageModal, setShowAnfrageModal] = useState(false);
     const [kiVorschlag, setKiVorschlag] = useState<KiVorschlag | null>(null);
-    const [loadingVorschlag, setLoadingVorschlag] = useState(false);
+    const [loadingProjektVorschlag, setLoadingProjektVorschlag] = useState(false);
+    const [loadingAnfrageVorschlag, setLoadingAnfrageVorschlag] = useState(false);
 
     // Load suggestions when modal opens
     useEffect(() => {
@@ -115,7 +116,8 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
             else setShowAnfrageModal(true);
             return;
         }
-        setLoadingVorschlag(true);
+        const setLoading = typ === 'projekt' ? setLoadingProjektVorschlag : setLoadingAnfrageVorschlag;
+        setLoading(true);
         try {
             const res = await fetch(`/api/emails/${emailId}/ki-anlage-vorschlag`);
             if (res.ok) {
@@ -127,7 +129,7 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
         } catch {
             toast.error('KI-Vorschlag konnte nicht geladen werden.');
         } finally {
-            setLoadingVorschlag(false);
+            setLoading(false);
         }
         if (typ === 'projekt') setShowProjektModal(true);
         else setShowAnfrageModal(true);
@@ -263,16 +265,21 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
 
                         {/* Neu anlegen Section */}
                         <div className="pt-2 border-t border-slate-200">
-                            <p className="text-xs text-slate-500 mb-2">Noch kein passender Eintrag? Direkt neu anlegen:</p>
+                            <div className="flex items-center gap-1 mb-2">
+                                <p className="text-xs text-slate-500">Noch kein passender Eintrag? Direkt neu anlegen:</p>
+                                <InfoButton titel="KI-Vorschlag">
+                                    Die KI liest Betreff und Absender der E-Mail und schlägt einen Projektnamen vor. Der Dialog öffnet sich mit dem Vorschlag vorausgefüllt – du kannst alles vor dem Speichern noch anpassen. Die E-Mail wird nach dem Anlegen automatisch verknüpft.
+                                </InfoButton>
+                            </div>
                             <div className="flex gap-2">
                                 <Button
                                     variant="outline"
                                     size="sm"
                                     onClick={() => ladeKiVorschlagUndOeffne('projekt')}
-                                    disabled={loadingVorschlag || assigning}
+                                    disabled={loadingProjektVorschlag || loadingAnfrageVorschlag || assigning}
                                     className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
                                 >
-                                    {loadingVorschlag ? (
+                                    {loadingProjektVorschlag ? (
                                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                                     ) : (
                                         <Plus className="w-3.5 h-3.5" />
@@ -283,10 +290,10 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
                                     variant="outline"
                                     size="sm"
                                     onClick={() => ladeKiVorschlagUndOeffne('anfrage')}
-                                    disabled={loadingVorschlag || assigning}
+                                    disabled={loadingProjektVorschlag || loadingAnfrageVorschlag || assigning}
                                     className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
                                 >
-                                    {loadingVorschlag ? (
+                                    {loadingAnfrageVorschlag ? (
                                         <RefreshCw className="w-3.5 h-3.5 animate-spin" />
                                     ) : (
                                         <Plus className="w-3.5 h-3.5" />

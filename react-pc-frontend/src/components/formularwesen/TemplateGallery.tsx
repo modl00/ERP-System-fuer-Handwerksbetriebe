@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Plus, Search, LayoutTemplate, Copy, Trash2, Pencil, Filter, Calendar } from 'lucide-react';
+import { Plus, Search, LayoutTemplate, Copy, Trash2, Pencil, Filter, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Card } from '../ui/card';
@@ -14,10 +14,11 @@ interface TemplateGalleryProps {
     onDuplicate: (name: string) => void;
     onDelete: (name: string) => void;
     onRefresh: () => void;
+    onStandardvorlagen: () => void;
 }
 
 /** Canva-style template gallery — shows saved templates as visual cards */
-export default function TemplateGallery({ templates, onCreateNew, onEdit, onDuplicate, onDelete }: TemplateGalleryProps) {
+export default function TemplateGallery({ templates, onCreateNew, onEdit, onDuplicate, onDelete, onStandardvorlagen }: TemplateGalleryProps) {
     const [search, setSearch] = useState('');
     const [filterType, setFilterType] = useState<string | null>(null);
 
@@ -119,13 +120,18 @@ export default function TemplateGallery({ templates, onCreateNew, onEdit, onDupl
                     <div className="w-20 h-20 rounded-2xl bg-rose-50 flex items-center justify-center mb-4">
                         <LayoutTemplate className="w-10 h-10 text-rose-400" />
                     </div>
-                    <p className="text-lg font-medium text-slate-700">Noch keine Vorlagen erstellt</p>
+                    <p className="text-lg font-medium text-slate-700">Noch keine Vorlagen vorhanden</p>
                     <p className="text-sm text-slate-500 mt-1 max-w-sm">
-                        Legen Sie Ihre erste Dokumentvorlage an und verwenden Sie sie für Anfragen, Rechnungen und mehr.
+                        Übernehmen Sie die mitgelieferten Standardvorlagen für Angebot, Rechnung, Mahnung und Lieferschein — oder legen Sie eine eigene an.
                     </p>
-                    <Button size="sm" className="mt-4" onClick={onCreateNew}>
-                        <Plus className="w-4 h-4 mr-1" />Erste Vorlage erstellen
-                    </Button>
+                    <div className="flex gap-3 mt-4 flex-wrap justify-center">
+                        <Button size="sm" onClick={onStandardvorlagen}>
+                            <Sparkles className="w-4 h-4 mr-1" />Standardvorlagen übernehmen
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={onCreateNew}>
+                            <Plus className="w-4 h-4 mr-1" />Leere Vorlage erstellen
+                        </Button>
+                    </div>
                 </div>
             )}
         </div>

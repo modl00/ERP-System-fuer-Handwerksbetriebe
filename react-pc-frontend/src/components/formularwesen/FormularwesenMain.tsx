@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from 'react';
-import { Plus } from 'lucide-react';
+import { Plus, Sparkles } from 'lucide-react';
 import { Button } from '../ui/button';
 import { PageLayout } from '../layout/PageLayout';
 import { useToast } from '../ui/toast';
@@ -103,6 +103,22 @@ export default function FormularwesenMain() {
         setView('gallery');
     };
 
+    const handleStandardvorlagen = async () => {
+        try {
+            const res = await fetch('/api/formulare/standardvorlagen', { method: 'POST' });
+            if (!res.ok) throw new Error();
+            const data = await res.json() as { angelegteVorlagen: string[]; vorhandeneVorlagen: string[] };
+            if (data.angelegteVorlagen.length > 0) {
+                toast.success(`${data.angelegteVorlagen.length} Standardvorlagen übernommen.`);
+            } else {
+                toast.success('Alle Standardvorlagen sind bereits vorhanden.');
+            }
+            loadTemplateList();
+        } catch {
+            toast.error('Standardvorlagen konnten nicht angelegt werden.');
+        }
+    };
+
     // ─── Render ──────────────────────────────────────────────────────────
 
     if (view === 'gallery') {
@@ -112,9 +128,14 @@ export default function FormularwesenMain() {
                 title="FORMULARWESEN"
                 subtitle="Erstellen und verwalten Sie Dokumentvorlagen für Anfragen, Rechnungen und mehr."
                 actions={
-                    <Button size="sm" onClick={handleCreateNew}>
-                        <Plus className="w-4 h-4 mr-1" />Neue Vorlage
-                    </Button>
+                    <div className="flex gap-2">
+                        <Button size="sm" variant="outline" onClick={() => void handleStandardvorlagen()}>
+                            <Sparkles className="w-4 h-4 mr-1" />Standardvorlagen
+                        </Button>
+                        <Button size="sm" onClick={handleCreateNew}>
+                            <Plus className="w-4 h-4 mr-1" />Neue Vorlage
+                        </Button>
+                    </div>
                 }
             >
                 <FesteTexteBereich />
@@ -132,6 +153,7 @@ export default function FormularwesenMain() {
                         onDuplicate={handleDuplicateTemplate}
                         onDelete={handleDeleteTemplate}
                         onRefresh={loadTemplateList}
+                        onStandardvorlagen={() => void handleStandardvorlagen()}
                     />
                 )}
             </PageLayout>

@@ -65,6 +65,7 @@ import org.example.kalkulationsprogramm.service.PdfAiExtractorService;
 import org.example.kalkulationsprogramm.service.ProjektManagementService;
 import org.example.kalkulationsprogramm.service.ProjektMaterialService;
 import org.example.kalkulationsprogramm.service.ProjektListenPdfService;
+import org.example.kalkulationsprogramm.service.ki.assistent.StuecklisteScanService;
 import org.example.kalkulationsprogramm.service.StuecklistePdfService;
 import org.example.kalkulationsprogramm.service.ZugferdErstellService;
 import org.example.kalkulationsprogramm.service.ZugferdExtractorService;
@@ -124,6 +125,7 @@ public class ProjektController {
     private final ZeitbuchungRepository zeitbuchungRepository;
     private final DokumentFreigabeService dokumentFreigabeService;
     private final ProjektMaterialService projektMaterialService;
+    private final StuecklisteScanService stuecklisteScanService;
 
     /**
      * Liefert pro angefragter Projekt-ID die jüngste relevante digitale Freigabe
@@ -362,6 +364,24 @@ public class ProjektController {
 
     record AusLagerEingabe(Long lagerortId, BigDecimal menge) {}
     record ReservierungEingabe(BigDecimal menge) {}
+
+    // ── Stücklisten-Scan: KI liest Positionen aus Dokument → Bedarfsliste ────────
+
+    /** KI scannt eine hochgeladene Datei und gibt erkannte Positionen zurück. */
+    @PostMapping("/{projektID}/bedarfsliste/aus-dokument/scan")
+    public ResponseEntity<StuecklisteScanService.ScanErgebnis> stuecklisteScan(
+            @PathVariable Long projektID,
+            @RequestParam("datei") MultipartFile datei) {
+        return ResponseEntity.ok(stuecklisteScanService.scanDatei(datei));
+    }
+
+    /** Übernimmt die vom Nutzer bestätigten Positionen in die Bedarfsliste des Projekts. */
+    @PostMapping("/{projektID}/bedarfsliste/aus-dokument/uebernehmen")
+    public ResponseEntity<StuecklisteScanService.UebernahmeErgebnis> stuecklisteUebernehmen(
+            @PathVariable Long projektID,
+            @RequestBody List<StuecklisteScanService.UebernahmePosition> positionen) {
+        return ResponseEntity.ok(stuecklisteScanService.uebernehmen(projektID, positionen));
+    }
 
     @PostMapping("/{projektID}/produktkategorien")
     public ResponseEntity<?> fuegeProduktkategorienHinzu(@PathVariable Long projektID,

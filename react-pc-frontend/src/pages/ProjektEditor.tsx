@@ -789,7 +789,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     };
 
     useEffect(() => {
-        if (!showMaterialModal && !showSupplierPicker) return;
+        if (!showMaterialModal && !showSupplierPicker && !bestellDialogOffen) return;
 
         const fetchSuppliers = async () => {
             try {
@@ -810,7 +810,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
 
         const timer = setTimeout(fetchSuppliers, 300);
         return () => clearTimeout(timer);
-    }, [showMaterialModal, showSupplierPicker, supplierSearchQuery]);
+    }, [showMaterialModal, showSupplierPicker, bestellDialogOffen, supplierSearchQuery]);
 
 
 

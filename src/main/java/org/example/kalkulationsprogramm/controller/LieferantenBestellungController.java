@@ -163,6 +163,20 @@ public class LieferantenBestellungController {
         }
     }
 
+    /** Projektdokument in eine Bestellposition übernehmen (Issue #520). */
+    @PostMapping("/{id}/positionen/{positionId}/anhaenge/vom-projekt-dokument/{projektDokumentId}")
+    public ResponseEntity<?> uebernehmeVomProjektDokument(@PathVariable Long id, @PathVariable Long positionId,
+            @PathVariable Long projektDokumentId) {
+        try {
+            return ResponseEntity.status(HttpStatus.CREATED).body(anhangService.uebernehmeVomProjektDokument(positionId, projektDokumentId));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        } catch (IOException e) {
+            log.error("Fehler beim Uebernehmen des Projektdokuments {} in Position {}", projektDokumentId, positionId, e);
+            return ResponseEntity.internalServerError().body(Map.of("message", "Die Datei konnte nicht übernommen werden."));
+        }
+    }
+
     /** Datei eines Anhangs herunterladen. */
     @GetMapping("/position-anhaenge/{id}/datei")
     public ResponseEntity<org.springframework.core.io.Resource> ladeDatei(@PathVariable Long id) {

@@ -13,11 +13,13 @@ import java.util.UUID;
 import org.example.kalkulationsprogramm.domain.ArtikelFertigungsunterlage;
 import org.example.kalkulationsprogramm.domain.BestellPosition;
 import org.example.kalkulationsprogramm.domain.BestellPositionAnhang;
+import org.example.kalkulationsprogramm.domain.ProjektDokument;
 import org.example.kalkulationsprogramm.dto.Bestellwesen.FertigungsunterlageDto;
 import org.example.kalkulationsprogramm.exception.NotFoundException;
 import org.example.kalkulationsprogramm.repository.ArtikelFertigungsunterlageRepository;
 import org.example.kalkulationsprogramm.repository.BestellPositionAnhangRepository;
 import org.example.kalkulationsprogramm.repository.BestellPositionRepository;
+import org.example.kalkulationsprogramm.repository.ProjektDokumentRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
@@ -45,9 +47,13 @@ public class BestellPositionAnhangService {
     private final BestellPositionAnhangRepository repo;
     private final BestellPositionRepository positionRepo;
     private final ArtikelFertigungsunterlageRepository fertigungsunterlageRepo;
+    private final ProjektDokumentRepository projektDokumentRepo;
 
     @Value("${upload.path:uploads}")
     private String uploadPath;
+
+    @Value("${file.upload-dir}")
+    private String projektDokumentUploadDir;
 
     @Transactional(readOnly = true)
     public List<FertigungsunterlageDto> liste(Long positionId) {
@@ -140,6 +146,45 @@ public class BestellPositionAnhangService {
         a.setErstelltAm(LocalDateTime.now());
         a.setDateigroesseBytes(quelle.getDateigroesseBytes());
         a.setQuellFertigungsunterlage(quelle);
+        return toDto(repo.save(a));
+    }
+
+    /**
+     * Uebernimmt ein ProjektDokument als Kopie in die Bestellposition (Quelle 3: aus dem Projektordner, Issue #520).
+     */
+    @Transactional
+    public FertigungsunterlageDto uebernehmeVomProjektDokument(Long positionId, Long projektDokumentId) throws IOException {
+        BestellPosition position = positionRepo.findById(positionId)
+                .orElseThrow(() -> new NotFoundException("Diese Bestellposition gibt es nicht."));
+        ProjektDokument quelle = projektDokumentRepo.findById(projektDokumentId)
+                .orElseThrow(() -> new NotFoundException("Dieses Projektdokument gibt es nicht."));
+
+        if (!ERLAUBTE_ENDUNGEN.contains(ermittleEndung(quelle.getOriginalDateiname()))) {
+            throw new IllegalArgumentException(
+                    "Dieser Dateityp wird nicht unterstützt. Erlaubt sind DXF, STEP, STP, DWG, DXB und PDF.");
+        }
+
+        Path quellBasis = Path.of(projektDokumentUploadDir).toAbsolutePath().normalize();
+        Path quellDatei = quellBasis.resolve(quelle.getGespeicherterDateiname()).normalize();
+        if (!quellDatei.startsWith(quellBasis) || !Files.exists(quellDatei)) {
+            throw new NotFoundException("Die Quelldatei gibt es nicht mehr.");
+        }
+
+        String storedFilename = UUID.randomUUID() + "_" + quelle.getOriginalDateiname();
+        Path zielVerz = verzeichnis(positionId);
+        Files.createDirectories(zielVerz);
+        Path zielDatei = zielVerz.resolve(storedFilename).normalize();
+        if (!zielDatei.startsWith(zielVerz)) {
+            throw new IllegalArgumentException("Der Dateiname ist nicht zulässig.");
+        }
+        Files.copy(quellDatei, zielDatei, StandardCopyOption.REPLACE_EXISTING);
+
+        BestellPositionAnhang a = new BestellPositionAnhang();
+        a.setPosition(position);
+        a.setOriginalDateiname(quelle.getOriginalDateiname());
+        a.setGespeicherterDateiname(storedFilename);
+        a.setErstelltAm(LocalDateTime.now());
+        try { a.setDateigroesseBytes(Files.size(zielDatei)); } catch (IOException ignored) { }
         return toDto(repo.save(a));
     }
 

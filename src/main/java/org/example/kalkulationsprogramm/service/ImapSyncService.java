@@ -111,8 +111,8 @@ public class ImapSyncService {
                 emailAbsenderRepository.save(p);
             });
         } else {
-            systemSettingsService.save(KEY_TRASH, papierkorb.trim());
-            systemSettingsService.save(KEY_SPAM, spam.trim());
+            systemSettingsService.save(KEY_TRASH, papierkorb.trim(), "IMAP-Papierkorb-Ordner");
+            systemSettingsService.save(KEY_SPAM, spam.trim(), "IMAP-Spam-Ordner");
         }
     }
 

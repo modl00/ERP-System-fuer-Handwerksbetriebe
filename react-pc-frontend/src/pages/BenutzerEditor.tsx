@@ -16,9 +16,12 @@ import { Select } from '../components/ui/select-custom';
 import { PageLayout } from '../components/layout/PageLayout';
 import { cn } from '../lib/utils';
 import { useToast } from '../components/ui/toast';
-import { parseErrorMessage } from '../components/settings/settingsApi';
 import { useConfirm } from '../components/ui/confirm-dialog';
 import { formatPostfach, type PostfachDto } from '../features/email/postfach';
+import { leseFehlermeldung } from '../lib/apiFehler';
+
+/** Mindestlänge wie im Backend (FrontendUserController). */
+const PASSWORT_MINDESTLAENGE = 8;
 
 interface FrontendUser {
     id: number;
@@ -228,21 +231,19 @@ export default function BenutzerEditor() {
         });
     };
 
-    // Warum sich der Benutzer noch nicht speichern lässt: Der Knopf bleibt dann aus, der Grund steht darunter und als Hinweis am Knopf
-    const speichernHindernis = !formData.displayName.trim() || !formData.username.trim()
+    // Neue Benutzer brauchen ein Passwort; beim Ändern gilt die Mindestlänge, sobald etwas eingetragen ist.
+    const passwortFehler = (!formData.id || formData.password.length > 0) && formData.password.length < PASSWORT_MINDESTLAENGE
+        ? `Das Passwort muss mindestens ${PASSWORT_MINDESTLAENGE} Zeichen lang sein.`
+        : null;
+    const speichernGesperrtGrund = !formData.displayName.trim() || !formData.username.trim()
         ? 'Bitte Anzeigename und Benutzername eintragen.'
-        : !formData.id && formData.password.length < 8
-            ? 'Das Passwort braucht mindestens 8 Zeichen.'
-            : null;
+        : passwortFehler;
 
     // Save user
     const handleSave = async () => {
-        if (!formData.displayName.trim() || !formData.username.trim()) {
-            toast.error('Bitte Anzeigename und Benutzername eintragen.');
-            return;
-        }
-        if (!formData.id && formData.password.length < 8) {
-            toast.error('Neues Passwort muss mindestens 8 Zeichen lang sein.');
+        if (!formData.displayName.trim() || !formData.username.trim()) return;
+        if (passwortFehler) {
+            toast.error(passwortFehler);
             return;
         }
         setSaving(true);
@@ -264,6 +265,7 @@ export default function BenutzerEditor() {
                 }),
             });
             if (res.ok) {
+                toast.success(formData.id ? 'Benutzer gespeichert.' : 'Benutzer angelegt.');
                 await loadData();
                 setFormData(prev => ({ ...prev, password: '' }));
                 toast.success(formData.id ? 'Der Benutzer ist gespeichert.' : 'Der Benutzer ist angelegt.');
@@ -272,11 +274,11 @@ export default function BenutzerEditor() {
                     handleNewUser();
                 }
             } else {
-                toast.error(await parseErrorMessage(res, 'Der Benutzer konnte nicht gespeichert werden.'));
+                // Das Backend nennt den Grund, z. B. „Benutzername ist bereits vergeben.”
+                toast.error(await leseFehlermeldung(res, 'Benutzer konnte nicht gespeichert werden.'));
             }
-        } catch (err) {
-            console.error(err);
-            toast.error('Der Benutzer konnte nicht gespeichert werden. Ist der Server erreichbar?');
+        } catch {
+            toast.error('Benutzer konnte nicht gespeichert werden. Bitte die Verbindung prüfen.');
         } finally {
             setSaving(false);
         }
@@ -291,14 +293,14 @@ export default function BenutzerEditor() {
                 method: 'DELETE',
             });
             if (res.ok) {
+                toast.success('Benutzer gelöscht.');
                 await loadData();
                 handleNewUser();
             } else {
-                toast.error(await parseErrorMessage(res, 'Der Benutzer konnte nicht gelöscht werden.'));
+                toast.error(await leseFehlermeldung(res, 'Benutzer konnte nicht gelöscht werden.'));
             }
-        } catch (err) {
-            console.error(err);
-            toast.error('Fehler beim Löschen.');
+        } catch {
+            toast.error('Benutzer konnte nicht gelöscht werden. Bitte die Verbindung prüfen.');
         }
     };
 
@@ -396,7 +398,14 @@ export default function BenutzerEditor() {
                                     value={formData.password}
                                     onChange={(e) => setFormData(prev => ({ ...prev, password: e.target.value }))}
                                     placeholder={formData.id ? 'leer lassen = unverändert' : 'mindestens 8 Zeichen'}
+                                    aria-invalid={formData.password.length > 0 && !!passwortFehler}
+                                    aria-describedby="password-hinweis"
                                 />
+                                <p id="password-hinweis" className={cn('text-xs', formData.password.length > 0 && passwortFehler ? 'text-red-600' : 'text-slate-500')}>
+                                    {formData.password.length > 0 && passwortFehler
+                                        ? passwortFehler
+                                        : `Mindestens ${PASSWORT_MINDESTLAENGE} Zeichen.`}
+                                </p>
                             </div>
                         </div>
 
@@ -536,8 +545,8 @@ export default function BenutzerEditor() {
                                 className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700"
                                 size="sm"
                                 onClick={handleSave}
-                                disabled={!!speichernHindernis || saving}
-                                title={speichernHindernis ?? undefined}
+                                disabled={!!speichernGesperrtGrund || saving}
+                                title={speichernGesperrtGrund ?? undefined}
                             >
                                 <Save className="w-4 h-4" />
                                 {saving ? 'Speichert...' : formData.id ? 'Speichern' : 'Erstellen'}

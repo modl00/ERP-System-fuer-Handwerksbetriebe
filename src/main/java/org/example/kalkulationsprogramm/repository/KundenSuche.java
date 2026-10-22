@@ -7,6 +7,8 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.util.StringUtils;
 
+import jakarta.persistence.criteria.CriteriaBuilder;
+import jakarta.persistence.criteria.CriteriaQuery;
 import jakarta.persistence.criteria.ListJoin;
 import jakarta.persistence.criteria.Root;
 import jakarta.persistence.criteria.Subquery;
@@ -31,13 +33,26 @@ public final class KundenSuche {
     }
 
     /**
-     * @param freitext sucht in Name, Kundennummer, Ort, Straße, Ansprechpartner und Telefonnummern
+     * @param freitext sucht in Name, Kundennummer, Ort, Straße, Ansprechpartner, Telefonnummern und E-Mail-Adressen
      * @param email    sucht in den hinterlegten E-Mail-Adressen
      * @param typ      {@code KUNDE} (hat Projekte) oder {@code ANFRAGER} (noch keins), sonst alle
      */
     public static Specification<Kunde> spezifikation(String freitext, String name, String kundennummer, String ort,
             String email, String typ) {
-        Specification<Kunde> spec = Specification.where(null);
+        return spezifikation(freitext, name, kundennummer, ort, email, typ, false);
+    }
+
+    /**
+     * Wie {@link #spezifikation(String, String, String, String, String, String)}. Aus Datenschutzgründen
+     * gesperrte Kunden (Issue #264) erscheinen nur auf ausdrücklichen Wunsch.
+     *
+     * @param gesperrte {@code true} = nur gesperrte Kunden, {@code false} = nur nicht gesperrte
+     */
+    public static Specification<Kunde> spezifikation(String freitext, String name, String kundennummer, String ort,
+            String email, String typ, boolean gesperrte) {
+        Specification<Kunde> spec = Specification.where((root, cq, cb) -> gesperrte
+                ? cb.isNotNull(root.get("gesperrtAm"))
+                : cb.isNull(root.get("gesperrtAm")));
         if (StringUtils.hasText(freitext)) {
             final String muster = muster(freitext);
             spec = spec.and((root, cq, cb) -> cb.or(
@@ -47,20 +62,15 @@ public final class KundenSuche {
                     cb.like(cb.lower(root.get("strasse")), muster),
                     cb.like(cb.lower(root.get("ansprechspartner")), muster),
                     cb.like(cb.lower(cb.coalesce(root.get("telefon"), "")), muster),
-                    cb.like(cb.lower(cb.coalesce(root.get("mobiltelefon"), "")), muster)));
+                    cb.like(cb.lower(cb.coalesce(root.get("mobiltelefon"), "")), muster),
+                    cb.exists(emailTreffer(root, cq, cb, muster))));
         }
         spec = spec.and(feld("name", name));
         spec = spec.and(feld("kundennummer", kundennummer));
         spec = spec.and(feld("ort", ort));
         if (StringUtils.hasText(email)) {
             final String muster = muster(email);
-            spec = spec.and((root, cq, cb) -> {
-                Subquery<String> treffer = cq.subquery(String.class);
-                Root<Kunde> kunde = treffer.correlate(root);
-                ListJoin<Kunde, String> adresse = kunde.joinList("kundenEmails");
-                treffer.select(adresse).where(cb.like(cb.lower(adresse), muster));
-                return cb.exists(treffer);
-            });
+            spec = spec.and((root, cq, cb) -> cb.exists(emailTreffer(root, cq, cb, muster)));
         }
         if ("KUNDE".equalsIgnoreCase(typ)) {
             spec = spec.and((root, cq, cb) -> cb.isNotEmpty(root.get("projekts")));
@@ -68,6 +78,16 @@ public final class KundenSuche {
             spec = spec.and((root, cq, cb) -> cb.isEmpty(root.get("projekts")));
         }
         return spec;
+    }
+
+    /** Unterabfrage: hat der Kunde eine E-Mail-Adresse, die auf das Muster passt? */
+    private static Subquery<String> emailTreffer(Root<Kunde> root, CriteriaQuery<?> cq, CriteriaBuilder cb,
+            String muster) {
+        Subquery<String> treffer = cq.subquery(String.class);
+        Root<Kunde> kunde = treffer.correlate(root);
+        ListJoin<Kunde, String> adresse = kunde.joinList("kundenEmails");
+        treffer.select(adresse).where(cb.like(cb.lower(adresse), muster));
+        return treffer;
     }
 
     private static Specification<Kunde> feld(String feld, String wert) {

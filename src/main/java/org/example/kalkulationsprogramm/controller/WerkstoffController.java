@@ -18,7 +18,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import lombok.RequiredArgsConstructor;
 
-/** Werkstoffe pflegen (Stammdaten, Issue #121). Die Prüfungen und verständlichen Meldungen stehen im {@link WerkstoffService}. */
+/** Werkstoffe pflegen (Stammdaten). Die Prüfungen und verständlichen Meldungen stehen im {@link WerkstoffService}. */
 @RestController
 @RequestMapping("/api/werkstoffe")
 @RequiredArgsConstructor

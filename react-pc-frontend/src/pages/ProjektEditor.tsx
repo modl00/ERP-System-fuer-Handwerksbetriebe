@@ -19,6 +19,7 @@ import {
     FolderOpen,
     Hammer,
     GitMerge,
+    HandCoins,
     Lock,
     Mail,
     MapPin,
@@ -42,8 +43,9 @@ import {
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { cn } from "../lib/utils";
+import { BESTELLBEDARF_AKTIV } from "../lib/freigaben";
 import type { Projekt, ProjektDetail, Anfrage, AusgangsGeschaeftsDokument, AusgangsGeschaeftsDokumentTyp, AbrechnungsverlaufDto, AbrechnungspositionDto, Artikel, ArtikelInProjekt, Materialkosten } from "../types";
-import { canCreateEinfacheRechnung, istRechnungAmVorgaengerGesperrt, hatAktiveAuftragsbestaetigung } from "../lib/abrechnungsverlauf";
+import { canCreateEinfacheRechnung, istRechnungAmVorgaengerGesperrt, hatAktiveAuftragsbestaetigung, keineWeitereRechnungHinweis } from "../lib/abrechnungsverlauf";
 import { AUSGANGS_GESCHAEFTSDOKUMENT_TYPEN } from "../types";
 import { DetailLayout } from "../components/DetailLayout";
 import { ProjektErstellenModal } from "../components/ProjektErstellenModal";
@@ -53,6 +55,7 @@ import { Select } from "../components/ui/select-custom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { RechnungstypInfo } from "../components/RechnungstypInfo";
 import GoogleMapsEmbed from "../components/GoogleMapsEmbed";
 import { PageLayout } from "../components/layout/PageLayout";
 
@@ -74,6 +77,7 @@ import { validateMoneyDraft } from '../features/finanzen/moneyDrafts';
 import DocumentPreviewModal from '../components/DocumentPreviewModal';
 import { ZuordnungModal } from '../components/ZuordnungModal';
 import { DokumentLoeschenDialog } from '../components/dokument/DokumentLoeschenDialog';
+import { GutschriftErstellenDialog } from '../components/GutschriftErstellenDialog';
 import { DokumentVerlaufDrawer } from '../components/dokument/DokumentVerlaufDrawer';
 import { AnfrageSearchModal } from '../components/AnfrageSearchModal';
 import { ArtikelSuche } from '../components/artikel/ArtikelSuche';
@@ -340,6 +344,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [showRechnungDialog, setShowRechnungDialog] = useState(false);
     const [rechnungBasisDok, setRechnungBasisDok] = useState<AusgangsGeschaeftsDokument | null>(null);
     const [abrechnungsverlauf, setAbrechnungsverlauf] = useState<AbrechnungsverlaufDto | null>(null);
+    const keineRechnungMehr = keineWeitereRechnungHinweis(abrechnungsverlauf);
     const [rechnungTyp, setRechnungTyp] = useState<AusgangsGeschaeftsDokumentTyp>('TEILRECHNUNG');
     const [abschlagsBetrag, setAbschlagsBetrag] = useState<string>('');
     const [rechnungLoading, setRechnungLoading] = useState(false);
@@ -527,6 +532,8 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [auditDaten, setAuditDaten] = useState<FreigabeAuditData | null>(null);
     const [auditLoading, setAuditLoading] = useState(false);
     const [actionMenuDokument, setActionMenuDokument] = useState<AusgangsGeschaeftsDokument | null>(null);
+    /** Rechnung, zu der gerade eine Gutschrift angelegt wird (Dialog offen). */
+    const [gutschriftRechnung, setGutschriftRechnung] = useState<AusgangsGeschaeftsDokument | null>(null);
 
     // Dateien (Dokumente) Anzahl
     const [dokumenteCount, setDokumenteCount] = useState(0);
@@ -2517,17 +2524,37 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                                             </>
                                                         )}
 
-                                                        {/* Stornieren - nur für gebuchte Rechnungstypen die nicht schon storniert sind */}
+                                                        {/* Gutschrift erstellen - nur zu gebuchten, nicht stornierten Rechnungen */}
                                                         {dok.gebucht && !dok.storniert && ['RECHNUNG', 'TEILRECHNUNG', 'ABSCHLAGSRECHNUNG', 'SCHLUSSRECHNUNG'].includes(dok.typ) && (
+                                                            <>
+                                                                <hr className="my-1 border-slate-100" />
+                                                                <button
+                                                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-2"
+                                                                    onClick={() => {
+                                                                        setActionMenuDokument(null);
+                                                                        setGutschriftRechnung(dok);
+                                                                    }}
+                                                                >
+                                                                    <HandCoins className="w-4 h-4" />
+                                                                    Gutschrift erstellen
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {/* Stornieren - nur für gebuchte Rechnungstypen und Gutschriften, die nicht schon storniert sind */}
+                                                        {dok.gebucht && !dok.storniert && ['RECHNUNG', 'TEILRECHNUNG', 'ABSCHLAGSRECHNUNG', 'SCHLUSSRECHNUNG', 'GUTSCHRIFT'].includes(dok.typ) && (
                                                             <>
                                                                 <hr className="my-1 border-slate-100" />
                                                                 <button
                                                                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                                                                     onClick={async () => {
                                                                         setActionMenuDokument(null);
+                                                                        const istGutschrift = dok.typ === 'GUTSCHRIFT';
                                                                         if (await confirmDialog({
-                                                                            title: 'Rechnung stornieren',
-                                                                            message: `Möchten Sie ${dok.dokumentNummer} wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt. Dieser Vorgang kann nicht rückgängig gemacht werden.`,
+                                                                            title: istGutschrift ? 'Gutschrift stornieren' : 'Rechnung stornieren',
+                                                                            message: istGutschrift
+                                                                                ? `Möchten Sie ${dok.dokumentNummer} wirklich stornieren? Es wird automatisch ein Stornobeleg erstellt, und der offene Betrag der Rechnung steigt wieder um die Gutschrift. Dieser Vorgang kann nicht rückgängig gemacht werden.`
+                                                                                : `Möchten Sie ${dok.dokumentNummer} wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt. Dieser Vorgang kann nicht rückgängig gemacht werden.`,
                                                                             variant: 'danger',
                                                                             confirmLabel: 'Stornieren'
                                                                         })) {
@@ -2537,12 +2564,21 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                                                                 });
                                                                                 if (response.ok) {
                                                                                     const stornoDok = await response.json();
-                                                                                    toast.success(`Stornorechnung ${stornoDok.dokumentNummer} wurde erstellt`);
+                                                                                    toast.success(istGutschrift
+                                                                                        ? `Storno ${stornoDok.dokumentNummer} zur Gutschrift wurde erstellt`
+                                                                                        : `Stornorechnung ${stornoDok.dokumentNummer} wurde erstellt`);
                                                                                     zeigeStornoHinweise(toast, stornoHinweiseAus(stornoDok));
                                                                                     loadAusgangsDokumente();
                                                                                 } else {
-                                                                                    const errText = await response.text();
-                                                                                    toast.error('Stornierung fehlgeschlagen: ' + errText);
+                                                                                    // Gutschrift-Regeln antworten mit JSON { message },
+                                                                                    // ältere Fehler als reiner Text – beides lesen.
+                                                                                    const errText = (await response.text()).trim();
+                                                                                    let meldung = errText;
+                                                                                    try {
+                                                                                        const daten = JSON.parse(errText) as { message?: unknown };
+                                                                                        meldung = typeof daten?.message === 'string' ? daten.message : '';
+                                                                                    } catch { /* reiner Text */ }
+                                                                                    toast.error(meldung ? 'Stornierung fehlgeschlagen: ' + meldung : 'Stornierung fehlgeschlagen');
                                                                                 }
                                                                             } catch (e) {
                                                                                 console.error('Storno error:', e);
@@ -2919,18 +2955,21 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                         </div>
                                     </div>
 
-                                    {abrechnungsverlauf.restbetrag <= 0 && (
-                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                                            Der Basisbetrag ist vollständig abgerechnet. Es kann keine weitere Rechnung erstellt werden.
+                                    {keineRechnungMehr && (
+                                        <div role="status" className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                                            {keineRechnungMehr}
                                         </div>
                                     )}
                                 </div>
                             )}
 
                             {/* Rechnungstyp-Auswahl */}
-                            {(!abrechnungsverlauf || abrechnungsverlauf.restbetrag > 0) && (
+                            {!keineRechnungMehr && (
                                 <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Rechnungstyp wählen</h4>
+                                    <div className="flex items-center gap-1.5">
+                                        <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Rechnungstyp wählen</h4>
+                                        <RechnungstypInfo mitEinfacherRechnung={canCreateEinfacheRechnung(abrechnungsverlauf)} />
+                                    </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {/* Teilrechnung – nur wenn mindestens 2 Leistungspositionen */}
                                         {(() => {
@@ -3321,7 +3360,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                         }}>
                             Abbrechen
                         </Button>
-                        {(!abrechnungsverlauf || abrechnungsverlauf.restbetrag > 0) && (
+                        {!keineRechnungMehr && (
                             <Button
                                 className="bg-rose-600 text-white hover:bg-rose-700"
                                 disabled={
@@ -3407,6 +3446,13 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <GutschriftErstellenDialog
+                rechnung={gutschriftRechnung}
+                projektId={projekt.id}
+                onClose={() => setGutschriftRechnung(null)}
+                onErstellt={() => loadAusgangsDokumente()}
+            />
 
             {/* GoBD-konformer Lösch-Dialog mit Dropdown + Freitext */}
             <DokumentLoeschenDialog
@@ -3795,7 +3841,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     <DialogHeader>
                         <DialogTitle>Artikel aus dem Artikelstamm hinzufügen</DialogTitle>
                         <p className="text-sm text-slate-500">
-                            Artikel suchen, Menge eintragen und zum Projekt übernehmen. Ob aus dem Lager oder neu bestellt — das entscheidest du danach in der Bedarfsliste.
+                            {BESTELLBEDARF_AKTIV
+                                ? 'Suchen wie in der Materialverwaltung — Menge eintragen und festlegen, ob der Artikel aus dem Lager kommt oder bestellt werden muss.'
+                                : 'Suchen wie in der Materialverwaltung — Artikel anhaken und Menge eintragen.'}
                         </p>
                     </DialogHeader>
 
@@ -3849,6 +3897,39 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                             placeholder="1"
                                             className={cn('w-20 h-8 text-sm', mengeFehlt && 'border-amber-400 bg-amber-50')}
                                         />
+                                        {/* Umschalter statt Auswahlliste: Es gibt genau zwei
+                                            Faelle, und ein aufklappendes Menue in jeder der
+                                            15 Zeilen waere ein Klick mehr fuer dieselbe
+                                            Entscheidung. Gleiche Bauart wie die
+                                            Oberflaechen-Schalter in der Suche darueber.
+                                            Solange das Bestellwesen gesperrt ist, kommt alles
+                                            aus dem Lager (Vorgabe 'lager'), der Schalter fehlt. */}
+                                        {BESTELLBEDARF_AKTIV && (
+                                        <div className="flex rounded-lg border border-slate-300 overflow-hidden" role="group"
+                                             aria-label={`Bezug für ${name}`}>
+                                            {([
+                                                { wert: 'lager', text: 'Lager' },
+                                                { wert: 'bestellen', text: 'Bestellen' },
+                                            ] as const).map(({ wert, text }) => (
+                                                <button
+                                                    key={wert}
+                                                    type="button"
+                                                    aria-pressed={checked && beschaffung === wert}
+                                                    disabled={!checked}
+                                                    onClick={() => handleLagerBeschaffungChange(artikel, wert)}
+                                                    className={cn(
+                                                        'px-3 py-1.5 min-h-[32px] text-xs transition-colors',
+                                                        !checked && 'opacity-50 cursor-not-allowed text-slate-400',
+                                                        checked && beschaffung === wert
+                                                            ? 'bg-rose-600 text-white'
+                                                            : checked && 'text-slate-700 hover:bg-slate-50',
+                                                    )}
+                                                >
+                                                    {text}
+                                                </button>
+                                            ))}
+                                        </div>
+                                        )}
                                     </div>
                                 );
                             }}

@@ -56,8 +56,67 @@ export function istRechnungAmVorgaengerGesperrt(folgeDokumente: FolgeDokument[])
  * (Bug: nur Teilrechnung/Abschlagsrechnung wären sichtbar).
  */
 export function canCreateEinfacheRechnung(
-    abrechnungsverlauf: Pick<AbrechnungsverlaufDto, 'positionen'> | null | undefined,
+    abrechnungsverlauf: Pick<AbrechnungsverlaufDto, 'positionen' | 'abschliessendeRechnungNummer'> | null | undefined,
 ): boolean {
     if (!abrechnungsverlauf) return false;
+    // Am anderen Ende der Kette Angebot <-> AB kann schon abgeschlossen sein,
+    // ohne dass hier eine eigene Position steht.
+    if (abrechnungsverlauf.abschliessendeRechnungNummer) return false;
     return abrechnungsverlauf.positionen.every(p => p.storniert);
+}
+
+/**
+ * Schliesst diese einfache Rechnung den Auftrag ab?
+ *
+ * Eine einfache Rechnung (Typ `RECHNUNG`) ohne andere aktive Rechnung am
+ * Basisdokument rechnet alles auf einmal ab — was darin fehlt, ist nicht
+ * angefallen und nicht "noch offen". Das PDF rechnet sie dann wie eine
+ * Schlussrechnung: Balken 100 %, Differenzzeile "Nicht angefallen" bzw.
+ * "Zusätzliche Leistungen", Rest 0,00 €.
+ *
+ * Offene Rechnungen entscheiden live. Gesperrte (gebucht, storniert, digital
+ * angenommen) nur noch über das beim Speichern im positionenJson abgelegte
+ * Kennzeichen: So druckt eine neue Rechnung auch nach dem Buchen weiter
+ * "abgeschlossen", während Bestandsrechnungen das Feld nicht haben und beim
+ * Nachdruck genau so aussehen wie das damals verschickte PDF.
+ *
+ * @param andereAktiveRechnungen Anzahl der nicht stornierten Rechnungen am
+ *        Basisdokument ohne die aktuelle (nur bei offenen Rechnungen relevant)
+ * @param gespeichert Kennzeichen `schliesstAuftragAb` aus dem positionenJson
+ */
+export function schliesstEinfacheRechnungAuftragAb(
+    dokumentTyp: AusgangsGeschaeftsDokumentTyp,
+    andereAktiveRechnungen: number,
+    isLocked: boolean,
+    gespeichert: boolean = false,
+): boolean {
+    if (dokumentTyp !== 'RECHNUNG') return false;
+    // Gesperrt zaehlt allein das Gespeicherte: Entsteht spaeter doch noch eine
+    // Rechnung am Angebot, darf der Nachdruck nicht kippen.
+    return isLocked ? gespeichert : andereAktiveRechnungen === 0;
+}
+
+/**
+ * Hinweis, warum am Vorgang keine Rechnung mehr angelegt werden kann – oder
+ * null, wenn es noch geht.
+ *
+ * Eine einfache Rechnung oder Schlussrechnung schliesst den Auftrag ab: Danach
+ * ist erst wieder eine Rechnung moeglich, wenn sie storniert oder ihr Entwurf
+ * geloescht wurde. Eine Auftragsbestaetigung bleibt erlaubt. Ohne abschliessende
+ * Rechnung gilt der bisherige Betragstext bei aufgebrauchtem Restbetrag.
+ * Spiegelt die Pruefung beim Anlegen im `AusgangsGeschaeftsDokumentService`.
+ */
+export function keineWeitereRechnungHinweis(
+    abrechnungsverlauf: Pick<AbrechnungsverlaufDto, 'restbetrag' | 'abschliessendeRechnungNummer'> | null | undefined,
+): string | null {
+    if (!abrechnungsverlauf) return null;
+    const nummer = abrechnungsverlauf.abschliessendeRechnungNummer;
+    if (nummer) {
+        return `Dieser Auftrag ist mit Rechnung ${nummer} abgeschlossen. Eine weitere Rechnung geht erst, `
+            + 'wenn diese storniert oder ihr Entwurf gelöscht wird. Eine Auftragsbestätigung können Sie weiterhin anlegen.';
+    }
+    if (abrechnungsverlauf.restbetrag <= 0) {
+        return 'Der Basisbetrag ist vollständig abgerechnet. Es kann keine weitere Rechnung erstellt werden.';
+    }
+    return null;
 }

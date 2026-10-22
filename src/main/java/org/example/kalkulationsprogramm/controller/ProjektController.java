@@ -899,6 +899,15 @@ public class ProjektController {
         return ResponseEntity.ok(dtos);
     }
 
+    /** Bezahlte Kundenrechnungen der letzten 12 Monate, damit ein Haken „Bezahlt“ zurückgenommen werden kann. */
+    @GetMapping("/offene-posten/bezahlt")
+    public ResponseEntity<List<ProjektDokumentResponseDto>> bezahlteRechnungen() {
+        List<ProjektDokumentResponseDto> dtos = dateiSpeicherService.holeBezahlteRechnungen().stream()
+                .map(this::mappeDokumentZuDto)
+                .toList();
+        return ResponseEntity.ok(dtos);
+    }
+
     @GetMapping("/umsatz")
     public ResponseEntity<List<ProjektDokumentResponseDto>> umsatzAuswertung(@RequestParam int jahr,
             @RequestParam(required = false) Integer monat,
@@ -1025,6 +1034,9 @@ public class ProjektController {
             dto.setRechnungsdatum(geschaeftsdokument.getRechnungsdatum());
             dto.setFaelligkeitsdatum(geschaeftsdokument.getFaelligkeitsdatum());
             dto.setRechnungsbetrag(geschaeftsdokument.getBruttoBetrag());
+            dto.setGutgeschrieben(geschaeftsdokument.getGutgeschrieben() != null
+                    ? geschaeftsdokument.getGutgeschrieben() : java.math.BigDecimal.ZERO);
+            dto.setOffenerBetrag(geschaeftsdokument.getOffenerBetrag());
             dto.setGeschaeftsdokumentart(geschaeftsdokument.getGeschaeftsdokumentart());
             dto.setBezahlt(geschaeftsdokument.isBezahlt());
             boolean istMahnung = geschaeftsdokument.getGeschaeftsdokumentart() != null

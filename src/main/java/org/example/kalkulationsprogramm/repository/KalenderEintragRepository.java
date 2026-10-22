@@ -2,6 +2,7 @@ package org.example.kalkulationsprogramm.repository;
 
 import org.example.kalkulationsprogramm.domain.KalenderEintrag;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -32,6 +33,20 @@ public interface KalenderEintragRepository extends JpaRepository<KalenderEintrag
                         "WHERE k.datum <= :bis AND COALESCE(k.datumBis, k.datum) >= :von " +
                         "ORDER BY k.datum, k.startZeit NULLS FIRST")
         List<KalenderEintrag> findeUeberlappende(@Param("von") LocalDate von, @Param("bis") LocalDate bis);
+
+        /**
+         * Nur Firmenkalender-Einträge (ohne Ersteller und ohne Teilnehmer) – für
+         * Benutzer ohne zugeordneten Mitarbeiter.
+         */
+        @Query("SELECT k FROM KalenderEintrag k " +
+                        "LEFT JOIN FETCH k.projekt " +
+                        "LEFT JOIN FETCH k.kunde " +
+                        "LEFT JOIN FETCH k.lieferant " +
+                        "LEFT JOIN FETCH k.anfrage " +
+                        "WHERE k.datum BETWEEN :von AND :bis " +
+                        "AND k.ersteller IS NULL AND SIZE(k.teilnehmer) = 0 " +
+                        "ORDER BY k.datum, k.startZeit NULLS FIRST")
+        List<KalenderEintrag> findFirmenEintraegeBetween(@Param("von") LocalDate von, @Param("bis") LocalDate bis);
 
         /**
          * Findet alle Einträge für einen Mitarbeiter in einem Datumsbereich.
@@ -103,4 +118,9 @@ public interface KalenderEintragRepository extends JpaRepository<KalenderEintrag
          */
         @Query("SELECT k FROM KalenderEintrag k LEFT JOIN FETCH k.teilnehmer WHERE k.id = :id")
         KalenderEintrag findByIdWithTeilnehmer(@Param("id") Long id);
+
+    /** Datenschutz-Sperre eines Kunden: Termine bleiben, verlieren nur den Bezug zum Kunden. */
+    @Modifying
+    @Query("UPDATE KalenderEintrag k SET k.kunde = NULL WHERE k.kunde.id = :kundeId")
+    int loeseVonKunde(@Param("kundeId") Long kundeId);
 }

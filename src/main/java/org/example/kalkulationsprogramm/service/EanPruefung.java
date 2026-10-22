@@ -11,7 +11,7 @@ public final class EanPruefung {
         if (eingabe == null) {
             return null;
         }
-        String s = eingabe.replaceAll("\\s+", "");
+        String s = eingabe.replaceAll("\\s++", "");
         return s.isEmpty() ? null : s;
     }
 
@@ -20,7 +20,7 @@ public final class EanPruefung {
         if (ean == null) {
             return null;
         }
-        if (!ean.matches("[0-9]+")) {
+        if (!ean.matches("[0-9]++")) {
             return "Die EAN darf nur Ziffern enthalten.";
         }
         int n = ean.length();

@@ -14,7 +14,6 @@ import org.example.kalkulationsprogramm.domain.Abwesenheit;
 import org.example.kalkulationsprogramm.domain.Feiertag;
 import org.example.kalkulationsprogramm.domain.wartung.WartungTuer;
 import org.example.kalkulationsprogramm.repository.FeiertagRepository;
-import org.example.kalkulationsprogramm.repository.SystemSettingRepository;
 import org.example.kalkulationsprogramm.repository.wartung.WartungTuerRepository;
 import org.example.kalkulationsprogramm.service.FeiertagService;
 import org.example.kalkulationsprogramm.domain.KalenderEintrag;
@@ -52,7 +51,7 @@ public class PlanBelegung {
     private final AbwesenheitRepository abwesenheiten;
     private final WartungTuerRepository wartungen;
     private final FeiertagRepository feiertage;
-    private final SystemSettingRepository einstellungenRepository;
+    private final FeiertagService feiertagService;
     private final PlanungsEinstellungen planungsEinstellungen;
     private final PlanungsIst ist;
 
@@ -205,7 +204,7 @@ public class PlanBelegung {
     /** Feiertage (Bundesland aus der Einstellung) und Betriebsurlaub im Zeitraum; an diesen Tagen arbeitet niemand. */
     private List<FreierTag> freieTage(LocalDate von, LocalDate bis) {
         List<FreierTag> tage = new ArrayList<>();
-        String bundesland = FeiertagService.bundeslandAus(einstellungenRepository);
+        String bundesland = feiertagService.aktuellesBundesland();
         for (int jahr = von.getYear(); jahr <= bis.getYear(); jahr++) {
             for (Feiertag f : feiertage.findByJahrAndBundesland(jahr, bundesland)) {
                 if (!f.isHalbTag() && !f.getDatum().isBefore(von) && !f.getDatum().isAfter(bis)) {

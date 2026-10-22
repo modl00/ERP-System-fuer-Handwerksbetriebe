@@ -1,7 +1,7 @@
 /* eslint-disable react-refresh/only-export-components */
 import React, { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import {
-    Loader2, Paperclip, X, Plus, Mail, Upload, Eye, Save, Send, FolderOpen,
+    Loader2, Paperclip, X, Mail, Upload, Eye, Save, Send, FolderOpen,
     Link2, Briefcase, FileText, AlertTriangle
 } from 'lucide-react';
 import { Button } from './ui/button';
@@ -28,7 +28,10 @@ import {
     parseEinzelversandErgebnis, brauchtAufmerksamkeit, type EinzelversandErgebnis,
 } from '../features/email/einzelversand';
 import { EinzelversandErgebnisAnzeige, EinzelversandSchalter } from '../features/email/EinzelversandSchalter';
+import { fuegeEmpfaengerHinzu, verbindeEmpfaenger, zerlegeEmpfaenger } from '../features/email/empfaengerListe';
 import { parseErrorMessage } from './settings/settingsApi';
+import { InfoAbschnitt, InfoButton } from './ui/info-button';
+import { weiterleitbareAnhaenge, type EmailAttachment } from '../features/email/emailCenterModel';
 
 // Interface für hochgeladene externe Dateien
 interface UploadedFile {
@@ -117,6 +120,12 @@ export interface EmailComposeFormProps {
      */
     weitergeleitetVonEmailId?: number;
     /**
+     * Weiterleitung: Anhänge der Original-Mail, sofern der Aufrufer sie schon geladen hat.
+     * Fehlen sie (z. B. beim Wiederöffnen eines Weiterleitungs-Entwurfs), holt das Formular
+     * die Original-Mail selbst. Eingebettete Bilder werden nicht angeboten.
+     */
+    weiterleitungsAnhaenge?: EmailAttachment[];
+    /**
      * Fester Absender bei Antwort/Weiterleitung (`antwortPostfach` der Original-Mail),
      * sofern der Aufrufer ihn schon kennt. Fehlt er, holt das Formular ihn selbst.
      */
@@ -171,6 +180,8 @@ export interface EmailComposeFormProps {
      * gebucht wird). Fehlt eine, ist „Senden“ gesperrt und dieser Hinweis erscheint.
      */
     pflichtanhangHinweis?: string;
+    /** Text der Erfolgsmeldung nach dem Senden. Standard: „E-Mail wurde gesendet.“ */
+    erfolgsMeldung?: string;
 }
 
 export interface VorDemSendenErgebnis {
@@ -234,6 +245,7 @@ export function EmailComposeForm({
     replyQuote,
     replyEmailId: initialReplyEmailId,
     weitergeleitetVonEmailId: initialWeitergeleitetVonEmailId,
+    weiterleitungsAnhaenge: bekannteWeiterleitungsAnhaenge,
     antwortPostfach: bekanntesAntwortPostfach,
     initialAttachments,
     geschaeftsdokument: initialGeschaeftsdokument = false,
@@ -246,6 +258,7 @@ export function EmailComposeForm({
     entwurfSpeichern = true,
     freigabenAbloesenFuerDokumentId,
     pflichtanhangHinweis,
+    erfolgsMeldung = 'E-Mail wurde gesendet.',
 }: EmailComposeFormProps) {
     const inline = variant !== 'modal';
     const toast = useToast();
@@ -285,8 +298,11 @@ export function EmailComposeForm({
      * Text = Rückfall, wenn die Original-Mail nicht geladen werden konnte.
      */
     const [festesPostfach, setFestesPostfach] = useState<PostfachKurz | string | null | undefined>(bekanntesAntwortPostfach);
-    /** Sammel-Mail: jeder Empfänger bekommt eine eigene Mail. */
-    const [einzelversand, setEinzelversand] = useState(false);
+    /**
+     * Rundmail (jeder Empfänger bekommt eine eigene Mail): `null` = automatisch –
+     * an ab zwei Empfängern ohne CC –, sonst die bewusste Wahl des Anwenders.
+     */
+    const [einzelversandWahl, setEinzelversandWahl] = useState<boolean | null>(null);
     /** Ergebnis des letzten Einzelversands mit Teil- oder Totalfehler. */
     const [einzelversandErgebnis, setEinzelversandErgebnis] = useState<EinzelversandErgebnis | null>(null);
     /**
@@ -414,6 +430,18 @@ export function EmailComposeForm({
     const fileInputRef = useRef<HTMLInputElement>(null);
     const editorRef = useRef<HTMLDivElement>(null);
 
+    // Weiterleitung: Anhänge der Original-Mail. Das Backend hängt sie beim Senden direkt aus
+    // der Original-Mail an; hier wird nur ausgewählt, welche mitgehen (nicht im Entwurf gespeichert).
+    const weiterleitungsAnhaengeBekannt = bekannteWeiterleitungsAnhaenge !== undefined;
+    const [originalAnhaenge, setOriginalAnhaenge] = useState<EmailAttachment[]>(
+        () => weiterleitbareAnhaenge(bekannteWeiterleitungsAnhaenge));
+    const [entfernteOriginalAnhangIds, setEntfernteOriginalAnhangIds] = useState<Set<number>>(() => new Set());
+    const [originalAnhaengeLaden, setOriginalAnhaengeLaden] = useState(false);
+    const mitgesendeteOriginalAnhaenge = useMemo(
+        () => originalAnhaenge.filter(anhang => !entfernteOriginalAnhangIds.has(anhang.id)),
+        [originalAnhaenge, entfernteOriginalAnhangIds]
+    );
+
     // Anhänge, die von außen mitgegeben wurden, ebenfalls verkleinern. Damit
     // gilt die Regel "Fotos gehen nicht im Original raus" für das Formular als
     // Ganzes und nicht nur für die Wege, die es selbst anbietet – ein künftiger
@@ -438,9 +466,14 @@ export function EmailComposeForm({
         // wieder auslösen.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
+    // Weitergeleitete Anhänge stecken genauso in der Nachricht und zählen zur Grenze.
+    const weiterleitungsAnhangBytes = useMemo(
+        () => mitgesendeteOriginalAnhaenge.reduce((sum, anhang) => sum + (anhang.fileSize ?? 0), 0),
+        [mitgesendeteOriginalAnhaenge]
+    );
     const attachmentBytes = useMemo(
-        () => uploadedFiles.reduce((sum, uploadedFile) => sum + uploadedFile.file.size, 0),
-        [uploadedFiles]
+        () => uploadedFiles.reduce((sum, uploadedFile) => sum + uploadedFile.file.size, weiterleitungsAnhangBytes),
+        [uploadedFiles, weiterleitungsAnhangBytes]
     );
     const attachmentLimitExceeded = attachmentBytes > MAX_ATTACHMENT_BYTES;
     const selectedEntityDokumentIds = useMemo(
@@ -495,8 +528,15 @@ export function EmailComposeForm({
 
     // Einzelversand gibt es nicht bei Antworten – die gehen an genau den Verlauf.
     const einzelversandMoeglich = !replyEmailId;
+    // Ohne Doppelte gezählt – so wie die Kärtchen sie zeigen und das Backend sie verschickt.
+    const anEmpfaenger = useMemo(() => fuegeEmpfaengerHinzu([], einzelneEmpfaenger(recipient)), [recipient]);
+    /** Im An-Feld ist eine Adresse getippt, aber noch kein Kärtchen (wird es beim Klick auf Senden). */
+    const [anEntwurfVorhanden, setAnEntwurfVorhanden] = useState(false);
+    const ccEingetragen = ccRecipients.some(c => c.trim());
+    // Mehrere Empfänger sollen sich nicht versehentlich gegenseitig sehen (Datenschutz).
+    // Wer CC einträgt, will eine gemeinsame Mail – dann schaltet sich nichts von selbst ein.
+    const einzelversand = einzelversandWahl ?? (anEmpfaenger.length >= 2 && !ccEingetragen);
     const einzelversandAktiv = einzelversandMoeglich && einzelversand;
-    const anEmpfaenger = useMemo(() => einzelneEmpfaenger(recipient), [recipient]);
     const zuVieleEmpfaenger = einzelversandAktiv && anEmpfaenger.length > EINZELVERSAND_MAX_EMPFAENGER;
     // Solange der Empfänger nur automatisch vorgeschlagen wurde, darf ein Wechsel der
     // Zuordnung ihn mitziehen. Sobald der User selbst tippt, bleibt seine Eingabe stehen.
@@ -549,7 +589,11 @@ export function EmailComposeForm({
             const cc = gespeicherterEinzelversand ? [] : parseRecipientList(content.cc).map(recipient => recipient.raw);
             setCcRecipients(cc);
             setShowCc(cc.length > 0);
-            setEinzelversand(gespeicherterEinzelversand);
+            // Aus bei mehreren Empfängern ohne CC kann nur von Hand ausgeschaltet worden sein –
+            // diese Wahl bleibt. Sonst entscheidet wieder die Automatik.
+            const handAusgeschaltet = !gespeicherterEinzelversand && cc.length === 0
+                && einzelneEmpfaenger(content.recipient ?? initialRecipient).length >= 2;
+            setEinzelversandWahl(gespeicherterEinzelversand ? true : handAusgeschaltet ? false : null);
             if (content.postfachId != null) setPostfachId(content.postfachId);
             setReplyEmailId(content.replyEmailId ?? initialReplyEmailId);
             setWeitergeleitetVonEmailId(content.weitergeleitetVonEmailId ?? initialWeitergeleitetVonEmailId ?? undefined);
@@ -639,22 +683,35 @@ export function EmailComposeForm({
         if (standard !== postfachId) setPostfachId(standard);
     }, [absenderPostfaecher.laedt, waehlbarePostfaecher, postfachId]);
 
-    // Antwort/Weiterleitung: Postfach der Original-Mail holen, falls der Aufrufer es nicht mitgibt
-    // (z. B. beim Wiederöffnen eines Antwort-Entwurfs).
+    // Antwort/Weiterleitung: Postfach (und bei Weiterleitungen die Anhänge) der Original-Mail
+    // holen, falls der Aufrufer sie nicht mitgibt (z. B. beim Wiederöffnen eines Entwurfs).
     useEffect(() => {
-        if (!originalEmailId || bekanntesAntwortPostfach !== undefined) return;
+        const postfachFehlt = bekanntesAntwortPostfach === undefined;
+        const anhaengeFehlen = !!weitergeleitetVonEmailId && !weiterleitungsAnhaengeBekannt;
+        if (!originalEmailId || (!postfachFehlt && !anhaengeFehlen)) return;
         let aktiv = true;
-        setFestesPostfach(undefined);
+        if (postfachFehlt) setFestesPostfach(undefined);
+        if (anhaengeFehlen) setOriginalAnhaengeLaden(true);
         fetch(`/api/emails/${originalEmailId}`)
             .then(res => (res.ok ? res.json() : Promise.reject(new Error(`HTTP ${res.status}`))))
-            .then((original: { antwortPostfach?: PostfachKurz | null }) => {
-                if (aktiv) setFestesPostfach(original?.antwortPostfach ?? null);
+            .then((original: { antwortPostfach?: PostfachKurz | null; attachments?: EmailAttachment[] | null }) => {
+                if (!aktiv) return;
+                if (postfachFehlt) setFestesPostfach(original?.antwortPostfach ?? null);
+                if (anhaengeFehlen) {
+                    setOriginalAnhaenge(weiterleitbareAnhaenge(original?.attachments));
+                    setEntfernteOriginalAnhangIds(new Set());
+                }
             })
             .catch(() => {
-                if (aktiv) setFestesPostfach('Postfach, in dem die Mail ankam');
+                if (!aktiv) return;
+                if (postfachFehlt) setFestesPostfach('Postfach, in dem die Mail ankam');
+                if (anhaengeFehlen) toast.error('Die Anhänge der Original-Mail konnten nicht geladen werden.');
+            })
+            .finally(() => {
+                if (aktiv && anhaengeFehlen) setOriginalAnhaengeLaden(false);
             });
         return () => { aktiv = false; };
-    }, [originalEmailId, bekanntesAntwortPostfach]);
+    }, [originalEmailId, bekanntesAntwortPostfach, weitergeleitetVonEmailId, weiterleitungsAnhaengeBekannt, toast]);
 
     const loadEntityDokumente = useCallback(async () => {
         if (!entityId) {
@@ -786,7 +843,7 @@ export function EmailComposeForm({
 
         setUploadedFiles(previous => {
             const accepted: UploadedFile[] = [];
-            let nextSize = previous.reduce((sum, uploadedFile) => sum + uploadedFile.file.size, 0);
+            let nextSize = previous.reduce((sum, uploadedFile) => sum + uploadedFile.file.size, weiterleitungsAnhangBytes);
             for (const file of verkleinert) {
                 if (nextSize + file.size > MAX_ATTACHMENT_BYTES) {
                     setError(`Anhänge dürfen zusammen höchstens ${formatFileSize(MAX_ATTACHMENT_BYTES)} groß sein.`);
@@ -824,7 +881,7 @@ export function EmailComposeForm({
             ));
 
             setUploadedFiles(previous => {
-                const currentSize = previous.reduce((sum, uploadedFile) => sum + uploadedFile.file.size, 0);
+                const currentSize = previous.reduce((sum, uploadedFile) => sum + uploadedFile.file.size, weiterleitungsAnhangBytes);
                 if (currentSize + file.size > MAX_ATTACHMENT_BYTES) {
                     setError(`"${document.originalDateiname}" passt nicht mehr in das Anhangslimit von ${formatFileSize(MAX_ATTACHMENT_BYTES)}.`);
                     return previous;
@@ -956,6 +1013,10 @@ export function EmailComposeForm({
                 // Absender-Postfach nur bei neuen Mails; Antwort/Weiterleitung legt das Backend fest.
                 postfachId: absenderModus === 'auswahl' ? postfachId : null,
                 weitergeleitetVonEmailId: weitergeleitetVonEmailId ?? null,
+                // Welche Anhänge der Original-Mail mitgehen; das Backend hängt sie selbst an.
+                weiterleitungsAnhangIds: weitergeleitetVonEmailId
+                    ? mitgesendeteOriginalAnhaenge.map(anhang => anhang.id)
+                    : null,
                 einzelversand: einzelversandAktiv,
                 freigabenAbloesenFuerDokumentId: freigabenAbloesenFuerDokumentId ?? null,
             };
@@ -1007,6 +1068,8 @@ export function EmailComposeForm({
                 onClose();
                 return;
             }
+
+            toast.success(erfolgsMeldung);
 
             // Check if the recipient email is new (not in known emails).
             // Beim Antworten steht im Feld `"Name" <adresse>` – verglichen und
@@ -1191,13 +1254,16 @@ export function EmailComposeForm({
                                             variant="ghost"
                                             size="sm"
                                             className={inline ? "h-6 min-h-6 px-1 text-xs text-rose-600" : "min-h-11 text-xs text-rose-600 hover:text-rose-700 hover:bg-rose-50 px-3"}
-                                            onClick={() => { setShowCc(true); setCcRecipients(['']); }}
+                                            onClick={() => { setShowCc(true); setCcRecipients([]); }}
                                         >
                                             {inline ? '+ CC' : '+ CC hinzufügen'}
                                         </Button>
                                     )}
                                 </div>
                                 <EmailRecipientInput
+                                    mehrfach
+                                    ariaLabel="Empfänger"
+                                    onEntwurfChange={setAnEntwurfVorhanden}
                                     value={recipient}
                                     onChange={handleRecipientChange}
                                     suggestions={availableEmails}
@@ -1214,7 +1280,7 @@ export function EmailComposeForm({
                                     aktiv={einzelversand}
                                     onChange={(an) => {
                                         markDirty();
-                                        setEinzelversand(an);
+                                        setEinzelversandWahl(an);
                                         setEinzelversandErgebnis(null);
                                         // Beim Einzelversand gibt es keine Kopie-Empfänger.
                                         if (an) { setShowCc(false); setCcRecipients([]); }
@@ -1353,39 +1419,17 @@ export function EmailComposeForm({
                                             Keine
                                         </Button>
                                     </div>
-                                    <div className="space-y-2">
-                                        {ccRecipients.map((cc, idx) => (
-                                            <EmailRecipientInput
-                                                key={idx}
-                                                value={cc}
-                                                onChange={(val) => {
-                                                    markDirty();
-                                                    const newCcs = [...ccRecipients];
-                                                    newCcs[idx] = val;
-                                                    setCcRecipients(newCcs);
-                                                }}
-                                                onRemove={() => {
-                                                    markDirty();
-                                                    const newCcs = [...ccRecipients];
-                                                    newCcs.splice(idx, 1);
-                                                    setCcRecipients(newCcs);
-                                                    if (newCcs.length === 0) setShowCc(false);
-                                                }}
-                                                suggestions={availableEmails}
-                                                placeholder="CC Empfänger hinzufügen"
-                                            />
-                                        ))}
-                                        <Button
-                                            type="button"
-                                            variant="outline"
-                                            size="sm"
-                                            onClick={() => setCcRecipients([...ccRecipients, ''])}
-                                            className="text-xs min-h-11"
-                                        >
-                                            <Plus className="w-3 h-3 mr-1" />
-                                            CC hinzufügen
-                                        </Button>
-                                    </div>
+                                    <EmailRecipientInput
+                                        mehrfach
+                                        ariaLabel="Kopie (CC)"
+                                        value={verbindeEmpfaenger(ccRecipients)}
+                                        onChange={(val) => {
+                                            markDirty();
+                                            setCcRecipients(zerlegeEmpfaenger(val));
+                                        }}
+                                        suggestions={availableEmails}
+                                        placeholder="Kopie an: Name, Firma oder E-Mail"
+                                    />
                                 </div>
                             )}
                         </div>
@@ -1584,6 +1628,81 @@ export function EmailComposeForm({
                                     {pflichtanhangHinweis}
                                 </p>
                             )}
+                            {weitergeleitetVonEmailId && (originalAnhaengeLaden || originalAnhaenge.length > 0) && (
+                                <div className="mt-2 space-y-2" data-testid="weiterleitung-anhaenge">
+                                    <div className="flex items-center gap-1">
+                                        <h4 className="text-sm font-medium text-slate-700">Anhänge der Original-Mail</h4>
+                                        <InfoButton titel="Anhänge der Original-Mail">
+                                            <InfoAbschnitt titel="Was passiert im Hintergrund?">
+                                                <p>Die Dateien werden beim Senden direkt aus der ursprünglichen E-Mail angehängt – Sie müssen nichts herunter- oder hochladen.</p>
+                                            </InfoAbschnitt>
+                                            <InfoAbschnitt titel="Was bewirkt das?">
+                                                <p>
+                                                    Der Empfänger bekommt die Anhänge wie in der Original-Mail. Entfernen Sie hier nur,
+                                                    was er nicht bekommen soll; die Original-Mail bleibt unverändert.
+                                                </p>
+                                                <p>
+                                                    Diese Auswahl wird nicht im Entwurf gespeichert: Öffnen Sie den Entwurf später
+                                                    wieder, sind alle Anhänge erneut ausgewählt.
+                                                </p>
+                                                <p>
+                                                    Die Anhänge zählen zur Größengrenze unten: zusammen mit eigenen Anhängen
+                                                    höchstens {formatFileSize(MAX_ATTACHMENT_BYTES)}.
+                                                </p>
+                                            </InfoAbschnitt>
+                                        </InfoButton>
+                                    </div>
+                                    {originalAnhaengeLaden ? (
+                                        <p role="status" className="flex items-center gap-2 text-xs text-slate-500">
+                                            <Loader2 className="w-3.5 h-3.5 motion-safe:animate-spin" />
+                                            Anhänge der Original-Mail werden geladen …
+                                        </p>
+                                    ) : (
+                                        <>
+                                            {mitgesendeteOriginalAnhaenge.map(anhang => {
+                                                const name = anhang.originalFilename || anhang.filename || 'Anhang';
+                                                return (
+                                                    <div key={anhang.id} className="p-3 bg-slate-50 rounded-xl border border-slate-200 flex items-center justify-between gap-3">
+                                                        <div className="min-w-0">
+                                                            <span className="text-sm font-medium text-slate-700 block truncate">{name}</span>
+                                                            {anhang.fileSize != null && (
+                                                                <span className="text-xs text-slate-500">{formatFileSize(anhang.fileSize)}</span>
+                                                            )}
+                                                        </div>
+                                                        <Button
+                                                            type="button"
+                                                            variant="ghost"
+                                                            size="sm"
+                                                            onClick={() => setEntfernteOriginalAnhangIds(vorher => new Set(vorher).add(anhang.id))}
+                                                            aria-label={`${name} entfernen`}
+                                                            title="Nicht mitsenden"
+                                                        >
+                                                            <X className="w-4 h-4" />
+                                                        </Button>
+                                                    </div>
+                                                );
+                                            })}
+                                            {entfernteOriginalAnhangIds.size > 0 && (
+                                                <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500">
+                                                    <span>
+                                                        {entfernteOriginalAnhangIds.size === 1
+                                                            ? '1 Anhang wird nicht mitgesendet.'
+                                                            : `${entfernteOriginalAnhangIds.size} Anhänge werden nicht mitgesendet.`}
+                                                    </span>
+                                                    <Button
+                                                        type="button"
+                                                        variant="ghost"
+                                                        size="sm"
+                                                        onClick={() => setEntfernteOriginalAnhangIds(new Set())}
+                                                    >
+                                                        Wieder anhängen
+                                                    </Button>
+                                                </div>
+                                            )}
+                                        </>
+                                    )}
+                                </div>
+                            )}
                             {uploadedFiles.length > 0 && (
                                 <div className="space-y-2 mt-2">
                                     {uploadedFiles.map((uf, idx) => (
@@ -1654,8 +1773,11 @@ export function EmailComposeForm({
                     </Button>
                     <Button
                         onClick={handleSend}
-                        disabled={sending || closing || komprimiereAnhaenge || loadingEntityDokumentIds.size > 0 || !recipient.trim() || !subject.trim() || attachmentLimitExceeded || zuVieleEmpfaenger || pflichtanhangFehlt}
-                        title={zuVieleEmpfaenger ? EINZELVERSAND_ZU_VIELE : pflichtanhangFehlt ? pflichtanhangHinweis : undefined}
+                        disabled={sending || closing || komprimiereAnhaenge || loadingEntityDokumentIds.size > 0 || originalAnhaengeLaden || (!recipient.trim() && !anEntwurfVorhanden) || !subject.trim() || attachmentLimitExceeded || zuVieleEmpfaenger || pflichtanhangFehlt}
+                        title={zuVieleEmpfaenger ? EINZELVERSAND_ZU_VIELE
+                            : pflichtanhangFehlt ? pflichtanhangHinweis
+                            : originalAnhaengeLaden ? 'Die Anhänge der Original-Mail werden noch geladen.'
+                            : undefined}
                         className="bg-rose-600 hover:bg-rose-700 text-white"
                     >
                         {sending ? <Loader2 className="w-4 h-4 animate-spin mr-2" /> : <Send className="w-4 h-4 mr-2" />}

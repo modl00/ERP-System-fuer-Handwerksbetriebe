@@ -3,6 +3,8 @@ import {
     canCreateEinfacheRechnung,
     istRechnungAmVorgaengerGesperrt,
     hatAktiveAuftragsbestaetigung,
+    schliesstEinfacheRechnungAuftragAb,
+    keineWeitereRechnungHinweis,
 } from './abrechnungsverlauf';
 import type { AbrechnungsverlaufDto, AbrechnungspositionDto, AusgangsGeschaeftsDokumentTyp } from '../types';
 
@@ -123,5 +125,74 @@ describe('istRechnungAmVorgaengerGesperrt', () => {
 
     it('behandelt fehlendes storniert-Flag als aktiv', () => {
         expect(istRechnungAmVorgaengerGesperrt([{ typ: 'AUFTRAGSBESTAETIGUNG' }])).toBe(true);
+    });
+});
+
+describe('schliesstEinfacheRechnungAuftragAb', () => {
+    it('ist true für eine offene einfache Rechnung ohne andere Rechnungen', () => {
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 0, false)).toBe(true);
+    });
+
+    it('ist false, sobald es am Basisdokument andere aktive Rechnungen gibt', () => {
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 1, false)).toBe(false);
+    });
+
+    it('ist false für gesperrte Bestandsrechnungen ohne gespeichertes Kennzeichen', () => {
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 0, true)).toBe(false);
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 0, true, false)).toBe(false);
+    });
+
+    it('ist true für gesperrte Rechnungen mit gespeichertem Kennzeichen (Nachdruck)', () => {
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 0, true, true)).toBe(true);
+    });
+
+    it('vertraut bei gesperrten Rechnungen dem gespeicherten Kennzeichen, auch wenn spaeter Rechnungen dazukamen', () => {
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 1, true, true)).toBe(true);
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 1, true, false)).toBe(false);
+    });
+
+    it('ignoriert das gespeicherte Kennzeichen bei offenen Rechnungen', () => {
+        expect(schliesstEinfacheRechnungAuftragAb('RECHNUNG', 0, false, false)).toBe(true);
+    });
+
+    it.each<AusgangsGeschaeftsDokumentTyp>([
+        'SCHLUSSRECHNUNG', 'ABSCHLAGSRECHNUNG', 'TEILRECHNUNG', 'ANGEBOT', 'AUFTRAGSBESTAETIGUNG',
+    ])('ist false für den Typ %s', (typ) => {
+        expect(schliesstEinfacheRechnungAuftragAb(typ, 0, false)).toBe(false);
+        expect(schliesstEinfacheRechnungAuftragAb(typ, 0, true, true)).toBe(false);
+    });
+});
+
+describe('canCreateEinfacheRechnung bei abgeschlossenem Auftrag', () => {
+    it('liefert false, wenn am Vorgang schon eine abschliessende Rechnung steht', () => {
+        expect(canCreateEinfacheRechnung({ positionen: [], abschliessendeRechnungNummer: 'RE-2026-0042' })).toBe(false);
+    });
+
+    it('liefert ohne abschliessende Rechnung wie bisher true', () => {
+        expect(canCreateEinfacheRechnung({ positionen: [], abschliessendeRechnungNummer: null })).toBe(true);
+    });
+});
+
+describe('keineWeitereRechnungHinweis', () => {
+    it('liefert null ohne Verlauf', () => {
+        expect(keineWeitereRechnungHinweis(null)).toBeNull();
+        expect(keineWeitereRechnungHinweis(undefined)).toBeNull();
+    });
+
+    it('nennt die abschliessende Rechnung und dass eine AB weiter geht', () => {
+        const hinweis = keineWeitereRechnungHinweis({ restbetrag: 0, abschliessendeRechnungNummer: 'RE-2026-0042' });
+        expect(hinweis).toContain('Dieser Auftrag ist mit Rechnung RE-2026-0042 abgeschlossen.');
+        expect(hinweis).toContain('storniert oder ihr Entwurf gelöscht');
+        expect(hinweis).toContain('Eine Auftragsbestätigung können Sie weiterhin anlegen.');
+    });
+
+    it('meldet ohne abschliessende Rechnung den aufgebrauchten Restbetrag wie bisher', () => {
+        expect(keineWeitereRechnungHinweis({ restbetrag: 0, abschliessendeRechnungNummer: null }))
+            .toBe('Der Basisbetrag ist vollständig abgerechnet. Es kann keine weitere Rechnung erstellt werden.');
+    });
+
+    it('liefert null, solange noch etwas offen ist', () => {
+        expect(keineWeitereRechnungHinweis({ restbetrag: 500, abschliessendeRechnungNummer: null })).toBeNull();
+        expect(keineWeitereRechnungHinweis({ restbetrag: 500 })).toBeNull();
     });
 });

@@ -54,6 +54,8 @@ import org.example.kalkulationsprogramm.repository.ProjektRepository;
 import org.example.kalkulationsprogramm.repository.ZeitbuchungRepository;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
+import org.springframework.http.HttpStatus;
 import org.springframework.transaction.annotation.Transactional;
 
 import com.fasterxml.jackson.databind.JsonNode;
@@ -66,6 +68,12 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Service
 public class AusgangsGeschaeftsDokumentService {
+
+    /** Belegarten, die auch bei aus Datenschutzgründen gesperrten Kunden angelegt werden dürfen. */
+    private static final java.util.Set<AusgangsGeschaeftsDokumentTyp> ERLAUBT_BEI_GESPERRTEM_KUNDEN =
+            java.util.EnumSet.of(AusgangsGeschaeftsDokumentTyp.STORNO, AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT,
+                    AusgangsGeschaeftsDokumentTyp.ZAHLUNGSERINNERUNG, AusgangsGeschaeftsDokumentTyp.ERSTE_MAHNUNG,
+                    AusgangsGeschaeftsDokumentTyp.ZWEITE_MAHNUNG);
 
     private final Path dokumentenSpeicherplatz;
 
@@ -122,6 +130,12 @@ public class AusgangsGeschaeftsDokumentService {
             AusgangsGeschaeftsDokumentTyp.SCHLUSSRECHNUNG
     );
 
+    /** Rechnungstypen, die einen Vorgang abschliessen: danach kommt keine Rechnung mehr. */
+    private static final Set<AusgangsGeschaeftsDokumentTyp> ABSCHLIESSENDE_RECHNUNGSTYPEN = EnumSet.of(
+            AusgangsGeschaeftsDokumentTyp.RECHNUNG,
+            AusgangsGeschaeftsDokumentTyp.SCHLUSSRECHNUNG
+    );
+
     /**
      * Buchhaltungsrelevante Typen, für die ein GoBD-konformer Audit-Trail (§147 AO,
      * 10-Jahres-Aufbewahrung) zwingend ist. Angebot/AB sind nur Geschäftsbriefe
@@ -171,6 +185,17 @@ public class AusgangsGeschaeftsDokumentService {
         //   - Andere Typen (z.B. eine eigenständige Rechnung ohne vorheriges
         //     Angebot) bleiben als einzelnes Basisdokument möglich, solange noch
         //     gar kein Basisdokument existiert.
+        if (dto.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT && dto.getVorgaengerId() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Eine Gutschrift gehört immer zu einer Rechnung. Bitte die Gutschrift über die Rechnung anlegen.");
+        }
+        // Ein Betrag ohne Positionen ergäbe ein PDF mit der ganzen Rechnung, gebucht würde aber
+        // nur der Teilbetrag (GoBD, § 14 UStG). Der Betrag kommt deshalb immer aus den Positionen.
+        if (dto.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT && dto.getBetragNetto() != null
+                && dto.getPositionenJson() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Für einen Teilbetrag bitte die Gutschrift mit eigenen Positionen anlegen.");
+        }
         if (dto.getVorgaengerId() == null) {
             validiereBasisdokument(dto.getTyp(), dto.getProjektId(), dto.getAnfrageId());
         }
@@ -222,11 +247,18 @@ public class AusgangsGeschaeftsDokumentService {
 
         if (dto.getVorgaengerId() != null) {
             AusgangsGeschaeftsDokument vorgaenger = dokumentRepository.findById(dto.getVorgaengerId()).orElse(null);
+            if (vorgaenger == null && dto.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Die Rechnung wurde nicht gefunden.");
+            }
             dokument.setVorgaenger(vorgaenger);
 
             // Bei Umwandlung: Inhalte vom Vorgänger übernehmen wenn nicht explizit gesetzt
             if (vorgaenger != null) {
-                if (dto.getHtmlInhalt() == null && vorgaenger.getHtmlInhalt() != null) {
+                // Eine Teil-Gutschrift bringt eigene Positionen mit; der Text der Rechnung passte
+                // dann nicht dazu (der Editor erzeugt ihn beim Speichern aus den Positionen).
+                boolean eigeneGutschriftPositionen = dto.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT
+                        && dto.getPositionenJson() != null;
+                if (dto.getHtmlInhalt() == null && vorgaenger.getHtmlInhalt() != null && !eigeneGutschriftPositionen) {
                     dokument.setHtmlInhalt(vorgaenger.getHtmlInhalt());
                 }
                 if (dto.getPositionenJson() == null && vorgaenger.getPositionenJson() != null) {
@@ -259,9 +291,14 @@ public class AusgangsGeschaeftsDokumentService {
                     validiereEinzigeAuftragsbestaetigung(vorgaenger);
                 }
 
+                if (dto.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT) {
+                    bereiteGutschriftVor(dokument, vorgaenger, dto.getPositionenJson());
+                }
+
                 if (RECHNUNGSTYPEN.contains(dto.getTyp())) {
                     // Rechnungen gehören an das unterste Dokument des Vorgangs
                     validiereAbrechnungsbasis(vorgaenger);
+                    validiereVorgangNichtAbgeschlossen(vorgaenger);
 
                     // Rechnungsbetrag darf Restbetrag nicht übersteigen
                     BigDecimal zuPruefenderBetrag = dto.getBetragNetto();
@@ -291,7 +328,9 @@ public class AusgangsGeschaeftsDokumentService {
         // Anfrage, ist deren Projekt oben bereits auf das Dokument übernommen
         // worden — der Hook nutzt damit denselben Auflösungsweg wie
         // findGeerbteRechnungsadresseFuerAnfrage() (GET-Endpoint).
-        if (dokument.getRechnungsadresseOverride() == null || dokument.getRechnungsadresseOverride().isBlank()) {
+        // Die Gutschrift trägt die Anschrift der Rechnung, die sie berichtigt (bereiteGutschriftVor).
+        if (dokument.getTyp() != AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT
+                && (dokument.getRechnungsadresseOverride() == null || dokument.getRechnungsadresseOverride().isBlank())) {
             String geerbt = findGeerbteRechnungsadresse(
                     dokument.getProjekt() != null ? dokument.getProjekt().getId() : null,
                     dokument.getAnfrage() != null ? dokument.getAnfrage().getId() : null);
@@ -299,6 +338,14 @@ public class AusgangsGeschaeftsDokumentService {
                 dokument.setRechnungsadresseOverride(geerbt);
             }
         }
+
+        // Gesperrter Kunde (Datenschutz): keine neuen Angebote/Rechnungen. Erlaubt bleibt, was sich
+        // auf aufbewahrte Belege bezieht: Storno und Gutschrift berichtigen sie, Mahnungen setzen
+        // offene Forderungen durch (Art. 18 Abs. 2 DSGVO).
+        if (!ERLAUBT_BEI_GESPERRTEM_KUNDEN.contains(dokument.getTyp())) {
+            KundeDatenschutzService.pruefeNichtGesperrt(dokument.getKunde());
+        }
+        KundeDatenschutzService.pruefeNichtAnonymisiert(dokument.getKunde());
 
         // Zahlungsziel aus Kunde übernehmen falls nicht explizit gesetzt
         if (dokument.getZahlungszielTage() == null && dokument.getKunde() != null
@@ -317,6 +364,7 @@ public class AusgangsGeschaeftsDokumentService {
 
         normalisiereStornobetraege(dokument);
         AusgangsGeschaeftsDokument saved = dokumentRepository.save(dokument);
+        verlaengereAufbewahrungBeiGesperrtemKunden(saved);
 
         // Projekt-Preis aktualisieren
         if (saved.getProjekt() != null) {
@@ -341,6 +389,13 @@ public class AusgangsGeschaeftsDokumentService {
         }
 
         return saved;
+    }
+
+    /** Storno, Gutschrift oder Mahnung für einen gesperrten Kunden verlängern dessen Aufbewahrungsfrist. */
+    private void verlaengereAufbewahrungBeiGesperrtemKunden(AusgangsGeschaeftsDokument dokument) {
+        if (KundeDatenschutzService.verlaengereAufbewahrung(dokument.getKunde(), dokument)) {
+            kundeRepository.save(dokument.getKunde());
+        }
     }
 
     /**
@@ -412,8 +467,13 @@ public class AusgangsGeschaeftsDokumentService {
         return created.getDokumentNummer();
     }
 
+    /**
+     * Storno und Gutschrift mindern den Umsatz: Netto und Brutto stehen immer negativ, egal
+     * mit welchem Vorzeichen Editor oder Aufrufer sie schicken (Positionen bleiben positiv).
+     */
     private void normalisiereStornobetraege(AusgangsGeschaeftsDokument dokument) {
-        if (dokument.getTyp() == AusgangsGeschaeftsDokumentTyp.STORNO) {
+        if (dokument.getTyp() == AusgangsGeschaeftsDokumentTyp.STORNO
+                || dokument.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT) {
             dokument.setBetragNetto(DokumentBetragsvorzeichen.alsMinderung(dokument.getBetragNetto()));
             dokument.setBetragBrutto(DokumentBetragsvorzeichen.alsMinderung(dokument.getBetragBrutto()));
         }
@@ -468,6 +528,19 @@ public class AusgangsGeschaeftsDokumentService {
         // rechnungsadresseOverride darf auch auf null gesetzt werden (Reset auf Kundenadresse)
         dokument.setRechnungsadresseOverride(dto.getRechnungsadresseOverride());
 
+        // Gutschrift: Steuersatz und Anschrift bleiben die der Rechnung, der Betrag folgt den
+        // Positionen – so passen PDF, E-Rechnung und Buchung immer zusammen.
+        if (dokument.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT && dokument.getVorgaenger() != null) {
+            dokumentRepository.sperreZumGutschreiben(dokument.getVorgaenger().getId());
+            uebernehmeRechnungsbezug(dokument, dokument.getVorgaenger());
+            BigDecimal ausPositionen = dokument.getPositionenJson() != null
+                    ? berechneNettoAusPositionenJson(dokument.getPositionenJson())
+                    : null;
+            if (ausPositionen != null) {
+                dokument.setBetragNetto(ausPositionen.abs());
+            }
+        }
+
         // Bruttobetrag neu berechnen
         if (dokument.getBetragNetto() != null && dokument.getMwstSatz() != null) {
             BigDecimal mwst = dokument.getBetragNetto().multiply(dokument.getMwstSatz());
@@ -475,6 +548,10 @@ public class AusgangsGeschaeftsDokumentService {
         }
 
         normalisiereStornobetraege(dokument);
+        if (dokument.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT && dokument.getVorgaenger() != null
+                && dokument.getBetragNetto() != null) {
+            pruefeGutschriftHoechstbetrag(dokument.getVorgaenger(), dokument.getBetragNetto().abs(), dokument.getId());
+        }
         AusgangsGeschaeftsDokument saved = dokumentRepository.save(dokument);
 
         // Projekt-Preis aktualisieren
@@ -553,12 +630,14 @@ public class AusgangsGeschaeftsDokumentService {
                 ? frontendUserProfileRepository.findById(bearbeiterId).orElse(null)
                 : null;
         uebernehmeAktuellenSchlussrechnungsbetrag(dokument, bearbeiter, ipAdresse);
+        pruefeGutschriftVorDemBuchen(dokument);
 
         dokument.setGebucht(true);
         dokument.setGebuchtAm(LocalDate.now());
 
         AusgangsGeschaeftsDokument saved = dokumentRepository.save(dokument);
         erstelleOffenenPostenEintrag(saved);
+        rechneGutschriftAufOffenenPosten(saved, false);
 
         if (AUDIT_RELEVANTE_TYPEN.contains(saved.getTyp())) {
             auditService.protokolliereBuchung(saved, bearbeiter, ipAdresse);
@@ -644,6 +723,7 @@ public class AusgangsGeschaeftsDokumentService {
                 : null;
         if (!warBereitsGebucht && !istNichtBuchbar) {
             uebernehmeAktuellenSchlussrechnungsbetrag(dokument, bearbeiter, ipAdresse);
+            pruefeGutschriftVorDemBuchen(dokument);
         }
 
         dokument.setVersandDatum(LocalDate.now());
@@ -655,6 +735,7 @@ public class AusgangsGeschaeftsDokumentService {
         AusgangsGeschaeftsDokument saved = dokumentRepository.save(dokument);
         if (!warBereitsGebucht && !istNichtBuchbar) {
             erstelleOffenenPostenEintrag(saved);
+            rechneGutschriftAufOffenenPosten(saved, false);
         }
 
         // Versanddatum auch auf dem Offene-Posten-Eintrag setzen
@@ -755,21 +836,34 @@ public class AusgangsGeschaeftsDokumentService {
     public StornoErgebnis stornierenMitHinweisen(Long id, Long bearbeiterId, String ipAdresse, String grund) {
         AusgangsGeschaeftsDokument original = dokumentRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Dokument nicht gefunden: " + id));
+        // Altbelege tragen den Kunden teils nur über Projekt bzw. Anfrage.
+        KundeDatenschutzService.pruefeNichtAnonymisiert(original.getKunde() != null ? original.getKunde()
+                : original.getProjekt() != null ? original.getProjekt().getKundenId()
+                : original.getAnfrage() != null ? original.getAnfrage().getKunde() : null);
 
         if (original.isStorniert()) {
             throw new RuntimeException("Dokument ist bereits storniert.");
         }
 
-        // Nur Rechnungstypen dürfen storniert werden. Eine Stornorechnung selbst nicht:
-        // ihr Storno würde den Umsatz ein zweites Mal mindern.
-        if (!RECHNUNGSTYPEN.contains(original.getTyp())) {
-            throw new RuntimeException("Nur Rechnungen können storniert werden.");
+        // Nur Rechnungstypen und Gutschriften dürfen storniert werden. Eine Stornorechnung
+        // selbst nicht: ihr Storno würde den Umsatz ein zweites Mal mindern.
+        boolean istGutschrift = original.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT;
+        if (!RECHNUNGSTYPEN.contains(original.getTyp()) && !istGutschrift) {
+            throw new RuntimeException("Nur Rechnungen und Gutschriften können storniert werden.");
         }
 
         // Ein Entwurf ist noch nicht im Geschäftsverkehr: löschen statt stornieren. Sonst
         // entstünde eine gebuchte Minderung zu einer Rechnung, die nie gebucht war.
         if (!original.isGebucht()) {
-            throw new RuntimeException("Nur gebuchte Rechnungen können storniert werden. Einen Entwurf bitte löschen.");
+            throw new RuntimeException(istGutschrift
+                    ? "Nur gebuchte Gutschriften können storniert werden. Einen Entwurf bitte löschen."
+                    : "Nur gebuchte Rechnungen können storniert werden. Einen Entwurf bitte löschen.");
+        }
+
+        // Hängt an der Rechnung noch eine Gutschrift, minderte das Storno den Betrag doppelt.
+        if (!istGutschrift) {
+            dokumentRepository.sperreZumGutschreiben(original.getId());
+            pruefeKeineOffeneGutschrift(original);
         }
 
         // Original als storniert markieren
@@ -789,6 +883,7 @@ public class AusgangsGeschaeftsDokumentService {
             case TEILRECHNUNG -> "Teilrechnung";
             case ABSCHLAGSRECHNUNG -> "Abschlagsrechnung";
             case SCHLUSSRECHNUNG -> "Schlussrechnung";
+            case GUTSCHRIFT -> "Gutschrift";
             default -> "Dokument";
         };
         storno.setBetreff("Stornorechnung " + storno.getDokumentNummer()
@@ -800,9 +895,15 @@ public class AusgangsGeschaeftsDokumentService {
         storno.setKunde(original.getKunde());
         storno.setRechnungsadresseOverride(original.getRechnungsadresseOverride());
 
-        // Stornos mindern den Umsatz unabhängig vom Vorzeichen des Originals.
-        storno.setBetragNetto(DokumentBetragsvorzeichen.alsMinderung(original.getBetragNetto()));
-        storno.setBetragBrutto(DokumentBetragsvorzeichen.alsMinderung(original.getBetragBrutto()));
+        // Stornos mindern den Umsatz unabhängig vom Vorzeichen des Originals. Das Storno einer
+        // Gutschrift hebt deren Minderung auf und steht deshalb positiv.
+        if (istGutschrift) {
+            storno.setBetragNetto(original.getBetragNetto() != null ? original.getBetragNetto().abs() : null);
+            storno.setBetragBrutto(original.getBetragBrutto() != null ? original.getBetragBrutto().abs() : null);
+        } else {
+            storno.setBetragNetto(DokumentBetragsvorzeichen.alsMinderung(original.getBetragNetto()));
+            storno.setBetragBrutto(DokumentBetragsvorzeichen.alsMinderung(original.getBetragBrutto()));
+        }
         storno.setMwstSatz(original.getMwstSatz());
 
         // Inhalt und Positionen vom Original übernehmen für PDF-Generierung
@@ -813,9 +914,15 @@ public class AusgangsGeschaeftsDokumentService {
         storno.setGebuchtAm(LocalDate.now());
 
         AusgangsGeschaeftsDokument savedStorno = dokumentRepository.save(storno);
+        verlaengereAufbewahrungBeiGesperrtemKunden(savedStorno);
 
-        // Offenen-Posten-Eintrag des Originals als bezahlt markieren (storniert)
-        markiereOffenenPostenAlsBezahlt(original);
+        if (istGutschrift) {
+            // Die Rechnung ist wieder um den gutgeschriebenen Betrag offen.
+            rechneGutschriftAufOffenenPosten(original, true);
+        } else {
+            // Offenen-Posten-Eintrag des Originals als bezahlt markieren (storniert)
+            markiereOffenenPostenAlsBezahlt(original);
+        }
 
         // Kaskadierende Stornierung: Wenn eine Abschlagsrechnung storniert wird,
         // müssen abhängige Schlussrechnungen (gleicher Vorgänger) ebenfalls storniert werden,
@@ -878,6 +985,201 @@ public class AusgangsGeschaeftsDokumentService {
         }
 
         return new StornoErgebnis(savedStorno, List.copyOf(hinweise));
+    }
+
+    // ==================== KUNDEN-GUTSCHRIFT (Issue #223) ====================
+
+    /** Cent-Toleranz für Rundungen zwischen Netto, Brutto und Positionen. */
+    private static final BigDecimal GUTSCHRIFT_TOLERANZ = new BigDecimal("0.01");
+
+    /**
+     * Rahmen für den Dialog „Gutschrift erstellen“: Rechnungsbetrag, schon gutgeschrieben
+     * (gebucht und Entwürfe, ohne stornierte) und was höchstens noch geht.
+     */
+    @Transactional(readOnly = true)
+    public GutschriftRahmenDto gutschriftRahmen(Long rechnungId) {
+        AusgangsGeschaeftsDokument rechnung = dokumentRepository.findById(rechnungId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Die Rechnung wurde nicht gefunden."));
+        pruefeGutschriftBasis(rechnung);
+        BigDecimal mwst = rechnung.getMwstSatz() != null ? rechnung.getMwstSatz() : new BigDecimal("0.19");
+        BigDecimal rechnungNetto = betragOderNull(rechnung.getBetragNetto());
+        BigDecimal rechnungBrutto = rechnung.getBetragBrutto() != null
+                ? rechnung.getBetragBrutto().abs()
+                : bruttoAusNetto(rechnungNetto, mwst);
+        List<AusgangsGeschaeftsDokument> gutschriften = gueltigeGutschriften(rechnung, null);
+        BigDecimal bereitsNetto = summe(gutschriften, AusgangsGeschaeftsDokument::getBetragNetto);
+        BigDecimal bereitsBrutto = summe(gutschriften, AusgangsGeschaeftsDokument::getBetragBrutto);
+        BigDecimal hoechstensNetto = rechnungNetto.subtract(bereitsNetto).max(BigDecimal.ZERO);
+        BigDecimal hoechstensBrutto = rechnungBrutto.subtract(bereitsBrutto).max(BigDecimal.ZERO);
+        return new GutschriftRahmenDto(rechnung.getId(), rechnung.getDokumentNummer(), rechnungBrutto,
+                rechnungNetto, bereitsBrutto, bereitsNetto, hoechstensNetto, hoechstensBrutto, mwst);
+    }
+
+    /** Antwort von {@link #gutschriftRahmen(Long)}; alle Beträge positiv. */
+    public record GutschriftRahmenDto(Long rechnungId, String rechnungNummer, BigDecimal rechnungBrutto,
+            BigDecimal rechnungNetto, BigDecimal bereitsGutgeschriebenBrutto, BigDecimal bereitsGutgeschriebenNetto,
+            BigDecimal hoechstensNetto, BigDecimal hoechstensBrutto, BigDecimal mwstSatz) {
+    }
+
+    /**
+     * Neue Gutschrift zu einer Rechnung. Kunde, Projekt, Anfrage, Rechnungsanschrift und
+     * Steuersatz kommen immer von der Rechnung (§ 17 UStG: berichtigt wird zum Satz des
+     * ursprünglichen Umsatzes). Der Betrag kommt aus den eigenen Positionen, ohne sie ist es
+     * die ganze Rechnung. Das Minus setzt {@link #normalisiereStornobetraege}.
+     */
+    private void bereiteGutschriftVor(AusgangsGeschaeftsDokument gutschrift, AusgangsGeschaeftsDokument rechnung,
+            String eigenePositionenJson) {
+        // Zeile sperren: zwei gleichzeitige Gutschriften dürfen den Rahmen nicht gemeinsam sprengen.
+        dokumentRepository.sperreZumGutschreiben(rechnung.getId());
+        pruefeGutschriftBasis(rechnung);
+        uebernehmeRechnungsbezug(gutschrift, rechnung);
+        BigDecimal netto = eigenePositionenJson != null
+                ? berechneNettoAusPositionenJson(eigenePositionenJson)
+                : rechnung.getBetragNetto();
+        gutschrift.setBetragNetto(netto != null ? netto.abs() : null);
+        if (gutschrift.getBetragNetto() != null) {
+            gutschrift.setBetragBrutto(bruttoAusNetto(gutschrift.getBetragNetto().abs(), gutschrift.getMwstSatz()));
+            pruefeGutschriftHoechstbetrag(rechnung, gutschrift.getBetragNetto().abs(), null);
+        }
+        if (gutschrift.getBetreff() == null || gutschrift.getBetreff().isBlank()) {
+            gutschrift.setBetreff("Gutschrift zu " + rechnungsbezeichnung(rechnung) + " " + rechnung.getDokumentNummer());
+        }
+    }
+
+    /** Kunde, Projekt, Anfrage, Anschrift und Steuersatz der Gutschrift = die der Rechnung. */
+    private static void uebernehmeRechnungsbezug(AusgangsGeschaeftsDokument gutschrift,
+            AusgangsGeschaeftsDokument rechnung) {
+        Kunde kunde = rechnung.getKunde() != null ? rechnung.getKunde()
+                : rechnung.getProjekt() != null && rechnung.getProjekt().getKundenId() != null
+                        ? rechnung.getProjekt().getKundenId()
+                        : rechnung.getAnfrage() != null ? rechnung.getAnfrage().getKunde() : gutschrift.getKunde();
+        gutschrift.setKunde(kunde);
+        gutschrift.setProjekt(rechnung.getProjekt());
+        gutschrift.setAnfrage(rechnung.getAnfrage());
+        gutschrift.setRechnungsadresseOverride(rechnung.getRechnungsadresseOverride());
+        if (rechnung.getMwstSatz() != null) {
+            gutschrift.setMwstSatz(rechnung.getMwstSatz());
+        }
+    }
+
+    /** Eine Gutschrift gibt es nur zu einer gebuchten, nicht stornierten Rechnung. */
+    private static void pruefeGutschriftBasis(AusgangsGeschaeftsDokument rechnung) {
+        if (rechnung == null || !RECHNUNGSTYPEN.contains(rechnung.getTyp()) || !rechnung.isGebucht()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Eine Gutschrift lässt sich nur zu einer gebuchten Rechnung erstellen.");
+        }
+        if (rechnung.isStorniert()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Die Rechnung ist storniert.");
+        }
+    }
+
+    /** Alle Gutschriften einer Rechnung zusammen dürfen ihren Nettobetrag nicht übersteigen. */
+    private void pruefeGutschriftHoechstbetrag(AusgangsGeschaeftsDokument rechnung, BigDecimal nettoDieser,
+            Long eigeneId) {
+        BigDecimal rechnungNetto = betragOderNull(rechnung.getBetragNetto());
+        BigDecimal rest = rechnungNetto.subtract(summe(gueltigeGutschriften(rechnung, eigeneId),
+                AusgangsGeschaeftsDokument::getBetragNetto)).max(BigDecimal.ZERO);
+        if (nettoDieser.compareTo(rest.add(GUTSCHRIFT_TOLERANZ)) > 0) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Die Gutschrift ist höher als der noch offene Rechnungsbetrag. Höchstens "
+                            + formatEuro(rest) + " netto sind noch möglich.");
+        }
+    }
+
+    /** Beim Buchen/Versenden: Rechnung noch gültig und Höchstbetrag eingehalten? */
+    private void pruefeGutschriftVorDemBuchen(AusgangsGeschaeftsDokument dokument) {
+        if (dokument.getTyp() != AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT) {
+            return;
+        }
+        if (dokument.getVorgaenger() == null) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Eine Gutschrift gehört immer zu einer Rechnung. Bitte die Gutschrift über die Rechnung anlegen.");
+        }
+        dokumentRepository.sperreZumGutschreiben(dokument.getVorgaenger().getId());
+        pruefeGutschriftBasis(dokument.getVorgaenger());
+        if (dokument.getBetragNetto() != null) {
+            pruefeGutschriftHoechstbetrag(dokument.getVorgaenger(), dokument.getBetragNetto().abs(), dokument.getId());
+        }
+    }
+
+    /** Eine Rechnung mit nicht stornierter Gutschrift lässt sich erst nach deren Storno stornieren. */
+    private void pruefeKeineOffeneGutschrift(AusgangsGeschaeftsDokument rechnung) {
+        gueltigeGutschriften(rechnung, null).stream().findFirst().ifPresent(g -> {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, g.isGebucht()
+                    ? "Zu dieser Rechnung gibt es die Gutschrift " + g.getDokumentNummer()
+                            + ". Bitte zuerst die Gutschrift stornieren."
+                    : "Zu dieser Rechnung gibt es den Gutschrift-Entwurf " + g.getDokumentNummer()
+                            + ". Bitte zuerst den Entwurf löschen.");
+        });
+    }
+
+    /**
+     * Gebuchte Gutschrift mindert den Offenen Posten ihrer Rechnung; ihr Storno hebt das
+     * wieder auf. Deckt die Gutschrift den ganzen Betrag, gilt die Rechnung als erledigt.
+     */
+    private void rechneGutschriftAufOffenenPosten(AusgangsGeschaeftsDokument gutschrift, boolean storniert) {
+        if (gutschrift.getTyp() != AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT || gutschrift.getVorgaenger() == null
+                || gutschrift.getBetragBrutto() == null || gutschrift.getVorgaenger().getDokumentNummer() == null) {
+            return;
+        }
+        BigDecimal betrag = gutschrift.getBetragBrutto().abs();
+        projektDokumentRepository.findGeschaeftsdokumenteByDokumentid(gutschrift.getVorgaenger().getDokumentNummer())
+                .stream().findFirst().ifPresent(posten -> {
+                    BigDecimal vorher = betragOderNull(posten.getGutgeschrieben());
+                    BigDecimal nachher = storniert ? vorher.subtract(betrag).max(BigDecimal.ZERO) : vorher.add(betrag);
+                    boolean warErledigt = durchGutschriftErledigt(posten, vorher);
+                    boolean istErledigt = durchGutschriftErledigt(posten, nachher);
+                    posten.setGutgeschrieben(nachher);
+                    if (!storniert && istErledigt && !posten.isBezahlt()) {
+                        setzeOffenenPostenBezahlt(posten, true);
+                    } else if (storniert && warErledigt && !istErledigt && posten.isBezahlt()) {
+                        setzeOffenenPostenBezahlt(posten, false);
+                    } else {
+                        projektDokumentRepository.save(posten);
+                    }
+                });
+    }
+
+    private static boolean durchGutschriftErledigt(ProjektGeschaeftsdokument posten, BigDecimal gutgeschrieben) {
+        return posten.getBruttoBetrag() != null && gutgeschrieben.signum() > 0
+                && gutgeschrieben.compareTo(posten.getBruttoBetrag().abs().subtract(GUTSCHRIFT_TOLERANZ)) >= 0;
+    }
+
+    /** Nicht stornierte Gutschriften (gebucht und Entwürfe) einer Rechnung, ohne {@code ausserId}. */
+    private List<AusgangsGeschaeftsDokument> gueltigeGutschriften(AusgangsGeschaeftsDokument rechnung, Long ausserId) {
+        if (rechnung.getId() == null) {
+            return List.of();
+        }
+        return dokumentRepository.findByVorgaengerIdOrderByErstelltAmAsc(rechnung.getId()).stream()
+                .filter(d -> d.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT)
+                .filter(d -> !d.isStorniert())
+                .filter(d -> ausserId == null || !ausserId.equals(d.getId()))
+                .toList();
+    }
+
+    private static BigDecimal summe(List<AusgangsGeschaeftsDokument> dokumente,
+            java.util.function.Function<AusgangsGeschaeftsDokument, BigDecimal> betrag) {
+        return dokumente.stream().map(betrag).map(AusgangsGeschaeftsDokumentService::betragOderNull)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+    }
+
+    /** Betrag ohne Vorzeichen, null = 0. */
+    private static BigDecimal betragOderNull(BigDecimal betrag) {
+        return betrag == null ? BigDecimal.ZERO : betrag.abs();
+    }
+
+    private static String formatEuro(BigDecimal betrag) {
+        return java.text.NumberFormat.getCurrencyInstance(java.util.Locale.GERMANY)
+                .format(betrag.setScale(2, RoundingMode.HALF_UP));
+    }
+
+    private static String rechnungsbezeichnung(AusgangsGeschaeftsDokument rechnung) {
+        return switch (rechnung.getTyp()) {
+            case TEILRECHNUNG -> "Teilrechnung";
+            case ABSCHLAGSRECHNUNG -> "Abschlagsrechnung";
+            case SCHLUSSRECHNUNG -> "Schlussrechnung";
+            default -> "Rechnung";
+        };
     }
 
     // ==================== OFFENE POSTEN INTEGRATION ====================
@@ -1355,7 +1657,15 @@ public class AusgangsGeschaeftsDokumentService {
 
         verlauf.setPositionen(positionen);
         verlauf.setBereitsAbgerechnet(bereitsAbgerechnet);
-        verlauf.setRestbetrag(verlauf.getBasisdokumentBetragNetto().subtract(bereitsAbgerechnet));
+        // Eine einfache Rechnung oder eine Schlussrechnung schliesst den Vorgang ab:
+        // was darin fehlt, ist nicht angefallen, und es kommt keine Rechnung mehr.
+        // Sonst boete das Projekt eine weitere Rechnung ueber die nicht angefallenen
+        // Positionen an, waehrend auf dem PDF "Noch offen 0,00 €" steht.
+        AusgangsGeschaeftsDokument abschliessend = findeAbschliessendeRechnung(basis, nachfolger).orElse(null);
+        verlauf.setAbschliessendeRechnungNummer(abschliessend != null ? abschliessend.getDokumentNummer() : null);
+        verlauf.setRestbetrag(abschliessend != null
+                ? BigDecimal.ZERO
+                : verlauf.getBasisdokumentBetragNetto().subtract(bereitsAbgerechnet));
 
         // Block-IDs aus nicht-stornierten Teilrechnungen sammeln
         Set<String> abgerechneteBlockIds = new HashSet<>();
@@ -1543,6 +1853,53 @@ public class AusgangsGeschaeftsDokumentService {
         if (block == null || !block.isObject()) return false;
         JsonNode rolle = block.get("textbausteinRolle");
         return rolle != null && !rolle.isNull() && !rolle.asText().isBlank();
+    }
+
+    /**
+     * Sucht die nicht stornierte einfache Rechnung bzw. Schlussrechnung, die den
+     * Vorgang dieses Basisdokuments abschliesst.
+     *
+     * <p>Angebot und Auftragsbestaetigung zaehlen als ein Vorgang: Eine AB darf auch
+     * nach der Rechnung am Angebot noch entstehen. Ohne den Blick ueber die Kette
+     * liesse sich an dieser AB eine zweite Rechnung ueber denselben Auftrag stellen.
+     * Geloeschte Entwuerfe tauchen hier nicht mehr auf, stornierte zaehlen nicht.
+     *
+     * @param nachfolger die bereits geladenen direkten Nachfolger von {@code basis}
+     */
+    private Optional<AusgangsGeschaeftsDokument> findeAbschliessendeRechnung(
+            AusgangsGeschaeftsDokument basis, List<AusgangsGeschaeftsDokument> nachfolger) {
+        List<AusgangsGeschaeftsDokument> kandidaten = new ArrayList<>(nachfolger);
+        AusgangsGeschaeftsDokument oben = basis.getVorgaenger();
+        if (basis.getTyp() == AusgangsGeschaeftsDokumentTyp.AUFTRAGSBESTAETIGUNG && oben != null) {
+            // AB unter einem Angebot: dort gestellte Rechnungen gehoeren zum selben Vorgang.
+            kandidaten.addAll(dokumentRepository.findByVorgaengerIdOrderByErstelltAmAsc(oben.getId()));
+        }
+        for (AusgangsGeschaeftsDokument dok : nachfolger) {
+            if (dok.getTyp() == AusgangsGeschaeftsDokumentTyp.AUFTRAGSBESTAETIGUNG && !dok.isStorniert()) {
+                // Angebot mit AB: an der AB gestellte Rechnungen gehoeren zum selben Vorgang.
+                kandidaten.addAll(dokumentRepository.findByVorgaengerIdOrderByErstelltAmAsc(dok.getId()));
+            }
+        }
+        return kandidaten.stream()
+                .filter(dok -> ABSCHLIESSENDE_RECHNUNGSTYPEN.contains(dok.getTyp()) && !dok.isStorniert())
+                .findFirst();
+    }
+
+    /**
+     * Nach einer einfachen Rechnung oder Schlussrechnung ist der Vorgang
+     * abgerechnet. Eine weitere Rechnung gibt es erst wieder, wenn diese
+     * storniert oder ihr Entwurf geloescht wurde. Eine AB bleibt moeglich.
+     */
+    private void validiereVorgangNichtAbgeschlossen(AusgangsGeschaeftsDokument vorgaenger) {
+        List<AusgangsGeschaeftsDokument> nachfolger =
+                dokumentRepository.findByVorgaengerIdOrderByErstelltAmAsc(vorgaenger.getId());
+        findeAbschliessendeRechnung(vorgaenger, nachfolger).ifPresent(rechnung -> {
+            throw new IllegalStateException(
+                    "Zu " + vorgaenger.getDokumentNummer() + " gibt es schon die Rechnung "
+                            + rechnung.getDokumentNummer() + ", die den Auftrag abschließt. "
+                            + "Eine weitere Rechnung ist erst möglich, wenn diese storniert "
+                            + "oder ihr Entwurf gelöscht wurde.");
+        });
     }
 
     /**
@@ -2274,6 +2631,10 @@ public class AusgangsGeschaeftsDokumentService {
 
             BigDecimal neuNetto = berechneNettoAusPositionenJson(json);
             if (neuNetto == null) continue;
+            if (dokument.getTyp() == AusgangsGeschaeftsDokumentTyp.GUTSCHRIFT) {
+                // Positionen sind positiv, die Gutschrift steht als Minderung.
+                neuNetto = DokumentBetragsvorzeichen.alsMinderung(neuNetto);
+            }
 
             // Cent-Toleranz statt exaktem Vergleich: ein echter Rabatt-Fehler ist immer
             // r% der Summe, also um Groessenordnungen groesser. Ein einzelner Cent kann

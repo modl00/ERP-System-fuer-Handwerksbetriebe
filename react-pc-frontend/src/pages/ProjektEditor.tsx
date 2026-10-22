@@ -37,6 +37,7 @@ import {
     X,
     ShoppingCart,
     Paperclip,
+    Gem,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -79,6 +80,7 @@ import { ArtikelSuche } from '../components/artikel/ArtikelSuche';
 import { artikelBezeichnung } from '../components/artikel/artikelBezeichnung';
 import { KettenLinie } from '../features/bestellungen/KettenLinie';
 import { alsKettenTyp, type KettenLinienDokument, type KettenVerbindung } from '../features/bestellungen/kettenLinieLogik';
+import { StuecklistenScanDialog } from '../features/projekt/StuecklistenScanDialog';
 import { FreigabeRechtsnachweis } from '../features/freigabe/FreigabeRechtsnachweis';
 import type { FreigabeRechtsnachweisDaten } from '../features/freigabe/rechtsnachweisLogik';
 import { ProjektWartungReiter } from '../features/wartung/ProjektWartungReiter';
@@ -528,6 +530,10 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
 
     // Dateien (Dokumente) Anzahl
     const [dokumenteCount, setDokumenteCount] = useState(0);
+
+    // Stücklisten-Scan Dialog
+    const [stuecklisteScanOffen, setStuecklisteScanOffen] = useState(false);
+    const [stuecklisteDoks, setStuecklisteDoks] = useState<{ id: number; originalDateiname: string }[]>([]);
 
     // Notizen laden
     const loadNotizen = useCallback(async () => {
@@ -1969,14 +1975,32 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     <div className="space-y-3">
                         <div className="flex items-center justify-between">
                             <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Bedarfsliste</h4>
-                            <Button
-                                size="sm"
-                                variant="outline"
-                                onClick={() => setShowLagerArtikelModal(true)}
-                                className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                            >
-                                <Plus className="w-4 h-4 mr-1" /> Artikel hinzufügen
-                            </Button>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        if (projekt.id) {
+                                            fetch(`/api/projekte/${projekt.id}/dokumente`)
+                                                .then(r => r.ok ? r.json() as Promise<{ id: number; originalDateiname: string }[]> : Promise.resolve([]))
+                                                .then(docs => setStuecklisteDoks(docs))
+                                                .catch(() => setStuecklisteDoks([]));
+                                        }
+                                        setStuecklisteScanOffen(true);
+                                    }}
+                                    className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                                >
+                                    <Gem className="w-4 h-4 mr-1" /> Aus Dokument
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowLagerArtikelModal(true)}
+                                    className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                                >
+                                    <Plus className="w-4 h-4 mr-1" /> Artikel hinzufügen
+                                </Button>
+                            </div>
                         </div>
                         {projekt.artikel && projekt.artikel.length > 0 ? (
                             projekt.artikel.map((a) => (
@@ -3511,6 +3535,17 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                         </DialogFooter>
                     </DialogContent>
                 </Dialog>
+            )}
+
+            {/* Stücklisten-Scan Dialog */}
+            {stuecklisteScanOffen && projekt.id && (
+                <StuecklistenScanDialog
+                    offen={stuecklisteScanOffen}
+                    projektId={projekt.id}
+                    projektDokumente={stuecklisteDoks}
+                    onSchliessen={() => setStuecklisteScanOffen(false)}
+                    onUebernommen={() => { void onRefresh(); }}
+                />
             )}
 
             {/* Bestellen-Dialog */}

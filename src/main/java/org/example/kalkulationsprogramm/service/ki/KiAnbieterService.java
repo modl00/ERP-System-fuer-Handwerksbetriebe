@@ -35,18 +35,26 @@ public class KiAnbieterService {
     private static final Pattern MODELLNAME = Pattern.compile("[A-Za-z0-9][A-Za-z0-9._:/@-]{0,119}");
     private static final int MAX_SCHLUESSEL = 500;
 
-    /** Einstellung einer Funktion: gewählter Anbieter und Datenschutz-Stufe. */
+    /**
+     * Einstellung einer Funktion: gewählter Anbieter und Datenschutz-Stufe.
+     * {@code benoetigtBild}/{@code benoetigtPdf}: Medientypen, die diese Funktion an den Anbieter schickt (aus {@link KiFunktion}).
+     */
     public record FunktionsEinstellung(String funktion, String anzeige, AnbieterTyp anbieter, Datenschutz datenschutz,
-            String modell, String standardModell, boolean modellGewaehlt, Map<String, String> auswahl, Map<String, String> standards) {
+            String modell, String standardModell, boolean modellGewaehlt, Map<String, String> auswahl, Map<String, String> standards,
+            boolean benoetigtBild, boolean benoetigtPdf) {
 
         /** Ohne Modellangaben (so lesen die Funktionen selbst ihren Anbieter und Datenschutz). */
         public FunktionsEinstellung(String funktion, String anzeige, AnbieterTyp anbieter, Datenschutz datenschutz) {
-            this(funktion, anzeige, anbieter, datenschutz, "", "", false, Map.of(), Map.of());
+            this(funktion, anzeige, anbieter, datenschutz, "", "", false, Map.of(), Map.of(), false, false);
         }
     }
 
-    /** Stand eines Anbieters. Der Schlüssel selbst wird nie gezeigt. */
-    public record AnbieterStand(AnbieterTyp typ, String anzeige, boolean lokal, boolean eingerichtet, String modell, boolean schluesselGesetzt) { }
+    /**
+     * Stand eines Anbieters. Der Schlüssel selbst wird nie gezeigt.
+     * {@code kannBild}/{@code kannPdf}: Fähigkeiten des Anbieters, abgeleitet aus {@link AnbieterTyp}.
+     */
+    public record AnbieterStand(AnbieterTyp typ, String anzeige, boolean lokal, boolean eingerichtet, String modell, boolean schluesselGesetzt,
+            boolean kannBild, boolean kannPdf) { }
 
     public record Uebersicht(List<FunktionsEinstellung> funktionen, List<AnbieterStand> anbieter, List<String> nochGemini) { }
 
@@ -116,15 +124,15 @@ public class KiAnbieterService {
     public AnbieterStand stand(AnbieterTyp t) {
         return switch (t) {
             case GEMINI -> new AnbieterStand(t, t.anzeige(), false, !strip(geminiSchluessel()).isEmpty(), modelle.modell(KiModellService.Funktion.HILFE, null),
-                    !strip(geminiSchluessel()).isEmpty());
+                    !strip(geminiSchluessel()).isEmpty(), t.kannBild(), t.kannPdf());
             case LOKAL -> {
                 var k = lokaleKi.konfiguration();
-                yield new AnbieterStand(t, t.anzeige(), true, lokaleKi.istKonfiguriert(), k.modell(), k.schluesselGesetzt());
+                yield new AnbieterStand(t, t.anzeige(), true, lokaleKi.istKonfiguriert(), k.modell(), k.schluesselGesetzt(), t.kannBild(), t.kannPdf());
             }
             case CLAUDE -> new AnbieterStand(t, t.anzeige(), false, !strip(einstellungen.get(CLAUDE_SCHLUESSEL, "")).isEmpty(), claudeModell(),
-                    !strip(einstellungen.get(CLAUDE_SCHLUESSEL, "")).isEmpty());
+                    !strip(einstellungen.get(CLAUDE_SCHLUESSEL, "")).isEmpty(), t.kannBild(), t.kannPdf());
             case MISTRAL -> new AnbieterStand(t, t.anzeige(), false, !strip(einstellungen.get(MISTRAL_SCHLUESSEL, "")).isEmpty(), mistralModell(),
-                    !strip(einstellungen.get(MISTRAL_SCHLUESSEL, "")).isEmpty());
+                    !strip(einstellungen.get(MISTRAL_SCHLUESSEL, "")).isEmpty(), t.kannBild(), t.kannPdf());
         };
     }
 
@@ -151,7 +159,8 @@ public class KiAnbieterService {
             standards.put(t.name(), standard == null ? "" : standard);
         }
         return new FunktionsEinstellung(e.funktion(), e.anzeige(), e.anbieter(), e.datenschutz(),
-                modellFuer(f, e.anbieter()), standardModellFuer(f, e.anbieter()), modellGewaehlt(f, e.anbieter()), auswahl, standards);
+                modellFuer(f, e.anbieter()), standardModellFuer(f, e.anbieter()), modellGewaehlt(f, e.anbieter()), auswahl, standards,
+                f.benoetigtBild(), f.benoetigtPdf());
     }
 
     /** Das Modell dieser Funktion beim Anbieter: die Auswahl, sonst der Standard des Anbieters (bei Gemini der Standard der Funktion). */

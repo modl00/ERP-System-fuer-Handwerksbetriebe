@@ -57,7 +57,7 @@ class SpracheingabeServiceTest {
                 "spracheingabe", "Spracheingabe", AnbieterTyp.GEMINI, KiFunktion.Datenschutz.CLOUD_ERLAUBT);
         Mockito.lenient().when(kiAnbieterService.einstellung(KiFunktion.SPRACHEINGABE)).thenReturn(geminiEinstellung);
         Mockito.lenient().when(kiAnbieterService.stand(AnbieterTyp.GEMINI)).thenReturn(
-                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, true, "", true));
+                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, true, "", true, true, true));
         service = new SpracheingabeService(
                 systemSettingsService, kiAnbieterService, new ObjectMapper(), httpClient, "gemini-flash-latest");
     }
@@ -258,7 +258,7 @@ class SpracheingabeServiceTest {
     @Test
     void ohneEingerichtetenAnbieterIstDieSpracheingabeAus() {
         when(kiAnbieterService.stand(AnbieterTyp.GEMINI)).thenReturn(
-                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, false, "", false));
+                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, false, "", false, true, true));
 
         assertThat(service.istVerfuegbar()).isFalse();
     }
@@ -267,7 +267,7 @@ class SpracheingabeServiceTest {
     void mitEingerichtetemGeminiIstDieSpracheingabeAn() {
         // setUp setzt eingerichtet=true; hier noch einmal explizit, um den Intent zu dokumentieren.
         when(kiAnbieterService.stand(AnbieterTyp.GEMINI)).thenReturn(
-                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, true, "", true));
+                new AnbieterStand(AnbieterTyp.GEMINI, "Gemini (Google)", false, true, "", true, true, true));
 
         assertThat(service.istVerfuegbar()).isTrue();
     }

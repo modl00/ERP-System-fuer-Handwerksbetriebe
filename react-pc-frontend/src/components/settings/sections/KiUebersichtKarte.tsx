@@ -6,7 +6,7 @@ import { parseErrorMessage } from '../settingsApi';
 type Anbieter = 'GEMINI' | 'LOKAL' | 'CLAUDE' | 'MISTRAL';
 
 interface FunktionsEinstellung { funktion: string; anzeige: string; anbieter: Anbieter; datenschutz: 'NUR_LOKAL' | 'CLOUD_ERLAUBT' }
-interface AnbieterStand { typ: Anbieter; anzeige: string; lokal: boolean; eingerichtet: boolean; modell: string; schluesselGesetzt: boolean }
+interface AnbieterStand { typ: Anbieter; anzeige: string; lokal: boolean; eingerichtet: boolean; modell: string; schluesselGesetzt: boolean; kannBild: boolean; kannPdf: boolean }
 interface AnbieterUebersicht { funktionen: FunktionsEinstellung[]; anbieter: AnbieterStand[]; nochGemini: string[] }
 interface FunktionsModell { schluessel: string; anzeige: string; modell: string }
 interface ModellUebersicht { funktionen: FunktionsModell[] }

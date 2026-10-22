@@ -6,7 +6,7 @@ import { PostfachSchild } from '../features/email/PostfachSchild';
 import { useAbsenderPostfaecher } from '../features/email/useAbsenderPostfaecher';
 import { ermittleEmailZuordnung } from '../features/email/emailZuordnung';
 import { EmailFolderSidebar } from '../features/email/EmailFolderSidebar';
-import { UngelesenKopfzeile } from '../features/email/UngelesenKopfzeile';
+
 import { AssignModal, type ZuordnungsZiel } from '../features/email/EmailAssignmentDialog';
 import { OrdnerHinweis } from '../features/email/OrdnerHinweis';
 import { KiAbgleichDialog } from '../features/email/KiAbgleichDialog';
@@ -15,7 +15,7 @@ import { AnfrageErstellenModal } from './AnfrageEditor';
 import { useOptionalAuth } from '../auth/AuthContext';
 import { useEmailPaneWidth } from '../features/email/useEmailPaneWidth';
 import {
-    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, filtereEntwuerfe, fremderEntwurfVon,
+    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, fremderEntwurfVon,
     getSenderName, getDisplayName, groupEmailThreads, hasFurtherRecipients, isImageAttachment, loeschFehlerMeldung, nutztServerFilterUngelesen,
     type DraftItem, type EmailItem, type EmailThreadRow, type FolderType, type ReadFilter, type ReplyMode,
 } from '../features/email/emailCenterModel';
@@ -335,7 +335,6 @@ export default function EmailCenter() {
     const [forwardEmail, setForwardEmail] = useState<EmailItem | null>(null);
 
     // Drafts
-    interface DraftItem { id: number; recipient?: string; cc?: string; subject?: string; body?: string; fromAddress?: string; replyEmailId?: number; weitergeleitetVonEmailId?: number | null; projektId?: number; anfrageId?: number; updatedAt?: string; }
     const [drafts, setDrafts] = useState<DraftItem[]>([]);
     const [activeDraftId, setActiveDraftId] = useState<number | undefined>(undefined);
     const [activeDraft, setActiveDraft] = useState<DraftItem | null>(null);

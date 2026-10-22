@@ -914,6 +914,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         setLagerArtikelMengen(prev => ({ ...prev, [artikel.id]: value }));
     };
 
+    const handleLagerBeschaffungChange = (artikel: Artikel, wert: 'lager' | 'bestellen') => {
+        setLagerArtikelBeschaffung(prev => ({ ...prev, [artikel.id]: wert }));
+    };
 
     /** Menge einer gewaehlten Zeile als Zahl - NaN, solange die Eingabe unbrauchbar ist. */
     const getLagerMenge = (artikelId: number) =>
@@ -3875,6 +3878,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                 const checked = selectedLagerArtikelKeys.has(key);
                                 const mengeFehlt = checked && lagerMengeUngueltig(key);
                                 const name = artikelBezeichnung(artikel);
+                                const beschaffung = lagerArtikelBeschaffung[key] ?? 'bestellen';
                                 return (
                                     <div className="flex items-center gap-3">
                                         <input

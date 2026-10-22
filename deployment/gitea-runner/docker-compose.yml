@@ -19,7 +19,7 @@ services:
     environment:
       GITEA_INSTANCE_URL: http://192.168.178.21:3050
       GITEA_RUNNER_NAME: erp-runner
-      GITEA_RUNNER_LABELS: docker
+      GITEA_RUNNER_LABELS: docker:host
 
 volumes:
   runner-data:

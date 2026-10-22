@@ -323,6 +323,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     // Auswahl verloren, sobald ein Filter den Treffer aus der Liste draengt.
     const [selectedLagerArtikelData, setSelectedLagerArtikelData] = useState<Record<number, Artikel>>({});
     const [lagerArtikelMengen, setLagerArtikelMengen] = useState<Record<number, string>>({});
+    const [lagerArtikelBeschaffung, setLagerArtikelBeschaffung] = useState<Record<number, 'lager' | 'bestellen'>>({});
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [showSupplierPicker, setShowSupplierPicker] = useState(false);
     const [supplierSearchQuery, setSupplierSearchQuery] = useState('');

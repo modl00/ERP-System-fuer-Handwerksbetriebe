@@ -927,7 +927,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     preis: artikel.preis ?? null,
                     menge: getLagerMenge(key),
                     einheit: mapEinheitForBackend(artikel.verrechnungseinheit),
-                    ausLager: false,
+                    ausLager: lagerArtikelBeschaffung[key] === 'lager',
                 };
             })
             .filter((item): item is NonNullable<typeof item> => item !== null);

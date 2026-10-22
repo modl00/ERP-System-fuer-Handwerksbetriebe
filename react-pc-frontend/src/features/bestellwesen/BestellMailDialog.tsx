@@ -73,11 +73,14 @@ export function BestellMailDialog({ bestellung, onGesendet, onSchliessen }: Prop
     // Positions-Anhänge (DXF/STEP/PDF direkt an Positionen angehängt)
     const allePositionsAnhaenge = bestellung.positionen.flatMap(p => p.anhaenge ?? []);
 
+    // Projekt-ID aus Positionen ableiten (Bestellung selbst hat nur projekte: string[])
+    const projektId = bestellung.positionen.find(p => p.projektId != null)?.projektId ?? null;
+
     // Projektdateien laden wenn Ordner geöffnet wird
     useEffect(() => {
-        if (!zeigeOrdner || !bestellung.projektId || projektDokumente.length > 0) return;
+        if (!zeigeOrdner || !projektId || projektDokumente.length > 0) return;
         setLadeOrdner(true);
-        fetch(`/api/projekte/${bestellung.projektId}`)
+        fetch(`/api/projekte/${projektId}`)
             .then(r => r.ok ? r.json() : Promise.reject(new Error(`HTTP ${r.status}`)))
             .then((data: { dokumente?: ProjektDokument[] }) => {
                 setProjektDokumente(data.dokumente ?? []);
@@ -88,7 +91,7 @@ export function BestellMailDialog({ bestellung, onGesendet, onSchliessen }: Prop
             .finally(() => setLadeOrdner(false));
     // toast ist stabil, kein echter Dep
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [zeigeOrdner, bestellung.projektId, projektDokumente.length]);
+    }, [zeigeOrdner, projektId, projektDokumente.length]);
 
     const handleFileUpload = (files: FileList | null) => {
         if (!files) return;
@@ -184,7 +187,7 @@ export function BestellMailDialog({ bestellung, onGesendet, onSchliessen }: Prop
         }
     };
 
-    const hatProjekt = !!bestellung.projektId;
+    const hatProjekt = projektId != null;
 
     return (
         <Dialog open onOpenChange={(o) => { if (!o && !sendet) onSchliessen(); }} aria-label={`Bestellung ${nummer} per E-Mail senden`}>

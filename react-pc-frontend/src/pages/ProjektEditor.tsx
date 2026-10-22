@@ -323,7 +323,6 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     // Auswahl verloren, sobald ein Filter den Treffer aus der Liste draengt.
     const [selectedLagerArtikelData, setSelectedLagerArtikelData] = useState<Record<number, Artikel>>({});
     const [lagerArtikelMengen, setLagerArtikelMengen] = useState<Record<number, string>>({});
-    const [lagerArtikelBeschaffung, setLagerArtikelBeschaffung] = useState<Record<number, 'lager' | 'bestellen'>>({});
     const [suppliers, setSuppliers] = useState<Supplier[]>([]);
     const [showSupplierPicker, setShowSupplierPicker] = useState(false);
     const [supplierSearchQuery, setSupplierSearchQuery] = useState('');
@@ -833,7 +832,6 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         setSelectedLagerArtikelKeys(new Set());
         setSelectedLagerArtikelData({});
         setLagerArtikelMengen({});
-        setLagerArtikelBeschaffung({});
     };
 
     /**
@@ -885,9 +883,6 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         setLagerArtikelMengen(prev => ({ ...prev, [artikel.id]: value }));
     };
 
-    const handleLagerBeschaffungChange = (artikel: Artikel, beschaffung: 'lager' | 'bestellen') => {
-        setLagerArtikelBeschaffung(prev => ({ ...prev, [artikel.id]: beschaffung }));
-    };
 
     /** Menge einer gewaehlten Zeile als Zahl - NaN, solange die Eingabe unbrauchbar ist. */
     const getLagerMenge = (artikelId: number) =>
@@ -927,11 +922,11 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     artikelId: artikel.id,
                     // Lieferant und Preis stammen vom guenstigsten Anbieter - genau
                     // dem, der in der Trefferliste danebensteht.
-                    lieferantId: artikel.lieferantId,
-                    preis: artikel.preis,
+                    lieferantId: artikel.lieferantId ?? null,
+                    preis: artikel.preis ?? null,
                     menge: getLagerMenge(key),
                     einheit: mapEinheitForBackend(artikel.verrechnungseinheit),
-                    ausLager: (lagerArtikelBeschaffung[key] ?? 'lager') === 'lager',
+                    ausLager: false,
                 };
             })
             .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -1911,7 +1906,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                     onClick={() => setShowLagerArtikelModal(true)}
                                     className="border-rose-300 text-rose-700 hover:bg-rose-50"
                                 >
-                                    <Package className="w-4 h-4 mr-2" /> Artikel aus Lager
+                                    <Package className="w-4 h-4 mr-2" /> Artikel hinzufügen
                                 </Button>
                                 <Button size="sm" onClick={() => setShowMaterialModal(true)} className="bg-rose-600 text-white hover:bg-rose-700">
                                     <Plus className="w-4 h-4 mr-2" /> Kosten erfassen
@@ -3671,9 +3666,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Artikel aus Lager hinzufügen</DialogTitle>
+                        <DialogTitle>Artikel aus dem Artikelstamm hinzufügen</DialogTitle>
                         <p className="text-sm text-slate-500">
-                            Suchen wie in der Materialverwaltung — Menge eintragen und festlegen, ob der Artikel aus dem Lager kommt oder bestellt werden muss.
+                            Artikel suchen, Menge eintragen und zum Projekt übernehmen. Ob aus dem Lager oder neu bestellt — das entscheidest du danach in der Bedarfsliste.
                         </p>
                     </DialogHeader>
 
@@ -3698,17 +3693,12 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                             urlSync={false}
                             seitenGroesse={LAGER_ARTIKEL_PAGE_SIZE}
                             seitenGroesseAusHoehe
-                            nurMitLieferantenpreis
                             onZeilenKlick={handleToggleLagerArtikel}
                             zeilenGedrueckt={(artikel) => selectedLagerArtikelKeys.has(artikel.id)}
                             zeilenAktion={(artikel) => {
                                 const key = artikel.id;
                                 const checked = selectedLagerArtikelKeys.has(key);
-                                const beschaffung = lagerArtikelBeschaffung[key] ?? 'lager';
                                 const mengeFehlt = checked && lagerMengeUngueltig(key);
-                                // Dieselbe Bezeichnung, die in der Zeile steht - sonst
-                                // sagt der Screenreader "100x100x4 auswählen", wo
-                                // sichtbar "Quadratrohr 100 x 100 x 4" steht.
                                 const name = artikelBezeichnung(artikel);
                                 return (
                                     <div className="flex items-center gap-3">
@@ -3719,9 +3709,6 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                             aria-label={`${name} auswählen`}
                                             className="h-4 w-4 accent-rose-600"
                                         />
-                                        {/* Die Einheit steht schon in der Preisspalte
-                                            ("11,80 € / Laufende Meter") - hier waere sie
-                                            nur eine zweite, abgeschnittene Kopie. */}
                                         <Input
                                             type="number"
                                             min={istStueckware(artikel) ? '1' : '0.01'}
@@ -3735,35 +3722,6 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                             placeholder="1"
                                             className={cn('w-20 h-8 text-sm', mengeFehlt && 'border-amber-400 bg-amber-50')}
                                         />
-                                        {/* Umschalter statt Auswahlliste: Es gibt genau zwei
-                                            Faelle, und ein aufklappendes Menue in jeder der
-                                            15 Zeilen waere ein Klick mehr fuer dieselbe
-                                            Entscheidung. Gleiche Bauart wie die
-                                            Oberflaechen-Schalter in der Suche darueber. */}
-                                        <div className="flex rounded-lg border border-slate-300 overflow-hidden" role="group"
-                                             aria-label={`Bezug für ${name}`}>
-                                            {([
-                                                { wert: 'lager', text: 'Lager' },
-                                                { wert: 'bestellen', text: 'Bestellen' },
-                                            ] as const).map(({ wert, text }) => (
-                                                <button
-                                                    key={wert}
-                                                    type="button"
-                                                    aria-pressed={checked && beschaffung === wert}
-                                                    disabled={!checked}
-                                                    onClick={() => handleLagerBeschaffungChange(artikel, wert)}
-                                                    className={cn(
-                                                        'px-3 py-1.5 min-h-[32px] text-xs transition-colors',
-                                                        !checked && 'opacity-50 cursor-not-allowed text-slate-400',
-                                                        checked && beschaffung === wert
-                                                            ? 'bg-rose-600 text-white'
-                                                            : checked && 'text-slate-700 hover:bg-slate-50',
-                                                    )}
-                                                >
-                                                    {text}
-                                                </button>
-                                            ))}
-                                        </div>
                                     </div>
                                 );
                             }}

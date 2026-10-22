@@ -36,6 +36,7 @@ import {
     User,
     X,
     ShoppingCart,
+    Paperclip,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -307,6 +308,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [bestellNotiz, setBestellNotiz] = useState('');
     const [offeneBestellungen, setOffeneBestellungen] = useState<OffeneBestellung[]>([]);
     const [gewaehlteBestNr, setGewaehlteBestNr] = useState<string>('');
+    const [bestellProjektDoks, setBestellProjektDoks] = useState<{ id: number; originalDateiname: string }[]>([]);
+    const [bestellDokIds, setBestellDokIds] = useState<Set<number>>(new Set());
+    const [bestellDokZeigen, setBestellDokZeigen] = useState(false);
     const [bestellLaeuft, setBestellLaeuft] = useState(false);
     const [newMaterial, setNewMaterial] = useState<{ beschreibung: string, betrag: string, lieferantId?: string, rechnungsnummer: string }>({ beschreibung: '', betrag: '', rechnungsnummer: '' });
     const [savingMaterial, setSavingMaterial] = useState(false);
@@ -1102,7 +1106,23 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         setBestellModus('neu');
         setGewaehlteBestNr('');
         setOffeneBestellungen([]);
+        setBestellDokIds(new Set());
+        setBestellDokZeigen(false);
+        setBestellProjektDoks([]);
         setBestellDialogOffen(true);
+        if (projekt.id) {
+            fetch(`/api/projekte/${projekt.id}/email-dokumente`)
+                .then(r => r.ok ? r.json() as Promise<{ id: number; originalDateiname: string }[]> : Promise.resolve([]))
+                .then(docs => {
+                    const erlaubt = new Set(['dxf', 'step', 'stp', 'dwg', 'dxb', 'pdf']);
+                    const gefiltert = docs.filter(d => {
+                        const ext = d.originalDateiname.split('.').pop()?.toLowerCase() ?? '';
+                        return erlaubt.has(ext);
+                    });
+                    setBestellProjektDoks(gefiltert);
+                })
+                .catch(() => { /* keine Zeichnungen = kein Problem */ });
+        }
     };
 
     const ladeOffeneBestellungen = async (lieferantId: string) => {
@@ -1138,6 +1158,15 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                 };
                 const res = await fetch('/api/bestellungen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
                 if (!res.ok) { toast.error(await leseFehlermeldung(res, 'Bestellung konnte nicht angelegt werden.')); return; }
+                const bestellung = await res.json() as { id: number; positionen: { id: number }[] };
+                if (bestellDokIds.size > 0 && bestellung.positionen?.length > 0) {
+                    const positionId = bestellung.positionen[0].id;
+                    await Promise.allSettled(
+                        [...bestellDokIds].map(dokId =>
+                            fetch(`/api/bestellungen/${bestellung.id}/positionen/${positionId}/anhaenge/vom-projekt-dokument/${dokId}`, { method: 'POST' })
+                        )
+                    );
+                }
                 toast.success('Bestellung angelegt.');
             } else {
                 if (!gewaehlteBestNr) { toast.error('Bitte eine Bestellung auswählen.'); return; }
@@ -3568,6 +3597,50 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                         onChange={(e) => setBestellNotiz(e.target.value)}
                                         placeholder="z. B. dringend, bis KW 45"
                                     />
+                                </div>
+                            )}
+
+                            {/* Zeichnungen anhängen (nur neue Bestellung, nur wenn Dokumente vorhanden) */}
+                            {bestellModus === 'neu' && bestellProjektDoks.length > 0 && (
+                                <div className="rounded-lg border border-slate-200">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+                                        onClick={() => setBestellDokZeigen(v => !v)}
+                                        aria-expanded={bestellDokZeigen}
+                                    >
+                                        <span className="flex items-center gap-1.5">
+                                            <Paperclip className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                                            Zeichnungen aus dem Projekt anhängen
+                                            {bestellDokIds.size > 0 && (
+                                                <span className="ml-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">
+                                                    {bestellDokIds.size}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${bestellDokZeigen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                                    </button>
+                                    {bestellDokZeigen && (
+                                        <div className="border-t border-slate-200 px-3 py-2 space-y-1.5">
+                                            {bestellProjektDoks.map(dok => (
+                                                <label key={dok.id} className="flex items-center gap-2 cursor-pointer py-0.5 text-sm text-slate-700 hover:text-slate-900">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                        checked={bestellDokIds.has(dok.id)}
+                                                        onChange={e => {
+                                                            setBestellDokIds(prev => {
+                                                                const next = new Set(prev);
+                                                                if (e.target.checked) next.add(dok.id); else next.delete(dok.id);
+                                                                return next;
+                                                            });
+                                                        }}
+                                                    />
+                                                    <span className="truncate">{dok.originalDateiname}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
                             )}
                         </div>

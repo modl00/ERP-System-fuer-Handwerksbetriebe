@@ -4,43 +4,43 @@ import org.example.kalkulationsprogramm.service.KiModellService;
 
 /**
  * KI-Funktionen, die schon über die gemeinsame Anbieter-Schnittstelle laufen. Je Funktion lassen sich Anbieter und Datenschutz-Stufe einstellen.
- * Die übrigen KI-Funktionen (Belegerkennung, Scanner, Spracheingabe, Beiträge) brauchen Bilder oder Ton und nutzen noch fest Gemini.
+ * {@code benoetigtBild}/{@code benoetigtPdf}: Die Funktion schickt Bilder bzw. PDFs an den Anbieter. Fehlt die Fähigkeit beim gewählten Anbieter, zeigt die
+ * Oberfläche einen Hinweis – der Aufruf läuft trotzdem (Fallback: PDF → Seiten als Bilder).
  */
 public enum KiFunktion {
 
-    HILFE("hilfe", "KI-Hilfe (Chat)", "ki.hilfe.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.HILFE),
-    ASSISTENT("assistent", "KI-Assistent mit Auskünften", "ki.assistent.anbieter", AnbieterTyp.LOKAL, Datenschutz.NUR_LOKAL, KiModellService.Funktion.ASSISTENT),
+    HILFE(“hilfe”, “KI-Hilfe (Chat)”, “ki.hilfe.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.HILFE, false, false),
+    ASSISTENT(“assistent”, “KI-Assistent mit Auskünften”, “ki.assistent.anbieter”, AnbieterTyp.LOKAL, Datenschutz.NUR_LOKAL, KiModellService.Funktion.ASSISTENT, false, false),
     /** Eingehende E-Mails einem Projekt oder einer Anfrage zuordnen. Standard wie bisher Gemini. */
-    EMAIL_EINORDNEN("email-einordnen", "E-Mails einordnen", "ki.email-einordnen.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
-            KiModellService.Funktion.EMAIL_KLASSIFIZIERUNG),
+    EMAIL_EINORDNEN(“email-einordnen”, “E-Mails einordnen”, “ki.email-einordnen.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+            KiModellService.Funktion.EMAIL_KLASSIFIZIERUNG, false, false),
     /** Entwürfe von E-Mails verbessern (Rechtschreibung, Grammatik). Standard wie bisher Gemini. */
-    EMAIL_TEXT("email-text", "E-Mail-Texte verbessern", "ki.email-text.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.EMAIL_TEXT),
+    EMAIL_TEXT(“email-text”, “E-Mail-Texte verbessern”, “ki.email-text.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.EMAIL_TEXT, false, false),
     /**
      * Rechnungen und Angebote aus PDFs auslesen (#232). Bei Gemini geht das PDF selbst an die KI (liest auch Scans). Bei einem anderen Anbieter wird der Text aus dem PDF
      * gelesen und nur der Text gefragt; PDFs ohne Textschicht (reine Scans) braucht dann Gemini.
      */
-    PDF_AUSLESEN("pdf-auslesen", "PDF-Rechnungen und -Angebote auslesen", "ki.pdf-auslesen.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
-            KiModellService.Funktion.PDF_EXTRAKTION),
+    PDF_AUSLESEN(“pdf-auslesen”, “PDF-Rechnungen und -Angebote auslesen”, “ki.pdf-auslesen.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+            KiModellService.Funktion.PDF_EXTRAKTION, false, true),
     /** Plantafel (#184): Vorgänge für einen Auftrag vorschlagen und den Liefertermin erklären. Die Termine rechnet das Programm, die KI schlägt nur vor und erklärt. */
-    PLANUNG("plantafel", "Plantafel: Vorgänge vorschlagen und Termine erklären", "ki.plantafel.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
-            KiModellService.Funktion.PLANUNG),
-    /** Test-Box: Die Antwort des Administrators auf eine Rückfrage als kurzen Kommentar für Gitea aufschreiben und einordnen. Nur Texte der Tickets, keine Kundendaten. */
+    PLANUNG(“plantafel”, “Plantafel: Vorgänge vorschlagen und Termine erklären”, “ki.plantafel.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+            KiModellService.Funktion.PLANUNG, false, false),
     /** Scanner: aus dem Foto eines Dokuments einen Dateinamen machen. Das Foto geht an den gewählten Anbieter (Bild-fähig: Gemini, Claude, lokale Modelle mit Bild). */
-    SCANNER("scanner", "Scanner: Dateinamen aus Fotos", "ki.scanner.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SCANNER),
-    /** Beiträge für die Website: Entwurf aus Projektdaten, Notizen und Fotos. Die Fotos gehen an den gewählten Anbieter; das Modell „Schwierige Fälle“ gilt bei Gemini. Nur öffentliche Texte, keine Kundennamen. */
-    BEITRAG("beitrag", "Beiträge für die Website (Entwurf mit Fotos)", "ki.beitrag.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.PRO),
+    SCANNER(“scanner”, “Scanner: Dateinamen aus Fotos”, “ki.scanner.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SCANNER, true, false),
+    /** Beiträge für die Website: Entwurf aus Projektdaten, Notizen und Fotos. Die Fotos gehen an den gewählten Anbieter; das Modell „Schwierige Fälle” gilt bei Gemini. Nur öffentliche Texte, keine Kundennamen. */
+    BEITRAG(“beitrag”, “Beiträge für die Website (Entwurf mit Fotos)”, “ki.beitrag.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.PRO, true, false),
     /**
      * Rechnungen, Lieferscheine und Auftragsbestätigungen aus PDFs und Fotos erkennen. Die Datei geht an den gewählten Anbieter; kann er keine PDFs lesen (Mistral,
-     * lokale Modelle), bekommt er die Seiten als Bilder. Bei Gemini gilt „Dokumente und Belege erkennen“ als Modell.
+     * lokale Modelle), bekommt er die Seiten als Bilder. Bei Gemini gilt „Dokumente und Belege erkennen” als Modell.
      */
-    DOKUMENT_ERKENNEN("dokument-erkennen", "Dokumente und Belege erkennen", "ki.dokument-erkennen.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
-            KiModellService.Funktion.DOKUMENT_ANALYSE),
-    TESTBOX("testbox", "Test-Box: Rückmeldungen aufbereiten", "ki.testbox.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.TESTBOX),
+    DOKUMENT_ERKENNEN(“dokument-erkennen”, “Dokumente und Belege erkennen”, “ki.dokument-erkennen.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+            KiModellService.Funktion.DOKUMENT_ANALYSE, true, true),
+    TESTBOX(“testbox”, “Test-Box: Rückmeldungen aufbereiten”, “ki.testbox.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.TESTBOX, false, false),
     /**
      * Bautagebuch-Diktat aus der mobilen Zeiterfassung. Audio geht an Gemini (inlineData);
      * weitere Anbieter können ergänzt werden, sobald ihr Audio-Format in SpracheingabeService implementiert ist.
      */
-    SPRACHEINGABE("spracheingabe", "Spracheingabe (Bautagebuch)", "ki.spracheingabe.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SPRACHEINGABE);
+    SPRACHEINGABE(“spracheingabe”, “Spracheingabe (Bautagebuch)”, “ki.spracheingabe.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SPRACHEINGABE, false, false);
 
     /** Wohin die Daten gehen dürfen. */
     public enum Datenschutz {
@@ -56,15 +56,19 @@ public enum KiFunktion {
     private final AnbieterTyp standardAnbieter;
     private final Datenschutz standardDatenschutz;
     private final KiModellService.Funktion geminiFunktion;
+    private final boolean benoetigtBild;
+    private final boolean benoetigtPdf;
 
     KiFunktion(String schluessel, String anzeige, String anbieterSchluessel, AnbieterTyp standardAnbieter, Datenschutz standardDatenschutz,
-            KiModellService.Funktion geminiFunktion) {
+            KiModellService.Funktion geminiFunktion, boolean benoetigtBild, boolean benoetigtPdf) {
         this.schluessel = schluessel;
         this.anzeige = anzeige;
         this.anbieterSchluessel = anbieterSchluessel;
         this.standardAnbieter = standardAnbieter;
         this.standardDatenschutz = standardDatenschutz;
         this.geminiFunktion = geminiFunktion;
+        this.benoetigtBild = benoetigtBild;
+        this.benoetigtPdf = benoetigtPdf;
     }
 
     /** Die Modellwahl für Gemini, wenn diese Funktion über Gemini läuft (siehe {@link KiModellService}). */
@@ -100,6 +104,14 @@ public enum KiFunktion {
 
     public Datenschutz standardDatenschutz() {
         return standardDatenschutz;
+    }
+
+    public boolean benoetigtBild() {
+        return benoetigtBild;
+    }
+
+    public boolean benoetigtPdf() {
+        return benoetigtPdf;
     }
 
     public static java.util.Optional<KiFunktion> ausSchluessel(String s) {

@@ -399,15 +399,6 @@ public class ArtikelController {
         return ResponseEntity.ok().build();
     }
 
-    @PutMapping("/{id}/stammdaten")
-    @Transactional
-    public ResponseEntity<ArtikelResponseDto> aktualisiereStammdaten(
-            @PathVariable Long id,
-            @RequestBody ArtikelStammdatenRequest request) {
-        Artikel aktualisiert = artikelService.aktualisiereStammdaten(id, request);
-        return ResponseEntity.ok(mappeArtikelZuDto(aktualisiert, null));
-    }
-
     /**
      * Pflegt die Felder, mit denen der Artikel als Position in einem
      * Kundendokument auftauchen kann: Kurzbeschreibung (Innensicht),

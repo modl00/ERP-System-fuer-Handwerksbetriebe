@@ -111,7 +111,7 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
             if (res.ok) {
                 toast.success('KI-Schlüssel gespeichert.');
                 setApiKey('');
-                // Anmeldedaten neu holen, damit „kiAktiv“ app-weit sofort stimmt
+                // Anmeldedaten neu holen, damit „kiAktiv" app-weit sofort stimmt
                 // (KI-Hilfe in der Menüleiste, KI-Knöpfe) – ohne Neuladen der Seite.
                 await Promise.all([loadSettings(), auth?.refreshMe()]);
                 onSaved?.();
@@ -148,7 +148,7 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
             toast.success(meldung);
             setApiKey('');
             setTestResult(null);
-            // Wie beim Speichern: „kiAktiv“ app-weit sofort aktualisieren.
+            // Wie beim Speichern: „kiAktiv" app-weit sofort aktualisieren.
             await Promise.all([loadSettings(), auth?.refreshMe()]);
             onSaved?.();
         } catch {
@@ -287,10 +287,10 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
     );
 
     return (
-        <div className=”space-y-6”>
-            <div role=”tablist” aria-label=”Bereiche der KI-Einstellungen” className=”flex flex-wrap gap-1 border-b border-slate-200”>
+        <div className="space-y-6">
+            <div role="tablist" aria-label="Bereiche der KI-Einstellungen" className="flex flex-wrap gap-1 border-b border-slate-200">
                 {BEREICHE.map((b, i) => (
-                    <button key={b.id} type=”button” role=”tab” id={`ki-reiter-${b.id}`} aria-selected={bereich === b.id} aria-controls=”ki-bereich”
+                    <button key={b.id} type="button" role="tab" id={`ki-reiter-${b.id}`} aria-selected={bereich === b.id} aria-controls="ki-bereich"
                         tabIndex={bereich === b.id ? 0 : -1} ref={el => { reiter.current[b.id] = el; }} onClick={() => waehle(b.id)} onKeyDown={e => taste(e, i)}
                         className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${bereich === b.id ? 'border-rose-600 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'}`}>
                         {b.label}
@@ -298,7 +298,7 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                 ))}
             </div>
 
-            <div role=”tabpanel” id=”ki-bereich” aria-labelledby={`ki-reiter-${bereich}`} className=”space-y-6”>
+            <div role="tabpanel" id="ki-bereich" aria-labelledby={`ki-reiter-${bereich}`} className="space-y-6">
                 {bereich === 'uebersicht' && (
                     <>
                         <KiStatusKasten an={auth?.user?.kiAktiv ?? apiKeySet} />
@@ -306,35 +306,35 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                         <KiUebersichtKarte onOeffne={waehle} />
 
                         <SettingsCard
-                            icon={<MessageSquareWarning className=”w-5 h-5 text-rose-600” />}
-                            title=”Anfragen von der Webseite”
+                            icon={<MessageSquareWarning className="w-5 h-5 text-rose-600" />}
+                            title="Anfragen von der Webseite"
                             description={
                                 <p>
                                     Wenn aktiv, prüft ein Sprachmodell jede neue Anfrage über das Webseiten-Formular
-                                    auf offensichtliche Spaß-Eingaben (z.B. „Test 123”, Beleidigungen, kaputte
+                                    auf offensichtliche Spaß-Eingaben (z.B. „Test 123", Beleidigungen, kaputte
                                     E-Mail-Adressen). Die Anfrage wird trotzdem immer gespeichert, und der Kunde
                                     bekommt seine Eingangsbestätigung – geprüft wird erst danach. Spaß-Anfragen
-                                    löschen Sie von Hand unter „Anfragen”. Dafür braucht es keinen
+                                    löschen Sie von Hand unter „Anfragen". Dafür braucht es keinen
                                     Gemini-Schlüssel: Das Modell läuft standardmäßig auf dem eigenen Server, die
                                     Anfragen verlassen den Betrieb dabei nicht. Ist es nicht eingerichtet oder
                                     gerade nicht erreichbar, entfällt nur die Prüfung.
                                 </p>
                             }
                         >
-                            <label className=”flex items-start gap-3 cursor-pointer select-none”>
+                            <label className="flex items-start gap-3 cursor-pointer select-none">
                                 <input
-                                    type=”checkbox”
+                                    type="checkbox"
                                     checked={spamFilterAktiv}
                                     disabled={spamFilterSaving}
                                     onChange={(e) => handleToggleSpamFilter(e.target.checked)}
-                                    className=”mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500”
+                                    className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                                 />
                                 <span>
-                                    <span className=”font-medium text-slate-900”>
+                                    <span className="font-medium text-slate-900">
                                         Spaß-Anfragen automatisch prüfen
                                     </span>
-                                    <span className=”block text-xs text-slate-500”>
-                                        Achtet z.B. auf „asdf”, „leck mich”, Test-Eingaben oder unsinnige
+                                    <span className="block text-xs text-slate-500">
+                                        Achtet z.B. auf „asdf", „leck mich", Test-Eingaben oder unsinnige
                                         E-Mail-Adressen. Abgewiesen oder in der Anfragenliste markiert wird
                                         dabei noch nichts.
                                     </span>
@@ -345,13 +345,13 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                 )}
 
                 {bereich === 'anbieter' && (
-                    <div className=”space-y-8”>
+                    <div className="space-y-8">
                         <KiAnbieterKarte
                             geminiZugang={geminiKarte}
                             lokalZugang={<LokaleKiKarte />}
                         />
-                        <section className=”space-y-3” aria-labelledby=”ki-schritt-2”>
-                            <h3 id=”ki-schritt-2” className=”text-base font-bold text-slate-900”>2. Funktionen: Anbieter, Modell und Datenschutz</h3>
+                        <section className="space-y-3" aria-labelledby="ki-schritt-2">
+                            <h3 id="ki-schritt-2" className="text-base font-bold text-slate-900">2. Funktionen: Anbieter, Modell und Datenschutz</h3>
                             <KiFunktionenKarte />
                         </section>
                     </div>
@@ -382,7 +382,7 @@ const OHNE_SCHLUESSEL_FAELLT_WEG = [
 /**
  * Statuskasten ganz oben: Sind die KI-Funktionen an oder aus?
  *
- * <p>„Aus“ ist kein Fehler, sondern eine freie Entscheidung des Betriebs –
+ * <p>„Aus" ist kein Fehler, sondern eine freie Entscheidung des Betriebs –
  * deshalb ruhig in Slate statt in Alarm-Rot. Der Kasten sagt, was trotzdem
  * geht und was ohne Schlüssel wegfällt.</p>
  */
@@ -461,7 +461,7 @@ function KiFunktionenInfo() {
     );
 }
 
-/** Erklärt, was „Schlüssel entfernen“ auslöst und was erhalten bleibt. */
+/** Erklärt, was „Schlüssel entfernen" auslöst und was erhalten bleibt. */
 function SchluesselEntfernenInfo() {
     return (
         <InfoButton titel="Schlüssel entfernen">

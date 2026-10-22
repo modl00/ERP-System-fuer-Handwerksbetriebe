@@ -27,12 +27,15 @@ import org.example.kalkulationsprogramm.domain.LieferantenArtikelPreise;
 import org.example.kalkulationsprogramm.domain.LieferantenBestellung;
 import org.example.kalkulationsprogramm.domain.Lieferanten;
 import org.example.kalkulationsprogramm.domain.Projekt;
+import org.example.kalkulationsprogramm.domain.BestellPositionAnhang;
 import org.example.kalkulationsprogramm.dto.Bestellwesen.BestellVorschlagDto;
 import org.example.kalkulationsprogramm.dto.Bestellwesen.BestellungDto;
 import org.example.kalkulationsprogramm.dto.Bestellwesen.BestellungEingabe;
+import org.example.kalkulationsprogramm.dto.Bestellwesen.FertigungsunterlageDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBestandDto;
 import org.example.kalkulationsprogramm.repository.ArtikelInProjektRepository;
 import org.example.kalkulationsprogramm.repository.ArtikelRepository;
+import org.example.kalkulationsprogramm.repository.BestellPositionAnhangRepository;
 import org.example.kalkulationsprogramm.repository.BestellPositionRepository;
 import org.example.kalkulationsprogramm.repository.DokumentnummerCounterRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenArtikelPreiseRepository;
@@ -78,6 +81,7 @@ public class LieferantenBestellungService {
     private final DokumentnummerCounterRepository zaehler;
     private final LagerService lager;
     private final BestellungService projektBestellungen;
+    private final BestellPositionAnhangRepository positionAnhaenge;
 
     // ------------------------------------------------------------------ Lesen
 
@@ -373,7 +377,18 @@ public class LieferantenBestellungService {
     }
 
     BestellungDto dto(LieferantenBestellung b) {
-        List<BestellungDto.Position> ps = b.getPositionen().stream().map(this::positionDto).toList();
+        Map<Long, List<FertigungsunterlageDto>> anhaengeByPosition = positionAnhaenge.findByBestellungId(b.getId())
+                .stream()
+                .collect(java.util.stream.Collectors.groupingBy(
+                        a -> a.getPosition().getId(),
+                        java.util.stream.Collectors.mapping(a -> new FertigungsunterlageDto(
+                                a.getId(), a.getOriginalDateiname(), a.getErstelltAm(),
+                                a.getDateigroesseBytes(), "/api/lieferanten-bestellungen/position-anhaenge/" + a.getId() + "/datei",
+                                a.getQuellFertigungsunterlage() != null ? a.getQuellFertigungsunterlage().getId() : null),
+                                java.util.stream.Collectors.toList())));
+        List<BestellungDto.Position> ps = b.getPositionen().stream()
+                .map(p -> positionDto(p, anhaengeByPosition.getOrDefault(p.getId(), List.of())))
+                .toList();
         BigDecimal summe = ps.stream().map(BestellungDto.Position::summe).filter(s -> s != null).reduce(BigDecimal.ZERO, BigDecimal::add);
         int geliefert = (int) ps.stream().filter(p -> p.geliefertAm() != null).count();
         String lieferstand = switch (b.getStatus()) {
@@ -391,11 +406,11 @@ public class LieferantenBestellungService {
                 ueberfaellig, UEBERFAELLIG_NACH_TAGEN, projektNamen, ps);
     }
 
-    private BestellungDto.Position positionDto(BestellPosition p) {
+    private BestellungDto.Position positionDto(BestellPosition p, List<FertigungsunterlageDto> anhaenge) {
         BigDecimal summe = p.getEinzelpreis() == null ? null : p.getEinzelpreis().multiply(p.getMenge()).setScale(2, RoundingMode.HALF_UP);
         return new BestellungDto.Position(p.getId(), p.getArtikel() == null ? null : p.getArtikel().getId(), p.getArtikelnummer(), p.getBezeichnung(),
                 p.getMenge(), p.getEinheit(), p.getEinzelpreis(), summe, p.getHerkunft(), p.getProjekt() == null ? null : p.getProjekt().getId(),
-                p.getProjekt() == null ? null : projektName(p.getProjekt()), p.getArtikelInProjektId(), p.getKommentar(), p.getGeliefertAm());
+                p.getProjekt() == null ? null : projektName(p.getProjekt()), p.getArtikelInProjektId(), p.getKommentar(), p.getGeliefertAm(), anhaenge);
     }
 
     private LieferantenBestellung finde(Long id) {

@@ -132,7 +132,7 @@ public class LieferantenBestellungController {
     /** Fertigungsunterlagen des Artikels einer Position als Vorschläge zum Übernehmen. */
     @GetMapping("/{id}/positionen/{positionId}/anhaenge/vorschlaege")
     public List<FertigungsunterlageDto> vorschlaege(@PathVariable Long id, @PathVariable Long positionId) {
-        return service.fertigungsunterlagenVorschlaege(positionId);
+        return anhangService.vorschlaege(positionId);
     }
 
     /** Datei direkt für eine Bestellposition hochladen (projektspezifisch). */

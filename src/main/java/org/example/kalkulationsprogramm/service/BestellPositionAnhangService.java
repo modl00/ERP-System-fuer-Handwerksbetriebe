@@ -57,6 +57,18 @@ public class BestellPositionAnhangService {
                 .toList();
     }
 
+    @Transactional(readOnly = true)
+    public List<FertigungsunterlageDto> vorschlaege(Long positionId) {
+        BestellPosition position = positionRepo.findById(positionId)
+                .orElseThrow(() -> new NotFoundException("Diese Bestellposition gibt es nicht."));
+        if (position.getArtikel() == null) return List.of();
+        return fertigungsunterlageRepo.findByArtikelIdOrderByErstelltAmAscIdAsc(position.getArtikel().getId())
+                .stream()
+                .map(u -> new FertigungsunterlageDto(u.getId(), u.getOriginalDateiname(), u.getErstelltAm(),
+                        u.getDateigroesseBytes(), "/api/artikel/fertigungsunterlagen/" + u.getId() + "/datei", null))
+                .toList();
+    }
+
     /** Laedt eine Datei direkt fuer diese Position hoch (Quelle 2: projektspezifisch). */
     @Transactional
     public FertigungsunterlageDto ladeHoch(Long positionId, MultipartFile datei) throws IOException {

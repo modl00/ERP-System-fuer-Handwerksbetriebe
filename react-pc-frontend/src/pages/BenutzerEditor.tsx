@@ -559,8 +559,8 @@ export default function BenutzerEditor() {
                                 <X className="w-4 h-4" /> Abbrechen
                             </Button>
                         </div>
-                        {speichernHindernis && (
-                            <p role="note" className="text-sm text-slate-600" data-testid="speichern-hindernis">{speichernHindernis}</p>
+                        {speichernGesperrtGrund && (
+                            <p role="note" className="text-sm text-slate-600" data-testid="speichern-hindernis">{speichernGesperrtGrund}</p>
                         )}
                     </div>
                 </Card>

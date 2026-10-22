@@ -392,21 +392,12 @@ export interface Artikel {
   werkstoffId?: number;
   werkstoffName?: string;
   kgProMeter?: number;
-  werkstoffId?: number;
-  /** Strichcode, nur bei einem Teil der Artikel vorhanden. */
-  ean?: string;
-  version?: number;
-  stegdicke?: number;
-  flanschdicke?: number;
   flaecheJeQm?: number;
   kgJeStueck?: number;
   m2JeStueck?: number;
   /** TABELLE, BERECHNET oder HAND; leer bei älteren Artikeln. */
   gewichtHerkunft?: string;
   gewichtVeraltet?: boolean;
-  /** Nur für diesen Artikel festgelegt (leer = vom Werkstoff übernommen) */
-  verzinkungsgeeignetEigen?: boolean | null;
-  pulverbeschichtungsgeeignetEigen?: boolean | null;
   werkstoffVerzinkungsgeeignet?: boolean | null;
   werkstoffPulverbeschichtungsgeeignet?: boolean | null;
 

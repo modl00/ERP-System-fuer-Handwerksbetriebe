@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Boxes, Briefcase, CheckCheck, FileText, Loader2, Mail, PackagePlus, Phone, Save, Send, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Boxes, Briefcase, CheckCheck, FileText, Loader2, Mail, PackagePlus, Paperclip, Phone, Save, Send, Trash2, X } from 'lucide-react';
 
 import { PageLayout } from '../components/layout/PageLayout';
 import { ProjectSelectModal } from '../components/ProjectSelectModal';
@@ -371,6 +371,28 @@ const BestellungBearbeiten = () => {
                             ladeBestellung(bestellung.id).then(uebernimm).catch(() => undefined);
                         }}
                     />
+                )}
+                {!bestellung && zeilen.length > 0 && istEntwurf && (
+                    <Card className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-2 text-slate-700">
+                                <Paperclip className="h-4 w-4 shrink-0 text-slate-400" />
+                                <div>
+                                    <p className="text-sm font-medium">Fertigungsunterlagen (DXF, STEP, PDF)</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">Entwurf speichern, um Zeichnungen und Dateien an die Positionen anhängen zu können.</p>
+                                </div>
+                            </div>
+                            <Button
+                                size="sm"
+                                variant="outline"
+                                disabled={beschaeftigt}
+                                onClick={() => void nurSpeichern()}
+                            >
+                                {beschaeftigt ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                Speichern &amp; Anhänge hinzufügen
+                            </Button>
+                        </div>
+                    </Card>
                 )}
 
                 <div className="flex flex-wrap items-center gap-2">

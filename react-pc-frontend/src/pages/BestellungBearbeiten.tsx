@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Boxes, Briefcase, CheckCheck, FileText, Loader2, Mail, PackagePlus, Paperclip, Phone, Save, Send, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Boxes, Briefcase, CheckCheck, FileText, Gem, Loader2, Mail, PackagePlus, Paperclip, Phone, Save, ScanLine, Send, Trash2, X } from 'lucide-react';
 
 import { PageLayout } from '../components/layout/PageLayout';
 import { ProjectSelectModal } from '../components/ProjectSelectModal';
@@ -12,6 +12,8 @@ import { useToast } from '../components/ui/toast';
 import { cn } from '../lib/utils';
 import { useDarf } from '../features/funktionsrechte/useFunktionsrechte';
 import { LagerArtikelWahl, type GewaehlterArtikel } from '../features/lager/LagerArtikelWahl';
+import { LieferscheinScanDialog } from '../features/lager/LieferscheinScanDialog';
+import { ladeOrte, type Lagerort } from '../features/lager/lagerApi';
 import { BestellMailDialog } from '../features/bestellwesen/BestellMailDialog';
 import { BestellPositionAnhaenge } from '../features/bestellwesen/BestellPositionAnhaenge';
 import { LieferantWahl } from '../features/bestellwesen/LieferantWahl';
@@ -68,6 +70,9 @@ const BestellungBearbeiten = () => {
     const [stornoOffen, setStornoOffen] = useState(false);
     const [stornoGrund, setStornoGrund] = useState('');
     const [artikelMenge, setArtikelMenge] = useState('1');
+    const [lagerOrte, setLagerOrte] = useState<Lagerort[]>([]);
+    const [lieferscheinScanOffen, setLieferscheinScanOffen] = useState(false);
+    const [lieferscheinVorabDatei, setLieferscheinVorabDatei] = useState<File | undefined>();
     const zaehler = useRef(0);
 
     const istEntwurf = bestellung === null || bestellung.status === 'ENTWURF';
@@ -90,6 +95,12 @@ const BestellungBearbeiten = () => {
             .catch((e: unknown) => setLadeFehler(e instanceof BestellFehler ? e.message : 'Die Bestellung konnte nicht geladen werden.'))
             .finally(() => setLaedt(false));
     }, [bestellungId, uebernimm]);
+
+    useEffect(() => {
+        let abgebrochen = false;
+        ladeOrte().then(liste => { if (!abgebrochen) setLagerOrte(liste); }).catch(() => undefined);
+        return () => { abgebrochen = true; };
+    }, []);
 
     const summe = useMemo(() => zeilen.reduce((s, z) => {
         const m = alsZahl(z.menge);
@@ -372,6 +383,44 @@ const BestellungBearbeiten = () => {
                         }}
                     />
                 )}
+
+                {/* ---- Lieferschein einbuchen ---- */}
+                {bestellung && bestellung.status === 'BESTELLT' && (
+                    <Card className="p-4">
+                        <div className="flex items-start justify-between gap-4">
+                            <div className="flex items-center gap-2 text-slate-700">
+                                <Gem className="h-4 w-4 shrink-0 text-rose-500" aria-hidden />
+                                <div>
+                                    <p className="text-sm font-medium">Lieferschein einbuchen</p>
+                                    <p className="text-xs text-slate-500 mt-0.5">PDF oder Foto des Lieferscheins hochladen – KI erkennt Artikel und Mengen und bucht sie direkt ins Lager.</p>
+                                </div>
+                            </div>
+                            <label className={cn(
+                                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm font-medium cursor-pointer transition-colors',
+                                lagerOrte.every(o => !o.aktiv)
+                                    ? 'border-slate-200 text-slate-400 cursor-not-allowed'
+                                    : 'border-rose-300 text-rose-700 hover:bg-rose-50'
+                            )} title={lagerOrte.every(o => !o.aktiv) ? 'Zuerst einen Lagerort anlegen' : undefined}>
+                                <ScanLine className="h-4 w-4" aria-hidden />
+                                Lieferschein scannen
+                                <input
+                                    type="file"
+                                    accept=".pdf,.jpg,.jpeg,.png,.webp,.gif"
+                                    className="sr-only"
+                                    disabled={lagerOrte.every(o => !o.aktiv)}
+                                    aria-label="Lieferschein hochladen und scannen"
+                                    onChange={(e) => {
+                                        const datei = e.target.files?.[0];
+                                        if (!datei) return;
+                                        setLieferscheinVorabDatei(datei);
+                                        setLieferscheinScanOffen(true);
+                                        e.target.value = '';
+                                    }}
+                                />
+                            </label>
+                        </div>
+                    </Card>
+                )}
                 {!bestellung && zeilen.length > 0 && istEntwurf && (
                     <Card className="p-4">
                         <div className="flex items-start justify-between gap-4">
@@ -440,6 +489,13 @@ const BestellungBearbeiten = () => {
                     <DialogFooter><Button variant="ghost" onClick={() => setBestellenOffen(false)}>Abbrechen</Button></DialogFooter>
                 </DialogContent>
             </Dialog>
+            <LieferscheinScanDialog
+                offen={lieferscheinScanOffen}
+                orte={lagerOrte}
+                vorabDatei={lieferscheinVorabDatei}
+                onSchliessen={() => { setLieferscheinScanOffen(false); setLieferscheinVorabDatei(undefined); }}
+                onGebucht={() => { setLieferscheinScanOffen(false); setLieferscheinVorabDatei(undefined); }}
+            />
             <Dialog open={stornoOffen} onOpenChange={setStornoOffen} aria-label="Bestellung stornieren?">
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>

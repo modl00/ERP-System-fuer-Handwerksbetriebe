@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { CheckCircle2, Gem, Loader2, PackagePlus, ScanLine, XCircle } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
@@ -88,6 +88,8 @@ export interface LieferscheinScanDialogProps {
     orte: Lagerort[];
     onSchliessen: () => void;
     onGebucht: () => void;
+    /** Optionale Datei die beim Öffnen direkt gescannt wird (z.B. Anhang aus Bestellung). */
+    vorabDatei?: File;
 }
 
 // ---- Schritt-Typen ------------------------------------------------------------
@@ -96,7 +98,7 @@ type Schritt = 'upload' | 'ergebnis' | 'fertig';
 
 // ---- Komponente ---------------------------------------------------------------
 
-export function LieferscheinScanDialog({ offen, orte, onSchliessen, onGebucht }: LieferscheinScanDialogProps) {
+export function LieferscheinScanDialog({ offen, orte, onSchliessen, onGebucht, vorabDatei }: LieferscheinScanDialogProps) {
     const toast = useToast();
     const inputRef = useRef<HTMLInputElement>(null);
 
@@ -128,9 +130,7 @@ export function LieferscheinScanDialog({ offen, orte, onSchliessen, onGebucht }:
         onSchliessen();
     }
 
-    async function onDateigewaehlt(e: React.ChangeEvent<HTMLInputElement>) {
-        const datei = e.target.files?.[0];
-        if (!datei) return;
+    async function starteScan(datei: File) {
         setLaedt(true);
         setErgebnis(null);
         try {
@@ -152,6 +152,20 @@ export function LieferscheinScanDialog({ offen, orte, onSchliessen, onGebucht }:
             setLaedt(false);
             if (inputRef.current) inputRef.current.value = '';
         }
+    }
+
+    useEffect(() => {
+        if (offen && vorabDatei) {
+            zuruecksetzen();
+            void starteScan(vorabDatei);
+        }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [offen, vorabDatei]);
+
+    async function onDateigewaehlt(e: React.ChangeEvent<HTMLInputElement>) {
+        const datei = e.target.files?.[0];
+        if (!datei) return;
+        await starteScan(datei);
     }
 
     function toggleZeile(idx: number) {

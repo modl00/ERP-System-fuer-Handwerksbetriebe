@@ -68,8 +68,6 @@ public interface ArtikelRepository extends JpaRepository<Artikel, Long>, JpaSpec
     @Query("select distinct a.produktlinie from Artikel a left join a.artikelpreis ap where (ap is null or ap.lieferant.id <> :lieferantId) and a.produktlinie is not null")
     List<String> findDistinctProduktlinieExcludingLieferant(@Param("lieferantId") Long lieferantId);
 
-    Optional<Artikel> findByEan(String ean);
-
     @Query("select a from ArtikelWerkstoffe a where a.profilform is not null and a.masse is null and a.massePerQm is null and a.kgJeStueck is null order by a.id")
     List<org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe> findeOhneGewicht(org.springframework.data.domain.Pageable seite);
 

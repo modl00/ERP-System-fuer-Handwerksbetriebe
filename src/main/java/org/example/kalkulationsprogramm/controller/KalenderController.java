@@ -226,12 +226,11 @@ public class KalenderController {
      * Alle Kalendereinträge für ein Projekt (neueste zuerst).
      */
     @GetMapping("/projekt/{projektId}")
-    public ResponseEntity<List<KalenderEintragDto>> getEintraegeForProjekt(@PathVariable Long projektId) {
-        return ResponseEntity.ok(
-            kalenderEintragRepository.findByProjektIdOrderByDatumDesc(projektId).stream()
-                .map(KalenderEintragDto::fromEntity)
-                .collect(Collectors.toList())
-        );
+    public ResponseEntity<List<KalenderEintragDto>> getEintraegeForProjekt(@PathVariable Long projektId,
+            Authentication authentication) {
+        KalenderService.KalenderBetrachter betrachter = kalenderService.betrachter(authentication);
+        return ResponseEntity.ok(alsDtos(
+            kalenderEintragRepository.findByProjektIdOrderByDatumDesc(projektId), betrachter));
     }
 
     private List<KalenderEintragDto> alsDtos(List<KalenderEintrag> eintraege, KalenderService.KalenderBetrachter betrachter) {

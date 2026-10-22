@@ -1,5 +1,6 @@
 package org.example.kalkulationsprogramm.repository;
 
+import java.util.List;
 import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.Werkstoff;
@@ -11,11 +12,12 @@ import org.springframework.data.repository.query.Param;
 import jakarta.persistence.LockModeType;
 
 public interface WerkstoffRepository extends JpaRepository<Werkstoff, Long>, WerkstoffRepositoryErweiterung {
-	@org.springframework.data.jpa.repository.Query("select a.werkstoff.id, count(a) from Artikel a where a.werkstoff is not null group by a.werkstoff.id")
-	java.util.List<Object[]> zaehleArtikelJeWerkstoff();
+	/** Wie viele Artikel einen Werkstoff benutzen: {id, Anzahl} je Werkstoff, der benutzt wird. */
+	@Query("select a.werkstoff.id, count(a) from Artikel a where a.werkstoff is not null group by a.werkstoff.id")
+	List<Object[]> zaehleArtikelJeWerkstoff();
 
-	@org.springframework.data.jpa.repository.Query("select count(a) from Artikel a where a.werkstoff.id = :id")
-	long zaehleArtikel(@org.springframework.data.repository.query.Param("id") Long id);
+	@Query("select count(a) from Artikel a where a.werkstoff.id = :id")
+	long zaehleArtikel(@Param("id") Long id);
 
 	Optional<Werkstoff> findByNameIgnoreCase(String name);
 

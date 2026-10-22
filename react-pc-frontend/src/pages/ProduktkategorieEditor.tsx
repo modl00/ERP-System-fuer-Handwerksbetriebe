@@ -355,9 +355,9 @@ export default function ProduktkategorieEditor({ eingebettet = false }: { eingeb
             {...(eingebettet
                 ? { className: 'max-w-none px-0 sm:px-0 lg:px-0 py-0' }
                 : {
-                    ribbonCategory: 'Artikelverwaltung',
-                    title: 'Produktkategorien',
-                    subtitle: 'Verwaltung der hierarchischen Kategoriestruktur.',
+                    ribbonCategory: 'Katalog',
+                    title: 'Projekt-Kategorien',
+                    subtitle: 'Gewerke, nach denen Projekte eingeordnet werden – nicht die Ordner der Artikel.',
                     actions: (
                         <>
                             {selectedKategorie && (

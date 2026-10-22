@@ -22,6 +22,7 @@ import {
     X,
     CreditCard,
     Edit2,
+    Lock,
     Smartphone
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
@@ -32,6 +33,8 @@ import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { cn } from '../lib/utils';
+import { pruefeZahlungszielTage } from '../lib/zahlungsziel';
+import { useToast } from '../components/ui/toast';
 import { type KundeDetail, type KundeProjektKurz, type KundeAnfrageKurz, type AusgangsGeschaeftsDokument } from '../types';
 import GoogleMapsEmbed from '../components/GoogleMapsEmbed';
 import { AddressAutocomplete } from '../components/AddressAutocomplete';
@@ -50,6 +53,8 @@ import { KundeObjekteBereich } from '../features/kundenstamm/KundeObjekteBereich
 import { WeitereRufnummern } from '../features/telefon/WeitereRufnummern';
 import { useKontaktAnrufAnzahl } from '../features/telefon/useKontaktAnrufAnzahl';
 import { useTelefonBerechtigung } from '../features/telefon/useTelefonBerechtigung';
+import { KundeGesperrtBand, KundeLoeschenKnopf } from '../features/kunden/KundeDatenschutz';
+import { useOptionalAuth } from '../auth/AuthContext';
 
 const ANREDE_OPTIONS = [
     { value: '', label: 'Bitte wählen' },
@@ -265,19 +270,31 @@ interface KundenDetailViewProps {
     onProjektAngelegt: () => void;
     /** Nach dem Anlegen einer Anfrage: Kunde neu laden, damit die Anfrage in der Liste steht */
     onAnfrageAngelegt: () => void;
+    /** Nur Admins sehen „Löschen…”. */
+    istAdmin: boolean;
+    onGeloescht: () => void;
+    /** Gesperrt oder anonymisiert: die Antwort ist die aktualisierte Akte. */
+    onGesperrt: (kunde: KundeDetail) => void;
 }
 
-const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEdit, onProjektAngelegt, onAnfrageAngelegt }) => {
+const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEdit, onProjektAngelegt, onAnfrageAngelegt, istAdmin, onGeloescht, onGesperrt }) => {
     const navigate = useNavigate();
     const [projektDialog, setProjektDialog] = useState(false);
     const [anfrageDialog, setAnfrageDialog] = useState(false);
     const darfAnfrageAnlegen = useDarf('ANFRAGEN', 'ANLEGEN') !== false;
+    // Gesperrt (Datenschutz): nur noch lesen, nichts Neues am Kunden anlegen.
+    const gesperrt = kunde.gesperrt === true;
     const initials = kunde.name.slice(0, 2).toUpperCase();
     const [gewaehlterTab, setActiveTab] = useState<KundeDetailTab>('emails');
     // Reiter "Anrufe" nur mit dem Abteilungs-Recht "Anrufe & Anrufbeantworter".
     const darfTelefon = useTelefonBerechtigung() === true;
-    const anrufAnzahl = useKontaktAnrufAnzahl('KUNDE', kunde.id, darfTelefon);
-    const activeTab: KundeDetailTab = gewaehlterTab === 'anrufe' && !darfTelefon ? 'emails' : gewaehlterTab;
+    // Bei gesperrten Kunden sind Anrufe vom Kunden gelöst und Notizen gelöscht --
+    // die Reiter entfallen, damit dort auch nichts Neues angelegt werden kann.
+    const zeigeAnrufe = darfTelefon && !gesperrt;
+    const anrufAnzahl = useKontaktAnrufAnzahl('KUNDE', kunde.id, zeigeAnrufe);
+    const ausgeblendet = (tab: KundeDetailTab) =>
+        (tab === 'anrufe' && !zeigeAnrufe) || (tab === 'notizen' && gesperrt);
+    const activeTab: KundeDetailTab = ausgeblendet(gewaehlterTab) ? 'emails' : gewaehlterTab;
 
     // Die Zähler der Reiter "Ansprechpartner" und "Objekte" melden die Bereiche selbst, sobald sie etwas ändern
     // (zusammen mit der Kundennummer gespeichert: Wechselt der Kunde, gelten sie nicht mehr)
@@ -297,17 +314,18 @@ const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEd
 
     const tabs: { key: KundeDetailTab; label: string; icon: React.ReactNode; count: number }[] = [
         { key: 'emails', label: 'E-Mails', icon: <Mail className="w-4 h-4" />, count: emailCount },
-        ...(darfTelefon ? [{ key: 'anrufe' as const, label: 'Anrufe', icon: <Phone className="w-4 h-4" />, count: anrufAnzahl }] : []),
+        ...(zeigeAnrufe ? [{ key: 'anrufe' as const, label: 'Anrufe', icon: <Phone className="w-4 h-4" />, count: anrufAnzahl }] : []),
         { key: 'ansprechpartner', label: 'Ansprechpartner', icon: <UserRound className="w-4 h-4" />, count: anzahlAnsprechpartner ?? kunde.anzahlAnsprechpartner ?? 0 },
         { key: 'objekte', label: 'Objekte', icon: <Building2 className="w-4 h-4" />, count: anzahlObjekte ?? kunde.anzahlObjekte ?? 0 },
         { key: 'projekte', label: 'Projekte', icon: <Briefcase className="w-4 h-4" />, count: projekte.length },
         { key: 'anfragen', label: 'Anfragen', icon: <FileText className="w-4 h-4" />, count: anfragen.length },
         { key: 'dokumente', label: 'Dokumente', icon: <Receipt className="w-4 h-4" />, count: dokumente.length },
-        { key: 'notizen', label: 'Notizen', icon: <StickyNote className="w-4 h-4" />, count: kunde.notizen?.length || 0 },
+        ...(gesperrt ? [] : [{ key: 'notizen' as const, label: 'Notizen', icon: <StickyNote className="w-4 h-4" />, count: kunde.notizen?.length || 0 }]),
     ];
 
     const header = (
         <Card className="p-6">
+            {gesperrt && <KundeGesperrtBand kunde={kunde} onAnonymisiert={onGesperrt} />}
             {/* Spec-Befund 2 (Kunde, docs/superpowers/specs/2026-09-04-layout-14-zoll.md):
                 Bei einem langen Kundennamen nahm sich die Kennzahlen-Reihe ("flex-1
                 max-w-md") den Platz, den der Titelblock eigentlich brauchte -- die
@@ -375,11 +393,16 @@ const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEd
                     ergaenzt, um exakt der Rezeptur (Projekt/Anfrage) zu
                     entsprechen -- heute unsichtbar, weil nur ein Knopf hier
                     steht, faellt aber auf, sobald ein zweiter dazukommt. */}
-                <div className="flex flex-wrap items-start shrink-0 ml-auto gap-2">
-                    <Button variant="outline" onClick={onEdit}>
-                        <Edit2 className="w-4 h-4 mr-2" /> Bearbeiten
-                    </Button>
-                </div>
+                {!gesperrt && (
+                    <div className="flex flex-wrap items-start shrink-0 ml-auto gap-2">
+                        <Button variant="outline" onClick={onEdit}>
+                            <Edit2 className="w-4 h-4 mr-2" /> Bearbeiten
+                        </Button>
+                        {istAdmin && (
+                            <KundeLoeschenKnopf kunde={kunde} onGeloescht={onGeloescht} onGesperrt={onGesperrt} />
+                        )}
+                    </div>
+                )}
             </div>
         </Card>
     );
@@ -574,7 +597,7 @@ const KundenDetailView: React.FC<KundenDetailViewProps> = ({ kunde, onBack, onEd
                     </div>
                 </div>
                 {/* Beim Zuordnen von Anrufen gemerkte Nummern (erscheint nur, wenn es welche gibt). */}
-                <WeitereRufnummern typ="KUNDE" kontaktId={kunde.id} darfLoeschen={darfTelefon} />
+                {!gesperrt && <WeitereRufnummern typ="KUNDE" kontaktId={kunde.id} darfLoeschen={darfTelefon} />}
                 <div className="p-3 bg-slate-50 rounded-lg flex items-center gap-3">
                     <div className="p-2 bg-white rounded-md shadow-sm text-slate-400 shrink-0">
                         <Mail className="w-4 h-4" />
@@ -660,10 +683,14 @@ interface KundenFormularProps {
     isCreating: boolean;
     onSave: (kunde: KundeDetail) => void;
     onCancel: () => void;
+    /** Duplikat-Treffer gewählt: Formular schließen und den vorhandenen Kunden öffnen. */
+    onBestehendenOeffnen: (kundeId: number) => void;
 }
 
-const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSave, onCancel }) => {
+const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSave, onCancel, onBestehendenOeffnen }) => {
     const [formData, setFormData] = useState<KundeDetail>(kunde);
+    // Als Text: Beim Tippen darf das Feld kurz leer sein, ohne auf 8 zu springen.
+    const [zahlungszielText, setZahlungszielText] = useState(String(kunde.zahlungsziel ?? 8));
     const [emails, setEmails] = useState<string[]>(kunde.kundenEmails || ['']);
     const [error, setError] = useState('');
     const [saving, setSaving] = useState(false);
@@ -676,6 +703,7 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
     useEffect(() => {
         setFormData(kunde);
         setEmails(kunde.kundenEmails?.length ? kunde.kundenEmails : ['']);
+        setZahlungszielText(String(kunde.zahlungsziel ?? 8));
         setError('');
     }, [kunde]);
 
@@ -726,6 +754,12 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
             }
         }
 
+        const zahlungsziel = pruefeZahlungszielTage(zahlungszielText);
+        if (!zahlungsziel.gueltig) {
+            setError(zahlungsziel.meldung);
+            return;
+        }
+
         const uniqueEmails = [...new Set(emails.map(e => e.trim()).filter(Boolean))];
         const payload = {
             ...formData,
@@ -734,8 +768,7 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
             telefon: ohneReineVorwahl(formData.telefon),
             mobiltelefon: ohneReineVorwahl(formData.mobiltelefon),
             kundenEmails: uniqueEmails,
-            // 0 heißt sofort fällig und bleibt 0; nur ohne Angabe gelten 8 Tage
-            zahlungsziel: formData.zahlungsziel ?? 8
+            zahlungsziel: zahlungsziel.tage
         };
 
         setSaving(true);
@@ -777,18 +810,9 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
 
     const handleSubmit = () => speichern(false);
 
-    const handleBestehendenWaehlen = async (treffer: KundeDuplikatTreffer) => {
+    const handleBestehendenWaehlen = (treffer: KundeDuplikatTreffer) => {
         setDuplikatModal(null);
-        try {
-            const res = await fetch(`/api/kunden/${treffer.id}`);
-            if (res.ok) {
-                const detail = await res.json();
-                onSave(detail);
-                return;
-            }
-        } catch (err) {
-            console.error('Kunden-Detail konnte nicht geladen werden:', err);
-        }
+        onBestehendenOeffnen(treffer.id);
     };
 
     return (
@@ -912,7 +936,7 @@ const KundenFormular: React.FC<KundenFormularProps> = ({ kunde, isCreating, onSa
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                         <div>
                             <Label htmlFor="zahlungsziel">Zahlungsziel (Tage)</Label>
-                            <Input id="zahlungsziel" type="number" min={0} value={formData.zahlungsziel ?? ''} onChange={e => { const tage = parseInt(e.target.value, 10); handleChange('zahlungsziel', Number.isNaN(tage) ? undefined : Math.min(Math.max(tage, 0), 365)); }} placeholder="8" />
+                            <Input id="zahlungsziel" type="text" inputMode="numeric" value={zahlungszielText} onChange={e => setZahlungszielText(e.target.value)} placeholder="8" />
                         </div>
                     </div>
 
@@ -1001,6 +1025,11 @@ const KundenKarte: React.FC<KundenKarteProps> = ({ kunde, onSelect }) => {
                 <div>
                     <div className="flex items-center justify-between">
                         <p className="text-xs uppercase text-slate-500 tracking-wide">{kunde.kundennummer || 'ohne Nr.'}</p>
+                        {kunde.gesperrt ? (
+                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider bg-slate-100 text-slate-700 border border-slate-300">
+                                <Lock className="w-3 h-3" aria-hidden="true" /> Gesperrt
+                            </span>
+                        ) : (
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wider ${
                             kunde.hatProjekte
                                 ? 'bg-emerald-50 text-emerald-700 border border-emerald-200'
@@ -1008,6 +1037,7 @@ const KundenKarte: React.FC<KundenKarteProps> = ({ kunde, onSelect }) => {
                         }`}>
                             {kunde.hatProjekte ? 'Kunde' : 'Anfrager'}
                         </span>
+                        )}
                     </div>
                     {/* line-clamp-2 statt truncate (Spec E.3, Kartentitel-Ausnahme):
                         ein langer Kundenname (Spec-Befund 4) bricht auf zwei Zeilen um
@@ -1072,7 +1102,11 @@ interface FilterState {
     nummer: string;
     ort: string;
     typ: string;
+    /** 'true' = nur gesperrte Kunden (nur Admins), sonst leer. */
+    gesperrte: string;
 }
+
+const LEERE_FILTER: FilterState = { q: '', nummer: '', ort: '', typ: '', gesperrte: '' };
 
 const TYP_OPTIONS = [
     { value: '', label: 'Alle (Kunden & Anfrager)' },
@@ -1085,7 +1119,7 @@ const TYP_OPTIONS = [
 type ViewMode = 'list' | 'detail';
 
 export const Kundeneditor: React.FC = () => {
-    // Ohne das Recht „Kunden anlegen“ (Rechteverwaltung) erscheint der Knopf nicht; der Server prüft es ohnehin bei jedem Anlegen
+    const toast = useToast();
     const darfKundeAnlegen = useDarf('KUNDEN', 'ANLEGEN') !== false;
     const [searchParams, setSearchParams] = useSearchParams();
     const [viewMode, setViewMode] = useState<ViewMode>('list');
@@ -1094,9 +1128,10 @@ export const Kundeneditor: React.FC = () => {
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
     const [loading, setLoading] = useState(false);
-    const [filters, setFilters] = useState<FilterState>({ q: '', nummer: '', ort: '', typ: '' });
+    const [filters, setFilters] = useState<FilterState>(LEERE_FILTER);
     const [editingKunde, setEditingKunde] = useState<KundeDetail | null>(null);
     const [isCreating, setIsCreating] = useState(false);
+    const istAdmin = useOptionalAuth()?.isAdmin === true;
 
     // Deep-link: restore detail view from URL param ?kundeId=123
     // Merkt sich die zuletzt geoeffnete Kennung statt nur "schon einmal
@@ -1191,7 +1226,7 @@ export const Kundeneditor: React.FC = () => {
     };
 
     const handleResetFilters = () => {
-        setFilters({ q: '', nummer: '', ort: '', typ: '' });
+        setFilters(LEERE_FILTER);
         setPage(0);
     };
 
@@ -1200,43 +1235,51 @@ export const Kundeneditor: React.FC = () => {
         setIsCreating(true);
     };
 
-    /** Den Kunden mit seinen Projekten neu laden (zum Beispiel nach dem Anlegen eines Projekts) */
-    const ladeKundeNeu = async (id: number) => {
+    const zeigeDetail = (kunde: KundeDetail) => {
+        setSelectedKunde(kunde);
+        setViewMode('detail');
+        lastDeepLinkId.current = String(kunde.id);
+        setSearchParams({ kundeId: String(kunde.id) }, { replace: true });
+    };
+
+    /** Lädt die vollständige Kundenakte (Projekte, Dokumente, E-Mails, Kennzahlen). */
+    const ladeDetail = async (kundeId: number | string): Promise<KundeDetail | null> => {
         try {
-            const res = await fetch(`/api/kunden/${id}`);
-            if (res.ok) {
-                setSelectedKunde(await res.json());
-            }
+            const res = await fetch(`/api/kunden/${kundeId}`);
+            return res.ok ? await res.json() : null;
         } catch {
-            // Die Liste bleibt, wie sie war; das neue Projekt erscheint beim nächsten Öffnen
+            return null;
         }
     };
 
+    /** Den Kunden mit seinen Projekten neu laden (zum Beispiel nach dem Anlegen eines Projekts) */
+    const ladeKundeNeu = async (id: number) => {
+        const detail = await ladeDetail(id);
+        if (detail) setSelectedKunde(detail);
+    };
+
     const handleOpenDetail = async (kunde: KundeDetail) => {
-        // Fetch full details including communication history
         setLoading(true);
         try {
-            const res = await fetch(`/api/kunden/${kunde.id}`);
-            if (res.ok) {
-                const fullDetails = await res.json();
-                setSelectedKunde(fullDetails);
-                setViewMode('detail');
-                lastDeepLinkId.current = String(fullDetails.id);
-                setSearchParams({ kundeId: String(fullDetails.id) }, { replace: true });
+            // Ohne volle Akte zeigen wir wenigstens die Daten aus der Liste.
+            zeigeDetail((await ladeDetail(kunde.id)) ?? kunde);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleBestehendenOeffnen = async (kundeId: number) => {
+        setLoading(true);
+        try {
+            const detail = await ladeDetail(kundeId);
+            if (detail) {
+                // Formular erst jetzt schließen: Klappt das Laden nicht, bleibt das Eingetippte stehen.
+                setEditingKunde(null);
+                setIsCreating(false);
+                zeigeDetail(detail);
             } else {
-                console.error('Failed to load full customer details');
-                // Fallback to list data if fetch fails
-                setSelectedKunde(kunde);
-                setViewMode('detail');
-                lastDeepLinkId.current = String(kunde.id);
-                setSearchParams({ kundeId: String(kunde.id) }, { replace: true });
+                toast.error('Der vorhandene Kunde konnte nicht geöffnet werden.');
             }
-        } catch (err) {
-            console.error('Error loading customer details', err);
-            setSelectedKunde(kunde);
-            setViewMode('detail');
-            lastDeepLinkId.current = String(kunde.id);
-            setSearchParams({ kundeId: String(kunde.id) }, { replace: true });
         } finally {
             setLoading(false);
         }
@@ -1249,6 +1292,16 @@ export const Kundeneditor: React.FC = () => {
         setSearchParams({}, { replace: true });
     };
 
+    const handleGeloescht = () => {
+        handleBackToList();
+        fetchKunden();
+    };
+
+    const handleGesperrt = (aktualisiert: KundeDetail) => {
+        setSelectedKunde(prev => (prev && prev.id !== aktualisiert.id) ? prev : aktualisiert);
+        fetchKunden();
+    };
+
     const handleEditFromDetail = () => {
         if (selectedKunde) {
             setEditingKunde(selectedKunde);
@@ -1256,14 +1309,18 @@ export const Kundeneditor: React.FC = () => {
         }
     };
 
-    const handleSave = (saved: KundeDetail) => {
+    const handleSave = async (saved: KundeDetail) => {
         setEditingKunde(null);
         setIsCreating(false);
-        if (viewMode === 'detail') {
-            setSelectedKunde(saved);
-        }
         if (isCreating) setPage(0);
         fetchKunden();
+        if (viewMode === 'detail') {
+            // Die Antwort aufs Speichern enthält nur die Stammdaten. Damit Projekte,
+            // Dokumente und Kennzahlen stehen bleiben, die ganze Akte neu laden.
+            const detail = await ladeDetail(saved.id);
+            // Hat der Nutzer inzwischen eine andere Akte geöffnet, bleibt die stehen.
+            setSelectedKunde(prev => (prev && prev.id !== saved.id) ? prev : (detail ?? { ...(prev ?? saved), ...saved }));
+        }
     };
 
     const handleCancel = () => {
@@ -1289,6 +1346,9 @@ export const Kundeneditor: React.FC = () => {
                     onEdit={handleEditFromDetail}
                     onProjektAngelegt={() => { void ladeKundeNeu(selectedKunde.id); }}
                     onAnfrageAngelegt={() => { void ladeKundeNeu(selectedKunde.id); }}
+                    istAdmin={istAdmin}
+                    onGeloescht={handleGeloescht}
+                    onGesperrt={handleGesperrt}
                 />
                 {editingKunde && (
                     <KundenFormular
@@ -1296,6 +1356,7 @@ export const Kundeneditor: React.FC = () => {
                         isCreating={isCreating}
                         onSave={handleSave}
                         onCancel={handleCancel}
+                        onBestehendenOeffnen={handleBestehendenOeffnen}
                     />
                 )}
             </>
@@ -1333,7 +1394,7 @@ export const Kundeneditor: React.FC = () => {
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Kundennummer</label>
-                        <input type="text" className="filter-input w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="z.B. K-1005" value={filters.nummer} onChange={e => handleFilterChange('nummer', e.target.value)} />
+                        <input type="text" className="filter-input w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="z.B. 1005" value={filters.nummer} onChange={e => handleFilterChange('nummer', e.target.value)} />
                     </div>
                     <div>
                         <label className="block text-sm font-medium text-gray-700">Ort</label>
@@ -1354,7 +1415,22 @@ export const Kundeneditor: React.FC = () => {
                         <button type="button" className="btn-secondary flex-1 px-4 py-2 border rounded-lg hover:bg-slate-50" onClick={handleResetFilters}>Filter zurücksetzen</button>
                     </div>
                 </form>
-                <p className="text-xs text-gray-500 mt-3">Für Performance werden immer nur {PAGE_SIZE} Einträge auf einmal geladen.</p>
+                <div className="flex flex-wrap items-center justify-between gap-3 mt-3">
+                    <p className="text-xs text-gray-500">Für Performance werden immer nur {PAGE_SIZE} Einträge auf einmal geladen.</p>
+                    {/* Gesperrte Kunden (Datenschutz) erscheinen sonst nirgends -- nur Admins dürfen sie gezielt aufrufen. */}
+                    {istAdmin && (
+                        <label className="flex items-center gap-2 text-sm text-slate-700 cursor-pointer select-none">
+                            <input
+                                type="checkbox"
+                                checked={filters.gesperrte === 'true'}
+                                onChange={e => handleFilterChange('gesperrte', e.target.checked ? 'true' : '')}
+                                className="accent-rose-600 w-4 h-4"
+                            />
+                            <Lock className="w-4 h-4 text-slate-400" aria-hidden="true" />
+                            Nur gesperrte Kunden
+                        </label>
+                    )}
+                </div>
             </div>
 
             {/* Kunden-Grid */}
@@ -1391,7 +1467,7 @@ export const Kundeneditor: React.FC = () => {
 
             {/* Modal für Neuanlage */}
             {editingKunde && (
-                <KundenFormular kunde={editingKunde} isCreating={isCreating} onSave={handleSave} onCancel={handleCancel} />
+                <KundenFormular kunde={editingKunde} isCreating={isCreating} onSave={handleSave} onCancel={handleCancel} onBestehendenOeffnen={handleBestehendenOeffnen} />
             )}
         </PageLayout>
     );

@@ -10,6 +10,8 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Supplier;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
 import org.example.kalkulationsprogramm.domain.Kategorie;
@@ -23,16 +25,17 @@ import org.springframework.web.server.ResponseStatusException;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Welcher Aufschlag auf den Einkaufspreis gilt (Issue #121). Die Regel ist <b>„das Genauere gewinnt“</b>: erst der Aufschlag am <b>Artikel</b>, sonst der der
+ * Welcher Aufschlag auf den Einkaufspreis gilt. Die Regel ist <b>„das Genauere gewinnt"</b>: erst der Aufschlag am <b>Artikel</b>, sonst der der
  * <b>Kategorie</b> (hat sie keinen, der der nächsten Oberkategorie), sonst der <b>allgemeine</b> Aufschlag. Ist nirgends einer eingestellt, gibt es keinen,
- * und die Position zeigt den Einkaufspreis mit dem Hinweis „ohne Aufschlag“ (wie bisher).
+ * und die Position zeigt den Einkaufspreis mit dem Hinweis „ohne Aufschlag" (wie bisher).
  */
 @Service
 @RequiredArgsConstructor
 public class AufschlagService {
 
     static final String ALLGEMEIN_SCHLUESSEL = "kalkulation.aufschlag.allgemein";
-    static final BigDecimal MAX_PROZENT = new BigDecimal("1000");
+    /** Wie beim Aufschlag am Artikel: höchstens 999,99 Prozent. */
+    static final BigDecimal MAX_PROZENT = new BigDecimal("999.99");
     private static final int MAX_TIEFE = 30;
 
     private final SystemSettingsService einstellungen;
@@ -52,13 +55,34 @@ public class AufschlagService {
 
     @Transactional(readOnly = true)
     public Wirksam wirksamer(Artikel artikel) {
-        if (artikel == null) {
+        return wirksamer(artikel, this::allgemein);
+    }
+
+    /**
+     * Für Listen: Der allgemeine Aufschlag wird nur einmal gelesen und für alle Artikel der Liste verwendet, statt je Zeile neu aus den Einstellungen.
+     * Gedacht für die Dauer einer Anfrage, nicht zum Aufheben.
+     */
+    public Function<Artikel, Wirksam> fuerListe() {
+        BigDecimal[] gemerkt = new BigDecimal[1];
+        boolean[] gelesen = {false};
+        Supplier<BigDecimal> einmal = () -> {
+            if (!gelesen[0]) {
+                gemerkt[0] = allgemein();
+                gelesen[0] = true;
+            }
+            return gemerkt[0];
+        };
+        return a -> wirksamer(a, einmal);
+    }
+
+    private Wirksam wirksamer(Artikel a, Supplier<BigDecimal> allgemein) {
+        if (a == null) {
             return new Wirksam(null, Quelle.KEINER, null);
         }
-        if (artikel.getVerkaufsaufschlagProzent() != null) {
-            return new Wirksam(artikel.getVerkaufsaufschlagProzent(), Quelle.ARTIKEL, null);
+        if (a.getVerkaufsaufschlagProzent() != null) {
+            return new Wirksam(a.getVerkaufsaufschlagProzent(), Quelle.ARTIKEL, null);
         }
-        return ausKategorieOderAllgemein(artikel.getKategorie());
+        return ausKategorieOderAllgemein(a.getKategorie(), allgemein);
     }
 
     /** Der geltende Aufschlag eines Artikels nach seiner Nummer (für die Anzeige am Artikel). */
@@ -86,14 +110,15 @@ public class AufschlagService {
         Map<Integer, Kategorie> nachId = new HashMap<>();
         alle.forEach(k -> nachId.put(k.getId(), k));
         List<KategorieZeile> zeilen = new ArrayList<>();
+        BigDecimal allgemein = allgemein();
         for (Kategorie k : alle) {
-            Wirksam w = ausKategorieOderAllgemein(k);
+            Wirksam w = ausKategorieOderAllgemein(k, () -> allgemein);
             Kategorie eltern = k.getParentKategorie();
             zeilen.add(new KategorieZeile(k.getId(), eltern == null ? null : eltern.getId(), pfad(k), k.getVerkaufsaufschlagProzent(), w.prozent(), w.quelle(),
                     w.quellenName()));
         }
         zeilen.sort(Comparator.comparing((KategorieZeile z) -> z.pfad().toLowerCase(Locale.ROOT)));
-        return new Uebersicht(allgemein(), zeilen);
+        return new Uebersicht(allgemein, zeilen);
     }
 
     @Transactional
@@ -112,31 +137,35 @@ public class AufschlagService {
         return uebersicht();
     }
 
-    private Wirksam ausKategorieOderAllgemein(Kategorie start) {
+    private Wirksam ausKategorieOderAllgemein(Kategorie start, Supplier<BigDecimal> allgemeinQuelle) {
         Set<Integer> gesehen = new HashSet<>();
         Kategorie k = start;
         for (int tiefe = 0; k != null && tiefe < MAX_TIEFE && gesehen.add(k.getId()); tiefe++) {
             if (k.getVerkaufsaufschlagProzent() != null) {
-                return new Wirksam(k.getVerkaufsaufschlagProzent(), Quelle.KATEGORIE, k.getBeschreibung());
+                return new Wirksam(k.getVerkaufsaufschlagProzent(), Quelle.KATEGORIE, name(k));
             }
             k = k.getParentKategorie();
         }
-        BigDecimal allgemein = allgemein();
+        BigDecimal allgemein = allgemeinQuelle.get();
         return allgemein != null ? new Wirksam(allgemein, Quelle.ALLGEMEIN, null) : new Wirksam(null, Quelle.KEINER, null);
+    }
+
+    private static String name(Kategorie k) {
+        return k.getBeschreibung() == null || k.getBeschreibung().isBlank() ? "Kategorie " + k.getId() : k.getBeschreibung().strip();
     }
 
     private static String pfad(Kategorie k) {
         List<String> teile = new ArrayList<>();
         Set<Integer> gesehen = new HashSet<>();
         for (Kategorie x = k; x != null && gesehen.add(x.getId()) && teile.size() < MAX_TIEFE; x = x.getParentKategorie()) {
-            teile.add(0, x.getBeschreibung() == null || x.getBeschreibung().isBlank() ? "Kategorie " + x.getId() : x.getBeschreibung().strip());
+            teile.add(0, name(x));
         }
         return String.join(" › ", teile);
     }
 
     private static void pruefe(BigDecimal prozent) {
         if (prozent != null && (prozent.signum() < 0 || prozent.compareTo(MAX_PROZENT) > 0)) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Der Aufschlag muss zwischen 0 und 1000 Prozent liegen.");
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Der Aufschlag muss zwischen 0 und 999,99 Prozent liegen.");
         }
     }
 }

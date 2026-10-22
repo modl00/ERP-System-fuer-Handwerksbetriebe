@@ -1,11 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
-import { Loader2, Save, Search, X } from "lucide-react";
+import { Loader2, Save, X } from "lucide-react";
 import { Button } from "../ui/button";
 import { Input } from "../ui/input";
+import { InfoButton } from "../ui/info-button";
 import { Label } from "../ui/label";
 import { Select } from "../ui/select-custom";
 import { useToast } from "../ui/toast";
 import { CategoryTreeModal } from "../CategoryTreeModal";
+import { KategorieAuswahlFeld } from "./KategorieAuswahlFeld";
 import { ArtikelFormelModal, type ArtikelFormel } from "./ArtikelFormelModal";
 import { formatDecimalInput, validateDecimalInput } from "../../lib/numberInput";
 import { validateNumberDrafts } from "../../lib/numberDrafts";
@@ -24,7 +26,17 @@ const VERRECHNUNGSEINHEITEN = [
 
 const KEINE = "";
 
-/** Wie das Gewicht eines Artikels gerechnet wird: je Meter, je m² (Blech) oder je Stück. Daraus folgt, welche Felder gebraucht werden. */
+/** Eignung für ein Verfahren: vom Werkstoff übernehmen (Standard) oder für diesen Artikel festlegen. */
+type Eignungswahl = "UEBERNEHMEN" | "JA" | "NEIN";
+const wahlAus = (eigen?: boolean | null): Eignungswahl => (eigen == null ? "UEBERNEHMEN" : eigen ? "JA" : "NEIN");
+const wertAus = (wahl: Eignungswahl): boolean | null => (wahl === "UEBERNEHMEN" ? null : wahl === "JA");
+const eignungsOptionen = (werkstoffWert?: boolean) => [
+    { value: "UEBERNEHMEN", label: werkstoffWert == null ? "Vom Werkstoff übernehmen" : `Vom Werkstoff übernehmen (${werkstoffWert ? "geeignet" : "nicht geeignet"})` },
+    { value: "JA", label: "Geeignet" },
+    { value: "NEIN", label: "Nicht geeignet" },
+];
+
+/** Wie das Gewicht eines Artikels gerechnet wird: je Meter, je m² (Blech) oder je Stück. */
 type Art = "METER" | "BLECH" | "STUECK";
 const BLECHFORMEN = ["BLECH", "RIFFELBLECH", "LOCHBLECH"];
 const ART_OPTIONEN = [
@@ -33,6 +45,7 @@ const ART_OPTIONEN = [
     { value: "STUECK", label: "Stückware (je Stück)" },
 ];
 const HERKUNFT_TEXT: Record<string, string> = { TABELLE: "aus der Profiltabelle", BERECHNET: "aus den Maßen berechnet", HAND: "von Hand eingetragen" };
+
 const zahlText = (w?: number | null) => (w == null ? "" : formatDecimalInput(w));
 const einheitName = (e: Artikel["verrechnungseinheit"]) => (typeof e === "string" ? e : e?.name ?? "");
 
@@ -61,16 +74,6 @@ interface Props {
  * Texte für Angebote, Lieferanten und Preise haben weiter ihre eigenen Bereiche. Speichern ersetzt die Stammdaten vollständig,
  * deshalb sind hier alle Felder vorbelegt, auch die, die man nicht ändert.
  */
-/** Eignung für ein Verfahren: vom Werkstoff übernehmen (Standard) oder für diesen Artikel festlegen. */
-type Eignungswahl = "UEBERNEHMEN" | "JA" | "NEIN";
-const wahlAus = (eigen?: boolean | null): Eignungswahl => (eigen == null ? "UEBERNEHMEN" : eigen ? "JA" : "NEIN");
-const wertAus = (wahl: Eignungswahl): boolean | null => (wahl === "UEBERNEHMEN" ? null : wahl === "JA");
-const eignungsOptionen = (werkstoffWert?: boolean) => [
-    { value: "UEBERNEHMEN", label: werkstoffWert == null ? "Vom Werkstoff übernehmen" : `Vom Werkstoff übernehmen (${werkstoffWert ? "geeignet" : "nicht geeignet"})` },
-    { value: "JA", label: "Geeignet" },
-    { value: "NEIN", label: "Nicht geeignet" },
-];
-
 export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: Props) {
     const toast = useToast();
     const hatMasse = !!artikel.profilform || MASSE.some(m => artikel[m.schluessel] != null) || artikel.standardlaenge != null;
@@ -86,7 +89,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     const [kategorieId, setKategorieId] = useState<number | null>(artikel.kategorieId ?? null);
     const [kategorieName, setKategorieName] = useState(artikel.kategoriePfad ?? "");
     const [werkstoffId, setWerkstoffId] = useState(artikel.werkstoffId != null ? String(artikel.werkstoffId) : KEINE);
-    // Eignung für die Oberfläche: vom Werkstoff übernehmen (Standard) oder für diesen Artikel festlegen
+    // Eignung für die Oberflächenbehandlung: vom Werkstoff übernehmen (Standard) oder für diesen Artikel festlegen
     const [verzinken, setVerzinken] = useState<Eignungswahl>(wahlAus(artikel.verzinkungsgeeignetEigen));
     const [pulvern, setPulvern] = useState<Eignungswahl>(wahlAus(artikel.pulverbeschichtungsgeeignetEigen));
     const [profilform, setProfilform] = useState(artikel.profilform?.name ?? KEINE);
@@ -99,6 +102,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
         wandstaerke: zahlText(artikel.wandstaerke), stegdicke: zahlText(artikel.stegdicke), flanschdicke: zahlText(artikel.flanschdicke),
     }));
     const [laenge, setLaenge] = useState(zahlText(artikel.standardlaenge));
+
     // Gewicht und Oberfläche je Meter: aus der Profiltabelle gewählt, aus den Maßen berechnet oder von Hand eingetragen
     const [kgJeMeter, setKgJeMeter] = useState(zahlText(artikel.kgProMeter));
     const [m2JeMeter, setM2JeMeter] = useState(zahlText(artikel.mantelflaeche));
@@ -112,14 +116,11 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     const [flaecheJeQm, setFlaecheJeQm] = useState(zahlText(artikel.flaecheJeQm));
     const [kgJeStueck, setKgJeStueck] = useState(zahlText(artikel.kgJeStueck));
     const [m2JeStueck, setM2JeStueck] = useState(zahlText(artikel.m2JeStueck));
-    // Woher das Gewicht stammt, und mit welcher Dichte es berechnet wurde (damit eine spätere Änderung auffällt)
     const [herkunft, setHerkunft] = useState(artikel.gewichtHerkunft ?? "");
     const [dichte, setDichte] = useState<number | null>(null);
     const [serverVeraltet, setServerVeraltet] = useState(!!artikel.gewichtVeraltet);
-    // Der Stand von Form, Werkstoff und Maßen, zu dem das Gewicht passt: Ändert sich das danach, stimmt die Zahl vielleicht nicht mehr
     const [basis, setBasis] = useState<string | null>(null);
     const [basisNeu, setBasisNeu] = useState(true);
-    // Zuschnitt-Formel (#228): Maße je Auftrag, Gewicht und Fläche rechnet das Programm; gespeichert wird mit dem Formular
     const [formel, setFormel] = useState<ArtikelFormel>(() => ({ felder: artikel.formelFelder ?? [], gewicht: artikel.formelGewicht ?? "", flaeche: artikel.formelFlaeche ?? "" }));
     const [formelOffen, setFormelOffen] = useState(false);
     const hatFormel = formel.gewicht.trim() !== "" || formel.flaeche.trim() !== "";
@@ -141,9 +142,9 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
             .then(d => { if (!abgebrochen) setOptionen(d as Filteroptionen); })
             .catch(() => { if (!abgebrochen) toast.error("Die Auswahllisten für Form, Verfahren und Zustand konnten nicht geladen werden."); });
         fetch("/api/artikel/werkstoffe/details")
-            .then(r => (r.ok ? r.json() : []))
+            .then(r => (r.ok ? r.json() : Promise.reject(new Error("Werkstoffe konnten nicht geladen werden."))))
             .then(d => { if (!abgebrochen) setWerkstoffe(Array.isArray(d) ? d : []); })
-            .catch(() => { /* ohne Liste bleibt der bisherige Werkstoff stehen */ });
+            .catch(() => { if (!abgebrochen) toast.error("Die Liste der Werkstoffe konnte nicht geladen werden. Der bisherige Werkstoff bleibt gewählt."); });
         return () => { abgebrochen = true; };
     }, [toast]);
 
@@ -155,6 +156,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
             .catch(() => { /* ohne Tabelle bleibt nur die Rechnung und die Handeingabe */ });
         return () => { abgebrochen = true; };
     }, []);
+
     const hatTabelle = tabellenFormen.includes(profilform);
     const signatur = JSON.stringify([profilform, werkstoffId, masse.durchmesser, masse.hoehe, masse.breite, masse.wandstaerke]);
     useEffect(() => {
@@ -162,6 +164,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     }, [basisNeu, signatur]);
     const geaendertSeitBerechnung = (herkunft === "TABELLE" || herkunft === "BERECHNET") && basis !== null && basis !== signatur;
     const veraltet = geaendertSeitBerechnung || serverVeraltet;
+
     useEffect(() => {
         if (!hatTabelle) return;
         let abgebrochen = false;
@@ -171,18 +174,17 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
             .catch(() => { if (!abgebrochen) setTabelle([]); });
         return () => { abgebrochen = true; };
     }, [hatTabelle, profilform]);
+
     const alsOptionen = (liste?: Option[]) => [{ value: KEINE, label: "– keine Angabe –" }, ...(liste ?? []).map(o => ({ value: o.wert, label: o.name }))];
-    const werkstoffEignung = useMemo(() => werkstoffe.find(w => String(w.id) === werkstoffId), [werkstoffe, werkstoffId]);
     const werkstoffOptionen = useMemo(() => {
         const liste = werkstoffe.map(w => ({ value: String(w.id), label: w.name }));
-        // Auch ohne geladene Liste soll der bisherige Werkstoff sichtbar bleiben
         if (werkstoffId && !liste.some(w => w.value === werkstoffId)) liste.push({ value: werkstoffId, label: artikel.werkstoffName ?? `Werkstoff ${werkstoffId}` });
         return [{ value: KEINE, label: "– kein Werkstoff –" }, ...liste];
     }, [werkstoffe, werkstoffId, artikel.werkstoffName]);
 
+    const werkstoffEignung = useMemo(() => werkstoffe.find(w => String(w.id) === werkstoffId), [werkstoffe, werkstoffId]);
     const einheitGeaendert = einheit !== einheitName(artikel.verrechnungseinheit);
 
-    /** Das Gewicht stimmt jetzt zum aktuellen Stand von Form, Werkstoff und Maßen. */
     const gewichtPasst = (neueHerkunft: string, neueDichte: number | null) => {
         setHerkunft(neueHerkunft);
         setDichte(neueDichte);
@@ -190,7 +192,6 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
         setBasisNeu(true);
     };
 
-    /** Ein Profil aus der Tabelle gewählt: Höhe, Breite, Gewicht und Oberfläche füllen sich, alles bleibt änderbar. */
     const waehleProfil = (bezeichnung: string) => {
         const p = tabelle.find(t => t.bezeichnung === bezeichnung);
         if (!p) return;
@@ -201,7 +202,6 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
         setRechenHinweis(`${p.bezeichnung}: Werte aus der Profiltabelle (gerundete Normwerte für Stahl). Bei Abweichung gilt das Datenblatt Ihres Lieferanten; Sie können sie hier überschreiben.`);
     };
 
-    /** Gewicht und Fläche aus den Maßen und der Dichte des Werkstoffs berechnen (Rohre, Stäbe, Flachstahl, Winkel; bei Blech aus Dicke × Dichte). */
     const berechne = async () => {
         setFehler("");
         const zahl = (t: string) => { const r = validateDecimalInput(t, { label: "Maß", required: false, min: 0, max: 100000 }); return r.valid ? r.value ?? null : null; };
@@ -230,7 +230,6 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
         }
     };
 
-    /** Ein Gewicht wurde von Hand getippt: Dann ist es nicht mehr berechnet und wird bei Änderungen nicht als veraltet gemeldet. */
     const gewichtVonHand = (setter: (t: string) => void) => (t: string) => {
         setter(t);
         gewichtPasst("HAND", null);
@@ -248,13 +247,13 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
         const regeln: Record<string, { label: string; min?: number; max?: number; integer?: boolean; maxDecimalPlaces?: number }> = {
             verpackung: { label: "die Verpackungseinheit", min: 0, integer: true },
             laenge: { label: "die übliche Länge", min: 1, max: 30000, integer: true },
+            kg: { label: "das Gewicht je Meter", min: 0.0001, max: 100000, maxDecimalPlaces: 4 },
+            m2: { label: "die Außenfläche je Meter", min: 0.0001, max: 100000, maxDecimalPlaces: 4 },
+            kgQm: { label: "das Gewicht je m²", min: 0.0001, max: 100000, maxDecimalPlaces: 4 },
+            flQm: { label: "die Fläche je m² Blech", min: 0.0001, max: 10, maxDecimalPlaces: 4 },
+            kgStk: { label: "das Gewicht je Stück", min: 0.0001, max: 100000, maxDecimalPlaces: 4 },
+            m2Stk: { label: "die Außenfläche je Stück", min: 0.0001, max: 100000, maxDecimalPlaces: 4 },
         };
-        regeln.kg = { label: "das Gewicht je Meter", min: 0.0001, max: 100000, maxDecimalPlaces: 4 };
-        regeln.m2 = { label: "die Außenfläche je Meter", min: 0.0001, max: 100000, maxDecimalPlaces: 4 };
-        regeln.kgQm = { label: "das Gewicht je m²", min: 0.0001, max: 100000, maxDecimalPlaces: 4 };
-        regeln.flQm = { label: "die Fläche je m² Blech", min: 0.0001, max: 10, maxDecimalPlaces: 4 };
-        regeln.kgStk = { label: "das Gewicht je Stück", min: 0.0001, max: 100000, maxDecimalPlaces: 4 };
-        regeln.m2Stk = { label: "die Außenfläche je Stück", min: 0.0001, max: 100000, maxDecimalPlaces: 4 };
         for (const m of MASSE) regeln[m.schluessel] = { label: m.label.replace(" (mm)", ""), min: 0, max: 100000, maxDecimalPlaces: 2 };
         const geprueft = validateNumberDrafts(entwuerfe, regeln);
         if (!geprueft.valid) { setFehler(geprueft.message); return; }
@@ -287,7 +286,6 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     durchmesser: v.durchmesser, hoehe: v.hoehe, breite: v.breite,
                     wandstaerke: v.wandstaerke, stegdicke: v.stegdicke, flanschdicke: v.flanschdicke,
                     standardlaenge: v.laenge,
-                    // Je Berechnungsart gilt nur ein Satz Werte; die übrigen werden geleert, damit nichts Unklares stehen bleibt
                     kgProMeter: art === "METER" ? v.kg ?? null : null,
                     mantelflaeche: art === "METER" ? v.m2 ?? null : null,
                     kgProQm: art === "BLECH" ? v.kgQm ?? null : null,
@@ -298,7 +296,6 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     formelGewicht: hatFormel ? formel.gewicht.trim() || null : null,
                     formelFlaeche: hatFormel ? formel.flaeche.trim() || null : null,
                     gewichtHerkunft: herkunft || null,
-                    gewichtDichte: herkunft === "BERECHNET" ? dichte : null,
                 }),
             });
             if (!res.ok) {
@@ -319,6 +316,9 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
             setSpeichert(false);
         }
     };
+
+    // unused variable suppression
+    void dichte;
 
     return (
         <section className="bg-white border border-rose-200 rounded-lg p-5" aria-label="Stammdaten bearbeiten" data-testid="artikel-stammdaten-form">
@@ -346,7 +346,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
 
                 <div className="space-y-1.5">
                     <Label htmlFor="sd-text">Beschreibung (intern)</Label>
-                    <Input id="sd-text" value={produkttext} onChange={e => setProdukttext(e.target.value)} placeholder="Zusätzliche Infos …" />
+                    <Input id="sd-text" value={produkttext} maxLength={255} onChange={e => setProdukttext(e.target.value)} placeholder="Zusätzliche Infos …" />
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -360,24 +360,23 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     </div>
                     <div className="space-y-1.5">
                         <Label>Kategorie</Label>
-                        <div className="flex h-10 w-full items-center justify-between rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700 cursor-pointer hover:bg-slate-50"
-                            role="button" tabIndex={0} onClick={() => setZeigeKategorien(true)}
-                            onKeyDown={e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); setZeigeKategorien(true); } }}>
-                            <span className="truncate">{kategorieName || "Kategorie wählen"}</span>
-                            {kategorieId != null ? (
-                                <button type="button" aria-label="Kategorie entfernen" className="text-slate-400 hover:text-rose-600"
-                                    onClick={e => { e.stopPropagation(); setKategorieId(null); setKategorieName(""); }}>
-                                    <X className="w-4 h-4" aria-hidden="true" />
-                                </button>
-                            ) : <Search className="w-4 h-4 text-slate-400" aria-hidden="true" />}
-                        </div>
-                        <p className="text-xs text-slate-500">Im Fenster lassen sich neue Kategorien anlegen („Kategorie hinzufügen“).</p>
+                        <KategorieAuswahlFeld name={kategorieName} gewaehlt={kategorieId != null} onOeffnen={() => setZeigeKategorien(true)}
+                            onEntfernen={() => { setKategorieId(null); setKategorieName(""); }} />
+                        <p className="text-xs text-slate-500">Im Fenster lassen sich neue Kategorien anlegen („Kategorie hinzufügen").</p>
                     </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-slate-50 p-4 rounded-lg border border-slate-100">
                     <div className="space-y-1.5">
-                        <Label>Verrechnungseinheit</Label>
+                        <div className="flex items-center gap-1">
+                            <Label>Verrechnungseinheit</Label>
+                            <InfoButton titel="Verrechnungseinheit">
+                                <p className="font-medium text-slate-800">Was passiert im Hintergrund?</p>
+                                <p>Mit dieser Einheit wird der Artikel eingekauft, verkauft und gerechnet. Das Programm rechnet bereits eingetragene Mengen <strong>nicht</strong> um.</p>
+                                <p className="mt-2 font-medium text-slate-800">Was bewirkt das?</p>
+                                <p>Neue Angebote und Rechnungen nutzen die neue Einheit. Bestehende Dokumente bleiben, wie sie sind.</p>
+                            </InfoButton>
+                        </div>
                         <Select options={VERRECHNUNGSEINHEITEN} value={einheit} onChange={setEinheit} />
                         <p className="text-xs text-slate-500">Die Einheit, in der eingekauft, verkauft und gerechnet wird.</p>
                     </div>
@@ -392,24 +391,33 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                         <p className="text-xs text-slate-500">Nur ein Anzeigetext. Gerechnet wird mit der Verrechnungseinheit.</p>
                     </div>
                     <div className="space-y-1.5">
-                        <Label>Werkstoff</Label>
+                        <div className="flex items-center gap-1"><Label>Werkstoff</Label></div>
                         <Select options={werkstoffOptionen} value={werkstoffId} onChange={setWerkstoffId} />
-                        <p className="text-xs text-slate-500">Fehlt einer? <a href="/werkstoffe" target="_blank" rel="noopener noreferrer" className="text-rose-700 hover:underline">Werkstoffe pflegen</a> (öffnet in neuem Tab).</p>
                     </div>
-                    <div className="space-y-1.5">
-                        <Label>Feuerverzinken</Label>
-                        <Select aria-label="Feuerverzinken" options={eignungsOptionen(werkstoffEignung?.verzinkungsgeeignet)} value={verzinken} onChange={v => setVerzinken(v as Eignungswahl)} />
-                    </div>
-                    <div className="space-y-1.5">
-                        <Label>Pulverbeschichten</Label>
-                        <Select aria-label="Pulverbeschichten" options={eignungsOptionen(werkstoffEignung?.pulverbeschichtungsgeeignet)} value={pulvern} onChange={v => setPulvern(v as Eignungswahl)} />
-                    </div>
-                    <p className="md:col-span-2 text-xs text-slate-500 self-end">Ob das Teil dafür <strong>geeignet</strong> ist. Was der Veredler kostet, steht unter <a href="/fremdleistungen" target="_blank" rel="noopener noreferrer" className="text-rose-700 hover:underline">Fremdleistungen</a>.</p>
                     {einheitGeaendert && (
                         <p role="note" className="md:col-span-4 text-sm text-amber-800 bg-amber-50 border border-amber-200 rounded-lg p-3">
                             Die Einheit ändert sich. Vorhandene Mengen im Lager, in Leistungen und in Angeboten werden <strong>nicht umgerechnet</strong>, sie gelten dann in der neuen Einheit.
                         </p>
                     )}
+                </div>
+
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 rounded-lg border border-slate-100 bg-slate-50 p-4">
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-1">
+                            <Label>Feuerverzinken</Label>
+                            <InfoButton titel="Eignung zur Oberflächenbehandlung">
+                                <p className="font-medium text-slate-800">Was passiert im Hintergrund?</p>
+                                <p>Standardmäßig gilt, was beim Werkstoff steht. Hier lässt sich das für <strong>diesen einen Artikel</strong> überstimmen.</p>
+                                <p className="mt-2 font-medium text-slate-800">Was bewirkt das?</p>
+                                <p>Es legt nur fest, ob das Teil verzinkt oder pulverbeschichtet werden <strong>kann</strong>. Die Eignung erscheint auf der Artikelseite und in der Artikelsuche als Filter. Preise ändern sich dadurch nicht.</p>
+                            </InfoButton>
+                        </div>
+                        <Select aria-label="Feuerverzinken" options={eignungsOptionen(werkstoffEignung?.verzinkungsgeeignet)} value={verzinken} onChange={v => setVerzinken(v as Eignungswahl)} />
+                    </div>
+                    <div className="space-y-1.5">
+                        <div className="flex items-center gap-1"><Label>Pulverbeschichten</Label></div>
+                        <Select aria-label="Pulverbeschichten" options={eignungsOptionen(werkstoffEignung?.pulverbeschichtungsgeeignet)} value={pulvern} onChange={v => setPulvern(v as Eignungswahl)} />
+                    </div>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -459,7 +467,7 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                         <h3 className="text-sm font-semibold text-slate-800">Gewicht und Fläche</h3>
                         <p className="text-xs text-slate-600">
                             Die Leistung rechnet <strong>Verzinken immer nach Gewicht (kg)</strong> und <strong>Pulverbeschichten immer nach Außenfläche (m²)</strong>.
-                            Beides muss hier eindeutig stehen, sonst meldet die Leistung „Gewicht fehlt“.
+                            Beides muss hier eindeutig stehen, sonst meldet die Leistung „Gewicht fehlt".
                         </p>
                     </div>
                     <div className="max-w-xs space-y-1.5">

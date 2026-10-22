@@ -12,14 +12,14 @@ import lombok.Setter;
 
 /**
  * Alle Stammdaten eines Artikels zum Ändern. Es ist ein vollständiges Ersetzen: Was fehlt, wird geleert, nur der Produktname ist Pflicht.
- * Die Abmessungen gelten nur für Halbzeug ({@code ArtikelWerkstoffe}), bei anderen Artikeln werden sie ignoriert. Texte, Aufschlag,
- * Lieferanten und Preise haben eigene Endpunkte.
+ * Die Abmessungen gelten nur für Halbzeug ({@code ArtikelWerkstoffe}), bei anderen Artikeln werden sie ignoriert. Texte für Angebote,
+ * Aufschlag, Lieferanten, Preise und Gewicht haben eigene Endpunkte bzw. bleiben unberührt.
  */
 @Getter
 @Setter
 public class ArtikelStammdatenRequest {
 
-    /** Stand des Artikels beim Laden. Wurde er inzwischen von jemand anderem geändert, wird das Speichern abgelehnt. */
+    /** Stand des Artikels beim Laden (Pflicht). Wurde er inzwischen von jemand anderem geändert, wird das Speichern abgelehnt. */
     private Long version;
 
     private String produktname;

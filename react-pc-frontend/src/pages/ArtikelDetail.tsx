@@ -1,53 +1,71 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import {
-    Archive, ArrowLeft, Minus, Package, Pencil, RefreshCw, RotateCcw, Save, ShieldCheck, ShieldX,
-    Trash2, TrendingDown, TrendingUp
-} from "lucide-react";
+import { Archive, ArrowLeft, Euro, FileText, Images, LayoutDashboard, Package, RefreshCw, RotateCcw, Ruler, Trash2 } from "lucide-react";
 import { Button } from "../components/ui/button";
-import { Input } from "../components/ui/input";
-import { Label } from "../components/ui/label";
 import { PageLayout } from "../components/layout/PageLayout";
+import { Reiter, ReiterPanel, type ReiterEintrag } from "../components/ui/reiter";
+import { useToast } from "../components/ui/toast";
 import { useAuth } from "../auth/AuthContext";
 import { useConfirm } from "../components/ui/confirm-dialog";
-import { SupplierSelectModal } from "../components/SupplierSelectModal";
-import { useToast } from "../components/ui/toast";
-import { TiptapEditor } from "../components/TiptapEditor";
-import { preisHinweisText, type PreisHinweis } from "../components/artikel/preisHinweis";
 import { ArtikelDokumente } from "../components/artikel/ArtikelDokumente";
 import { ArtikelFertigungsunterlagen } from "../components/artikel/ArtikelFertigungsunterlagen";
-import { ArtikelStammdatenForm } from "../components/artikel/ArtikelStammdatenForm";
+import { UebersichtReiter, type ArtikelReiterId } from "../components/artikel/detail/UebersichtReiter";
+import { PreiseReiter } from "../components/artikel/detail/PreiseReiter";
+import { AngabenReiter } from "../components/artikel/detail/AngabenReiter";
+import { AngeboteReiter, type Angebotsfelder } from "../components/artikel/detail/AngeboteReiter";
+import { zahlAlsEingabe } from "../components/artikel/detail/format";
+import { stripHtmlTags } from "../lib/htmlSanitizer";
+import { parseDecimal } from "../components/verrechnungslohnFormat";
+import { cn } from "../lib/utils";
 import { ArtikelLagerBereich } from "../features/lager/ArtikelLagerBereich";
-// Dieselbe Waehrungsformatierung wie in der Trefferliste - inklusive der
-// zusaetzlichen Nachkommastellen bei Kleinstpreisen (Schrauben, Muttern).
-import { formatCurrency as formatEuro } from "../components/artikel/formatCurrency";
-import { richtextOderNull } from "../components/artikel/richtext";
-import type { Artikel, ArtikelDetail as ArtikelDetailData, ArtikelPreisstand } from "../types";
-
-/** Wie in der Liste - nur steht hier ein Strich, wo gar kein Preis gepflegt ist. */
-const formatCurrency = (val?: number) =>
-    val === undefined || val === null ? "—" : formatEuro(val);
-
-const formatDate = (dateStr?: string) =>
-    dateStr ? new Date(dateStr).toLocaleDateString("de-DE") : "—";
-
-const formatZahl = (val?: number, nachkomma = 3) =>
-    val === undefined || val === null
-        ? "—"
-        : new Intl.NumberFormat("de-DE", { maximumFractionDigits: nachkomma }).format(val);
+import type { Artikel, ArtikelDetail as ArtikelDetailData } from "../types";
 
 /**
- * Detailseite eines Artikels.
- *
- * Zeigt technische Daten, alle Lieferanten mit ihrer eigenen Artikelnummer und
- * den Preisverlauf. Preise koennen hier von Hand nachgetragen werden - etwa nach
- * einem Telefonat, wenn kein Angebot per Mail vorliegt.
+ * Ein Rich-Text ohne sichtbaren Inhalt gilt als leer und wird als `null`
+ * gesendet - sonst bleibt ein geleertes Beschreibungsfeld "gepflegt", weil
+ * Tiptap beim Leeren typischerweise "<p></p>" liefert statt eines leeren
+ * Strings. Zaehlt nicht als Inhalt: Tags, "&nbsp;" (als Entity oder echtes
+ * Zeichen) und gewoehnliche Leerzeichen.
+ */
+function richtextOderNull(html: string): string | null {
+    return sichtbarerText(html) === "" ? null : html;
+}
+
+function sichtbarerText(html: string): string {
+    return stripHtmlTags(html)
+        .replace(/&nbsp;/gi, " ")
+        .replace(/ /g, " ")
+        .trim();
+}
+
+const REITER_IDS: ArtikelReiterId[] = ["uebersicht", "preise", "angaben", "angebote", "bilder"];
+
+/** Der offene Reiter steht als Anker in der Adresse (#preise ...) - die Übersicht braucht keinen. */
+function reiterAusAnker(anker: string): ArtikelReiterId {
+    const roh = anker.replace(/^#/, "");
+    return (REITER_IDS as string[]).includes(roh) ? (roh as ArtikelReiterId) : "uebersicht";
+}
+
+const angebotsfelderAus = (a: Artikel): Angebotsfelder => ({
+    kurzbeschreibung: a.kurzbeschreibung ?? "",
+    beschreibung: a.beschreibung ?? "",
+    aufschlag: zahlAlsEingabe(a.verkaufsaufschlagProzent),
+});
+
+/**
+ * Detailseite eines Artikels, aufgeteilt in Reiter wie die Einstellungen:
+ * Übersicht, Preise & Lieferanten, Angaben zum Teil, Für Angebote sowie
+ * Bilder & Unterlagen. Preise koennen in der Uebersicht und im Preis-Reiter
+ * direkt in der Zeile geaendert werden - etwa nach einem Telefonat, wenn kein
+ * Angebot per Mail vorliegt.
  */
 export default function ArtikelDetail() {
     const { id } = useParams<{ id: string }>();
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
+    const { isAdmin } = useAuth();
+    const confirm = useConfirm();
 
     /**
      * Zurueck zur Artikelliste.
@@ -65,67 +83,66 @@ export default function ArtikelDetail() {
         else navigate("/artikel");
     }, [vonListe, navigate]);
 
-    const { isAdmin } = useAuth();
-    const confirm = useConfirm();
+    /**
+     * Reiterwechsel ersetzt nur den Anker der Adresse (kein neuer
+     * History-Eintrag): "Zurueck" fuehrt weiterhin zur Liste, und der
+     * mitgegebene Zustand (kam aus der Liste) bleibt erhalten.
+     */
+    const aktiverReiter = reiterAusAnker(location.hash);
+    const wechsleReiter = useCallback((reiter: ArtikelReiterId) => {
+        navigate(
+            { pathname: location.pathname, search: location.search, hash: reiter === "uebersicht" ? "" : `#${reiter}` },
+            { replace: true, state: location.state },
+        );
+    }, [navigate, location.pathname, location.search, location.state]);
 
     const [daten, setDaten] = useState<ArtikelDetailData | null>(null);
-    const [loading, setLoading] = useState(true);
+    const [laedt, setLaedt] = useState(true);
     const [fehler, setFehler] = useState<string | null>(null);
-    const [archivAktion, setArchivAktion] = useState(false);
-
-    // Preis-Eingabe
-    const [zeigeLieferantenWahl, setZeigeLieferantenWahl] = useState(false);
-    const [neuerPreis, setNeuerPreis] = useState({
-        lieferantId: 0,
-        lieferantName: "",
-        externeArtikelnummer: "",
-        preis: "",
-        notiz: "",
-    });
-    const [speichert, setSpeichert] = useState(false);
+    /** Fuer welchen Artikel schon Daten da sind - dann ist ein weiteres Laden nur ein Auffrischen. */
+    const geladeneId = useRef<string | null>(null);
+    const [datenFuer, setDatenFuer] = useState<string | null>(null);
 
     // Angebotsfelder
-    const [kurzbeschreibung, setKurzbeschreibung] = useState("");
-    const [beschreibung, setBeschreibung] = useState("");
-    const [aufschlag, setAufschlag] = useState<string>("");
-    // Welcher Aufschlag gilt, wenn am Artikel keiner steht (Kategorie oder allgemein); fehlt die Angabe, bleibt der Hinweis weg
-    const [geltenderAufschlag, setGeltenderAufschlag] = useState<{ prozent: number | null; quelle: string; quellenName: string | null } | null>(null);
+    const [angebotsfelder, setAngebotsfelder] = useState<Angebotsfelder>({ kurzbeschreibung: "", beschreibung: "", aufschlag: "" });
+    /** Zuletzt vom Server uebernommener Stand der Angebotsfelder - daran misst sich "nicht gespeichert". */
+    const [angebotsStand, setAngebotsStand] = useState<Angebotsfelder | null>(null);
     const [speichern, setSpeichern] = useState(false);
-
     // Stammdaten bearbeiten (Name, Nummern, Einheit, Kategorie, Maße ...)
     const [stammdatenBearbeiten, setStammdatenBearbeiten] = useState(false);
-
-    useEffect(() => {
-        if (!id) return;
-        let abgebrochen = false;
-        void (async () => {
-            try {
-                const res = await fetch(`/api/aufschlaege/artikel/${encodeURIComponent(id)}`);
-                if (res.ok && !abgebrochen) setGeltenderAufschlag(await res.json());
-            } catch { /* ohne die Angabe fehlt nur der Hinweis unter dem Feld */ }
-        })();
-        return () => { abgebrochen = true; };
-    }, [id, daten]);
+    const [archivAktion, setArchivAktion] = useState(false);
 
     const laden = useCallback(async () => {
         if (!id) return;
-        setLoading(true);
-        setFehler(null);
+        // Beim Auffrischen bleibt die Seite stehen (kein Skeleton, Reiter und
+        // Eingaben bleiben); nur ein Fehler wird gemeldet.
+        const auffrischen = geladeneId.current === id;
+        setLaedt(true);
+        if (!auffrischen) setFehler(null);
         try {
             const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/detail`);
             if (res.status === 404) {
+                geladeneId.current = null;
                 setFehler("Dieser Artikel wurde nicht gefunden.");
                 setDaten(null);
                 return;
             }
             if (!res.ok) throw new Error("Laden fehlgeschlagen");
             setDaten(await res.json());
+            setDatenFuer(id);
+            setFehler(null);
+            geladeneId.current = id;
         } catch (err) {
             console.error(err);
-            setFehler("Die Artikeldaten konnten nicht geladen werden.");
+            if (auffrischen) toast.error("Die Artikeldaten konnten nicht neu geladen werden.");
+            else setFehler("Die Artikeldaten konnten nicht geladen werden.");
         } finally {
-            setLoading(false);
+            setLaedt(false);
         }
+        // toast bewusst nicht in den Abhaengigkeiten: useToast() liefert bei jedem
+        // Render des ToastProvider ein neues Objekt. Sonst loeste jeder Toast in der
+        // App ein erneutes Laden aus (siehe ArtikelDokumente).
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id]);
 
     useEffect(() => { laden(); }, [laden]);
@@ -145,17 +162,21 @@ export default function ArtikelDetail() {
         if (!daten?.artikel) return;
         if (vorbelegteArtikelId.current === daten.artikel.id) return;
         vorbelegteArtikelId.current = daten.artikel.id;
-        setKurzbeschreibung(daten.artikel.kurzbeschreibung ?? "");
-        setBeschreibung(daten.artikel.beschreibung ?? "");
-        setAufschlag(
-            daten.artikel.verkaufsaufschlagProzent == null
-                ? ""
-                : String(daten.artikel.verkaufsaufschlagProzent),
-        );
+        const stand = angebotsfelderAus(daten.artikel);
+        setAngebotsfelder(stand);
+        setAngebotsStand(stand);
     }, [daten]);
 
     const artikel = daten?.artikel;
-    const hinweis = (daten?.artikel.preisHinweis ?? "KEIN_PREIS") as PreisHinweis;
+
+    /** Steht im Reiter „Für Angebote" etwas, das noch nicht gespeichert ist? */
+    const angeboteUngespeichert = useMemo(() => {
+        if (!angebotsStand) return false;
+        return angebotsfelder.kurzbeschreibung !== angebotsStand.kurzbeschreibung
+            || angebotsfelder.aufschlag.trim() !== angebotsStand.aufschlag
+            // Der Editor formt das HTML beim Laden mitunter leicht um - verglichen wird der sichtbare Text.
+            || sichtbarerText(angebotsfelder.beschreibung) !== sichtbarerText(angebotsStand.beschreibung);
+    }, [angebotsStand, angebotsfelder]);
 
     const archivieren = async () => {
         if (!id || !artikel) return;
@@ -215,53 +236,22 @@ export default function ArtikelDetail() {
         }
     };
 
-    const preisSpeichern = async () => {
-        if (!id || !neuerPreis.lieferantId) {
-            toast.error("Bitte zuerst einen Lieferanten auswählen.");
-            return;
-        }
-        const betrag = Number(neuerPreis.preis.replace(",", "."));
-        if (!Number.isFinite(betrag) || betrag < 0) {
-            toast.error("Bitte einen gültigen Preis eingeben.");
-            return;
-        }
-        setSpeichert(true);
-        try {
-            const res = await fetch(
-                `/api/lieferanten/${encodeURIComponent(neuerPreis.lieferantId)}/artikelpreise`,
-                {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({
-                        artikelId: Number(id),
-                        preis: betrag,
-                        externeArtikelnummer: neuerPreis.externeArtikelnummer || null,
-                    }),
-                },
-            );
-            if (!res.ok) throw new Error("Speichern fehlgeschlagen");
-            toast.success("Preis gespeichert. Der bisherige Preis bleibt im Verlauf erhalten.");
-            setNeuerPreis({ lieferantId: 0, lieferantName: "", externeArtikelnummer: "", preis: "", notiz: "" });
-            await laden();
-        } catch (err) {
-            console.error(err);
-            toast.error("Der Preis konnte nicht gespeichert werden.");
-        } finally {
-            setSpeichert(false);
-        }
-    };
-
     const speichereAngebotsfelder = async () => {
         if (!id) return;
+        const aufschlagWert = parseDecimal(angebotsfelder.aufschlag);
+        if (angebotsfelder.aufschlag.trim() !== "" && (aufschlagWert === null || aufschlagWert < 0 || aufschlagWert > 999.99)) {
+            toast.error("Bitte einen Aufschlag zwischen 0 und 999,99 % eingeben.");
+            return;
+        }
         setSpeichern(true);
         try {
             const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/dokumenttexte`, {
                 method: "PATCH",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
-                    kurzbeschreibung: kurzbeschreibung || null,
-                    beschreibung: richtextOderNull(beschreibung),
-                    verkaufsaufschlagProzent: aufschlag === "" ? null : Number(aufschlag),
+                    kurzbeschreibung: angebotsfelder.kurzbeschreibung || null,
+                    beschreibung: richtextOderNull(angebotsfelder.beschreibung),
+                    verkaufsaufschlagProzent: aufschlagWert,
                 }),
             });
             if (!res.ok) throw new Error("Speichern fehlgeschlagen");
@@ -272,13 +262,9 @@ export default function ArtikelDetail() {
             // Effekt oben sonst nicht erneut greifen.
             const aktualisiert: Artikel = await res.json();
             vorbelegteArtikelId.current = aktualisiert.id;
-            setKurzbeschreibung(aktualisiert.kurzbeschreibung ?? "");
-            setBeschreibung(aktualisiert.beschreibung ?? "");
-            setAufschlag(
-                aktualisiert.verkaufsaufschlagProzent == null
-                    ? ""
-                    : String(aktualisiert.verkaufsaufschlagProzent),
-            );
+            const stand = angebotsfelderAus(aktualisiert);
+            setAngebotsfelder(stand);
+            setAngebotsStand(stand);
             toast.success("Die Angebotsfelder sind aktualisiert.");
             await laden();
         } catch (err) {
@@ -289,18 +275,26 @@ export default function ArtikelDetail() {
         }
     };
 
-    if (loading) {
+    const stammdatenOeffnen = () => {
+        setStammdatenBearbeiten(true);
+        wechsleReiter("angaben");
+    };
+
+    // Daten eines anderen Artikels (beim Wechsel von Artikel zu Artikel) zaehlen nicht.
+    const istAktuell = !!artikel && datenFuer === id;
+
+    if (!istAktuell && (laedt || (!fehler && !daten))) {
         return (
             <PageLayout ribbonCategory="Stammdaten" title="Artikel">
-                <div className="animate-pulse space-y-4" aria-busy="true" aria-label="Artikel wird geladen">
-                    <div className="h-28 bg-slate-100 rounded-lg" />
+                <div className="motion-safe:animate-pulse space-y-4" aria-busy="true" aria-label="Artikel wird geladen">
+                    <div className="h-12 bg-slate-100 rounded-lg" />
                     <div className="h-56 bg-slate-100 rounded-lg" />
                 </div>
             </PageLayout>
         );
     }
 
-    if (fehler || !artikel) {
+    if (!istAktuell || !daten || !artikel) {
         return (
             <PageLayout ribbonCategory="Stammdaten" title="Artikel">
                 <div className="text-center py-16">
@@ -316,46 +310,71 @@ export default function ArtikelDetail() {
         );
     }
 
+    const reiter: ReiterEintrag<ArtikelReiterId>[] = [
+        { id: "uebersicht", label: "Übersicht", icon: <LayoutDashboard className="w-4 h-4" aria-hidden="true" /> },
+        {
+            id: "preise", label: "Preise & Lieferanten", icon: <Euro className="w-4 h-4" aria-hidden="true" />,
+            anzahl: daten.lieferanten.length,
+        },
+        {
+            id: "angaben", label: "Angaben zum Teil", icon: <Ruler className="w-4 h-4" aria-hidden="true" />,
+            kennzeichen: stammdatenBearbeiten ? { art: "punkt", text: "wird gerade bearbeitet" } : undefined,
+        },
+        {
+            id: "angebote", label: "Für Angebote", icon: <FileText className="w-4 h-4" aria-hidden="true" />,
+            kennzeichen: angeboteUngespeichert ? { art: "punkt", text: "nicht gespeichert" } : undefined,
+        },
+        { id: "bilder", label: "Bilder & Unterlagen", icon: <Images className="w-4 h-4" aria-hidden="true" /> },
+    ];
+
+    const inhalt = (reiterId: ArtikelReiterId) => {
+        switch (reiterId) {
+            case "uebersicht":
+                return (
+                    <>
+                        <UebersichtReiter daten={daten} onGespeichert={laden} onZuReiter={wechsleReiter} onBearbeiten={stammdatenOeffnen} />
+                        <ArtikelLagerBereich artikelId={artikel.id} einheitGeaendertStand={artikel.version} />
+                    </>
+                );
+            case "preise":
+                return <PreiseReiter daten={daten} onGespeichert={laden} />;
+            case "angaben":
+                return (
+                    <AngabenReiter
+                        artikel={artikel}
+                        bearbeiten={stammdatenBearbeiten}
+                        onBearbeiten={() => setStammdatenBearbeiten(true)}
+                        onAbbrechen={() => setStammdatenBearbeiten(false)}
+                        onGespeichert={() => { setStammdatenBearbeiten(false); void laden(); }}
+                    />
+                );
+            case "angebote":
+                return (
+                    <AngeboteReiter
+                        artikel={artikel}
+                        felder={angebotsfelder}
+                        onAendern={(aenderung) => setAngebotsfelder((alt) => ({ ...alt, ...aenderung }))}
+                        speichert={speichern}
+                        onSpeichern={speichereAngebotsfelder}
+                    />
+                );
+            case "bilder":
+                return (
+                    <>
+                        <ArtikelDokumente artikelId={artikel.id} onGeaendert={() => void laden()} />
+                        <ArtikelFertigungsunterlagen artikelId={artikel.id} />
+                    </>
+                );
+        }
+    };
+
     return (
         <PageLayout
             ribbonCategory={artikel.kategoriePfad || "Stammdaten"}
             title={artikel.produktname}
             subtitle={[artikel.artikelnummer, artikel.werkstoffName].filter(Boolean).join(" · ")}
             actions={
-                <div className="flex flex-wrap gap-2">
-                    {artikel?.archiviert && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                            <Archive className="w-3.5 h-3.5" /> Archiviert
-                        </span>
-                    )}
-                    {!stammdatenBearbeiten && !artikel?.archiviert && (
-                        <Button size="sm" className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700"
-                            onClick={() => setStammdatenBearbeiten(true)}>
-                            <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Stammdaten bearbeiten
-                        </Button>
-                    )}
-                    {!artikel?.archiviert && (
-                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
-                            onClick={archivieren} disabled={archivAktion}>
-                            <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Archivieren
-                        </Button>
-                    )}
-                    {artikel?.archiviert && (
-                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
-                            onClick={wiederherstellen} disabled={archivAktion}>
-                            <RotateCcw className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Wiederherstellen
-                        </Button>
-                    )}
-                    {artikel?.archiviert && isAdmin && (
-                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                            onClick={loeschen} disabled={archivAktion}>
-                            <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Endgültig löschen
-                        </Button>
-                    )}
+                <div className="flex gap-2 flex-wrap">
                     <Button variant="outline" size="sm"
                         className="border-rose-300 text-rose-700 hover:bg-rose-50"
                         onClick={zurueckZurListe}>
@@ -364,554 +383,59 @@ export default function ArtikelDetail() {
                     </Button>
                     <Button variant="outline" size="sm"
                         className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                        onClick={laden}>
-                        <RefreshCw className="w-4 h-4 mr-2" aria-hidden="true" />
+                        disabled={laedt}
+                        onClick={() => void laden()}>
+                        <RefreshCw className={cn("w-4 h-4 mr-2", laedt && "motion-safe:animate-spin")} aria-hidden="true" />
                         Aktualisieren
                     </Button>
+                    {artikel.archiviert && (
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
+                            <Archive className="w-3.5 h-3.5" /> Archiviert
+                        </span>
+                    )}
+                    {!artikel.archiviert && (
+                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                            onClick={archivieren} disabled={archivAktion}>
+                            <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Archivieren
+                        </Button>
+                    )}
+                    {artikel.archiviert && (
+                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                            onClick={wiederherstellen} disabled={archivAktion}>
+                            <RotateCcw className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Wiederherstellen
+                        </Button>
+                    )}
+                    {artikel.archiviert && isAdmin && (
+                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                            onClick={loeschen} disabled={archivAktion}>
+                            <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Endgültig löschen
+                        </Button>
+                    )}
                 </div>
             }
         >
-            {/* ============ Stammdaten bearbeiten ============ */}
-            {stammdatenBearbeiten && (
-                <ArtikelStammdatenForm
-                    key={`${artikel.id}-${artikel.version ?? 0}`}
-                    artikel={artikel}
-                    onAbbrechen={() => setStammdatenBearbeiten(false)}
-                    onGespeichert={() => { setStammdatenBearbeiten(false); void laden(); }}
-                />
-            )}
+            <Reiter reiter={reiter} aktiv={aktiverReiter} onWechsel={wechsleReiter}
+                ariaLabel="Bereiche des Artikels" idPrefix="artikel" />
 
-            {/* ============ Was ist das für ein Teil? ============ */}
-            <section className="bg-white border border-slate-200 rounded-lg p-5">
-                <div className="mb-4 flex flex-wrap items-start justify-between gap-2">
-                    <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Was ist das für ein Teil?</h2>
-                        <p className="text-sm text-slate-500">Daraus rechnet das Programm Gewicht und Oberfläche für Kalkulation und Verzinken.</p>
-                    </div>
-                    {!stammdatenBearbeiten && (
-                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" aria-label="Angaben zum Teil bearbeiten"
-                            onClick={() => { setStammdatenBearbeiten(true); window.scrollTo({ top: 0, behavior: "smooth" }); }}>
-                            <Pencil className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Bearbeiten
-                        </Button>
-                    )}
-                </div>
-
-                <div className="flex flex-wrap gap-2 mb-5">
-                    {artikel.profilform && <Merkmalchip text={artikel.profilform.anzeigename} titel={artikel.profilform.erklaerung} />}
-                    {artikel.herstellverfahren && <Merkmalchip text={artikel.herstellverfahren.anzeigename} titel={artikel.herstellverfahren.erklaerung} />}
-                    {artikel.fertigungszustand && <Merkmalchip text={artikel.fertigungszustand.anzeigename} titel={artikel.fertigungszustand.erklaerung} />}
-                    {artikel.werkstoffName && <Merkmalchip text={artikel.werkstoffName} />}
-                </div>
-
-                <dl className="grid grid-cols-2 md:grid-cols-4 gap-x-6 gap-y-4 text-sm">
-                    <Datenfeld label="Artikelnummer" wert={artikel.artikelnummer} />
-                    <Datenfeld label="EAN / Strichcode" wert={artikel.ean} />
-                    <Datenfeld label="Abmessung" wert={artikel.abmessung} />
-                    <Datenfeld label="Durchmesser" wert={artikel.durchmesser ? `${formatZahl(artikel.durchmesser, 1)} mm` : undefined} />
-                    <Datenfeld label="Wandstärke" wert={artikel.wandstaerke ? `${formatZahl(artikel.wandstaerke, 1)} mm` : undefined} />
-                    <Datenfeld label="Höhe × Breite" wert={artikel.hoehe && artikel.breite
-                        ? `${formatZahl(artikel.hoehe, 1)} × ${formatZahl(artikel.breite, 1)} mm` : undefined} />
-                    <Datenfeld label="Gewicht je Meter" wert={artikel.kgProMeter ? `${formatZahl(artikel.kgProMeter)} kg/m` : undefined}
-                        hinweis="Für das Verzinken: Es wird immer nach Gewicht gerechnet." />
-                    <Datenfeld label="Gewicht je m²" wert={artikel.kgProQm ? `${formatZahl(artikel.kgProQm)} kg/m²` : undefined}
-                        hinweis="Für das Verzinken von Blech." />
-                    <Datenfeld label="Gewicht je Stück" wert={artikel.kgJeStueck ? `${formatZahl(artikel.kgJeStueck)} kg` : undefined}
-                        hinweis="Für das Verzinken von Stückware." />
-                    <Datenfeld label="Außenfläche je Meter" wert={artikel.mantelflaeche ? `${formatZahl(artikel.mantelflaeche, 4)} m²/m` : undefined}
-                        hinweis="Für das Pulverbeschichten: Es wird immer nach Fläche gerechnet." />
-                    <Datenfeld label="Fläche je m² Blech" wert={artikel.flaecheJeQm ? `${formatZahl(artikel.flaecheJeQm, 2)} m²/m²` : undefined}
-                        hinweis="2 = beide Seiten. Ohne Angabe rechnet das Programm mit beiden Seiten." />
-                    <Datenfeld label="Außenfläche je Stück" wert={artikel.m2JeStueck ? `${formatZahl(artikel.m2JeStueck, 4)} m²` : undefined}
-                        hinweis="Für das Pulverbeschichten von Stückware." />
-                    <Datenfeld label="Zuschnitt-Formel (Gewicht)" wert={artikel.formelGewicht ?? undefined}
-                        hinweis={artikel.formelFelder && artikel.formelFelder.length > 0 ? `Eingabefelder in der Leistung: ${artikel.formelFelder.map(f => f.bezeichnung || f.name).join(', ')}` : undefined} />
-                    <Datenfeld label="Zuschnitt-Formel (Außenfläche)" wert={artikel.formelFlaeche ?? undefined} />
-                    <Datenfeld label="Woher das Gewicht stammt" wert={artikel.gewichtHerkunft === "TABELLE" ? "Profiltabelle" : artikel.gewichtHerkunft === "BERECHNET" ? "Aus den Maßen berechnet" : artikel.gewichtHerkunft === "HAND" ? "Von Hand eingetragen" : undefined}
-                        hinweis={artikel.gewichtVeraltet ? "Der Werkstoff hat inzwischen eine andere Dichte: Bitte unter Stammdaten bearbeiten neu berechnen." : undefined} />
-                    <Datenfeld label="Übliche Länge" wert={artikel.standardlaenge ? `${formatZahl(artikel.standardlaenge, 0)} mm` : undefined} />
-                    <Datenfeld label="Maßnorm" wert={artikel.massnorm} />
-                    <Datenfeld label="Werkstoffnorm" wert={artikel.werkstoffnorm} />
-                </dl>
-            </section>
-
-            {/* ============ Bilder & Unterlagen ============ */}
-            <ArtikelDokumente artikelId={artikel.id} />
-
-            {/* ============ Fertigungsunterlagen (DXF, STEP, …) ============ */}
-            <ArtikelFertigungsunterlagen artikelId={artikel.id} />
-
-            {/* ============ Lager (nur bei eingeschaltetem Lagermodul) ============ */}
-            <ArtikelLagerBereich artikelId={artikel.id} einheitGeaendertStand={artikel.version} />
-
-            {/* ============ Oberflächenbehandlung ============ */}
-            <section className="bg-white border border-slate-200 rounded-lg p-5">
-                <h2 className="text-lg font-semibold text-slate-900 mb-1">Oberfläche</h2>
-                <p className="text-sm text-slate-500 mb-4">
-                    Ob dieses Teil sich verzinken oder pulverbeschichten lässt — wichtig für die Kalkulation. Was der Veredler kostet, steht unter{" "}
-                    <a href="/fremdleistungen" className="text-rose-700 hover:underline">Fremdleistungen</a>.
-                </p>
-                <div className="flex flex-col sm:flex-row gap-3">
-                    <Eignung ok={!!artikel.verzinkungsgeeignet} text="Feuerverzinken" quelle={eignungsQuelle(artikel.verzinkungsgeeignetEigen)} />
-                    <Eignung ok={!!artikel.pulverbeschichtungsgeeignet} text="Pulverbeschichten" quelle={eignungsQuelle(artikel.pulverbeschichtungsgeeignetEigen)} />
-                </div>
-                {artikel.beschichtungshinweis && (
-                    <p className="text-sm text-slate-600 mt-3">{artikel.beschichtungshinweis}</p>
-                )}
-            </section>
-
-            {/* ============ Für Angebote und Rechnungen ============ */}
-            <section className="bg-white border border-slate-200 rounded-lg p-5">
-                <h2 className="text-lg font-semibold text-slate-900 mb-1">Für Angebote und Rechnungen</h2>
-                <p className="text-sm text-slate-500 mb-4">
-                    Was der Kunde sieht, wenn dieses Material in einem Angebot steht.
-                </p>
-
-                <div className="space-y-4">
-                    <div className="space-y-1.5">
-                        <Label htmlFor="kurzbeschreibung">Kurzbeschreibung</Label>
-                        <Input
-                            id="kurzbeschreibung"
-                            value={kurzbeschreibung}
-                            onChange={(e) => setKurzbeschreibung(e.target.value)}
-                            maxLength={255}
-                            placeholder="z.B. T-Stahl 40x40 Lager"
-                        />
-                        <p className="text-xs text-slate-400">Nur für dich — steht nicht auf dem Angebot.</p>
-                    </div>
-
-                    <div className="space-y-1.5">
-                        <Label>Beschreibung</Label>
-                        <TiptapEditor value={beschreibung} onChange={setBeschreibung} />
-                        <p className="text-xs text-slate-400">
-                            Das liest der Kunde auf Angebot, Rechnung und Freigabe-Seite.
-                        </p>
-                    </div>
-
-                    <div className="space-y-1.5 max-w-xs">
-                        <Label htmlFor="aufschlag">Aufschlag auf den Einkaufspreis</Label>
-                        <div className="relative">
-                            <Input
-                                id="aufschlag"
-                                type="number"
-                                min={0}
-                                max={999.99}
-                                step={0.01}
-                                value={aufschlag}
-                                onChange={(e) => setAufschlag(e.target.value)}
-                                className="pr-8"
-                            />
-                            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-sm text-slate-400">%</span>
-                        </div>
-                        {aufschlag === "" && geltenderAufschlag && (
-                            <p className="text-xs text-slate-500" data-testid="geltender-aufschlag">
-                                {geltenderAufschlag.quelle === "KATEGORIE" && `Ohne eigenen Aufschlag gilt ${formatZahl(geltenderAufschlag.prozent ?? 0, 2)} % (aus der Kategorie „${geltenderAufschlag.quellenName}“).`}
-                                {geltenderAufschlag.quelle === "ALLGEMEIN" && `Ohne eigenen Aufschlag gilt der allgemeine Aufschlag von ${formatZahl(geltenderAufschlag.prozent ?? 0, 2)} %.`}
-                                {geltenderAufschlag.quelle === "KEINER" && "Ohne eigenen Aufschlag gilt keiner: Der Einkaufspreis wird unverändert übernommen."}
-                                {" "}<a href="/aufschlaege" className="text-rose-700 hover:underline">Aufschläge einstellen</a>
-                            </p>
-                        )}
-                    </div>
-
-                    {hinweis === "OK" ? (
-                        <p className="text-sm text-slate-600">
-                            So steht es im Angebot:{" "}
-                            <span className="font-semibold text-slate-900">
-                                1 {daten.artikel.positionsEinheit} à {formatCurrency(daten.artikel.positionsEinzelpreis)}
-                            </span>
-                        </p>
-                    ) : (
-                        <p className="text-sm text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
-                            {preisHinweisText[hinweis]}
-                        </p>
-                    )}
-
-                    <Button
-                        className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700"
-                        size="sm"
-                        onClick={speichereAngebotsfelder}
-                        disabled={speichern}
-                    >
-                        <Save className="w-4 h-4" aria-hidden="true" /> Angebotsfelder speichern
-                    </Button>
-                </div>
-            </section>
-
-            {/* ============ Wer liefert das? ============ */}
-            <section className="bg-white border border-slate-200 rounded-lg p-5">
-                <div className="flex flex-wrap items-end justify-between gap-3 mb-4">
-                    <div>
-                        <h2 className="text-lg font-semibold text-slate-900">Wer liefert das?</h2>
-                        <p className="text-sm text-slate-500">
-                            Jeder Lieferant führt den Artikel unter seiner eigenen Nummer.
-                        </p>
-                    </div>
-                </div>
-
-                {daten.lieferanten.length === 0 ? (
-                    <p className="text-sm text-slate-500 py-6 text-center">
-                        Für diesen Artikel ist noch kein Lieferantenpreis hinterlegt.
-                        Unten können Sie einen eintragen.
-                    </p>
-                ) : (
-                    <div className="overflow-x-auto">
-                        <table className="w-full text-sm">
-                            <caption className="sr-only">
-                                Lieferanten mit Artikelnummer und aktuellem Preis, günstigster zuerst
-                            </caption>
-                            <thead>
-                                <tr className="text-left text-slate-500 border-b border-slate-200">
-                                    <th scope="col" className="py-2 pr-4 font-medium">Lieferant</th>
-                                    <th scope="col" className="py-2 pr-4 font-medium">Dessen Artikelnummer</th>
-                                    <th scope="col" className="py-2 pr-4 font-medium text-right">Preis</th>
-                                    <th scope="col" className="py-2 pr-4 font-medium text-right">Unterschied</th>
-                                    <th scope="col" className="py-2 pr-4 font-medium">Stand</th>
-                                    <th scope="col" className="py-2 font-medium">Herkunft</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {daten.lieferanten.map((l) => (
-                                    <tr key={l.preisId} className="border-b border-slate-100 last:border-0">
-                                        <td className="py-3 pr-4">
-                                            <span className="font-medium text-slate-900">{l.lieferantName}</span>
-                                            {l.guenstigster && (
-                                                // Nicht nur Farbe: Text plus Symbol kennzeichnen den guenstigsten.
-                                                <span className="ml-2 inline-flex items-center gap-1 text-xs font-semibold
-                                                    text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">
-                                                    <TrendingDown className="w-3 h-3" aria-hidden="true" />
-                                                    günstigster
-                                                </span>
-                                            )}
-                                        </td>
-                                        <td className="py-3 pr-4 text-slate-600">{l.externeArtikelnummer || "—"}</td>
-                                        <td className="py-3 pr-4 text-right tabular-nums font-medium text-slate-900">
-                                            {formatCurrency(l.preis)}
-                                        </td>
-                                        <td className="py-3 pr-4 text-right tabular-nums text-slate-600">
-                                            {l.guenstigster
-                                                ? <span className="text-slate-400">—</span>
-                                                : l.aufschlagProzent !== undefined
-                                                    ? <span className="text-amber-700">+{formatZahl(l.aufschlagProzent, 1)} %</span>
-                                                    : "—"}
-                                        </td>
-                                        <td className="py-3 pr-4 text-slate-600">{formatDate(l.preisDatum)}</td>
-                                        <td className="py-3 text-slate-500">{l.quelle?.anzeigename ?? "—"}</td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                    </div>
-                )}
-
-                {/* ---- Preis von Hand nachtragen ---- */}
-                <div className="mt-6 pt-5 border-t border-slate-200">
-                    <h3 className="text-sm font-semibold text-slate-900 mb-3">Preis nachtragen</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-end">
-                        <div>
-                            <Label htmlFor="lieferant-wahl">Lieferant</Label>
-                            <Button
-                                id="lieferant-wahl"
-                                type="button"
-                                variant="outline"
-                                className="w-full justify-start min-h-[44px] border-slate-300 text-slate-700 hover:bg-slate-50"
-                                onClick={() => setZeigeLieferantenWahl(true)}
-                            >
-                                {neuerPreis.lieferantName || "Lieferant auswählen"}
-                            </Button>
-                        </div>
-                        <div>
-                            <Label htmlFor="externe-nr">Dessen Artikelnummer</Label>
-                            <Input id="externe-nr" className="min-h-[44px]"
-                                value={neuerPreis.externeArtikelnummer}
-                                onChange={(e) => setNeuerPreis((p) => ({ ...p, externeArtikelnummer: e.target.value }))}
-                                placeholder="z. B. 100234" />
-                        </div>
-                        <div>
-                            <Label htmlFor="preis-eingabe">Preis in Euro</Label>
-                            <Input id="preis-eingabe" inputMode="decimal" className="min-h-[44px]"
-                                value={neuerPreis.preis}
-                                onChange={(e) => setNeuerPreis((p) => ({ ...p, preis: e.target.value }))}
-                                placeholder="z. B. 12,50" />
-                            <p className="text-xs text-slate-500 mt-1">
-                                Der bisherige Preis bleibt im Verlauf erhalten.
-                            </p>
-                        </div>
-                        <Button
-                            className="bg-rose-600 text-white border border-rose-600 hover:bg-rose-700 min-h-[44px]"
-                            size="sm"
-                            disabled={speichert}
-                            onClick={preisSpeichern}
-                        >
-                            {speichert
-                                ? <RefreshCw className="w-4 h-4 mr-2 animate-spin" aria-hidden="true" />
-                                : <Save className="w-4 h-4 mr-2" aria-hidden="true" />}
-                            Speichern
-                        </Button>
-                    </div>
-                </div>
-            </section>
-
-            {/* ============ Preisverlauf ============ */}
-            <section className="bg-white border border-slate-200 rounded-lg p-5">
-                <h2 className="text-lg font-semibold text-slate-900 mb-1">Preisverlauf</h2>
-                <p className="text-sm text-slate-500 mb-4">
-                    Wie sich der Preis über die Zeit entwickelt hat, je Lieferant.
-                </p>
-                <Preisverlauf staende={daten.preisverlauf} />
-            </section>
-
-            {zeigeLieferantenWahl && (
-                <SupplierSelectModal
-                    onClose={() => setZeigeLieferantenWahl(false)}
-                    onSelect={(lieferant: { id: number; name: string }) => {
-                        setNeuerPreis((p) => ({ ...p, lieferantId: lieferant.id, lieferantName: lieferant.name }));
-                        setZeigeLieferantenWahl(false);
-                    }}
-                />
-            )}
+            {/*
+                Nur der offene Reiter wird gebaut. Ausnahme: Ist die
+                Bearbeiten-Maske offen, bleibt "Angaben zum Teil" versteckt
+                stehen, damit angefangene Eingaben einen Reiterwechsel
+                ueberstehen. Die Angebotsfelder haelt die Seite selbst.
+            */}
+            {REITER_IDS.map((reiterId) => {
+                const offen = reiterId === aktiverReiter;
+                const behalten = reiterId === "angaben" && stammdatenBearbeiten;
+                if (!offen && !behalten) return null;
+                return (
+                    <ReiterPanel key={reiterId} idPrefix="artikel" id={reiterId} hidden={!offen}>
+                        {inhalt(reiterId)}
+                    </ReiterPanel>
+                );
+            })}
         </PageLayout>
-    );
-}
-
-// ==================== Bausteine ====================
-
-function Merkmalchip({ text, titel }: { text: string; titel?: string }) {
-    return (
-        <span title={titel}
-            className="inline-flex items-center rounded-full border border-slate-200 bg-slate-50
-                       px-3 py-1 text-sm text-slate-700">
-            {text}
-        </span>
-    );
-}
-
-function Datenfeld({ label, wert, hinweis }: { label: string; wert?: string | null; hinweis?: string }) {
-    if (!wert) return null;
-    return (
-        <div>
-            <dt className="text-slate-500" title={hinweis}>{label}</dt>
-            <dd className="font-medium text-slate-900 tabular-nums">{wert}</dd>
-        </div>
-    );
-}
-
-/** Eignung mit Symbol UND Text - Farbe allein darf die Aussage nicht tragen. */
-/** Woher die Eignung kommt: vom Werkstoff oder für diesen Artikel festgelegt. */
-const eignungsQuelle = (eigen?: boolean | null) => (eigen == null ? "vom Werkstoff" : "für diesen Artikel festgelegt");
-
-function Eignung({ ok, text, quelle }: { ok: boolean; text: string; quelle?: string }) {
-    return (
-        <div className={`flex items-center gap-2 rounded-lg border px-4 py-3 ${
-            ok ? "border-emerald-200 bg-emerald-50" : "border-slate-200 bg-slate-50"
-        }`}>
-            {ok
-                ? <ShieldCheck className="w-5 h-5 text-emerald-700 shrink-0" aria-hidden="true" />
-                : <ShieldX className="w-5 h-5 text-slate-500 shrink-0" aria-hidden="true" />}
-            <div>
-                <p className={`text-sm font-semibold ${ok ? "text-emerald-800" : "text-slate-700"}`}>{text}</p>
-                <p className={`text-xs ${ok ? "text-emerald-700" : "text-slate-500"}`}>
-                    {ok ? "möglich" : "nicht möglich"}{quelle ? ` (${quelle})` : ""}
-                </p>
-            </div>
-        </div>
-    );
-}
-
-/**
- * Preisverlauf als Liniendiagramm je Lieferant, ergaenzt um eine Tabelle.
- *
- * Die Tabelle ist nicht nur Beiwerk: Ein Diagramm allein ist fuer Screenreader
- * nicht lesbar, und die genauen Werte sind ohnehin oft die eigentliche Frage.
- */
-function Preisverlauf({ staende }: { staende: ArtikelPreisstand[] }) {
-    const mitDatum = useMemo(
-        () => staende.filter((s) => s.preisDatum && s.preis !== undefined && s.preis !== null),
-        [staende],
-    );
-
-    const serien = useMemo(() => {
-        const map = new Map<string, ArtikelPreisstand[]>();
-        for (const s of mitDatum) {
-            const key = s.lieferantName ?? "Ohne Lieferant";
-            if (!map.has(key)) map.set(key, []);
-            map.get(key)!.push(s);
-        }
-        for (const liste of map.values()) {
-            liste.sort((a, b) => new Date(a.preisDatum!).getTime() - new Date(b.preisDatum!).getTime());
-        }
-        return [...map.entries()];
-    }, [mitDatum]);
-
-    if (mitDatum.length === 0) {
-        return (
-            <p className="text-sm text-slate-500 py-6 text-center">
-                Noch keine Preisänderungen erfasst. Sobald ein Preis geändert wird,
-                erscheint hier der Verlauf.
-            </p>
-        );
-    }
-
-    // Achsenbereiche
-    const zeiten = mitDatum.map((s) => new Date(s.preisDatum!).getTime());
-    const preise = mitDatum.map((s) => s.preis!);
-    const tMin = Math.min(...zeiten);
-    const tMax = Math.max(...zeiten);
-    const pMin = Math.min(...preise);
-    const pMax = Math.max(...preise);
-    // Etwas Luft nach oben und unten, damit Punkte nicht am Rand kleben.
-    const pSpanne = pMax - pMin || Math.max(pMax * 0.1, 1);
-    const yMin = Math.max(0, pMin - pSpanne * 0.15);
-    const yMax = pMax + pSpanne * 0.15;
-
-    // padL traegt die Preisbeschriftung der Achse. Sie ist bei Kleinstpreisen
-    // deutlich breiter ("0,0043 €" statt "0,00 €"), deshalb der Zuschlag -
-    // sonst laeuft die Beschriftung links aus dem Diagramm heraus.
-    const B = 720, H = 240, padL = 84, padR = 16, padT = 16, padB = 36;
-    const x = (t: number) => tMax === tMin
-        ? padL + (B - padL - padR) / 2
-        : padL + ((t - tMin) / (tMax - tMin)) * (B - padL - padR);
-    const y = (p: number) => padT + (1 - (p - yMin) / (yMax - yMin || 1)) * (H - padT - padB);
-
-    // Kontraststarke, gut unterscheidbare Farben (nicht rot/gruen als Paar).
-    const farben = ["#dc2626", "#0f766e", "#7c3aed", "#b45309", "#1d4ed8", "#be185d"];
-
-    return (
-        <div>
-            <div className="overflow-x-auto">
-                <svg viewBox={`0 0 ${B} ${H}`} className="w-full min-w-[560px] h-auto"
-                    role="img"
-                    aria-label={`Preisverlauf von ${formatCurrency(pMin)} bis ${formatCurrency(pMax)} über ${serien.length} Lieferanten`}>
-                    {/* Waagerechte Hilfslinien mit Preisbeschriftung */}
-                    {[0, 0.25, 0.5, 0.75, 1].map((anteil) => {
-                        const wert = yMin + (yMax - yMin) * (1 - anteil);
-                        const py = padT + anteil * (H - padT - padB);
-                        return (
-                            <g key={anteil}>
-                                <line x1={padL} y1={py} x2={B - padR} y2={py} stroke="#e2e8f0" strokeWidth="1" />
-                                <text x={padL - 8} y={py + 4} textAnchor="end"
-                                    className="fill-slate-500" style={{ fontSize: 11 }}>
-                                    {/* Bei Kleinstpreisen stuenden hier sonst fuenfmal
-                                        "0,00 EUR" untereinander - die Achse waere blind. */}
-                                    {formatCurrency(wert)}
-                                </text>
-                            </g>
-                        );
-                    })}
-
-                    {/* Zeitachse */}
-                    <line x1={padL} y1={H - padB} x2={B - padR} y2={H - padB} stroke="#94a3b8" strokeWidth="1" />
-                    <text x={padL} y={H - padB + 18} className="fill-slate-500" style={{ fontSize: 11 }}>
-                        {new Date(tMin).toLocaleDateString("de-DE")}
-                    </text>
-                    <text x={B - padR} y={H - padB + 18} textAnchor="end"
-                        className="fill-slate-500" style={{ fontSize: 11 }}>
-                        {new Date(tMax).toLocaleDateString("de-DE")}
-                    </text>
-
-                    {/* Eine Linie je Lieferant */}
-                    {serien.map(([name, punkte], i) => {
-                        const farbe = farben[i % farben.length];
-                        const d = punkte
-                            .map((p, idx) => `${idx === 0 ? "M" : "L"} ${x(new Date(p.preisDatum!).getTime())} ${y(p.preis!)}`)
-                            .join(" ");
-                        return (
-                            <g key={name}>
-                                {punkte.length > 1 && (
-                                    <path d={d} fill="none" stroke={farbe} strokeWidth="2"
-                                        strokeLinejoin="round" strokeLinecap="round" />
-                                )}
-                                {punkte.map((p) => (
-                                    <circle key={p.preisId}
-                                        cx={x(new Date(p.preisDatum!).getTime())}
-                                        cy={y(p.preis!)}
-                                        r={p.aktuell ? 5 : 3.5}
-                                        fill={p.aktuell ? farbe : "#ffffff"}
-                                        stroke={farbe} strokeWidth="2">
-                                        <title>
-                                            {name}: {formatCurrency(p.preis)} am {formatDate(p.preisDatum)}
-                                            {p.aktuell ? " (gilt aktuell)" : ""}
-                                        </title>
-                                    </circle>
-                                ))}
-                            </g>
-                        );
-                    })}
-                </svg>
-            </div>
-
-            {/* Legende */}
-            <ul className="flex flex-wrap gap-x-5 gap-y-2 mt-3">
-                {serien.map(([name], i) => (
-                    <li key={name} className="flex items-center gap-2 text-sm text-slate-700">
-                        <span className="inline-block w-4 h-1 rounded-full"
-                            style={{ backgroundColor: farben[i % farben.length] }} aria-hidden="true" />
-                        {name}
-                    </li>
-                ))}
-            </ul>
-
-            {/* Werte-Tabelle als barrierefreie Entsprechung des Diagramms */}
-            <div className="overflow-x-auto mt-5">
-                <table className="w-full text-sm">
-                    <caption className="sr-only">Alle Preisstände mit Datum, Lieferant und Herkunft</caption>
-                    <thead>
-                        <tr className="text-left text-slate-500 border-b border-slate-200">
-                            <th scope="col" className="py-2 pr-4 font-medium">Datum</th>
-                            <th scope="col" className="py-2 pr-4 font-medium">Lieferant</th>
-                            <th scope="col" className="py-2 pr-4 font-medium text-right">Preis</th>
-                            <th scope="col" className="py-2 pr-4 font-medium text-right">Änderung</th>
-                            <th scope="col" className="py-2 pr-4 font-medium">Herkunft</th>
-                            <th scope="col" className="py-2 font-medium">Status</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {staende.map((s, idx) => {
-                            // Vorheriger Stand desselben Lieferanten fuer die Veraenderung.
-                            const vorher = staende
-                                .slice(idx + 1)
-                                .find((v) => v.lieferantId === s.lieferantId && v.preis !== undefined);
-                            const diff = vorher?.preis !== undefined && s.preis !== undefined
-                                ? s.preis - vorher.preis
-                                : undefined;
-                            return (
-                                <tr key={s.preisId} className="border-b border-slate-100 last:border-0">
-                                    <td className="py-2.5 pr-4 text-slate-600">{formatDate(s.preisDatum)}</td>
-                                    <td className="py-2.5 pr-4 text-slate-900">{s.lieferantName ?? "—"}</td>
-                                    <td className="py-2.5 pr-4 text-right tabular-nums font-medium text-slate-900">
-                                        {formatCurrency(s.preis)}
-                                    </td>
-                                    <td className="py-2.5 pr-4 text-right tabular-nums">
-                                        {diff === undefined ? (
-                                            <span className="text-slate-400">—</span>
-                                        ) : diff > 0 ? (
-                                            <span className="inline-flex items-center gap-1 text-amber-700">
-                                                <TrendingUp className="w-3.5 h-3.5" aria-hidden="true" />
-                                                +{formatCurrency(diff)}
-                                            </span>
-                                        ) : diff < 0 ? (
-                                            <span className="inline-flex items-center gap-1 text-emerald-700">
-                                                <TrendingDown className="w-3.5 h-3.5" aria-hidden="true" />
-                                                {formatCurrency(diff)}
-                                            </span>
-                                        ) : (
-                                            <span className="inline-flex items-center gap-1 text-slate-500">
-                                                <Minus className="w-3.5 h-3.5" aria-hidden="true" />
-                                                unverändert
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="py-2.5 pr-4 text-slate-500">{s.quelle?.anzeigename ?? "—"}</td>
-                                    <td className="py-2.5 text-slate-600">
-                                        {s.aktuell
-                                            ? <span className="text-xs font-semibold text-slate-900">gilt aktuell</span>
-                                            : <span className="text-xs text-slate-400">abgelöst</span>}
-                                    </td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                </table>
-            </div>
-        </div>
     );
 }

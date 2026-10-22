@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { Star, Briefcase, FileText, RefreshCw, Plus } from 'lucide-react';
+import { Star, Briefcase, FileText, RefreshCw, Truck, Unlink, Plus } from 'lucide-react';
 import { InfoButton } from '../../components/ui/info-button';
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../../components/ui/dialog';
 import { Button } from '../../components/ui/button';
@@ -8,13 +8,44 @@ import { useToast } from '../../components/ui/toast';
 import { ProjektErstellenModal } from '../../components/ProjektErstellenModal';
 import { AnfrageErstellenModal } from '../../pages/AnfrageEditor';
 
+/** Wohin eine E-Mail von Hand zugeordnet werden kann. */
+export type ZuordnungsZiel = 'projekt' | 'anfrage' | 'lieferant';
+
+const ZIEL_BESCHRIFTUNG: Record<ZuordnungsZiel, string> = {
+    projekt: 'Projekt',
+    anfrage: 'Anfrage',
+    lieferant: 'Lieferant',
+};
+
 // Assignment Modal Component
 interface AssignModalProps {
     isOpen: boolean;
     onClose: () => void;
-    onAssign: (type: 'projekt' | 'anfrage', targetId: number) => Promise<void>;
+    onAssign: (type: ZuordnungsZiel, targetId: number) => Promise<void>;
     emailSubject: string;
     emailId?: number;
+    /** Aktuelle Zuordnung als Text (z. B. „Projekt 2026-041 · Garagentor"); `null` = nicht zugeordnet. */
+    aktuelleZuordnung?: string | null;
+    /** Hebt die Zuordnung auf. Der Knopf erscheint nur, wenn die Mail zugeordnet ist. */
+    onUnassign?: () => Promise<void>;
+}
+
+interface SuchTreffer {
+    id: number;
+    bauvorhaben?: string;
+    name?: string;
+    kunde?: string;
+    kundenName?: string;
+    anfragesnummer?: string;
+}
+
+/** Die Lieferantensuche liefert `{ lieferanten: [...] }` – auf die gemeinsame Trefferform bringen. */
+function lieferantenTreffer(daten: unknown): SuchTreffer[] {
+    const liste = (daten as { lieferanten?: unknown })?.lieferanten;
+    if (!Array.isArray(liste)) return [];
+    return liste
+        .filter((l): l is { id: number; lieferantenname?: string; ort?: string } => typeof l?.id === 'number')
+        .map(l => ({ id: l.id, name: l.lieferantenname || `Lieferant #${l.id}`, kunde: l.ort || undefined }));
 }
 
 interface EntityOption {
@@ -30,16 +61,15 @@ interface KiVorschlag {
     absenderName: string;
 }
 
-export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }: AssignModalProps) {
+export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId, aktuelleZuordnung, onUnassign }: AssignModalProps) {
     const toast = useToast();
-    const [searchType, setSearchType] = useState<'projekt' | 'anfrage'>('projekt');
+    const [searchType, setSearchType] = useState<ZuordnungsZiel>('projekt');
     const [searchQuery, setSearchQuery] = useState('');
-    const [results, setResults] = useState<{ id: number; bauvorhaben?: string; name?: string; kunde?: string }[]>([]);
+    const [results, setResults] = useState<SuchTreffer[]>([]);
     const [suggestions, setSuggestions] = useState<{ projekte: EntityOption[], anfragen: EntityOption[] }>({ projekte: [], anfragen: [] });
     const [loading, setLoading] = useState(false);
     const [loadingSuggestions, setLoadingSuggestions] = useState(false);
     const [assigning, setAssigning] = useState(false);
-
     const [showProjektModal, setShowProjektModal] = useState(false);
     const [showAnfrageModal, setShowAnfrageModal] = useState(false);
     const [kiVorschlag, setKiVorschlag] = useState<KiVorschlag | null>(null);
@@ -79,12 +109,16 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
         }
         setLoading(true);
         try {
+            const q = encodeURIComponent(searchQuery);
             const endpoint = searchType === 'projekt'
-                ? `/api/projekte/suche?q=${encodeURIComponent(searchQuery)}`
-                : `/api/anfragen?q=${encodeURIComponent(searchQuery)}`;
+                ? `/api/projekte/suche?q=${q}`
+                : searchType === 'anfrage'
+                    ? `/api/anfragen?q=${q}`
+                    : `/api/lieferanten?q=${q}&size=20`;
             const res = await fetch(endpoint);
             if (res.ok) {
-                setResults(await res.json());
+                const daten = await res.json();
+                setResults(searchType === 'lieferant' ? lieferantenTreffer(daten) : daten);
             }
         } catch (err) {
             console.error('Search failed:', err);
@@ -98,13 +132,27 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
         return () => clearTimeout(timeout);
     }, [fetchResults]);
 
-    const handleSelect = async (type: 'projekt' | 'anfrage', id: number) => {
+    const handleSelect = async (type: ZuordnungsZiel, id: number) => {
         setAssigning(true);
         try {
             await onAssign(type, id);
             onClose();
         } catch {
-            toast.error('Zuordnung fehlgeschlagen');
+            toast.error('Die E-Mail konnte nicht zugeordnet werden.');
+        } finally {
+            setAssigning(false);
+        }
+    };
+
+    const handleUnassign = async () => {
+        if (!onUnassign) return;
+        setAssigning(true);
+        try {
+            await onUnassign();
+            toast.success('Zuordnung wurde aufgehoben.');
+            onClose();
+        } catch {
+            toast.error('Die Zuordnung konnte nicht aufgehoben werden.');
         } finally {
             setAssigning(false);
         }
@@ -116,8 +164,8 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
             else setShowAnfrageModal(true);
             return;
         }
-        const setLoading = typ === 'projekt' ? setLoadingProjektVorschlag : setLoadingAnfrageVorschlag;
-        setLoading(true);
+        const setLoadingVorschlag = typ === 'projekt' ? setLoadingProjektVorschlag : setLoadingAnfrageVorschlag;
+        setLoadingVorschlag(true);
         try {
             const res = await fetch(`/api/emails/${emailId}/ki-anlage-vorschlag`);
             if (res.ok) {
@@ -129,7 +177,7 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
         } catch {
             toast.error('KI-Vorschlag konnte nicht geladen werden.');
         } finally {
-            setLoading(false);
+            setLoadingVorschlag(false);
         }
         if (typ === 'projekt') setShowProjektModal(true);
         else setShowAnfrageModal(true);
@@ -161,7 +209,9 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
         }
     };
 
-    const currentSuggestions = searchType === 'projekt' ? suggestions.projekte : suggestions.anfragen;
+    // Für Lieferanten gibt es keine Vorschläge – die ordnet das Programm schon über die Absender-Domain zu.
+    const currentSuggestions = searchType === 'projekt' ? suggestions.projekte
+        : searchType === 'anfrage' ? suggestions.anfragen : [];
     const hasSuggestions = currentSuggestions.length > 0;
 
     return (
@@ -173,6 +223,25 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
                     </DialogHeader>
                     <div className="space-y-4">
                         <p className="text-sm text-slate-600 truncate">"{emailSubject}"</p>
+
+                        {aktuelleZuordnung && onUnassign && (
+                            <div className="flex items-center justify-between gap-3 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                                <p className="min-w-0 text-sm text-slate-700">
+                                    <span className="text-slate-500">Zugeordnet zu: </span>
+                                    <span className="font-medium break-words">{aktuelleZuordnung}</span>
+                                </p>
+                                <Button
+                                    variant="outline"
+                                    size="sm"
+                                    onClick={handleUnassign}
+                                    disabled={assigning}
+                                    className="shrink-0"
+                                >
+                                    <Unlink className="w-4 h-4 mr-1" />
+                                    Zuordnung aufheben
+                                </Button>
+                            </div>
+                        )}
 
                         <div className="flex gap-2">
                             <Button
@@ -198,6 +267,15 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
                                 {suggestions.anfragen.length > 0 && (
                                     <span className="ml-1 bg-white/20 px-1.5 rounded text-xs">{suggestions.anfragen.length}</span>
                                 )}
+                            </Button>
+                            <Button
+                                variant={searchType === 'lieferant' ? 'default' : 'outline'}
+                                size="sm"
+                                onClick={() => setSearchType('lieferant')}
+                                className={searchType === 'lieferant' ? 'bg-rose-600 hover:bg-rose-700' : ''}
+                            >
+                                <Truck className="w-4 h-4 mr-1" />
+                                Lieferant
                             </Button>
                         </div>
 
@@ -235,7 +313,7 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
                         <div className="pt-2 border-t border-slate-200">
                             <p className="text-xs text-slate-500 mb-2">Oder manuell suchen:</p>
                             <Input
-                                placeholder={`${searchType === 'projekt' ? 'Projekt' : 'Anfrage'} suchen...`}
+                                placeholder={`${ZIEL_BESCHRIFTUNG[searchType]} suchen...`}
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
                                 className="border-slate-200"
@@ -248,7 +326,7 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
                             ) : results.length === 0 && searchQuery ? (
                                 <p className="text-center text-slate-500 py-4">Keine Ergebnisse</p>
                             ) : (
-                                results.map((item: { id: number; bauvorhaben?: string; name?: string; kunde?: string; kundenName?: string; anfragesnummer?: string }) => (
+                                results.map((item) => (
                                     <button
                                         key={item.id}
                                         onClick={() => handleSelect(searchType, item.id)}
@@ -264,44 +342,46 @@ export function AssignModal({ isOpen, onClose, onAssign, emailSubject, emailId }
                         </div>
 
                         {/* Neu anlegen Section */}
-                        <div className="pt-2 border-t border-slate-200">
-                            <div className="flex items-center gap-1 mb-2">
-                                <p className="text-xs text-slate-500">Noch kein passender Eintrag? Direkt neu anlegen:</p>
-                                <InfoButton titel="KI-Vorschlag">
-                                    Die KI liest Betreff und Absender der E-Mail und schlägt einen Projektnamen vor. Der Dialog öffnet sich mit dem Vorschlag vorausgefüllt – du kannst alles vor dem Speichern noch anpassen. Die E-Mail wird nach dem Anlegen automatisch verknüpft.
-                                </InfoButton>
+                        {searchType !== 'lieferant' && (
+                            <div className="pt-2 border-t border-slate-200">
+                                <div className="flex items-center gap-1 mb-2">
+                                    <p className="text-xs text-slate-500">Noch kein passender Eintrag? Direkt neu anlegen:</p>
+                                    <InfoButton titel="KI-Vorschlag">
+                                        Die KI liest Betreff und Absender der E-Mail und schlägt einen Projektnamen vor. Der Dialog öffnet sich mit dem Vorschlag vorausgefüllt – du kannst alles vor dem Speichern noch anpassen. Die E-Mail wird nach dem Anlegen automatisch verknüpft.
+                                    </InfoButton>
+                                </div>
+                                <div className="flex gap-2">
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => ladeKiVorschlagUndOeffne('projekt')}
+                                        disabled={loadingProjektVorschlag || loadingAnfrageVorschlag || assigning}
+                                        className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
+                                    >
+                                        {loadingProjektVorschlag ? (
+                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <Plus className="w-3.5 h-3.5" />
+                                        )}
+                                        Neues Projekt
+                                    </Button>
+                                    <Button
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={() => ladeKiVorschlagUndOeffne('anfrage')}
+                                        disabled={loadingProjektVorschlag || loadingAnfrageVorschlag || assigning}
+                                        className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
+                                    >
+                                        {loadingAnfrageVorschlag ? (
+                                            <RefreshCw className="w-3.5 h-3.5 animate-spin" />
+                                        ) : (
+                                            <Plus className="w-3.5 h-3.5" />
+                                        )}
+                                        Neue Anfrage
+                                    </Button>
+                                </div>
                             </div>
-                            <div className="flex gap-2">
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => ladeKiVorschlagUndOeffne('projekt')}
-                                    disabled={loadingProjektVorschlag || loadingAnfrageVorschlag || assigning}
-                                    className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
-                                >
-                                    {loadingProjektVorschlag ? (
-                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                        <Plus className="w-3.5 h-3.5" />
-                                    )}
-                                    Neues Projekt
-                                </Button>
-                                <Button
-                                    variant="outline"
-                                    size="sm"
-                                    onClick={() => ladeKiVorschlagUndOeffne('anfrage')}
-                                    disabled={loadingProjektVorschlag || loadingAnfrageVorschlag || assigning}
-                                    className="flex-1 border-rose-200 text-rose-700 hover:bg-rose-50 gap-1"
-                                >
-                                    {loadingAnfrageVorschlag ? (
-                                        <RefreshCw className="w-3.5 h-3.5 animate-spin" />
-                                    ) : (
-                                        <Plus className="w-3.5 h-3.5" />
-                                    )}
-                                    Neue Anfrage
-                                </Button>
-                            </div>
-                        </div>
+                        )}
                     </div>
                 </DialogContent>
             </Dialog>

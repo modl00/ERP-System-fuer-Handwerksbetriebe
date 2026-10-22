@@ -46,7 +46,7 @@ export const NAVIGATION: NavCategory[] = [
                     { name: 'Fremdleistungen', href: '/fremdleistungen', icon: Factory },
                     { name: 'Lager', href: '/lager', icon: Warehouse },
                     { name: 'Kostenrechnung', href: '/kostenrechnung', icon: Calculator },
-                    { name: 'Kategorien', href: '/produktkategorien', icon: Layers },
+                    { name: 'Projekt-Kategorien', href: '/produktkategorien', icon: Layers },
                 ]
             },
             {
@@ -134,7 +134,7 @@ export const NAVIGATION: NavCategory[] = [
                 label: 'E-Mail',
                 items: [
                     { name: 'E-Mail Center', href: '/emails/inbox', icon: Mail },
-                    { name: 'E-Mail Vorlagen', href: '/email-textvorlagen', icon: MailPlus },
+                    { name: 'Mailtexte für Dokumente', href: '/email-textvorlagen', icon: MailPlus },
                     { name: 'E-Mail-Einstellungen', href: '/email-einstellungen', icon: Settings2 },
                 ]
             },

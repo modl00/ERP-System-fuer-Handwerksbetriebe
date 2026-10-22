@@ -22,6 +22,9 @@ import org.example.kalkulationsprogramm.domain.Feiertag;
 import org.example.kalkulationsprogramm.domain.Mitarbeiter;
 import org.example.kalkulationsprogramm.domain.MonatsSaldo;
 import org.example.kalkulationsprogramm.domain.Zeitbuchung;
+import org.example.kalkulationsprogramm.dto.Feiertag.FeiertagAendernRequest;
+import org.example.kalkulationsprogramm.dto.Feiertag.FeiertagAnlegenRequest;
+import org.example.kalkulationsprogramm.dto.Feiertag.FeiertagDto;
 import org.example.kalkulationsprogramm.dto.ZeitkontoStatusDto;
 import org.example.kalkulationsprogramm.dto.ZeitkontoWechselDto;
 import org.example.kalkulationsprogramm.dto.ZeitkontoWechselErgebnisDto;
@@ -34,6 +37,7 @@ import org.example.kalkulationsprogramm.service.FeiertagService;
 import org.example.kalkulationsprogramm.service.TagesSollService;
 import org.example.kalkulationsprogramm.service.ZeitbuchungAuditService;
 import org.example.kalkulationsprogramm.service.ZeitkontoService;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.transaction.annotation.Transactional;
@@ -46,6 +50,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 import lombok.RequiredArgsConstructor;
 
@@ -57,6 +62,9 @@ import lombok.RequiredArgsConstructor;
 @RequestMapping("/api/zeitverwaltung")
 @RequiredArgsConstructor
 public class ZeitverwaltungController {
+
+    static final String ENDE_VOR_BEGINN = "Das Ende der Buchung muss nach dem Beginn liegen. "
+            + "Buchungen über Mitternacht bitte auf zwei Tage aufteilen.";
 
     private final ZeitbuchungRepository zeitbuchungRepository;
     private final AbwesenheitRepository abwesenheitRepository;
@@ -186,6 +194,8 @@ public class ZeitverwaltungController {
                     .ifPresent(buchung::setArbeitsgang);
         }
 
+        pruefeEndeNachBeginn(buchung);
+
         // anzahlInStunden neu berechnen wenn Start- und Endezeit vorhanden
         if (buchung.getStartZeit() != null && buchung.getEndeZeit() != null) {
             java.time.Duration dauer = java.time.Duration.between(buchung.getStartZeit(), buchung.getEndeZeit());
@@ -305,6 +315,19 @@ public class ZeitverwaltungController {
     }
 
     /**
+     * Buchungen über Mitternacht gibt es nicht: Ein Ende vor (oder gleich) dem Beginn ergäbe
+     * eine negative Dauer am selben Tag. Wirft eine Exception statt eine Antwort zu liefern,
+     * damit {@code @Transactional} die schon gesetzten Felder zurückrollt.
+     */
+    static void pruefeEndeNachBeginn(Zeitbuchung buchung) {
+        if (buchung.getStartZeit() != null && buchung.getEndeZeit() != null
+                && !buchung.getEndeZeit().isAfter(buchung.getStartZeit())) {
+            throw new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST, ENDE_VOR_BEGINN);
+        }
+    }
+
+    /**
      * Erstellt eine neue Zeitbuchung.
      */
     @PostMapping("/buchungen")
@@ -403,6 +426,8 @@ public class ZeitverwaltungController {
         if (data.containsKey("notiz")) {
             buchung.setNotiz((String) data.get("notiz"));
         }
+
+        pruefeEndeNachBeginn(buchung);
 
         // anzahlInStunden berechnen wenn Start- und Endezeit vorhanden
         if (buchung.getStartZeit() != null && buchung.getEndeZeit() != null) {
@@ -599,13 +624,16 @@ public class ZeitverwaltungController {
 
     // ==================== Feiertage ====================
 
+    /** Alle Feiertage des eingestellten Bundeslands, auch abgeschaltete (Feiertage-Seite). */
     @GetMapping("/feiertage")
-    public ResponseEntity<List<Feiertag>> getFeiertage(@RequestParam int jahr) {
-        return ResponseEntity.ok(feiertagService.getFeiertageForJahr(jahr));
+    public ResponseEntity<List<FeiertagDto>> getFeiertage(@RequestParam int jahr) {
+        return ResponseEntity.ok(feiertagService.getFeiertageZurVerwaltung(jahr).stream()
+                .map(FeiertagDto::von)
+                .toList());
     }
 
     /**
-     * Gibt Feiertage in einem Datumsbereich zurück.
+     * Aktive Feiertage in einem Datumsbereich.
      * Für die mobile App: Prüfung vor Urlaubsantrag.
      */
     @GetMapping("/feiertage/zwischen")
@@ -619,17 +647,53 @@ public class ZeitverwaltungController {
         List<Map<String, String>> result = feiertage.stream()
                 .map(f -> Map.of(
                         "datum", f.getDatum().toString(),
-                        "bezeichnung", f.getBezeichnung()))
+                        "bezeichnung", f.getBezeichnung(),
+                        "halbTag", String.valueOf(f.isHalbTag())))
                 .collect(Collectors.toList());
 
         return ResponseEntity.ok(result);
     }
 
+    /** Lädt die gesetzlichen Feiertage neu; eigene Feiertage und Anpassungen bleiben. */
     @PostMapping("/feiertage/regenerieren")
-    public ResponseEntity<List<Feiertag>> regeneriereFeiertage(
+    public ResponseEntity<List<FeiertagDto>> regeneriereFeiertage(
             @RequestParam int vonJahr,
             @RequestParam int bisJahr) {
-        return ResponseEntity.ok(feiertagService.regeneriereFeiertage(vonJahr, bisJahr));
+        if (vonJahr < 2000 || bisJahr > 2100 || bisJahr < vonJahr || bisJahr - vonJahr > 10) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bitte einen gültigen Zeitraum angeben.");
+        }
+        return ResponseEntity.ok(feiertagService.regeneriereFeiertage(vonJahr, bisJahr).stream()
+                .map(FeiertagDto::von)
+                .toList());
+    }
+
+    /** Eigenen Feiertag anlegen (nur Admin, siehe SecurityConfig). */
+    @PostMapping("/feiertage")
+    public ResponseEntity<FeiertagDto> legeFeiertagAn(@RequestBody FeiertagAnlegenRequest request) {
+        return ResponseEntity.ok(FeiertagDto.von(
+                feiertagService.anlegen(request.datum(), request.bezeichnung(), request.halbTag())));
+    }
+
+    /** Halber Tag / abgeschaltet setzen (nur Admin). */
+    @PutMapping("/feiertage/{id}")
+    public ResponseEntity<FeiertagDto> aendereFeiertag(@PathVariable Long id,
+            @RequestBody FeiertagAendernRequest request) {
+        return ResponseEntity.ok(FeiertagDto.von(
+                feiertagService.aendern(gueltigeId(id), request.halbTag(), request.aktiv())));
+    }
+
+    /** Eigenen Feiertag löschen (nur Admin). */
+    @DeleteMapping("/feiertage/{id}")
+    public ResponseEntity<Void> loescheFeiertag(@PathVariable Long id) {
+        feiertagService.loeschen(gueltigeId(id));
+        return ResponseEntity.noContent().build();
+    }
+
+    private static Long gueltigeId(Long id) {
+        if (id == null || id <= 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Feiertag nicht gefunden.");
+        }
+        return id;
     }
 
     // ==================== Zeitkonten ====================
@@ -679,11 +743,12 @@ public class ZeitverwaltungController {
             @PathVariable Long projektId,
             @RequestParam(required = false) LocalDate von,
             @RequestParam(required = false) LocalDate bis,
+            @RequestParam(required = false) Long mitarbeiterId,
             @RequestParam(required = false, defaultValue = "datum") String sortField,
             @RequestParam(required = false, defaultValue = "asc") String sortDir,
             @RequestParam(required = false, defaultValue = "arbeitsgang") String groupBy) {
 
-        java.nio.file.Path pdfPath = projektAuswertungPdfService.generatePdf(projektId, von, bis, sortField, sortDir, groupBy);
+        java.nio.file.Path pdfPath = projektAuswertungPdfService.generatePdf(projektId, von, bis, mitarbeiterId, sortField, sortDir, groupBy);
 
         try {
             org.springframework.core.io.UrlResource resource = new org.springframework.core.io.UrlResource(
@@ -702,10 +767,13 @@ public class ZeitverwaltungController {
     public ResponseEntity<Map<String, Object>> getProjektAuswertung(
             @PathVariable Long projektId,
             @RequestParam(required = false) LocalDate von,
-            @RequestParam(required = false) LocalDate bis) {
+            @RequestParam(required = false) LocalDate bis,
+            @RequestParam(required = false) Long mitarbeiterId) {
 
         // Alle Buchungen für das Projekt aus ZeitbuchungRepository
         List<Zeitbuchung> alleBuchungen = zeitbuchungRepository.findByProjektId(projektId).stream()
+                .filter(b -> mitarbeiterId == null
+                        || (b.getMitarbeiter() != null && mitarbeiterId.equals(b.getMitarbeiter().getId())))
                 .filter(b -> {
                     if (von == null && bis == null)
                         return true;

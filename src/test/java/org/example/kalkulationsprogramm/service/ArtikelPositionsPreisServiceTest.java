@@ -5,7 +5,6 @@ import org.example.kalkulationsprogramm.domain.ArtikelPreisHinweis;
 import org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe;
 import org.example.kalkulationsprogramm.domain.LieferantenArtikelPreise;
 import org.example.kalkulationsprogramm.domain.Verrechnungseinheit;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -244,13 +243,34 @@ class ArtikelPositionsPreisServiceTest {
         assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.KEIN_PREIS);
     }
 
-    @Disabled("ArtikelPositionsPreisService hat nach Upstream-Merge keinen Konstruktor mehr mit AufschlagService")
     @Test
-    void mitAufschlagsregelnZaehltDerWirksameAufschlagUndKilopreisUndAufschlagGehenZusammen() {}
+    void ohneAufschlagsregelnZaehltNurDerAufschlagAmArtikel() {
+        // Der Standard-Konstruktor (ohne Spring) kennt weder Kategorie- noch allgemeinen Aufschlag: wie bisher
+        Artikel rohr = new Artikel();
+        rohr.setVerrechnungseinheit(Verrechnungseinheit.LAUFENDE_METER);
+        mitPreis(rohr, "10.00");
 
-    @Disabled("ArtikelPositionsPreisService hat nach Upstream-Merge keinen Konstruktor mehr mit AufschlagService")
+        var vorschlag = service.berechne(rohr);
+
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("10.00");
+        assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.KEIN_AUFSCHLAG);
+    }
+
     @Test
-    void ohneJedenAufschlagBleibtEsBeimHinweisKeinAufschlag() {}
+    void mitAufschlagsregelnGiltDerWirksameAufschlagAusKategorieOderAllgemein() {
+        AufschlagService regeln = org.mockito.Mockito.mock(AufschlagService.class);
+        var mitRegeln = new ArtikelPositionsPreisService(regeln);
+        Artikel rohr = new Artikel();
+        rohr.setVerrechnungseinheit(Verrechnungseinheit.LAUFENDE_METER);
+        mitPreis(rohr, "10.00");
+        org.mockito.Mockito.when(regeln.wirksamer(rohr))
+                .thenReturn(new AufschlagService.Wirksam(new BigDecimal("25"), AufschlagService.Quelle.KATEGORIE, "Stahl"));
+
+        var vorschlag = mitRegeln.berechne(rohr);
+
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("12.50");
+        assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.OK);
+    }
 
     @Test
     void stueckwareMitKilopreisRechnetUeberDasGewichtJeStueck() {
@@ -335,5 +355,42 @@ class ArtikelPositionsPreisServiceTest {
         assertThat(v.einheit()).isEqualTo("Stk");
         assertThat(v.einzelpreis()).isNull();
         assertThat(v.hinweis()).isEqualTo(ArtikelPreisHinweis.KEIN_GEWICHT);
+    }
+
+    @Test
+    void keinWirksamerAufschlagHeisstWieBisherOhneAufschlagMitWarnung() {
+        AufschlagService regeln = org.mockito.Mockito.mock(AufschlagService.class);
+        var mitRegeln = new ArtikelPositionsPreisService(regeln);
+        Artikel rohr = new Artikel();
+        rohr.setVerrechnungseinheit(Verrechnungseinheit.LAUFENDE_METER);
+        mitPreis(rohr, "10.00");
+        org.mockito.Mockito.when(regeln.wirksamer(rohr)).thenReturn(new AufschlagService.Wirksam(null, AufschlagService.Quelle.KEINER, null));
+
+        var vorschlag = mitRegeln.berechne(rohr);
+
+        assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("10.00");
+        assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.KEIN_AUFSCHLAG);
+    }
+
+    @Test
+    void geltenderAufschlagOhneRegelnIstDerAmArtikel() {
+        Artikel rohr = new Artikel();
+        assertThat(service.geltenderAufschlag(rohr).quelle()).isEqualTo(AufschlagService.Quelle.KEINER);
+
+        rohr.setVerkaufsaufschlagProzent(new BigDecimal("40"));
+        var wirksam = service.geltenderAufschlag(rohr);
+
+        assertThat(wirksam.prozent()).isEqualByComparingTo("40");
+        assertThat(wirksam.quelle()).isEqualTo(AufschlagService.Quelle.ARTIKEL);
+    }
+
+    @Test
+    void geltenderAufschlagMitRegelnKommtVomAufschlagService() {
+        AufschlagService regeln = org.mockito.Mockito.mock(AufschlagService.class);
+        Artikel rohr = new Artikel();
+        var erwartet = new AufschlagService.Wirksam(new BigDecimal("25"), AufschlagService.Quelle.KATEGORIE, "Stahl");
+        org.mockito.Mockito.when(regeln.wirksamer(rohr)).thenReturn(erwartet);
+
+        assertThat(new ArtikelPositionsPreisService(regeln).geltenderAufschlag(rohr)).isEqualTo(erwartet);
     }
 }

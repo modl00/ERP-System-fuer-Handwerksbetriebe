@@ -2,6 +2,7 @@ package org.example.kalkulationsprogramm.repository;
 
 import java.util.Locale;
 
+import org.example.kalkulationsprogramm.domain.LieferantRolle;
 import org.example.kalkulationsprogramm.domain.Lieferanten;
 import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
@@ -34,8 +35,19 @@ public final class LieferantenSuche {
      */
     public static Specification<Lieferanten> spezifikation(String freitext, String name, String typ, String ort,
             String email) {
-        Specification<Lieferanten> spec = Specification.where(
-                (root, cq, cb) -> cb.isFalse(root.get("archiviert")));
+        return spezifikation(freitext, name, typ, ort, email, null);
+    }
+
+    /**
+     * Wie {@link #spezifikation(String, String, String, String, String)}, zusätzlich gefiltert nach einer
+     * Rolle. Die Rolle steht in einer eigenen Tabelle ({@code lieferanten_rollen}); {@code MEMBER OF} wird
+     * zu einer Unterabfrage, die Zeilen bleiben also einfach.
+     *
+     * @param rolle nur Lieferanten mit dieser Rolle; {@code null} = alle
+     */
+    public static Specification<Lieferanten> spezifikation(String freitext, String name, String typ, String ort,
+            String email, LieferantRolle rolle) {
+        Specification<Lieferanten> spec = Specification.where(null);
         if (StringUtils.hasText(freitext)) {
             final String muster = muster(freitext);
             spec = spec.and((root, cq, cb) -> cb.or(
@@ -60,6 +72,9 @@ public final class LieferantenSuche {
                 treffer.select(adresse).where(cb.like(cb.lower(adresse), muster));
                 return cb.exists(treffer);
             });
+        }
+        if (rolle != null) {
+            spec = spec.and((root, cq, cb) -> cb.isMember(rolle, root.<java.util.Set<LieferantRolle>>get("rollen")));
         }
         return spec;
     }

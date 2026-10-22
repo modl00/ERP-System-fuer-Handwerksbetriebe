@@ -69,6 +69,7 @@ class FlywayMigrationenTest {
             Map.entry("V425__urlaubsantrag_entscheidung.sql", 1247692216),
             Map.entry("V426__abteilung_zeiterfassung_sichtbar.sql", -1951496007),
             Map.entry("V427__urlaub_uebertrag.sql", 483432275),
+<<<<<<< HEAD
             Map.entry("V9000__wartung_grundlagen.sql", 1129854990),
             Map.entry("V9001__wartung_vorlagen.sql", 1622650522),
             Map.entry("V9002__wartung_projekt_feldeinsatz.sql", -370188822),
@@ -128,7 +129,18 @@ class FlywayMigrationenTest {
             Map.entry("V9056__artikel_in_projekt_reservierung.sql", -1072981779),
             Map.entry("V9057__archiv_artikel_lieferant_lagerort.sql", 1749358280),
             Map.entry("V9058__fertigungsunterlagen_bestellung_anhaenge.sql", -457385230),
-            Map.entry("V9059__email_postfach_imap_ordner.sql", -906935815));
+            Map.entry("V9059__email_postfach_imap_ordner.sql", -906935815),
+            Map.entry("V428__zeit_hinweis_gesendet.sql", -727890757),
+            Map.entry("V429__email_automatische_bestaetigung.sql", 854429120),
+            Map.entry("V430__email_draft_besitzer.sql", 617604519),
+            Map.entry("V431__kunde_datenschutz_sperre.sql", -1464614437),
+            Map.entry("V432__kunde_anonymisiert.sql", 755312716),
+            Map.entry("V433__feiertage_bundesland.sql", 907020182),
+            Map.entry("V434__offener_posten_gutschrift.sql", -1881398446),
+            Map.entry("V435__telefonbuch_zuordnung.sql", 1166440287),
+            Map.entry("V436__artikel_ean.sql", 368622790),
+            Map.entry("V437__abteilung_darf_aufschlaege_aendern.sql", -1027148804),
+            Map.entry("V438__kategorie_aufschlag.sql", 361623221));
 
     private static final char BOM = 0xFEFF;
 

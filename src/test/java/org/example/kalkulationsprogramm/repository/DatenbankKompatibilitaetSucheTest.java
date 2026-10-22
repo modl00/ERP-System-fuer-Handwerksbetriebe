@@ -131,21 +131,26 @@ class DatenbankKompatibilitaetSucheTest {
         String gross = kennung.toUpperCase(Locale.ROOT);
         List<String> fehler = new ArrayList<>();
         // Freitext ohne Gross-/Kleinschreibung
-        kunden(fehler, "Freitext", k -> k.sucheKunden("MUSTERMANN " + gross, null, null, null, null, null, 0, 50),
+        kunden(fehler, "Freitext", k -> k.sucheKunden("MUSTERMANN " + gross, null, null, null, null, null, false, 0, 50, null),
                 "Max Mustermann");
-        kunden(fehler, "Name + Ort mit Umlaut", k -> k.sucheKunden(null, gross, null, "WÜRZBURG", null, null, 0, 50),
+        kunden(fehler, "Name + Ort mit Umlaut", k -> k.sucheKunden(null, gross, null, "WÜRZBURG", null, null, false, 0, 50, null),
                 "Erika Musterfrau", "Max Mustermann");
-        kunden(fehler, "Kundennummer", k -> k.sucheKunden(null, null, "k-" + kennung, null, null, null, 0, 50),
+        kunden(fehler, "Kundennummer", k -> k.sucheKunden(null, null, "k-" + kennung, null, null, null, false, 0, 50, null),
                 "Erika Musterfrau", "Max Mustermann");
         // Zwei passende Adressen beim selben Kunden: trotzdem nur eine Zeile
-        kunden(fehler, "E-Mail", k -> k.sucheKunden(null, null, null, null, kennung + "@EXAMPLE", null, 0, 50),
+        kunden(fehler, "E-Mail", k -> k.sucheKunden(null, null, null, null, kennung + "@EXAMPLE", null, false, 0, 50, null),
                 "Erika Musterfrau", "Max Mustermann");
-        kunden(fehler, "Typ Kunde", k -> k.sucheKunden(null, kennung, null, null, null, "KUNDE", 0, 50),
+        kunden(fehler, "Typ Kunde", k -> k.sucheKunden(null, kennung, null, null, null, "KUNDE", false, 0, 50, null),
                 "Max Mustermann");
-        kunden(fehler, "Typ Anfrager", k -> k.sucheKunden(null, kennung, null, null, null, "ANFRAGER", 0, 50),
+        kunden(fehler, "Typ Anfrager", k -> k.sucheKunden(null, kennung, null, null, null, "ANFRAGER", false, 0, 50, null),
                 "Erika Musterfrau");
         kunden(fehler, "alle Filter", k -> k.sucheKunden("muster", kennung, "K-" + gross, "würzburg",
-                "rechnung." + kennung, "KUNDE", 0, 50), "Max Mustermann");
+                "rechnung." + kennung, "KUNDE", false, 0, 50, null), "Max Mustermann");
+        // Datenschutz-Sperre (Issue #264): keiner der Testkunden ist gesperrt
+        // Nur Admins dürfen gesperrte Kunden auflisten (Issue #264)
+        var admin = new org.springframework.security.authentication.UsernamePasswordAuthenticationToken("chef", null,
+                org.springframework.security.core.authority.AuthorityUtils.createAuthorityList("ROLE_ADMIN"));
+        kunden(fehler, "nur gesperrte", k -> k.sucheKunden(null, kennung, null, null, null, null, true, 0, 50, admin));
         assertThat(fehler).as("Kundensuchen, die auf dieser Datenbank scheitern oder anderes finden").isEmpty();
     }
 
@@ -223,6 +228,33 @@ class DatenbankKompatibilitaetSucheTest {
         assertThat(fehler).as("Artikelsuchen, die auf dieser Datenbank scheitern oder anders sortieren").isEmpty();
     }
 
+    @Test
+    @DisplayName("Artikelsuche: Zahlen zählen als ganze Zahl, Komma gleich Punkt (regulärer Ausdruck in SQL)")
+    void artikelsucheZahlenAlsGanzeZahl() {
+        List<String> fehler = new ArrayList<>();
+        pruefen(fehler, "Artikel q=flachstahl 20x10", () -> {
+            for (String name : List.of("Flachstahl " + kennung + " 20 x 10", "Flachstahl " + kennung + " 120 x 10",
+                    "Flachstahl " + kennung + " 100 x 20", "Flachstahl " + kennung + " 20,5 x 10")) {
+                Artikel a = new Artikel();
+                a.setProduktname(name);
+                em.persist(a);
+            }
+            em.flush();
+            em.clear();
+            List<String> treffer = artikelSuche(k -> k.sucheArtikel("FLACHSTAHL " + kennung.toUpperCase(Locale.ROOT) + " 20x10",
+                    null, null, null, null, false, null, null, null, null, null, 0, 50, "produktname", "asc"));
+            List<String> komma = artikelSuche(k -> k.sucheArtikel("flachstahl " + kennung + " 20.5",
+                    null, null, null, null, false, null, null, null, null, null, 0, 50, "produktname", "asc"));
+            // Hochkomma im Zahlenpfad: darf weder scheitern noch etwas finden
+            List<String> hochkomma = artikelSuche(k -> k.sucheArtikel("flachstahl " + kennung + " 20' or '1'='1",
+                    null, null, null, null, false, null, null, null, null, null, 0, 50, "produktname", "asc"));
+            return treffer.equals(List.of("Flachstahl 20 x 10")) && komma.equals(List.of("Flachstahl 20,5 x 10"))
+                    && hochkomma.isEmpty()
+                    ? null : "gefunden " + treffer + " / " + komma + " / " + hochkomma;
+        });
+        assertThat(fehler).as("Zahlensuche, die auf dieser Datenbank scheitert").isEmpty();
+    }
+
     private List<String> artikelSuche(
             Function<ArtikelController, org.example.kalkulationsprogramm.dto.Artikel.ArtikelSearchResponseDto> suche) {
         return suche.apply(bauen(ArtikelController.class)).getArtikel().stream()
@@ -241,7 +273,10 @@ class DatenbankKompatibilitaetSucheTest {
         wuerth.setLieferantenname("Würth " + kennung);
         em.persist(wuerth);
 
-        Artikel a = new Artikel();
+        // Werkstoff-Artikel: „kg/m“ (masse) liegt an der Unterklasse und wird mitsortiert (Issue #265)
+        org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe a = new org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe();
+        a.setArtikelnummer("AN-" + kennung);
+        a.setMasse(new BigDecimal("2.3400"));
         a.setProduktname("Rundrohr " + kennung + " A");
         a.setProduktlinie("Rohr");
         a.setProdukttext("Rundrohr geschweisst");

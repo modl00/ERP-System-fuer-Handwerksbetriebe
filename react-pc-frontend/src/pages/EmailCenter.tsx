@@ -6,15 +6,18 @@ import { PostfachSchild } from '../features/email/PostfachSchild';
 import { useAbsenderPostfaecher } from '../features/email/useAbsenderPostfaecher';
 import { ermittleEmailZuordnung } from '../features/email/emailZuordnung';
 import { EmailFolderSidebar } from '../features/email/EmailFolderSidebar';
-import { AssignModal } from '../features/email/EmailAssignmentDialog';
+import { UngelesenKopfzeile } from '../features/email/UngelesenKopfzeile';
+import { AssignModal, type ZuordnungsZiel } from '../features/email/EmailAssignmentDialog';
+import { OrdnerHinweis } from '../features/email/OrdnerHinweis';
 import { KiAbgleichDialog } from '../features/email/KiAbgleichDialog';
 import { ProjektErstellenModal } from '../components/ProjektErstellenModal';
 import { AnfrageErstellenModal } from './AnfrageEditor';
+import { useOptionalAuth } from '../auth/AuthContext';
 import { useEmailPaneWidth } from '../features/email/useEmailPaneWidth';
 import {
-    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, getSenderName,
-    getDisplayName, groupEmailThreads, hasFurtherRecipients, isImageAttachment, nutztServerFilterUngelesen,
-    type EmailItem, type EmailThreadRow, type FolderType, type ReadFilter, type ReplyMode,
+    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, filtereEntwuerfe, fremderEntwurfVon,
+    getSenderName, getDisplayName, groupEmailThreads, hasFurtherRecipients, isImageAttachment, loeschFehlerMeldung, nutztServerFilterUngelesen,
+    type DraftItem, type EmailItem, type EmailThreadRow, type FolderType, type ReadFilter, type ReplyMode,
 } from '../features/email/emailCenterModel';
 import React, { useState, useEffect, useContext, useCallback, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, UNSAFE_DataRouterContext } from 'react-router-dom';
@@ -68,6 +71,7 @@ import { EmailComposeForm } from '../components/EmailComposeForm';
 import { ImageViewer } from '../components/ui/image-viewer';
 import { useToast } from '../components/ui/toast';
 import { useConfirm } from '../components/ui/confirm-dialog';
+import { parseErrorMessage } from '../components/settings/settingsApi';
 import { EmailThreadView } from '../components/EmailThreadView';
 import type { EmailThread } from '../components/EmailThreadView';
 
@@ -109,6 +113,8 @@ function DraggableEmailWrapper({ emailId, disabled, children }: DraggableEmailWr
 export default function EmailCenter() {
     const hasDataRouter = useContext(UNSAFE_DataRouterContext) !== null;
     const toast = useToast();
+    // Eigener Name, um fremde Entwürfe (nur Admins sehen sie) mit „von …“ zu kennzeichnen.
+    const eigenerName = useOptionalAuth()?.user?.displayName ?? null;
     const confirmDialog = useConfirm();
     const { folder: folderParam, emailId: emailIdParam } = useParams<{ folder?: string; emailId?: string }>();
     const [searchParams, setSearchParams] = useSearchParams();
@@ -490,11 +496,15 @@ export default function EmailCenter() {
     const handleDeleteDraft = async (draftId: number, e?: React.MouseEvent) => {
         if (e) { e.stopPropagation(); e.preventDefault(); }
         try {
-            await fetch(`/api/emails/drafts/${draftId}`, { method: 'DELETE' });
+            const res = await fetch(`/api/emails/drafts/${draftId}`, { method: 'DELETE' });
+            if (!res.ok) {
+                toast.error(await parseErrorMessage(res, 'Der Entwurf konnte nicht gelöscht werden.'));
+                return;
+            }
             setDrafts(prev => prev.filter(d => d.id !== draftId));
             loadStats();
         } catch {
-            toast.error('Entwurf konnte nicht gelöscht werden');
+            toast.error('Der Entwurf konnte nicht gelöscht werden.');
         }
     };
 
@@ -890,6 +900,8 @@ export default function EmailCenter() {
             setSelectedEmail(null);
         }
 
+        const fehlgeschlagen: number[] = [];
+        let serverMeldung: string | null = null;
         for (const id of currentIds) {
             try {
                 // Im Papierkorb: Permanent löschen (DB + Mailserver)
@@ -897,19 +909,31 @@ export default function EmailCenter() {
                 const endpoint = isPermanentDelete
                     ? `/api/emails/${id}/permanent`
                     : `/api/emails/${id}`;
-                await fetch(endpoint, { method: 'DELETE' });
+                const res = await fetch(endpoint, { method: 'DELETE' });
+                if (!res.ok) {
+                    fehlgeschlagen.push(id);
+                    serverMeldung ??= await parseErrorMessage(res, '');
+                }
             } catch {
-                console.error('Delete failed for', id);
+                fehlgeschlagen.push(id);
             }
         }
 
         // Stats aktualisieren nach Löschung
         folderCacheRef.current.clear();
         loadStats();
+
+        if (fehlgeschlagen.length > 0) {
+            // Nicht gelöschte Mails gehören wieder in die Liste: aus der Sperre nehmen und
+            // die Liste vom Server holen – der Zwischenspeicher ist oben schon geleert.
+            fehlgeschlagen.forEach(id => pendingRemovalsRef.current.delete(id));
+            refreshEmailsSilently();
+            toast.error(loeschFehlerMeldung(fehlgeschlagen.length, currentIds.length, serverMeldung));
+        }
     };
 
-    const handleAssign = async (type: 'projekt' | 'anfrage', targetId: number) => {
-        // Eine Listenzeile steht für den ganzen Verlauf – er landet beim Projekt/bei der Anfrage.
+    const handleAssign = async (type: ZuordnungsZiel, targetId: number) => {
+        // Eine Listenzeile steht für den ganzen Verlauf – er landet beim Projekt/bei der Anfrage/beim Lieferanten.
         // Bewusst anders zugeordnete Mitglieder (z. B. Lieferanten-Rechnung im Kunden-Verlauf) bleiben, wo sie sind.
         const chosenIds = selectedIds.size > 1 ? Array.from(selectedIds) : (selectedEmail ? [selectedEmail.id] : []);
         const chosen = new Set(chosenIds);
@@ -921,9 +945,7 @@ export default function EmailCenter() {
         if (idsToAssign.length === 0) return;
 
         for (const emailId of idsToAssign) {
-            const url = type === 'projekt'
-                ? `/api/emails/${emailId}/assign/projekt/${targetId}`
-                : `/api/emails/${emailId}/assign/anfrage/${targetId}`;
+            const url = `/api/emails/${emailId}/assign/${type}/${targetId}`;
             const res = await fetch(url, { method: 'POST' });
             if (!res.ok) throw new Error('Failed to assign');
         }
@@ -934,6 +956,27 @@ export default function EmailCenter() {
         setSelectedEmail(null);
         folderCacheRef.current.clear();
         loadStats();
+    };
+
+    /** Hebt die Zuordnung der geöffneten Mail auf – sie gilt danach wieder als nicht zugeordnet. */
+    const handleUnassign = async () => {
+        const email = selectedEmail;
+        if (!email) return;
+        const res = await fetch(`/api/emails/${email.id}/unassign`, { method: 'POST' });
+        if (!res.ok) throw new Error('Zuordnung aufheben fehlgeschlagen');
+        const aktualisiert = await res.json().catch(() => null) as Partial<EmailItem> | null;
+        const ohneZuordnung: Partial<EmailItem> = {
+            zuordnungTyp: 'KEINE',
+            projektId: undefined, projektName: undefined, projektAuftragsnummer: undefined,
+            anfrageId: undefined, anfrageName: undefined,
+            lieferantId: undefined, lieferantName: undefined,
+            ...(aktualisiert ?? {}),
+        };
+        setSelectedEmail(prev => (prev && prev.id === email.id ? { ...prev, ...ohneZuordnung } : prev));
+        setEmails(prev => prev.map(e => (e.id === email.id ? { ...e, ...ohneZuordnung } : e)));
+        folderCacheRef.current.clear();
+        loadStats();
+        refreshEmailsSilently();
     };
 
     const handleBlockSender = async (emailIds?: number[]) => {
@@ -1594,6 +1637,9 @@ export default function EmailCenter() {
                     replyEmailId={replyToEmailId}
                     // Weiterleitungs-Entwurf: fester Absender wie bei der Weiterleitung selbst.
                     weitergeleitetVonEmailId={forwardEmail?.id ?? activeDraft?.weitergeleitetVonEmailId ?? undefined}
+                    // Anhänge der Original-Mail zum Mitsenden – nur aus der vollständig geladenen Mail.
+                    // Sonst (Entwurf, Listen-Eintrag) lädt das Formular sie selbst.
+                    weiterleitungsAnhaenge={forwardEmail?.htmlBody ? forwardEmail.attachments ?? [] : undefined}
                     // Antwort-Postfach nur übergeben, wenn es zur beantworteten Mail gehört;
                     // sonst holt das Formular es selbst (z. B. Antwort auf eine ältere Mail im Verlauf).
                     antwortPostfach={forwardEmail
@@ -1909,6 +1955,8 @@ export default function EmailCenter() {
                 style={{ width: effectiveListWidth }}
                 className="bg-white border-r border-slate-200 flex flex-col shrink-0 min-w-[280px]"
             >
+                {/* Besonderheiten des Ordners: Aufräumfrist, eigene Entwürfe, „Nicht zugeordnet“ */}
+                {!isGlobalSearch && <OrdnerHinweis ordner={activeFolder} />}
                 {/* Ordner-Header mit "Alle gelesen"-Button */}
                 {!isGlobalSearch && activeFolder !== 'sent' && emails.some(e => !e.isRead) && (
                     <div className="flex items-center justify-between px-3 py-2 bg-slate-50 border-b border-slate-200">
@@ -2089,6 +2137,9 @@ export default function EmailCenter() {
                                     <p className="text-sm mb-1 truncate font-medium text-slate-700">
                                         {draft.subject || '(Kein Betreff)'}
                                     </p>
+                                    {fremderEntwurfVon(draft, eigenerName) && (
+                                        <p className="text-xs text-slate-500 mb-1 truncate">von {fremderEntwurfVon(draft, eigenerName)}</p>
+                                    )}
                                     <p className="text-xs text-slate-400 line-clamp-2">
                                         {stripHtmlTags(draft.body || '...', ' ').replace(/\s+/g, ' ').trim().substring(0, 150)}
                                     </p>
@@ -2270,6 +2321,9 @@ export default function EmailCenter() {
                 onAssign={handleAssign}
                 emailSubject={selectedEmail?.subject || ''}
                 emailId={selectedEmail?.id}
+                // Aufheben nur für die eine geöffnete Mail – nicht bei Mehrfachauswahl.
+                aktuelleZuordnung={selectedIds.size > 1 || !selectedEmail ? null : ermittleEmailZuordnung(selectedEmail)?.label ?? null}
+                onUnassign={handleUnassign}
             />
 
             <ProjektErstellenModal

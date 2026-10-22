@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Brain, CheckCircle2, Loader2, MessageSquareWarning, PlugZap, PowerOff } from 'lucide-react';
+import { Brain, CheckCircle2, Loader2, MessageSquareWarning, PlugZap, PowerOff, Trash2 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { useToast } from '../../ui/toast';
+import { useConfirm } from '../../ui/confirm-dialog';
 import { InfoAbschnitt, InfoButton } from '../../ui/info-button';
 import { useOptionalAuth } from '../../../auth/AuthContext';
 import { cn } from '../../../lib/utils';
@@ -50,6 +51,7 @@ const BEREICHE: { id: Bereich; label: string }[] = [
  */
 export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
     const toast = useToast();
+    const confirm = useConfirm();
     // Nicht-werfende Variante: Die Einstellungen werden in Tests auch ohne
     // Anmelde-Rahmen gebaut. In der App ist der AuthProvider immer da.
     const auth = useOptionalAuth();
@@ -60,6 +62,7 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
     const [apiKeySet, setApiKeySet] = useState(false);
     const [apiKey, setApiKey] = useState('');
     const [saving, setSaving] = useState(false);
+    const [removing, setRemoving] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<TestResult | null>(null);
 
@@ -119,6 +122,39 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
             toast.error('Verbindung zum Server fehlgeschlagen.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    /** Löscht den gespeicherten Schlüssel – danach sind alle KI-Funktionen aus. */
+    const handleRemove = async () => {
+        const ok = await confirm({
+            title: 'KI-Schlüssel entfernen?',
+            message: 'Danach sind alle KI-Funktionen aus, bis Sie wieder einen Schlüssel speichern. Schon ausgelesene Daten bleiben erhalten.',
+            confirmLabel: 'Schlüssel entfernen',
+            variant: 'danger',
+        });
+        if (!ok) return;
+        setRemoving(true);
+        try {
+            const res = await fetch('/api/settings/gemini', { method: 'DELETE' });
+            if (!res.ok) {
+                toast.error(await parseErrorMessage(res, 'KI-Schlüssel konnte nicht entfernt werden.'));
+                return;
+            }
+            const data: unknown = await res.json().catch(() => null);
+            const meldung = data && typeof data === 'object' && typeof (data as { message?: unknown }).message === 'string'
+                ? (data as { message: string }).message
+                : 'KI-Schlüssel entfernt.';
+            toast.success(meldung);
+            setApiKey('');
+            setTestResult(null);
+            // Wie beim Speichern: „kiAktiv“ app-weit sofort aktualisieren.
+            await Promise.all([loadSettings(), auth?.refreshMe()]);
+            onSaved?.();
+        } catch {
+            toast.error('Verbindung zum Server fehlgeschlagen. Der KI-Schlüssel wurde nicht entfernt.');
+        } finally {
+            setRemoving(false);
         }
     };
 
@@ -226,17 +262,35 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
 
                 <TestResultBanner result={testResult} className="mt-3" />
 
-                <SaveButton onClick={handleSave} saving={saving} disabled={!apiKey.trim()}>
-                    Schlüssel speichern
-                </SaveButton>
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    {apiKeySet ? (
+                        <div className="mt-6 flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void handleRemove()}
+                                disabled={removing || saving}
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                                {removing ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Trash2 aria-hidden="true" className="w-4 h-4" />}
+                                {removing ? 'Wird entfernt …' : 'Schlüssel entfernen'}
+                            </Button>
+                            <SchluesselEntfernenInfo />
+                        </div>
+                    ) : <span />}
+                    <SaveButton onClick={handleSave} saving={saving} disabled={!apiKey.trim() || removing}
+                        title={!apiKey.trim() ? 'Bitte zuerst einen KI-Schlüssel eintragen.' : undefined}>
+                        Schlüssel speichern
+                    </SaveButton>
+                </div>
             </SettingsCard>
     );
 
     return (
-        <div className="space-y-6">
-            <div role="tablist" aria-label="Bereiche der KI-Einstellungen" className="flex flex-wrap gap-1 border-b border-slate-200">
+        <div className=”space-y-6”>
+            <div role=”tablist” aria-label=”Bereiche der KI-Einstellungen” className=”flex flex-wrap gap-1 border-b border-slate-200”>
                 {BEREICHE.map((b, i) => (
-                    <button key={b.id} type="button" role="tab" id={`ki-reiter-${b.id}`} aria-selected={bereich === b.id} aria-controls="ki-bereich"
+                    <button key={b.id} type=”button” role=”tab” id={`ki-reiter-${b.id}`} aria-selected={bereich === b.id} aria-controls=”ki-bereich”
                         tabIndex={bereich === b.id ? 0 : -1} ref={el => { reiter.current[b.id] = el; }} onClick={() => waehle(b.id)} onKeyDown={e => taste(e, i)}
                         className={`px-3 py-2 text-sm font-medium border-b-2 -mb-px transition-colors ${bereich === b.id ? 'border-rose-600 text-rose-700' : 'border-transparent text-slate-500 hover:text-slate-700 hover:border-slate-200'}`}>
                         {b.label}
@@ -244,7 +298,7 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                 ))}
             </div>
 
-            <div role="tabpanel" id="ki-bereich" aria-labelledby={`ki-reiter-${bereich}`} className="space-y-6">
+            <div role=”tabpanel” id=”ki-bereich” aria-labelledby={`ki-reiter-${bereich}`} className=”space-y-6”>
                 {bereich === 'uebersicht' && (
                     <>
                         <KiStatusKasten an={auth?.user?.kiAktiv ?? apiKeySet} />
@@ -252,35 +306,37 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                         <KiUebersichtKarte onOeffne={waehle} />
 
                         <SettingsCard
-                            icon={<MessageSquareWarning className="w-5 h-5 text-rose-600" />}
-                            title="Anfragen von der Webseite"
+                            icon={<MessageSquareWarning className=”w-5 h-5 text-rose-600” />}
+                            title=”Anfragen von der Webseite”
                             description={
                                 <p>
                                     Wenn aktiv, prüft ein Sprachmodell jede neue Anfrage über das Webseiten-Formular
-                                    und blockiert offensichtliche Spaß-Eingaben (z.B. „Test 123", Beleidigungen,
-                                    kaputte E-Mail-Adressen). Dafür braucht es keinen Gemini-Schlüssel: Das Modell
-                                    läuft standardmäßig auf dem eigenen Server, die Anfragen verlassen den Betrieb
-                                    dabei nicht. Ist es nicht eingerichtet oder gerade nicht erreichbar, gehen alle
-                                    Anfragen durch – eine echte Anfrage wird nie wegen eines Fehlers abgewiesen.
+                                    auf offensichtliche Spaß-Eingaben (z.B. „Test 123”, Beleidigungen, kaputte
+                                    E-Mail-Adressen). Die Anfrage wird trotzdem immer gespeichert, und der Kunde
+                                    bekommt seine Eingangsbestätigung – geprüft wird erst danach. Spaß-Anfragen
+                                    löschen Sie von Hand unter „Anfragen”. Dafür braucht es keinen
+                                    Gemini-Schlüssel: Das Modell läuft standardmäßig auf dem eigenen Server, die
+                                    Anfragen verlassen den Betrieb dabei nicht. Ist es nicht eingerichtet oder
+                                    gerade nicht erreichbar, entfällt nur die Prüfung.
                                 </p>
                             }
                         >
-                            <label className="flex items-start gap-3 cursor-pointer select-none">
+                            <label className=”flex items-start gap-3 cursor-pointer select-none”>
                                 <input
-                                    type="checkbox"
+                                    type=”checkbox”
                                     checked={spamFilterAktiv}
                                     disabled={spamFilterSaving}
                                     onChange={(e) => handleToggleSpamFilter(e.target.checked)}
-                                    className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
+                                    className=”mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500”
                                 />
                                 <span>
-                                    <span className="font-medium text-slate-900">
-                                        Spaß-Anfragen automatisch aussortieren
+                                    <span className=”font-medium text-slate-900”>
+                                        Spaß-Anfragen automatisch prüfen
                                     </span>
-                                    <span className="block text-xs text-slate-500">
-                                        Erkennt z.B. „asdf", „leck mich", Test-Eingaben oder unsinnige
-                                        E-Mail-Adressen und meldet der Webseite, dass die Anfrage nicht gesendet
-                                        werden konnte.
+                                    <span className=”block text-xs text-slate-500”>
+                                        Achtet z.B. auf „asdf”, „leck mich”, Test-Eingaben oder unsinnige
+                                        E-Mail-Adressen. Abgewiesen oder in der Anfragenliste markiert wird
+                                        dabei noch nichts.
                                     </span>
                                 </span>
                             </label>
@@ -289,13 +345,13 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                 )}
 
                 {bereich === 'anbieter' && (
-                    <div className="space-y-8">
+                    <div className=”space-y-8”>
                         <KiAnbieterKarte
                             geminiZugang={geminiKarte}
                             lokalZugang={<LokaleKiKarte />}
                         />
-                        <section className="space-y-3" aria-labelledby="ki-schritt-2">
-                            <h3 id="ki-schritt-2" className="text-base font-bold text-slate-900">2. Funktionen: Anbieter, Modell und Datenschutz</h3>
+                        <section className=”space-y-3” aria-labelledby=”ki-schritt-2”>
+                            <h3 id=”ki-schritt-2” className=”text-base font-bold text-slate-900”>2. Funktionen: Anbieter, Modell und Datenschutz</h3>
                             <KiFunktionenKarte />
                         </section>
                     </div>
@@ -400,6 +456,23 @@ function KiFunktionenInfo() {
                     <li>Ohne Schlüssel sind KI-Knöpfe gesperrt oder ausgeblendet. Angebote, Rechnungen, Zeiterfassung und E-Mails funktionieren unverändert.</li>
                     <li>Schon ausgelesene Belege und gespeicherte Texte bleiben erhalten.</li>
                 </ul>
+            </InfoAbschnitt>
+        </InfoButton>
+    );
+}
+
+/** Erklärt, was „Schlüssel entfernen“ auslöst und was erhalten bleibt. */
+function SchluesselEntfernenInfo() {
+    return (
+        <InfoButton titel="Schlüssel entfernen">
+            <InfoAbschnitt titel="Was passiert im Hintergrund?">
+                <p>Der gespeicherte Schlüssel wird gelöscht. Das Programm fragt danach keine KI mehr an.</p>
+            </InfoAbschnitt>
+            <InfoAbschnitt titel="Was bewirkt das?">
+                <p>
+                    Alle KI-Funktionen sind aus (zum Beispiel die KI-Hilfe und das automatische Auslesen von Belegen),
+                    bis Sie wieder einen Schlüssel speichern. Schon ausgelesene Daten bleiben erhalten.
+                </p>
             </InfoAbschnitt>
         </InfoButton>
     );

@@ -1,10 +1,14 @@
 package org.example.kalkulationsprogramm.controller;
 
+import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 
+import org.example.kalkulationsprogramm.domain.Bundesland;
+import org.example.kalkulationsprogramm.repository.FirmeninformationRepository;
 import org.example.kalkulationsprogramm.service.FeiertagService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -21,6 +25,7 @@ import lombok.RequiredArgsConstructor;
 public class FeiertagBundeslandController {
 
     private final FeiertagService feiertagService;
+    private final FirmeninformationRepository firmeninformationRepository;
 
     public record Land(String kuerzel, String name) { }
 
@@ -30,16 +35,24 @@ public class FeiertagBundeslandController {
 
     @GetMapping
     public Antwort lesen() {
-        return antwort(feiertagService.bundesland());
+        return antwort(feiertagService.aktuellesBundesland());
     }
 
     @PutMapping
+    @Transactional
     public Antwort speichern(@RequestBody Anfrage anfrage) {
-        return antwort(feiertagService.setzeBundesland(anfrage.bundesland()));
+        String kuerzel = anfrage.bundesland();
+        Bundesland land = Bundesland.ausKuerzel(kuerzel)
+                .orElseThrow(() -> new IllegalArgumentException("Unbekanntes Bundesland: " + kuerzel));
+        var firma = firmeninformationRepository.getOrCreate();
+        firma.setBundesland(land.name());
+        firmeninformationRepository.save(firma);
+        feiertagService.bundeslandGeaendert(land.name());
+        return antwort(land.name());
     }
 
     private static Antwort antwort(String aktuell) {
-        return new Antwort(aktuell, FeiertagService.BUNDESLAENDER.entrySet().stream().map(e -> new Land(e.getKey(), e.getValue())).toList());
+        return new Antwort(aktuell, Arrays.stream(Bundesland.values()).map(b -> new Land(b.name(), b.getAnzeigename())).toList());
     }
 
     @ExceptionHandler(IllegalArgumentException.class)

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Bell, CalendarCheck, Plus, Shield, Trash2, Users, Wallet } from 'lucide-react';
+import { Bell, CalendarCheck, Percent, Plus, Shield, Trash2, Users, Wallet } from 'lucide-react';
 import { InfoAbschnitt, InfoButton } from '../../ui/info-button';
 import { Button } from '../../ui/button';
 import { useToast } from '../../ui/toast';
@@ -36,6 +36,7 @@ interface AbteilungBerechtigung {
     darfRechnungenSehen: boolean;
     darfFreigabeAnnahmePushen: boolean;
     darfWebseitenAnfragenPushen: boolean;
+    darfAufschlaegeAendern: boolean;
 }
 
 type Schalter =
@@ -45,7 +46,8 @@ type Schalter =
     | 'darfRechnungenGenehmigen'
     | 'darfRechnungenSehen'
     | 'darfFreigabeAnnahmePushen'
-    | 'darfWebseitenAnfragenPushen';
+    | 'darfWebseitenAnfragenPushen'
+    | 'darfAufschlaegeAendern';
 
 const DOKUMENT_TYP_LABELS: Record<string, string> = {
     ANGEBOT: 'Angebot',
@@ -71,6 +73,7 @@ function normalisiere(abt: AbteilungBerechtigung): AbteilungBerechtigung {
         darfRechnungenSehen: abt.darfRechnungenSehen === true,
         darfFreigabeAnnahmePushen: abt.darfFreigabeAnnahmePushen === true,
         darfWebseitenAnfragenPushen: abt.darfWebseitenAnfragenPushen === true,
+        darfAufschlaegeAendern: abt.darfAufschlaegeAendern === true,
     };
 }
 
@@ -116,6 +119,25 @@ function ZeiterfassungSichtbarkeitInfo() {
                     Urlaubsanträge anderer Mitarbeiter an diesen Zugang auch nicht mehr heraus. Im Termin-Kalender sieht er
                     kranke Kollegen nur als „Abwesend“. Das Stempeln und Urlaub-Beantragen in der Handy-App bleibt davon
                     unberührt. Ein PC-Zugang ohne verknüpften Mitarbeiter sieht den Bereich nur als Administrator.
+                </p>
+            </InfoAbschnitt>
+        </InfoButton>
+    );
+}
+
+function AufschlaegeInfo() {
+    return (
+        <InfoButton titel="Aufschläge ändern">
+            <InfoAbschnitt titel="Was passiert im Hintergrund?">
+                <p>
+                    Mitarbeiter dieser Abteilung sehen in der Artikelübersicht den Knopf „Aufschläge“ und dürfen dort den allgemeinen Aufschlag und
+                    den Aufschlag je Kategorie ändern. Administratoren dürfen das immer. Gehört ein Mitarbeiter zu mehreren Abteilungen, reicht ein Haken.
+                </p>
+            </InfoAbschnitt>
+            <InfoAbschnitt titel="Was bewirkt das?">
+                <p>
+                    Ohne dieses Recht sehen und ändern andere den allgemeinen Aufschlag und die Aufschläge der Kategorien nicht. Der Aufschlag direkt am Artikel kann weiterhin jeder Benutzer
+                    ändern. Der Preisvorschlag ändert sich nach einer Änderung sofort; bereits erstellte Angebote und Rechnungen bleiben unverändert.
                 </p>
             </InfoAbschnitt>
         </InfoButton>
@@ -249,6 +271,7 @@ export function BerechtigungenSection() {
                     darfRechnungenSehen: abteilung.darfRechnungenSehen,
                     darfFreigabeAnnahmePushen: abteilung.darfFreigabeAnnahmePushen,
                     darfWebseitenAnfragenPushen: abteilung.darfWebseitenAnfragenPushen,
+                    darfAufschlaegeAendern: abteilung.darfAufschlaegeAendern,
                 }),
             });
             if (!res.ok) {
@@ -279,7 +302,7 @@ export function BerechtigungenSection() {
                     title="Rechte pro Abteilung"
                     description={
                         <>
-                            <p>Hier legst du fest, was die Mitarbeiter einer Abteilung sehen und tun dürfen.</p>
+                            <p>Hier legen Sie fest, was die Mitarbeiter einer Abteilung sehen und tun dürfen.</p>
                             <p>
                                 <strong className="font-medium text-slate-700">Sehen:</strong> Der Mitarbeiter sieht diese Dokumente in der App.{' '}
                                 <strong className="font-medium text-slate-700">Scannen:</strong> Er darf sie auch hochladen – das schließt „Sehen“ mit ein.
@@ -294,45 +317,45 @@ export function BerechtigungenSection() {
                         </div>
                     )}
                     {/* Abteilungsverwaltung */}
-                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-4">
-                        <p className="mb-3 text-sm font-medium text-slate-700">Abteilungen verwalten</p>
+                    <div className=”rounded-lg border border-slate-200 bg-slate-50 p-4”>
+                        <p className=”mb-3 text-sm font-medium text-slate-700”>Abteilungen verwalten</p>
                         {abteilungen.length > 0 && (
-                            <ul className="mb-3 divide-y divide-slate-200 rounded-md border border-slate-200 bg-white">
+                            <ul className=”mb-3 divide-y divide-slate-200 rounded-md border border-slate-200 bg-white”>
                                 {abteilungen.map(a => (
-                                    <li key={a.abteilungId} className="flex items-center justify-between px-3 py-2">
-                                        <span className="text-sm text-slate-900">{a.abteilungName}</span>
+                                    <li key={a.abteilungId} className=”flex items-center justify-between px-3 py-2”>
+                                        <span className=”text-sm text-slate-900”>{a.abteilungName}</span>
                                         <button
-                                            type="button"
-                                            title={`„${a.abteilungName}" löschen`}
-                                            aria-label={`Abteilung „${a.abteilungName}" löschen`}
+                                            type=”button”
+                                            title={`„${a.abteilungName}” löschen`}
+                                            aria-label={`Abteilung „${a.abteilungName}” löschen`}
                                             disabled={loeschenLaeuft === a.abteilungId}
                                             onClick={() => void handleAbteilungLoeschen(a.abteilungId, a.abteilungName)}
-                                            className="inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
+                                            className=”inline-flex h-7 w-7 items-center justify-center rounded-md text-slate-400 hover:bg-rose-50 hover:text-rose-600 disabled:opacity-40 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500”
                                         >
                                             {loeschenLaeuft === a.abteilungId
-                                                ? <span className="h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-rose-600" aria-hidden="true" />
-                                                : <Trash2 className="h-4 w-4" aria-hidden="true" />}
+                                                ? <span className=”h-4 w-4 animate-spin rounded-full border-2 border-slate-300 border-t-rose-600” aria-hidden=”true” />
+                                                : <Trash2 className=”h-4 w-4” aria-hidden=”true” />}
                                         </button>
                                     </li>
                                 ))}
                             </ul>
                         )}
                         {!loadError && abteilungen.length === 0 && (
-                            <p className="mb-3 text-sm text-slate-500">Noch keine Abteilungen angelegt.</p>
+                            <p className=”mb-3 text-sm text-slate-500”>Noch keine Abteilungen angelegt.</p>
                         )}
-                        <form onSubmit={e => { e.preventDefault(); void handleAbteilungAnlegen(); }} className="flex gap-2">
+                        <form onSubmit={e => { e.preventDefault(); void handleAbteilungAnlegen(); }} className=”flex gap-2”>
                             <input
-                                type="text"
+                                type=”text”
                                 value={neuerName}
                                 onChange={e => setNeuerName(e.target.value)}
-                                placeholder="Name der neuen Abteilung"
+                                placeholder=”Name der neuen Abteilung”
                                 maxLength={80}
-                                className="flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500"
+                                className=”flex-1 rounded-md border border-slate-300 px-3 py-1.5 text-sm focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-500”
                             />
-                            <Button type="submit" size="sm" disabled={anlegenLaeuft || !neuerName.trim()} className="bg-rose-600 text-white hover:bg-rose-700">
+                            <Button type=”submit” size=”sm” disabled={anlegenLaeuft || !neuerName.trim()} className=”bg-rose-600 text-white hover:bg-rose-700”>
                                 {anlegenLaeuft
-                                    ? <span className="mr-1 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent" aria-hidden="true" />
-                                    : <Plus className="mr-1 h-4 w-4" aria-hidden="true" />}
+                                    ? <span className=”mr-1 h-4 w-4 animate-spin rounded-full border-2 border-white border-t-transparent” aria-hidden=”true” />
+                                    : <Plus className=”mr-1 h-4 w-4” aria-hidden=”true” />}
                                 Anlegen
                             </Button>
                         </form>
@@ -390,6 +413,14 @@ export function BerechtigungenSection() {
                                             onChange={() => schalte(abt.abteilungId, 'darfRechnungenSehen')}
                                             titel="Genehmigte Rechnungen sehen"
                                             erklaerung="Sieht nur schon genehmigte Eingangsrechnungen (Buchhaltung)." />
+                                    </Gruppe>
+
+                                    <Gruppe icon={<Percent className="h-4 w-4 text-rose-600" />} titel="Preise">
+                                        <RechtZeile checked={abt.darfAufschlaegeAendern} disabled={sperre}
+                                            onChange={() => schalte(abt.abteilungId, 'darfAufschlaegeAendern')}
+                                            titel="Aufschläge ändern"
+                                            erklaerung="Darf in der Artikelübersicht den allgemeinen Aufschlag und den Aufschlag je Kategorie einstellen."
+                                            info={<AufschlaegeInfo />} />
                                     </Gruppe>
 
                                     <Gruppe icon={<CalendarCheck className="h-4 w-4 text-rose-600" />} titel="Zeiterfassung, Monatsabschluss & Telefon">

@@ -134,9 +134,24 @@ class AufschlagServiceTest {
         assertThat(rohre.getVerkaufsaufschlagProzent()).isNull();
         verify(kategorien).save(rohre);
 
-        assertThatThrownBy(() -> service.setzeAllgemein(new BigDecimal("-1"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 1000");
-        assertThatThrownBy(() -> service.setzeKategorie(2, new BigDecimal("1000.01"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 1000");
+        assertThatThrownBy(() -> service.setzeAllgemein(new BigDecimal("-1"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 999,99");
+        assertThatThrownBy(() -> service.setzeKategorie(2, new BigDecimal("1000"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 999,99");
         assertThatThrownBy(() -> service.setzeKategorie(99, BigDecimal.ONE)).isInstanceOf(ResponseStatusException.class).hasMessageContaining("Kategorie");
         assertThat(rohre.getVerkaufsaufschlagProzent()).as("ein abgelehnter Wert ändert nichts").isNull();
+    }
+
+    @Test
+    void dieGrenzenGeltenWieBeimAufschlagAmArtikel() {
+        service.setzeAllgemein(new BigDecimal("999.99"));
+        service.setzeAllgemein(BigDecimal.ZERO);
+        assertThat(service.allgemein()).isEqualByComparingTo("0");
+        assertThatThrownBy(() -> service.setzeAllgemein(new BigDecimal("999.991"))).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void dasSpeichernWirdBeiAbgelehnterKategorieNichtAusgefuehrt() {
+        assertThatThrownBy(() -> service.setzeKategorie(0, new BigDecimal("-5"))).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> service.setzeKategorie(Integer.MAX_VALUE, BigDecimal.TEN)).isInstanceOf(ResponseStatusException.class);
+        org.mockito.Mockito.verify(kategorien, org.mockito.Mockito.never()).save(any());
     }
 }

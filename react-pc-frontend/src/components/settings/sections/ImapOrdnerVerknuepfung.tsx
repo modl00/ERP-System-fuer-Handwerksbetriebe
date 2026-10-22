@@ -11,9 +11,16 @@ interface OrdnerEinstellungen {
     spam: string;
 }
 
+interface Postfach {
+    id: number;
+    emailAdresse: string;
+    anzeigename: string | null;
+    hauptpostfach: boolean;
+}
+
 /**
  * Verknüpft Papierkorb und Spam-Ordner mit echten IMAP-Ordnern auf dem Mailserver.
- * Beim Löschen oder Spam-Markieren wird die E-Mail serverseitig verschoben.
+ * Unterstützt mehrere Postfächer – pro Postfach eigene Ordner-Zuordnung.
  */
 export function ImapOrdnerVerknuepfung() {
     const toast = useToast();
@@ -21,18 +28,37 @@ export function ImapOrdnerVerknuepfung() {
     const [laedeOrdner, setLaedeOrdner] = useState(false);
     const [speichert, setSpeichert] = useState(false);
     const [erkennt, setErkennt] = useState(false);
+    const [postfaecher, setPostfaecher] = useState<Postfach[]>([]);
+    const [gewaehltePostfachId, setGewaehltePostfachId] = useState<number | null>(null);
     const [ordner, setOrdner] = useState<string[]>([]);
     const [einstellungen, setEinstellungen] = useState<OrdnerEinstellungen>({ papierkorb: '', spam: '' });
     const [bearbeitet, setBearbeitet] = useState<OrdnerEinstellungen>({ papierkorb: '', spam: '' });
 
-    const laden = async () => {
+    const postfaecherLaden = async () => {
+        try {
+            const res = await fetch('/api/emails/absender-postfaecher');
+            if (!res.ok) return;
+            const data = await res.json() as Postfach[];
+            setPostfaecher(data);
+            if (data.length > 0 && gewaehltePostfachId === null) {
+                const haupt = data.find(p => p.hauptpostfach) ?? data[0];
+                setGewaehltePostfachId(haupt.id);
+            }
+        } catch {
+            // Postfächer nicht ladbar – kein harter Fehler, Ordner-Felder bleiben sichtbar
+        }
+    };
+
+    const laden = async (postfachId: number | null) => {
         setLaedt(true);
         try {
-            const res = await fetch('/api/emails/ordner-einstellungen');
+            const params = postfachId != null ? `?postfachId=${postfachId}` : '';
+            const res = await fetch(`/api/emails/ordner-einstellungen${params}`);
             if (!res.ok) throw new Error(await parseErrorMessage(res, 'Ordner-Einstellungen konnten nicht geladen werden.'));
             const data = await res.json() as OrdnerEinstellungen;
             setEinstellungen(data);
             setBearbeitet(data);
+            setOrdner([]);
         } catch (err) {
             toast.error(err instanceof Error ? err.message : 'Ordner-Einstellungen konnten nicht geladen werden.');
         } finally {
@@ -43,7 +69,8 @@ export function ImapOrdnerVerknuepfung() {
     const ordnerLaden = async () => {
         setLaedeOrdner(true);
         try {
-            const res = await fetch('/api/emails/imap-ordner');
+            const params = gewaehltePostfachId != null ? `?postfachId=${gewaehltePostfachId}` : '';
+            const res = await fetch(`/api/emails/imap-ordner${params}`);
             if (!res.ok) throw new Error(await parseErrorMessage(res, 'IMAP-Ordner konnten nicht abgerufen werden.'));
             const data = await res.json() as string[];
             setOrdner(data);
@@ -57,7 +84,8 @@ export function ImapOrdnerVerknuepfung() {
     const autoErkennen = async () => {
         setErkennt(true);
         try {
-            const res = await fetch('/api/emails/ordner-einstellungen/auto-erkennen', { method: 'POST' });
+            const params = gewaehltePostfachId != null ? `?postfachId=${gewaehltePostfachId}` : '';
+            const res = await fetch(`/api/emails/ordner-einstellungen/auto-erkennen${params}`, { method: 'POST' });
             if (!res.ok) throw new Error(await parseErrorMessage(res, 'Automatische Erkennung fehlgeschlagen.'));
             const data = await res.json() as { papierkorb: string; spam: string };
             const neues = {
@@ -80,7 +108,8 @@ export function ImapOrdnerVerknuepfung() {
     const speichern = async () => {
         setSpeichert(true);
         try {
-            const res = await fetch('/api/emails/ordner-einstellungen', {
+            const params = gewaehltePostfachId != null ? `?postfachId=${gewaehltePostfachId}` : '';
+            const res = await fetch(`/api/emails/ordner-einstellungen${params}`, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(bearbeitet),
@@ -95,10 +124,17 @@ export function ImapOrdnerVerknuepfung() {
         }
     };
 
-    useEffect(() => { void laden(); }, []);
+    useEffect(() => { void postfaecherLaden(); }, []);
+
+    useEffect(() => {
+        void laden(gewaehltePostfachId);
+    }, [gewaehltePostfachId]);
 
     const geaendert = bearbeitet.papierkorb !== einstellungen.papierkorb
         || bearbeitet.spam !== einstellungen.spam;
+
+    const postfachLabel = (p: Postfach) =>
+        p.anzeigename ? `${p.anzeigename} (${p.emailAdresse})` : p.emailAdresse;
 
     return (
         <SettingsCard
@@ -110,7 +146,7 @@ export function ImapOrdnerVerknuepfung() {
                     <p><strong>Was passiert im Hintergrund?</strong><br />
                         Das Programm verbindet sich beim Löschen oder Spam-Markieren mit dem Mailserver und verschiebt die Nachricht in den hier gewählten Ordner.</p>
                     <p><strong>Was bewirkt das?</strong><br />
-                        Die E-Mail erscheint danach auch im Webmail oder in anderen Mail-Programmen im Papierkorb bzw. Spam. Das Programm löscht nie endgültig – nur eine Verschiebung. Ist kein Ordner gewählt, bleibt alles wie bisher: Löschen und Spam-Markierung wirken nur im Programm selbst.</p>
+                        Die E-Mail erscheint danach auch im Webmail oder in anderen Mail-Programmen im Papierkorb bzw. Spam. Das Programm löscht nie endgültig – nur eine Verschiebung. Ist kein Ordner gewählt, bleibt alles wie bisher: Löschen und Spam-Markierung wirken nur im Programm selbst. Jedes Postfach kann einen eigenen Ordnernamen haben.</p>
                 </InfoButton>
             }
         >
@@ -121,6 +157,21 @@ export function ImapOrdnerVerknuepfung() {
                 </div>
             ) : (
                 <div className="space-y-4">
+                    {postfaecher.length > 1 && (
+                        <div className="space-y-1">
+                            <label className="text-sm font-medium text-slate-700">Postfach</label>
+                            <select
+                                value={gewaehltePostfachId ?? ''}
+                                onChange={e => setGewaehltePostfachId(e.target.value ? Number(e.target.value) : null)}
+                                className="w-full rounded-md border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                            >
+                                {postfaecher.map(p => (
+                                    <option key={p.id} value={p.id}>{postfachLabel(p)}</option>
+                                ))}
+                            </select>
+                        </div>
+                    )}
+
                     <div className="flex flex-wrap items-center gap-2">
                         <Button
                             variant="outline"

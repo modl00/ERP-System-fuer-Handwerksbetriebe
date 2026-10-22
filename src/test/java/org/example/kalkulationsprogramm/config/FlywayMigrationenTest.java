@@ -125,7 +125,10 @@ class FlywayMigrationenTest {
             Map.entry("V9053__plantafel_stempelung.sql", -19100289),
             Map.entry("V9054__firma_briefpapier.sql", 1742962872),
             Map.entry("V9055__fremdleistung_lieferzeit.sql", 390785848),
-            Map.entry("V9056__artikel_in_projekt_reservierung.sql", -1072981779));
+            Map.entry("V9056__artikel_in_projekt_reservierung.sql", -1072981779),
+            Map.entry("V9057__archiv_artikel_lieferant_lagerort.sql", 1749358280),
+            Map.entry("V9058__fertigungsunterlagen_bestellung_anhaenge.sql", -457385230),
+            Map.entry("V9059__email_postfach_imap_ordner.sql", -906935815));
 
     private static final char BOM = 0xFEFF;
 

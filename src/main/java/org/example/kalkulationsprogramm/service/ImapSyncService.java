@@ -2,10 +2,13 @@ package org.example.kalkulationsprogramm.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.Properties;
 
 import org.example.kalkulationsprogramm.domain.Email;
+import org.example.kalkulationsprogramm.domain.EmailAbsender;
 import org.example.kalkulationsprogramm.domain.EmailPostfachZuordnung;
+import org.example.kalkulationsprogramm.repository.EmailAbsenderRepository;
 import org.example.kalkulationsprogramm.repository.EmailPostfachZuordnungRepository;
 import org.example.kalkulationsprogramm.service.mail.PostfachZugang;
 import org.example.kalkulationsprogramm.service.mail.PostfachZugangService;
@@ -39,41 +42,34 @@ public class ImapSyncService {
     private final SystemSettingsService systemSettingsService;
     private final PostfachZugangService postfachZugangService;
     private final EmailPostfachZuordnungRepository emailPostfachZuordnungRepository;
+    private final EmailAbsenderRepository emailAbsenderRepository;
 
     public ImapSyncService(SystemSettingsService systemSettingsService,
             PostfachZugangService postfachZugangService,
-            EmailPostfachZuordnungRepository emailPostfachZuordnungRepository) {
+            EmailPostfachZuordnungRepository emailPostfachZuordnungRepository,
+            EmailAbsenderRepository emailAbsenderRepository) {
         this.systemSettingsService = systemSettingsService;
         this.postfachZugangService = postfachZugangService;
         this.emailPostfachZuordnungRepository = emailPostfachZuordnungRepository;
+        this.emailAbsenderRepository = emailAbsenderRepository;
     }
 
     /** Verschiebt die E-Mail serverseitig in den konfigurierten Papierkorb-Ordner. */
     public void verschiebeInPapierkorb(Email email) {
-        String ziel = systemSettingsService.get(KEY_TRASH, "");
-        if (ziel.isBlank()) {
-            log.debug("[ImapSync] Kein Papierkorb-Ordner konfiguriert – überspringe Server-Verschiebung für Email {}", email.getId());
-            return;
-        }
-        verschiebeAufServer(email, ziel);
+        verschiebeAufServer(email, KEY_TRASH, EmailAbsender::getImapOrdnerPapierkorb);
     }
 
     /** Verschiebt die E-Mail serverseitig in den konfigurierten Spam/Junk-Ordner. */
     public void verschiebeInSpam(Email email) {
-        String ziel = systemSettingsService.get(KEY_SPAM, "");
-        if (ziel.isBlank()) {
-            log.debug("[ImapSync] Kein Spam-Ordner konfiguriert – überspringe Server-Verschiebung für Email {}", email.getId());
-            return;
-        }
-        verschiebeAufServer(email, ziel);
+        verschiebeAufServer(email, KEY_SPAM, EmailAbsender::getImapOrdnerSpam);
     }
 
     /**
-     * Gibt alle IMAP-Ordner des Hauptpostfachs zurück (vollständige Namen,
-     * z. B. "INBOX", "INBOX.Spam", "Trash").
+     * Gibt alle IMAP-Ordner des angegebenen Postfachs zurück (vollständige Namen,
+     * z. B. "INBOX", "INBOX.Spam", "Trash"). {@code postfachId == null} → Hauptpostfach.
      */
-    public List<String> listeImapOrdner() {
-        SystemSettingsService.ImapZugang zugang = systemSettingsService.getStandardImapZugang();
+    public List<String> listeImapOrdner(Long postfachId) {
+        SystemSettingsService.ImapZugang zugang = imapZugangFuer(postfachId);
         if (!hatZugang(zugang)) {
             return List.of();
         }
@@ -82,22 +78,55 @@ public class ImapSyncService {
 
     /**
      * Erkennt Papierkorb- und Spam-Ordner automatisch anhand der IMAP-Special-Use-
-     * Attribute (\Trash, \Junk). Gibt ein Ergebnisobjekt zurück; Felder bleiben leer,
-     * wenn der Server keine entsprechenden Attribute meldet.
+     * Attribute (\Trash, \Junk). {@code postfachId == null} → Hauptpostfach.
      */
-    public SpezialOrdnerErgebnis erkenneSpezialOrdner() {
-        SystemSettingsService.ImapZugang zugang = systemSettingsService.getStandardImapZugang();
+    public SpezialOrdnerErgebnis erkenneSpezialOrdner(Long postfachId) {
+        SystemSettingsService.ImapZugang zugang = imapZugangFuer(postfachId);
         if (!hatZugang(zugang)) {
             return new SpezialOrdnerErgebnis("", "");
         }
         return erkenneSpezialOrdnerVonZugang(zugang);
     }
 
+    /** Liefert die gespeicherten Ordner-Einstellungen für ein Postfach oder das globale Fallback. */
+    public OrdnerEinstellungenErgebnis getOrdnerEinstellungen(Long postfachId) {
+        if (postfachId != null) {
+            return emailAbsenderRepository.findById(postfachId)
+                    .map(p -> new OrdnerEinstellungenErgebnis(
+                            nullToLeer(p.getImapOrdnerPapierkorb()),
+                            nullToLeer(p.getImapOrdnerSpam())))
+                    .orElse(new OrdnerEinstellungenErgebnis("", ""));
+        }
+        return new OrdnerEinstellungenErgebnis(
+                systemSettingsService.get(KEY_TRASH, ""),
+                systemSettingsService.get(KEY_SPAM, ""));
+    }
+
+    /** Speichert Ordner-Einstellungen für ein Postfach oder global. */
+    public void saveOrdnerEinstellungen(Long postfachId, String papierkorb, String spam) {
+        if (postfachId != null) {
+            emailAbsenderRepository.findById(postfachId).ifPresent(p -> {
+                p.setImapOrdnerPapierkorb(papierkorb.isBlank() ? null : papierkorb.trim());
+                p.setImapOrdnerSpam(spam.isBlank() ? null : spam.trim());
+                emailAbsenderRepository.save(p);
+            });
+        } else {
+            systemSettingsService.save(KEY_TRASH, papierkorb.trim());
+            systemSettingsService.save(KEY_SPAM, spam.trim());
+        }
+    }
+
     public record SpezialOrdnerErgebnis(String papierkorb, String spam) {}
+    public record OrdnerEinstellungenErgebnis(String papierkorb, String spam) {}
 
     // ─── private helpers ───────────────────────────────────────────────────
 
-    private void verschiebeAufServer(Email email, String zielOrdner) {
+    @FunctionalInterface
+    private interface OrdnerGetter {
+        String get(EmailAbsender postfach);
+    }
+
+    private void verschiebeAufServer(Email email, String globalKey, OrdnerGetter postfachOrdner) {
         if (email.getMessageId() == null) {
             log.debug("[ImapSync] Email {} hat keine Message-ID – überspringe", email.getId());
             return;
@@ -108,19 +137,47 @@ public class ImapSyncService {
                 : emailPostfachZuordnungRepository.findByEmailId(email.getId());
 
         if (zuordnungen.isEmpty()) {
-            verschiebeInZugang(email,
-                    systemSettingsService.getStandardImapZugang(),
-                    email.getImapFolder(), email.getImapUid(), zielOrdner);
+            String ziel = systemSettingsService.get(globalKey, "");
+            if (ziel.isBlank()) {
+                log.debug("[ImapSync] Kein Ordner konfiguriert – überspringe Server-Verschiebung für Email {}", email.getId());
+                return;
+            }
+            verschiebeInZugang(email, systemSettingsService.getStandardImapZugang(),
+                    email.getImapFolder(), email.getImapUid(), ziel);
             return;
         }
 
         for (var zuordnung : zuordnungen) {
             PostfachZugang pz = postfachZugangService.zugangVon(zuordnung.getPostfach());
             if (!pz.hatAbrufZugang()) continue;
+            String ziel = postfachOrdner.get(zuordnung.getPostfach());
+            if (ziel == null || ziel.isBlank()) {
+                ziel = systemSettingsService.get(globalKey, "");
+            }
+            if (ziel.isBlank()) {
+                log.debug("[ImapSync] Kein Ordner für Postfach {} konfiguriert – überspringe Email {}",
+                        zuordnung.getPostfach().getId(), email.getId());
+                continue;
+            }
             String quellOrdner = zuordnung.getImapOrdner() != null ? zuordnung.getImapOrdner() : email.getImapFolder();
             Long uid = zuordnung.getImapUid() != null ? zuordnung.getImapUid() : email.getImapUid();
-            verschiebeInZugang(email, pz.imapZugang(), quellOrdner, uid, zielOrdner);
+            verschiebeInZugang(email, pz.imapZugang(), quellOrdner, uid, ziel);
         }
+    }
+
+    private SystemSettingsService.ImapZugang imapZugangFuer(Long postfachId) {
+        if (postfachId == null) {
+            return systemSettingsService.getStandardImapZugang();
+        }
+        return emailAbsenderRepository.findById(postfachId)
+                .map(postfachZugangService::zugangVon)
+                .filter(PostfachZugang::hatAbrufZugang)
+                .map(PostfachZugang::imapZugang)
+                .orElse(null);
+    }
+
+    private static String nullToLeer(String s) {
+        return s == null ? "" : s;
     }
 
     private void verschiebeInZugang(Email email, SystemSettingsService.ImapZugang zugang,

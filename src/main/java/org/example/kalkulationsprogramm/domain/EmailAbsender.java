@@ -113,6 +113,14 @@ public class EmailAbsender {
     @Column(name = "laeuft_aus", nullable = false)
     private boolean laeuftAus = false;
 
+    /** IMAP-Ordnername für den Papierkorb dieses Postfachs, z. B. {@code Trash} oder {@code INBOX.Papierkorb}. */
+    @Column(name = "imap_ordner_papierkorb", length = 255)
+    private String imapOrdnerPapierkorb;
+
+    /** IMAP-Ordnername für Spam/Junk dieses Postfachs, z. B. {@code Junk} oder {@code INBOX.Spam}. */
+    @Column(name = "imap_ordner_spam", length = 255)
+    private String imapOrdnerSpam;
+
     /**
      * Freigegebene Abteilungen. Bleibt bei „für alle sichtbar“ gespeichert (wirkt dann nicht),
      * damit ein späteres Umschalten die Auswahl nicht verliert. Nie als JSON ausliefern.

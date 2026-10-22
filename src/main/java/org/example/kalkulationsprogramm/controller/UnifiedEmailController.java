@@ -2385,44 +2385,46 @@ public class UnifiedEmailController {
     // IMAP ORDNER-EINSTELLUNGEN
     // ═══════════════════════════════════════════════════════════════
 
-    /** Gibt alle verfügbaren IMAP-Ordner des Hauptpostfachs zurück. */
+    /**
+     * Gibt alle verfügbaren IMAP-Ordner des angegebenen Postfachs zurück.
+     * Ohne {@code postfachId} → Hauptpostfach.
+     */
     @org.springframework.web.bind.annotation.GetMapping("/imap-ordner")
-    public ResponseEntity<List<String>> listeImapOrdner() {
-        return ResponseEntity.ok(imapSyncService.listeImapOrdner());
+    public ResponseEntity<List<String>> listeImapOrdner(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId) {
+        return ResponseEntity.ok(imapSyncService.listeImapOrdner(postfachId));
     }
 
-    /** Gibt die aktuell konfigurierten Papierkorb- und Spam-Ordner-Zuordnungen zurück. */
+    /** Gibt die konfigurierten Papierkorb- und Spam-Ordner zurück. Ohne {@code postfachId} → global. */
     @org.springframework.web.bind.annotation.GetMapping("/ordner-einstellungen")
-    public ResponseEntity<Map<String, String>> getOrdnerEinstellungen() {
-        return ResponseEntity.ok(Map.of(
-                "papierkorb", systemSettingsService.get(org.example.kalkulationsprogramm.service.ImapSyncService.KEY_TRASH, ""),
-                "spam", systemSettingsService.get(org.example.kalkulationsprogramm.service.ImapSyncService.KEY_SPAM, "")));
+    public ResponseEntity<Map<String, String>> getOrdnerEinstellungen(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId) {
+        var e = imapSyncService.getOrdnerEinstellungen(postfachId);
+        return ResponseEntity.ok(Map.of("papierkorb", e.papierkorb(), "spam", e.spam()));
     }
 
     public record OrdnerEinstellungenRequest(String papierkorb, String spam) {}
 
-    /** Speichert die Papierkorb- und Spam-Ordner-Zuordnung. */
+    /** Speichert die Papierkorb- und Spam-Ordner-Zuordnung. Ohne {@code postfachId} → global. */
     @org.springframework.web.bind.annotation.PostMapping("/ordner-einstellungen")
     @Transactional
     public ResponseEntity<Void> saveOrdnerEinstellungen(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId,
             @org.springframework.web.bind.annotation.RequestBody OrdnerEinstellungenRequest req) {
         if (req == null) throw new org.springframework.web.server.ResponseStatusException(
                 org.springframework.http.HttpStatus.BAD_REQUEST, "Anfrage-Body fehlt");
-        systemSettingsService.save(org.example.kalkulationsprogramm.service.ImapSyncService.KEY_TRASH,
-                req.papierkorb() == null ? "" : req.papierkorb().trim(),
-                "IMAP-Ordner für den Papierkorb");
-        systemSettingsService.save(org.example.kalkulationsprogramm.service.ImapSyncService.KEY_SPAM,
-                req.spam() == null ? "" : req.spam().trim(),
-                "IMAP-Ordner für Spam/Junk");
+        imapSyncService.saveOrdnerEinstellungen(
+                postfachId,
+                req.papierkorb() == null ? "" : req.papierkorb(),
+                req.spam() == null ? "" : req.spam());
         return ResponseEntity.noContent().build();
     }
 
     /** Erkennt Papierkorb- und Spam-Ordner automatisch über IMAP-Special-Use-Attribute. */
     @org.springframework.web.bind.annotation.PostMapping("/ordner-einstellungen/auto-erkennen")
-    public ResponseEntity<Map<String, String>> autoErkenneOrdner() {
-        var ergebnis = imapSyncService.erkenneSpezialOrdner();
-        return ResponseEntity.ok(Map.of(
-                "papierkorb", ergebnis.papierkorb(),
-                "spam", ergebnis.spam()));
+    public ResponseEntity<Map<String, String>> autoErkenneOrdner(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId) {
+        var ergebnis = imapSyncService.erkenneSpezialOrdner(postfachId);
+        return ResponseEntity.ok(Map.of("papierkorb", ergebnis.papierkorb(), "spam", ergebnis.spam()));
     }
 }

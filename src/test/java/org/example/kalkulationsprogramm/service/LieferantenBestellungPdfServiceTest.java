@@ -39,9 +39,9 @@ class LieferantenBestellungPdfServiceTest {
 
     private static BestellungDto bestellung(String nummer, BestellStatus status, BigDecimal preis) {
         BestellungDto.Position p1 = new BestellungDto.Position(1L, 10L, "R-4040", "Rohr 40x40", new BigDecimal("12.5"), "m", preis,
-                preis == null ? null : preis.multiply(new BigDecimal("12.5")), BestellHerkunft.PROJEKT, 7L, "2026/014 Anbau Halle", 55L, "Zuschnitt 3 m", null);
+                preis == null ? null : preis.multiply(new BigDecimal("12.5")), BestellHerkunft.PROJEKT, 7L, "2026/014 Anbau Halle", 55L, "Zuschnitt 3 m", null, List.of());
         BestellungDto.Position p2 = new BestellungDto.Position(2L, 11L, null, "Schraube M8", new BigDecimal("200"), "Stk", null, null, BestellHerkunft.LAGER,
-                null, null, null, null, null);
+                null, null, null, null, null, List.of());
         return new BestellungDto(5L, nummer, status, status.name(), 3L, "Stahlhandel Muster", List.of(), "Bitte Anfang der Woche liefern",
                 LocalDateTime.of(2026, 10, 5, 8, 0), "admin", nummer == null ? null : LocalDateTime.of(2026, 10, 5, 9, 30), "admin", "EMAIL", null, null,
                 preis == null ? BigDecimal.ZERO : preis.multiply(new BigDecimal("12.5")), 2, 0, 0, false, 7, List.of("2026/014 Anbau Halle"), List.of(p1, p2));

@@ -110,7 +110,7 @@ class LagerAppServiceTest {
     @Test
     @DisplayName("Orte: nur aktive Lagerorte")
     void orteNurAktive() {
-        given(lager.orte()).willReturn(List.of(new LagerortDto(1L, "Werkstatt", null, true, 1), new LagerortDto(2L, "Alt", null, false, 2)));
+        given(lager.orte()).willReturn(List.of(new LagerortDto(1L, "Werkstatt", null, true, 1, false, null), new LagerortDto(2L, "Alt", null, false, 2, false, null)));
 
         assertThat(service.orte("t")).extracting(LagerortDto::name).containsExactly("Werkstatt");
     }

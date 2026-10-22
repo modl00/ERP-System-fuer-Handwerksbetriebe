@@ -42,7 +42,7 @@ class ZeiterfassungLagerControllerTest {
     @Test
     @DisplayName("Orte, Suche und Strichcode liefern die Daten; der Zugangslink steht im Pfad")
     void lesen() throws Exception {
-        given(service.orte("tok")).willReturn(List.of(new LagerortDto(1L, "Werkstatt", null, true, 1)));
+        given(service.orte("tok")).willReturn(List.of(new LagerortDto(1L, "Werkstatt", null, true, 1, false, null)));
         given(service.suche("tok", "schraube")).willReturn(List.of(zeile()));
         given(service.nachEan("tok", "4006381333931")).willReturn(new EanTreffer(true, "4006381333931", zeile()));
         given(service.nachEan("tok", "4012345678901")).willReturn(new EanTreffer(false, "4012345678901", null));

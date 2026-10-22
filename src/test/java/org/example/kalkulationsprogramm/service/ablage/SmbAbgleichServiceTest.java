@@ -31,8 +31,9 @@ import org.mockito.ArgumentCaptor;
 /** Der Abgleich in beide Richtungen, gegen einen Ordner als Freigabe. Nur Dummy-Daten (DSGVO). */
 class SmbAbgleichServiceTest {
 
-    static final String PROJEKT = "Projekte/2026/Max Mustermann GmbH/2026-10-00014 - Anbau Halle";
-    static final String PROJEKT_ALT = "Projekte/2026/2026-10-00014 - Anbau Halle";
+    static final String PROJEKT = "Max Mustermann GmbH/2026/Projekte/2026-10-00014 - Anbau Halle";
+    static final String PROJEKT_ALT = "Projekte/2026/Max Mustermann GmbH/2026-10-00014 - Anbau Halle";
+    static final String PROJEKT_ALT2 = "Projekte/2026/2026-10-00014 - Anbau Halle";
 
     @TempDir Path wurzel;
     Path app;
@@ -244,7 +245,7 @@ class SmbAbgleichServiceTest {
         assertThat(SmbAbgleichService.gruppeAus(PROJEKT + "/Dokumentation EN 1090/a.pdf", 4)).isEqualTo(DokumentGruppe.DOKUMENTATION_1090);
         assertThat(SmbAbgleichService.gruppeAus(PROJEKT + "/Irgendwas/a.pdf", 4)).isEqualTo(DokumentGruppe.DIVERSE_DOKUMENTE);
         assertThat(SmbAbgleichService.gruppeAus(PROJEKT + "/a.pdf", 4)).isEqualTo(DokumentGruppe.DIVERSE_DOKUMENTE);
-        assertThat(SmbAbgleichService.gruppeAus(PROJEKT_ALT + "/Bilder/a.jpg", 3)).as("frühere Form ohne Kunde").isEqualTo(DokumentGruppe.BILDER);
+        assertThat(SmbAbgleichService.gruppeAus(PROJEKT_ALT2 + "/Bilder/a.jpg", 3)).as("älteste Form ohne Kunde").isEqualTo(DokumentGruppe.BILDER);
     }
 
     @Test
@@ -319,14 +320,14 @@ class SmbAbgleichServiceTest {
     }
 
     @Test
-    void dieOrdnerstrukturIstJahrKundeProjektGruppe() throws IOException {
+    void dieOrdnerstrukturIstKundeJahrProjekteProjektGruppe() throws IOException {
         appDatei(PROJEKT + "/Planungsdokumente/Plan.pdf", "PLAN");
         service.abgleichen(speicher, false);
-        assertThat(freigabe.resolve("Projekte/2026/Max Mustermann GmbH/2026-10-00014 - Anbau Halle/Planungsdokumente/Plan.pdf")).exists();
+        assertThat(freigabe.resolve("Max Mustermann GmbH/2026/Projekte/2026-10-00014 - Anbau Halle/Planungsdokumente/Plan.pdf")).exists();
     }
 
     @Test
-    void eineDateiInDerFruehherenOrdnerFormOhneKundeWirdWeiterDemProjektZugeordnet() throws IOException {
+    void eineDateiInDerFruehherenOrdnerFormWirdWeiterDemProjektZugeordnet() throws IOException {
         geraetDatei(PROJEKT_ALT + "/Planungsdokumente/Skizze.pdf", "SKIZZE", 60);
         service.abgleichen(speicher, false);
         verify(dateien).speichereErzeugteDatei(any(), eq("Skizze.pdf"), eq(7L), eq(DokumentGruppe.PLANUNGSDOKUMENTE), any());
@@ -345,7 +346,7 @@ class SmbAbgleichServiceTest {
         assertThat(freigabe.resolve(PROJEKT + "/Planungsdokumente/Plan.pdf")).as("im neuen Ordner angelegt").exists();
         assertThat(freigabe.resolve(PROJEKT_ALT + "/Planungsdokumente/Plan.pdf")).as("der alte bleibt, es wird nichts gelöscht").exists();
         assertThat(e.neuVomGeraet()).isZero();
-        assertThat(e.hinweise()).hasSize(1).first().asString().contains("1 Dateien liegen noch in der früheren Ordnerstruktur");
+        assertThat(e.hinweise()).hasSize(1).first().asString().contains("1 Dateien liegen noch in einer früheren Ordnerstruktur");
         verify(dateien, never()).speichereErzeugteDatei(any(), any(), anyLong(), any(), any());
     }
 
@@ -356,7 +357,8 @@ class SmbAbgleichServiceTest {
         p.setAuftragsnummer("1");
         p.setBauvorhaben("Zaun");
         p.setAnlegedatum(LocalDate.of(2026, 3, 1));
-        assertThat(LesbareAblageService.projektOrdner(p)).isEqualTo("Projekte/2026/Ohne Kunde/1 - Zaun");
-        assertThat(LesbareAblageService.projektOrdnerAlt(p)).isEqualTo("Projekte/2026/1 - Zaun");
+        assertThat(LesbareAblageService.projektOrdner(p)).isEqualTo("Ohne Kunde/2026/Projekte/1 - Zaun");
+        assertThat(LesbareAblageService.projektOrdnerAlt(p)).isEqualTo("Projekte/2026/Ohne Kunde/1 - Zaun");
+        assertThat(LesbareAblageService.projektOrdnerAlt2(p)).isEqualTo("Projekte/2026/1 - Zaun");
     }
 }

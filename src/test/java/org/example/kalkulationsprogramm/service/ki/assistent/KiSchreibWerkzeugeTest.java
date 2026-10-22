@@ -183,8 +183,8 @@ class KiSchreibWerkzeugeTest {
         when(modulSchalter.istAktiv()).thenReturn(true);
         when(rechte.darfProfil(1L, Funktion.LAGER, FunktionsAktion.ANLEGEN)).thenReturn(true);
         lagerWerkzeug = new LagerBuchenWerkzeug(lagerService, rechte, provider);
-        when(lagerService.orte()).thenReturn(List.of(new LagerortDto(1L, "Hauptlager", null, true, 0), new LagerortDto(2L, "Montagefahrzeug", null, true, 1),
-                new LagerortDto(3L, "Altlager", null, false, 2)));
+        when(lagerService.orte()).thenReturn(List.of(new LagerortDto(1L, "Hauptlager", null, true, 0, false, null), new LagerortDto(2L, "Montagefahrzeug", null, true, 1, false, null),
+                new LagerortDto(3L, "Altlager", null, false, 2, false, null)));
         when(lagerService.bestandVon(5L)).thenReturn(bestand("20"));
     }
 
@@ -246,7 +246,7 @@ class KiSchreibWerkzeugeTest {
     @DisplayName("Zwei gleich benannte Lagerorte ergeben eine Rückfrage statt einer Vermutung")
     void lagerOrtMehrfach() {
         lagerAufbauen();
-        when(lagerService.orte()).thenReturn(List.of(new LagerortDto(1L, "Lager", null, true, 0), new LagerortDto(2L, "lager", null, true, 1)));
+        when(lagerService.orte()).thenReturn(List.of(new LagerortDto(1L, "Lager", null, true, 0, false, null), new LagerortDto(2L, "lager", null, true, 1, false, null)));
 
         assertThatThrownBy(() -> lagerWerkzeug.vorschau(zugang().put("lagerort", "Lager"))).hasMessageContaining("mehrfach");
     }

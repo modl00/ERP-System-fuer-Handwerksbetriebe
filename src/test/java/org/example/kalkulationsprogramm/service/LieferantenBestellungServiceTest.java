@@ -39,6 +39,7 @@ import org.example.kalkulationsprogramm.repository.DokumentnummerCounterReposito
 import org.example.kalkulationsprogramm.repository.LieferantenArtikelPreiseRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenBestellungRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
+import org.example.kalkulationsprogramm.repository.BestellPositionAnhangRepository;
 import org.example.kalkulationsprogramm.repository.ProjektRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
@@ -62,6 +63,7 @@ class LieferantenBestellungServiceTest {
     @Mock DokumentnummerCounterRepository zaehler;
     @Mock LagerService lager;
     @Mock BestellungService projektBestellungen;
+    @Mock BestellPositionAnhangRepository positionAnhaenge;
 
     LieferantenBestellungService service;
     Lieferanten lieferant;
@@ -72,7 +74,7 @@ class LieferantenBestellungServiceTest {
     @BeforeEach
     void setUp() {
         service = new LieferantenBestellungService(bestellungen, positionen, lieferanten, artikel, projekte, projektPositionen, preise, zaehler, lager,
-                projektBestellungen);
+                projektBestellungen, positionAnhaenge);
         lieferant = new Lieferanten();
         lieferant.setId(3L);
         lieferant.setLieferantenname("Stahlhandel Muster");

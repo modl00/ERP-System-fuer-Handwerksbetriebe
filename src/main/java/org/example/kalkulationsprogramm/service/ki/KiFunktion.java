@@ -9,38 +9,38 @@ import org.example.kalkulationsprogramm.service.KiModellService;
  */
 public enum KiFunktion {
 
-    HILFE(“hilfe”, “KI-Hilfe (Chat)”, “ki.hilfe.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.HILFE, false, false),
-    ASSISTENT(“assistent”, “KI-Assistent mit Auskünften”, “ki.assistent.anbieter”, AnbieterTyp.LOKAL, Datenschutz.NUR_LOKAL, KiModellService.Funktion.ASSISTENT, false, false),
+    HILFE("hilfe", "KI-Hilfe (Chat)", "ki.hilfe.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.HILFE, false, false),
+    ASSISTENT("assistent", "KI-Assistent mit Auskünften", "ki.assistent.anbieter", AnbieterTyp.LOKAL, Datenschutz.NUR_LOKAL, KiModellService.Funktion.ASSISTENT, false, false),
     /** Eingehende E-Mails einem Projekt oder einer Anfrage zuordnen. Standard wie bisher Gemini. */
-    EMAIL_EINORDNEN(“email-einordnen”, “E-Mails einordnen”, “ki.email-einordnen.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+    EMAIL_EINORDNEN("email-einordnen", "E-Mails einordnen", "ki.email-einordnen.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
             KiModellService.Funktion.EMAIL_KLASSIFIZIERUNG, false, false),
     /** Entwürfe von E-Mails verbessern (Rechtschreibung, Grammatik). Standard wie bisher Gemini. */
-    EMAIL_TEXT(“email-text”, “E-Mail-Texte verbessern”, “ki.email-text.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.EMAIL_TEXT, false, false),
+    EMAIL_TEXT("email-text", "E-Mail-Texte verbessern", "ki.email-text.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.EMAIL_TEXT, false, false),
     /**
      * Rechnungen und Angebote aus PDFs auslesen (#232). Bei Gemini geht das PDF selbst an die KI (liest auch Scans). Bei einem anderen Anbieter wird der Text aus dem PDF
      * gelesen und nur der Text gefragt; PDFs ohne Textschicht (reine Scans) braucht dann Gemini.
      */
-    PDF_AUSLESEN(“pdf-auslesen”, “PDF-Rechnungen und -Angebote auslesen”, “ki.pdf-auslesen.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+    PDF_AUSLESEN("pdf-auslesen", "PDF-Rechnungen und -Angebote auslesen", "ki.pdf-auslesen.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
             KiModellService.Funktion.PDF_EXTRAKTION, false, true),
     /** Plantafel (#184): Vorgänge für einen Auftrag vorschlagen und den Liefertermin erklären. Die Termine rechnet das Programm, die KI schlägt nur vor und erklärt. */
-    PLANUNG(“plantafel”, “Plantafel: Vorgänge vorschlagen und Termine erklären”, “ki.plantafel.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+    PLANUNG("plantafel", "Plantafel: Vorgänge vorschlagen und Termine erklären", "ki.plantafel.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
             KiModellService.Funktion.PLANUNG, false, false),
     /** Scanner: aus dem Foto eines Dokuments einen Dateinamen machen. Das Foto geht an den gewählten Anbieter (Bild-fähig: Gemini, Claude, lokale Modelle mit Bild). */
-    SCANNER(“scanner”, “Scanner: Dateinamen aus Fotos”, “ki.scanner.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SCANNER, true, false),
-    /** Beiträge für die Website: Entwurf aus Projektdaten, Notizen und Fotos. Die Fotos gehen an den gewählten Anbieter; das Modell „Schwierige Fälle” gilt bei Gemini. Nur öffentliche Texte, keine Kundennamen. */
-    BEITRAG(“beitrag”, “Beiträge für die Website (Entwurf mit Fotos)”, “ki.beitrag.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.PRO, true, false),
+    SCANNER("scanner", "Scanner: Dateinamen aus Fotos", "ki.scanner.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SCANNER, true, false),
+    /** Beiträge für die Website: Entwurf aus Projektdaten, Notizen und Fotos. Die Fotos gehen an den gewählten Anbieter; das Modell „Schwierige Fälle" gilt bei Gemini. Nur öffentliche Texte, keine Kundennamen. */
+    BEITRAG("beitrag", "Beiträge für die Website (Entwurf mit Fotos)", "ki.beitrag.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.PRO, true, false),
     /**
      * Rechnungen, Lieferscheine und Auftragsbestätigungen aus PDFs und Fotos erkennen. Die Datei geht an den gewählten Anbieter; kann er keine PDFs lesen (Mistral,
-     * lokale Modelle), bekommt er die Seiten als Bilder. Bei Gemini gilt „Dokumente und Belege erkennen” als Modell.
+     * lokale Modelle), bekommt er die Seiten als Bilder. Bei Gemini gilt „Dokumente und Belege erkennen" als Modell.
      */
-    DOKUMENT_ERKENNEN(“dokument-erkennen”, “Dokumente und Belege erkennen”, “ki.dokument-erkennen.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
+    DOKUMENT_ERKENNEN("dokument-erkennen", "Dokumente und Belege erkennen", "ki.dokument-erkennen.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT,
             KiModellService.Funktion.DOKUMENT_ANALYSE, true, true),
-    TESTBOX(“testbox”, “Test-Box: Rückmeldungen aufbereiten”, “ki.testbox.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.TESTBOX, false, false),
+    TESTBOX("testbox", "Test-Box: Rückmeldungen aufbereiten", "ki.testbox.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.TESTBOX, false, false),
     /**
      * Bautagebuch-Diktat aus der mobilen Zeiterfassung. Audio geht an Gemini (inlineData);
      * weitere Anbieter können ergänzt werden, sobald ihr Audio-Format in SpracheingabeService implementiert ist.
      */
-    SPRACHEINGABE(“spracheingabe”, “Spracheingabe (Bautagebuch)”, “ki.spracheingabe.anbieter”, AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SPRACHEINGABE, false, false);
+    SPRACHEINGABE("spracheingabe", "Spracheingabe (Bautagebuch)", "ki.spracheingabe.anbieter", AnbieterTyp.GEMINI, Datenschutz.CLOUD_ERLAUBT, KiModellService.Funktion.SPRACHEINGABE, false, false);
 
     /** Wohin die Daten gehen dürfen. */
     public enum Datenschutz {

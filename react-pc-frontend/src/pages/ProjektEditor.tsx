@@ -875,7 +875,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         // Eine frisch angehakte Zeile faengt wieder bei 1 an, auch wenn vorher
         // schon etwas im Mengenfeld stand.
         setLagerArtikelMengen(prev => ({ ...prev, [key]: '1' }));
-        setLagerArtikelBeschaffung(prev => ({ ...prev, [key]: 'lager' }));
+        setLagerArtikelBeschaffung(prev => ({ ...prev, [key]: 'bestellen' }));
     };
 
     /**

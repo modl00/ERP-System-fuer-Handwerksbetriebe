@@ -812,7 +812,20 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         return () => clearTimeout(timer);
     }, [showMaterialModal, showSupplierPicker, bestellDialogOffen, supplierSearchQuery]);
 
-
+    useEffect(() => {
+        if (activeTab !== 'materialkosten' || !projekt?.id) return;
+        let abgebrochen = false;
+        fetch(`/api/projekte/${projekt.id}/material/lagerbestand`)
+            .then(r => r.ok ? r.json() as Promise<{ artikelId: number; bestand: number }[]> : Promise.resolve([]))
+            .then(data => {
+                if (abgebrochen) return;
+                const map: Record<number, number> = {};
+                data.forEach(d => { map[d.artikelId] = d.bestand; });
+                setLagerbestand(map);
+            })
+            .catch(() => { /* ignorieren */ });
+        return () => { abgebrochen = true; };
+    }, [activeTab, projekt?.id]);
 
     const formatCurrency = (val?: number) =>
         new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(val || 0);
@@ -2002,6 +2015,11 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                             {a.externeArtikelnummer ? `Nr. ${a.externeArtikelnummer} · ` : ''}
                                             {a.lieferantName ? `${a.lieferantName} · ` : ''}
                                             {a.stueckzahl ? `${a.stueckzahl} Stück` : a.meter ? `${a.meter} m` : a.kilogramm ? `${a.kilogramm} kg` : '-'}
+                                            {a.artikelId && lagerbestand[a.artikelId] !== undefined && (
+                                                <span className={`ml-1.5 ${lagerbestand[a.artikelId] > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                    · Lager: {lagerbestand[a.artikelId]}
+                                                </span>
+                                            )}
                                         </p>
                                     </div>
                                     <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
@@ -2010,7 +2028,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                             <Button
                                                 size="sm"
                                                 variant="outline"
-                                                className="h-7 text-xs border-emerald-300 text-emerald-700 hover:bg-emerald-50"
+                                                className={`h-7 text-xs ${a.artikelId && (lagerbestand[a.artikelId] ?? 0) > 0 ? 'border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
                                                 onClick={() => void oeffneAusLagerDialog(a)}
                                             >
                                                 Aus Lager

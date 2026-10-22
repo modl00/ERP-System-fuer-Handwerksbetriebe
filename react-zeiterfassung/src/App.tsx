@@ -98,6 +98,7 @@ import TerminDetailPage from './pages/TerminDetailPage'
 import WartungAnlagenPage from './pages/WartungAnlagenPage'
 import FeldeinsatzPage from './pages/FeldeinsatzPage'
 import AnlageBearbeitenPage from './pages/AnlageBearbeitenPage'
+import LagerPage from './pages/LagerPage'
 import { OfflineService } from './services/OfflineService'
 import { starteBenachrichtigungenFallsErlaubt, stoppeBenachrichtigungsIntervall } from './services/notificationBootstrap'
 import { NotificationService } from './services/NotificationService'
@@ -357,6 +358,7 @@ function App() {
         <Route path="/projekte/:projektId/wartung" element={<WartungAnlagenPage />} />
         <Route path="/wartung/protokoll/:id" element={<FeldeinsatzPage />} />
         <Route path="/wartung/anlagen/:id/bearbeiten" element={<AnlageBearbeitenPage />} />
+        <Route path="/lager" element={<LagerPage />} />
         <Route path="/belege" element={<BelegScannerPage />} />
         <Route path="/belege/:id/positionen" element={<BelegPositionenAuswahlPage />} />
         <Route path="/mwst-rechner" element={<MwstRechnerPage />} />

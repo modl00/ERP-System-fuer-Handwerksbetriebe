@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Play, FolderOpen, Users, Clock, Loader2, ChevronRight, ArrowRightLeft, LogOut, Settings, Plane, AlertTriangle, Calendar, Hammer, Receipt, Wrench, Stethoscope } from 'lucide-react'
+import { Play, FolderOpen, Users, Clock, Loader2, ChevronRight, ArrowRightLeft, LogOut, Settings, Plane, AlertTriangle, Calendar, Hammer, Receipt, Wrench, Stethoscope, Boxes } from 'lucide-react'
+import { useDarf } from '../features/rechte/rechte'
 import { buildBookingRequestPayload, createOperationId, OfflineService, type FailedEntry } from '../services/OfflineService'
 import NetworkStatusBadge from '../components/NetworkStatusBadge'
 import FailedEntriesModal from '../components/FailedEntriesModal'
@@ -187,6 +188,9 @@ export default function DashboardPage({ mitarbeiter, syncStatus, onSync }: Dashb
         await loadFailedEntries()
         await loadHeuteGearbeitet()
     }
+
+    // Lager: Kachel nur, wenn Modul eingeschaltet und das Recht "Lager ansehen" da ist
+    const darfLager = useDarf('LAGER', 'ANSEHEN')
 
     // Belegerfassung: Kachel nur sichtbar, wenn Mitarbeiter zur Abteilung Buchhaltung gehört
     // (Permission läuft über bestehendes System AbteilungDokumentBerechtigung 'BELEG').
@@ -1211,6 +1215,22 @@ export default function DashboardPage({ mitarbeiter, syncStatus, onSync }: Dashb
 
                 {/* Full-width actions */}
                 <div className="space-y-3">
+
+                    {darfLager && (
+                        <button
+                            onClick={() => navigate('/lager')}
+                            className="w-full bg-white border border-slate-200 rounded-xl p-4 hover:border-rose-200 hover:shadow-md transition-all text-left flex items-center gap-4 active:scale-[0.99]"
+                        >
+                            <div className="w-10 h-10 bg-rose-50 rounded-lg flex items-center justify-center">
+                                <Boxes className="w-5 h-5 text-rose-600" />
+                            </div>
+                            <div className="flex-1">
+                                <p className="font-semibold text-slate-900">Lager</p>
+                                <p className="text-sm text-slate-500">Suchen, scannen, Entnahme und Zugang buchen</p>
+                            </div>
+                            <ChevronRight className="w-5 h-5 text-slate-300" />
+                        </button>
+                    )}
 
                     {darfBelegeScannen && (
                         <button

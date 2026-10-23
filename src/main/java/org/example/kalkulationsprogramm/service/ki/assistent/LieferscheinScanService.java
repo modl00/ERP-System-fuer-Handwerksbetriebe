@@ -11,6 +11,7 @@ import org.example.kalkulationsprogramm.domain.Verrechnungseinheit;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelCreateDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBuchungEingabe;
 import org.example.kalkulationsprogramm.repository.ArtikelRepository;
+import org.example.kalkulationsprogramm.repository.LieferantDokumentPositionRepository;
 import org.example.kalkulationsprogramm.service.ArtikelService;
 import org.example.kalkulationsprogramm.service.GeminiDokumentAnalyseService;
 import org.example.kalkulationsprogramm.service.LagerService;
@@ -64,6 +65,7 @@ public class LieferscheinScanService {
     private final ArtikelService artikelService;
     private final LagerService lagerService;
     private final ObjectMapper objectMapper;
+    private final LieferantDokumentPositionRepository positionRepository;
 
     public record ScanPosition(
             String artikelnummer,
@@ -313,5 +315,42 @@ public class LieferscheinScanService {
         } catch (NumberFormatException e) {
             return null;
         }
+    }
+
+    /**
+     * Bucht die bereits erkannten Positionen eines Lieferanten-Dokuments direkt
+     * als Lagerzugang. Artikel werden nach externer Artikelnummer und Bezeichnung
+     * abgeglichen; unbekannte Artikel werden automatisch angelegt (wie beim
+     * Lieferschein-Scan per Datei-Upload).
+     */
+    @Transactional
+    public BuchenErgebnis buchenAusDokument(Long geschaeftsdokumentId, Long lagerortId, String benutzer) {
+        var positionen = positionRepository.findByGeschaeftsdokumentId(geschaeftsdokumentId).stream()
+                .filter(p -> p.getMenge() != null && p.getMenge().compareTo(BigDecimal.ZERO) > 0)
+                .toList();
+        if (positionen.isEmpty()) {
+            return new BuchenErgebnis(0, 0, List.of("Keine Positionen im Dokument gefunden."));
+        }
+        List<BuchenPosition> buchenPositionen = positionen.stream().map(p -> {
+            Optional<Artikel> treffer = Optional.empty();
+            String extNr = p.getExterneArtikelnummer();
+            if (extNr != null && !extNr.isBlank()) {
+                treffer = artikelRepository.findByArtikelnummer(extNr);
+                if (treffer.isEmpty()) {
+                    treffer = artikelRepository.findByExterneArtikelnummer(extNr);
+                }
+            }
+            if (treffer.isEmpty() && p.getBezeichnung() != null && !p.getBezeichnung().isBlank()) {
+                treffer = artikelRepository.findFirstByProduktnameIgnoreCase(p.getBezeichnung());
+            }
+            return new BuchenPosition(
+                    treffer.map(Artikel::getId).orElse(null),
+                    p.getMenge(),
+                    extNr,
+                    p.getBezeichnung(),
+                    p.getMengeneinheit() != null ? p.getMengeneinheit() : "Stk",
+                    treffer.isEmpty());
+        }).toList();
+        return buchen(new BuchenEingabe(buchenPositionen, lagerortId, "Wareneingang aus Lieferantenrechnung"), benutzer);
     }
 }

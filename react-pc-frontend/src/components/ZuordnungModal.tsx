@@ -1,7 +1,7 @@
 import { useState, useEffect, useId, type ReactNode } from 'react';
 import { PdfCanvasViewer } from './ui/PdfCanvasViewer';
 import { Button } from './ui/button';
-import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks } from 'lucide-react';
+import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks, Warehouse } from 'lucide-react';
 import { ProjektSearchModal } from './ProjektSearchModal';
 import { KostenstelleSelectModal } from './KostenstelleSelectModal';
 import { useToast } from './ui/toast';
@@ -11,6 +11,7 @@ import { usePositionsAufteilung } from './zuordnung/usePositionsAufteilung';
 import { zieleAusPositionen, zielSchluessel } from './zuordnung/positionen';
 import { PositionsZielZeile } from './zuordnung/PositionsZielZeile';
 import { freierFarbIndex, zielFarbe } from './zuordnung/zielFarben';
+import { ladeOrte, type Lagerort } from '../features/lager/lagerApi';
 
 // ========== Types ==========
 interface GeschaeftsdatenDto {
@@ -31,12 +32,14 @@ interface ProjektAnteil {
     projektName?: string;
     kostenstelleId?: number;
     kostenstelleName?: string;
+    /** Typ der Kostenstelle, z. B. 'LAGER' – nur gesetzt wenn in dieser Sitzung hinzugefügt. */
+    kostenstellenTyp?: string;
     betrag: number;
     prozentanteil: number | null;
     beschreibung: string;
     // Über wie viele Jahre die Kosten verteilt werden (nur Kostenstellen). 1 = keine Aufteilung.
     streckungJahre?: number;
-    // Fest vergebene Kennfarbe im Modus „Nach Positionen“ (siehe zuordnung/zielFarben.ts).
+    // Fest vergebene Kennfarbe im Modus „Nach Positionen” (siehe zuordnung/zielFarben.ts).
     farbIndex?: number;
 }
 
@@ -81,6 +84,9 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     const [anteile, setAnteile] = useState<ProjektAnteil[]>([]);
     const [showProjectModal, setShowProjectModal] = useState(false);
     const [showKostenstelleModal, setShowKostenstelleModal] = useState(false);
+    // Lager-Buchung: aktiv wenn eine LAGER-Kostenstelle gewählt wurde (nur für Lieferanten-Dokumente)
+    const [lagerOrtId, setLagerOrtId] = useState<number | null>(null);
+    const [lagerorte, setLagerorte] = useState<Lagerort[]>([]);
     // Aufteilung nach Positionen – nur für Lieferanten-Dokumente, nicht für Kassenbelege.
     const positionsAufteilung = usePositionsAufteilung(isBelegZuordnung ? null : geschaeftsdokumentId, modus === 'positionen');
     const nachPositionen = modus === 'positionen';
@@ -193,7 +199,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     };
 
     // Kostenstelle hinzufügen (vom Modal aufgerufen)
-    const addKostenstelle = (k: { id: number; bezeichnung: string }) => {
+    const addKostenstelle = (k: { id: number; bezeichnung: string; typ: string }) => {
         if (anteile.find(a => a.kostenstelleId === k.id)) {
             setShowKostenstelleModal(false);
             return;
@@ -204,11 +210,16 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
             farbIndex: freierFarbIndex(anteile.map(a => a.farbIndex)),
             kostenstelleId: k.id,
             kostenstelleName: k.bezeichnung,
+            kostenstellenTyp: k.typ,
             prozentanteil: defaultAnteil,
             betrag: modus === 'prozent' ? (betragNetto * defaultAnteil / 100) : 0,
             beschreibung: '',
             streckungJahre: 1
         }]);
+        // LAGER-Kostenstelle: Lagerorte für die Buchung laden
+        if (k.typ === 'LAGER' && !isBelegZuordnung && lagerorte.length === 0) {
+            ladeOrte().then(orte => setLagerorte(orte.filter(o => o.aktiv && !o.archiviert))).catch(() => {});
+        }
         setShowKostenstelleModal(false);
     };
 
@@ -301,6 +312,9 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     }, 0);
     const rest = Number((betragNetto - sumBetrag).toFixed(2));
 
+    // LAGER-Buchung: aktiv wenn in dieser Sitzung eine LAGER-Kostenstelle hinzugefügt wurde
+    const lagerKsBuchen = !isBelegZuordnung && anteile.some(a => a.kostenstellenTyp === 'LAGER');
+
     // Speichern - mit berechneten Werten für den letzten Eintrag
     const speichernNachPositionen = async () => {
         setSaving(true);
@@ -332,6 +346,27 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
         }
         setSaving(true);
         try {
+            // Lager-Buchung vor dem Speichern der Zuordnung (wenn LAGER-KS gewählt und Lagerort gesetzt)
+            if (lagerKsBuchen && lagerOrtId != null && geschaeftsdokumentId != null) {
+                const lagerRes = await fetch(`/api/bestellungen-uebersicht/${geschaeftsdokumentId}/ins-lager-buchen`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lagerortId: lagerOrtId })
+                });
+                if (lagerRes.ok) {
+                    const erg: { gebucht: number; neuAngelegt: number; meldungen: string[] } = await lagerRes.json();
+                    const info = [
+                        erg.gebucht > 0 ? `${erg.gebucht} Artikel ins Lager gebucht` : null,
+                        erg.neuAngelegt > 0 ? `${erg.neuAngelegt} neu angelegt` : null,
+                    ].filter(Boolean).join(', ');
+                    if (info) toast.success(info + '.');
+                    erg.meldungen.forEach(m => toast.error(m));
+                } else {
+                    const body = await lagerRes.json().catch(() => ({}));
+                    toast.error((body as { error?: string }).error || 'Lager-Buchung fehlgeschlagen.');
+                }
+            }
+
             // Für den letzten Eintrag die berechneten Werte verwenden
             const anteileZumSpeichern = anteile.map((a, idx) => {
                 const isLast = idx === anteile.length - 1 && anteile.length >= 2;
@@ -665,6 +700,42 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                                         zielKarten={zielKarten}
                                         onProjektHinzufuegen={() => setShowProjectModal(true)}
                                     />
+                                )}
+
+                                {/* LAGER-Buchung Panel */}
+                                {lagerKsBuchen && (
+                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                                        <div className="flex items-center gap-2">
+                                            <Warehouse className="w-4 h-4 text-rose-600 shrink-0" />
+                                            <span className="font-medium text-sm text-slate-800">Artikel ins Lager buchen</span>
+                                        </div>
+                                        <p className="text-xs text-slate-500">
+                                            Die erkannten Positionen dieser Rechnung werden beim Speichern als Lagerzugang gebucht. Unbekannte Artikel werden automatisch angelegt.
+                                        </p>
+                                        <div className="flex items-center gap-3">
+                                            <label className="text-sm text-slate-600 shrink-0">Lagerort</label>
+                                            <select
+                                                value={lagerOrtId ?? ''}
+                                                onChange={e => setLagerOrtId(e.target.value ? Number(e.target.value) : null)}
+                                                className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                            >
+                                                <option value="">– kein Lagerzugang –</option>
+                                                {lagerorte.map(o => (
+                                                    <option key={o.id} value={o.id}>{o.name}</option>
+                                                ))}
+                                            </select>
+                                        </div>
+                                        {positionsAufteilung.positionen.length === 0 && (
+                                            <p className="text-xs text-amber-700">
+                                                Noch keine Positionen erkannt – bitte erst „Positionen auslesen" ausführen oder die Aufteilung nach Positionen wählen.
+                                            </p>
+                                        )}
+                                        {positionsAufteilung.positionen.length > 0 && (
+                                            <p className="text-xs text-green-700">
+                                                {positionsAufteilung.positionen.length} Position{positionsAufteilung.positionen.length !== 1 ? 'en' : ''} erkannt und bereit zum Buchen.
+                                            </p>
+                                        )}
+                                    </div>
                                 )}
 
                                 {/* Zusammenfassung */}

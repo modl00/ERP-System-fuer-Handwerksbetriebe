@@ -28,6 +28,9 @@ public interface KostenstelleRepository extends JpaRepository<Kostenstelle, Long
         return findByTypAndAktivTrue(KostenstellenTyp.GEMEINKOSTEN);
     }
 
+    /** Alle aktiven Fixkosten-Kostenstellen (für die Soll-Werte in der Kostenrechnung). */
+    List<Kostenstelle> findByIstFixkostenTrueAndAktivTrue();
+
     /**
      * Findet alle Lager-Kostenstellen (Investitionen).
      */

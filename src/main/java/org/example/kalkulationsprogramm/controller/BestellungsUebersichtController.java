@@ -790,6 +790,9 @@ public class BestellungsUebersichtController {
             } else if (a.getKostenstelle() != null) {
                 dto.kostenstelleId = a.getKostenstelle().getId();
                 dto.kostenstelleName = a.getKostenstelle().getBezeichnung();
+                if (a.getKostenstelle().getTyp() != null) {
+                    dto.kostenstellenTyp = a.getKostenstelle().getTyp().name();
+                }
             }
             dto.betrag = a.getBerechneterBetrag();
             dto.prozentanteil = a.getProzent() != null ? BigDecimal.valueOf(a.getProzent()) : null;
@@ -1122,6 +1125,7 @@ public class BestellungsUebersichtController {
         public String projektName;
         public Long kostenstelleId;
         public String kostenstelleName;
+        public String kostenstellenTyp;
         public BigDecimal betrag;
         public BigDecimal prozentanteil;
         public String beschreibung;

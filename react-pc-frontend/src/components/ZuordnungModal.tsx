@@ -138,7 +138,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                     if (enthaeltAbsoluteZuordnung) {
                         setModus('absolut');
                     }
-                    geladeneAnteile = zuordnungen.map((z: { projektId?: number; projektName?: string; kostenstelleId?: number; kostenstelleName?: string; betrag?: number; prozentanteil?: number | null; beschreibung?: string; streckungJahre?: number }) => {
+                    geladeneAnteile = zuordnungen.map((z: { projektId?: number; projektName?: string; kostenstelleId?: number; kostenstelleName?: string; kostenstellenTyp?: string; betrag?: number; prozentanteil?: number | null; beschreibung?: string; streckungJahre?: number }) => {
                         const hatProzent = z.prozentanteil != null;
                         const pct: number | null = hatProzent
                             ? (z.prozentanteil ?? 0)
@@ -152,6 +152,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                             projektName: z.projektName,
                             kostenstelleId: z.kostenstelleId,
                             kostenstelleName: z.kostenstelleName,
+                            kostenstellenTyp: z.kostenstellenTyp,
                             betrag,
                             prozentanteil: pct,
                             beschreibung: z.beschreibung || '',
@@ -429,6 +430,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     // Warum Speichern (noch) nicht geht – steht im Tooltip und im Positionsmodus auch links im Fuß.
     const speichernGesperrtGrund = (() => {
         if (anteile.length === 0) return isBelegZuordnung ? 'Erst eine Kostenstelle hinzufügen.' : 'Erst ein Projekt oder eine Kostenstelle hinzufügen.';
+        if (lagerKsBuchen && lagerOrtId == null) return 'Bitte einen Lagerort wählen (oder Lagerbuchung weglassen).';
         if (!nachPositionen) return null;
         if (positionsAufteilung.positionen.length === 0) return 'Erst die Positionen auslesen.';
         const offen = positionsAufteilung.anzahlOffen;
@@ -748,7 +750,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
 
                 {/* Footer */}
                 <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
-                    {nachPositionen && speichernGesperrtGrund && (
+                    {speichernGesperrtGrund && (
                         <p className="mr-auto text-sm text-amber-700">{speichernGesperrtGrund}</p>
                     )}
                     <Button variant="outline" onClick={onClose}>Abbrechen</Button>

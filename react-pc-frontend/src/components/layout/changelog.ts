@@ -16,6 +16,7 @@ export const CHANGELOG: ChangelogEintrag[] = [
             'Bestellübersicht: Projektzuordnung jetzt auch schon bei Auftragsbestätigung und Lieferschein möglich (ohne Lagerbuchung)',
             'Artikelstamm: Archiv-Schalter zeigt archivierte Artikel – von dort direkt löschen',
             'Erledigt-Tab: Zuordnung nachträglich bearbeiten wieder möglich',
+            'Handelseinheit für Artikel: Stangen, Pakete und ähnliche Verkaufseinheiten hinterlegen – Anzahl × Länge × kg/m wird überall automatisch in kg umgerechnet (Bestellungen, Lager, Stammdaten)',
         ],
     },
     {

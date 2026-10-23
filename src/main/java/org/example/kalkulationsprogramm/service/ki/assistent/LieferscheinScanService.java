@@ -14,6 +14,7 @@ import org.example.kalkulationsprogramm.dto.Artikel.ArtikelCreateDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBuchungEingabe;
 import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.example.kalkulationsprogramm.repository.LieferantDokumentPositionRepository;
+import org.example.kalkulationsprogramm.repository.LieferantGeschaeftsdokumentRepository;
 import org.example.kalkulationsprogramm.service.ArtikelService;
 import org.example.kalkulationsprogramm.service.GeminiDokumentAnalyseService;
 import org.example.kalkulationsprogramm.service.LagerService;
@@ -70,6 +71,7 @@ public class LieferscheinScanService {
     private final LieferantArtikelpreisService artikelpreisService;
     private final ObjectMapper objectMapper;
     private final LieferantDokumentPositionRepository positionRepository;
+    private final LieferantGeschaeftsdokumentRepository geschaeftsdokumentRepository;
 
     public record ScanPosition(
             String artikelnummer,
@@ -94,6 +96,11 @@ public class LieferscheinScanService {
             BigDecimal einzelpreis,
             Long lieferantId,
             String lieferantName) {
+    }
+
+    public record LagerVorschau(
+            java.util.List<LagerVorschauPosition> positionen,
+            java.time.LocalDateTime lagerGebuchtAm) {
     }
 
     public record ScanErgebnis(
@@ -341,8 +348,10 @@ public class LieferscheinScanService {
      * Das Ergebnis zeigt dem Nutzer vor dem Buchen, welche Positionen noch einen neuen Artikel benötigen.
      */
     @Transactional(readOnly = true)
-    public List<LagerVorschauPosition> vorschauFuerDokument(Long geschaeftsdokumentId) {
-        return positionRepository.findByGeschaeftsdokumentId(geschaeftsdokumentId).stream()
+    public LagerVorschau vorschauFuerDokument(Long geschaeftsdokumentId) {
+        var gd = geschaeftsdokumentRepository.findById(geschaeftsdokumentId).orElse(null);
+        java.time.LocalDateTime lagerGebuchtAm = gd != null ? gd.getLagerGebuchtAm() : null;
+        List<LagerVorschauPosition> positionen = positionRepository.findByGeschaeftsdokumentId(geschaeftsdokumentId).stream()
                 .filter(p -> p.getMenge() != null && p.getMenge().compareTo(BigDecimal.ZERO) > 0)
                 .map(p -> {
                     Optional<Artikel> treffer = sucheArtikel(p.getExterneArtikelnummer(), p.getBezeichnung());
@@ -363,6 +372,7 @@ public class LieferscheinScanService {
                             lieferant != null ? lieferant.getLieferantenname() : null);
                 })
                 .toList();
+        return new LagerVorschau(positionen, lagerGebuchtAm);
     }
 
     /**
@@ -425,6 +435,13 @@ public class LieferscheinScanService {
                         lieferantId, artikelId, pos.getEinzelpreis(),
                         pos.getExterneArtikelnummer(), PreisQuelle.RECHNUNG, null);
             }
+        }
+
+        if (ergebnis.gebucht() > 0) {
+            geschaeftsdokumentRepository.findById(geschaeftsdokumentId).ifPresent(gd -> {
+                gd.setLagerGebuchtAm(java.time.LocalDateTime.now());
+                geschaeftsdokumentRepository.save(gd);
+            });
         }
 
         return ergebnis;

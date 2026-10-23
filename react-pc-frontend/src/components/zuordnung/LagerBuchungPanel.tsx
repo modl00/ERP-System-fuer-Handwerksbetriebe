@@ -24,6 +24,11 @@ interface VorschauPosition {
     lieferantName: string | null;
 }
 
+interface LagerVorschau {
+    positionen: VorschauPosition[];
+    lagerGebuchtAm: string | null;
+}
+
 interface LagerBuchungPanelProps {
     geschaeftsdokumentId: number;
     lagerOrtId: number | null;
@@ -43,6 +48,7 @@ export function LagerBuchungPanel({
 }: LagerBuchungPanelProps) {
     const toast = useToast();
     const [vorschau, setVorschau] = useState<VorschauPosition[]>([]);
+    const [lagerGebuchtAm, setLagerGebuchtAm] = useState<string | null>(null);
     const [laedt, setLaedt] = useState(false);
     const [artikelAnlegenFuer, setArtikelAnlegenFuer] = useState<VorschauPosition | null>(null);
     // Manuell zugeordnete Artikel: positionId → artikelId
@@ -53,8 +59,9 @@ export function LagerBuchungPanel({
         try {
             const res = await fetch(`/api/bestellungen-uebersicht/${geschaeftsdokumentId}/lager-vorschau`);
             if (res.ok) {
-                const data: VorschauPosition[] = await res.json();
-                setVorschau(data);
+                const data: LagerVorschau = await res.json();
+                setVorschau(data.positionen);
+                setLagerGebuchtAm(data.lagerGebuchtAm);
             } else {
                 toast.error('Vorschau konnte nicht geladen werden.');
             }
@@ -124,6 +131,11 @@ export function LagerBuchungPanel({
             </div>
 
             {/* Positionen-Vorschau */}
+            {lagerGebuchtAm && (
+                <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-2 py-1">
+                    ⚠ Bereits gebucht am {new Date(lagerGebuchtAm).toLocaleDateString('de-DE')} – erneutes Buchen fügt den Bestand nochmals hinzu.
+                </p>
+            )}
             {vorschau.length === 0 && !laedt && (
                 <p className="text-xs text-amber-700">
                     Noch keine Positionen erkannt – bitte erst Positionen auslesen (Modus „Nach Positionen" wählen).

@@ -1,7 +1,7 @@
 import { useState, useEffect, useId, type ReactNode } from 'react';
 import { PdfCanvasViewer } from './ui/PdfCanvasViewer';
 import { Button } from './ui/button';
-import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks } from 'lucide-react';
+import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks, RotateCcw } from 'lucide-react';
 import { ProjektSearchModal } from './ProjektSearchModal';
 import { KostenstelleSelectModal } from './KostenstelleSelectModal';
 import { useToast } from './ui/toast';
@@ -92,6 +92,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     const [showKostenstelleModal, setShowKostenstelleModal] = useState(false);
     // Lager-Buchung: aktiv wenn eine LAGER-Kostenstelle gewählt wurde (nur für Lieferanten-Dokumente)
     const [lagerOrtId, setLagerOrtId] = useState<number | null>(null);
+    const [hatGespeicherteZuordnung, setHatGespeicherteZuordnung] = useState(false);
     const [lagerorte, setLagerorte] = useState<Lagerort[]>([]);
     // Explizit zugeordnete Artikel für unbekannte Positionen (aus CreateArticleModal)
     const [artikelZuordnungen, setArtikelZuordnungen] = useState<Array<{ positionId: number; artikelId: number }>>([]);
@@ -172,6 +173,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 }
                 // Kennfarben in Listenreihenfolge fest vergeben
                 setAnteile(geladeneAnteile.map((a, idx) => ({ ...a, farbIndex: idx })));
+                setHatGespeicherteZuordnung(geladeneAnteile.length > 0);
             })
             .catch(() => toast.error('Fehler beim Laden der Zuordnungsdaten'))
             .finally(() => setLoading(false));
@@ -426,6 +428,19 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
         window.addEventListener('keydown', handleEsc);
         return () => window.removeEventListener('keydown', handleEsc);
     }, [onClose, showProjectModal, showKostenstelleModal]);
+
+    const hebeZuordnungAuf = async () => {
+        if (!geschaeftsdokumentId) return;
+        if (!window.confirm('Zuordnung aufheben?\nDie Kostenstellen-/Projektzuordnung wird entfernt. Eine bereits gebuchte Lagerbuchung bleibt erhalten und muss bei Bedarf im Lager manuell storniert werden.')) return;
+        const res = await fetch(`/api/bestellungen-uebersicht/zuordnung/${geschaeftsdokumentId}`, { method: 'DELETE' });
+        if (res.ok) {
+            toast.success('Zuordnung aufgehoben.');
+            await onSuccess();
+            onClose();
+        } else {
+            toast.error('Zuordnung konnte nicht aufgehoben werden.');
+        }
+    };
 
     // Warum Speichern (noch) nicht geht – steht im Tooltip und im Positionsmodus auch links im Fuß.
     const speichernGesperrtGrund = (() => {
@@ -752,6 +767,16 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
                     {speichernGesperrtGrund && (
                         <p className="mr-auto text-sm text-amber-700">{speichernGesperrtGrund}</p>
+                    )}
+                    {hatGespeicherteZuordnung && !isBelegZuordnung && (
+                        <Button
+                            variant="outline"
+                            className="mr-auto border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
+                            onClick={hebeZuordnungAuf}
+                        >
+                            <RotateCcw className="w-4 h-4 mr-2" aria-hidden="true" />
+                            Zuordnung aufheben
+                        </Button>
                     )}
                     <Button variant="outline" onClick={onClose}>Abbrechen</Button>
                     <span title={speichernGesperrtGrund ?? undefined}>

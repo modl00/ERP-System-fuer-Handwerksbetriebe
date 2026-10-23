@@ -69,7 +69,6 @@ class FlywayMigrationenTest {
             Map.entry("V425__urlaubsantrag_entscheidung.sql", 1247692216),
             Map.entry("V426__abteilung_zeiterfassung_sichtbar.sql", -1951496007),
             Map.entry("V427__urlaub_uebertrag.sql", 483432275),
-<<<<<<< HEAD
             Map.entry("V9000__wartung_grundlagen.sql", 1129854990),
             Map.entry("V9001__wartung_vorlagen.sql", 1622650522),
             Map.entry("V9002__wartung_projekt_feldeinsatz.sql", -370188822),
@@ -130,6 +129,9 @@ class FlywayMigrationenTest {
             Map.entry("V9057__archiv_artikel_lieferant_lagerort.sql", 1749358280),
             Map.entry("V9058__fertigungsunterlagen_bestellung_anhaenge.sql", -457385230),
             Map.entry("V9059__email_postfach_imap_ordner.sql", -906935815),
+            Map.entry("V9060__lieferant_dokument_privat.sql", 101201184),
+            Map.entry("V9061__lieferant_geschaeftsdokument_lager_gebucht_am.sql", 325150394),
+            Map.entry("V9062__artikel_handelseinheit.sql", 627052864),
             Map.entry("V428__zeit_hinweis_gesendet.sql", -727890757),
             Map.entry("V429__email_automatische_bestaetigung.sql", 854429120),
             Map.entry("V430__email_draft_besitzer.sql", 617604519),

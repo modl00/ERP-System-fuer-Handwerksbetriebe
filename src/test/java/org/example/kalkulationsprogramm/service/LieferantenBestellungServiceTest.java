@@ -476,7 +476,7 @@ class LieferantenBestellungServiceTest {
     private LagerBestandDto zeile(Long id, String name, String bestand, String mindest) {
         BigDecimal m = mindest == null ? null : new BigDecimal(mindest);
         BigDecimal b = new BigDecimal(bestand);
-        return new LagerBestandDto(id, name, "NR-" + id, "Stk", b, m, m != null && b.compareTo(m) < 0, b.signum() < 0, List.of());
+        return new LagerBestandDto(id, name, "NR-" + id, "Stk", b, m, m != null && b.compareTo(m) < 0, b.signum() < 0, List.of(), null, null, null);
     }
 
     @Test

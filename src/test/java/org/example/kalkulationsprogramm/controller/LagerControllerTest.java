@@ -39,7 +39,7 @@ class LagerControllerTest {
 
     private static LagerBestandDto zeile() {
         return new LagerBestandDto(5L, "Pfosten verzinkt", "A-1", "Stk", new BigDecimal("42"), new BigDecimal("10"), false, false,
-                List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", new BigDecimal("42"))));
+                List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", new BigDecimal("42"))), null, null, null);
     }
 
     @BeforeEach

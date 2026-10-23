@@ -28,6 +28,9 @@ export interface LagerBestand {
     /** Es wurde mehr entnommen als eingebucht (Zugang oder Inventur fehlt). */
     negativ: boolean;
     orte: OrtBestand[];
+    kgProMeter?: number | null;
+    handelseinheitBezeichnung?: string | null;
+    handelseinheitMeter?: number | null;
 }
 
 export interface LagerZusammenfassung {

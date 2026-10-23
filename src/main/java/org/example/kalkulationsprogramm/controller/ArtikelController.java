@@ -386,6 +386,8 @@ public class ArtikelController {
         dto.setPreisHinweis(vorschlag.hinweis().name());
         dto.setArchiviert(artikel.isArchiviert());
         dto.setArchiviertAm(artikel.getArchiviertAm());
+        dto.setHandelseinheitBezeichnung(artikel.getHandelseinheitBezeichnung());
+        dto.setHandelseinheitMeter(artikel.getHandelseinheitMeter());
         return dto;
     }
 

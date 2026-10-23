@@ -60,7 +60,7 @@ class LagerAppServiceTest {
     }
 
     private static LagerBestandDto zeile(long id) {
-        return new LagerBestandDto(id, "Schraube M8", "S-8", "Stk", new BigDecimal("40"), null, false, false, List.of());
+        return new LagerBestandDto(id, "Schraube M8", "S-8", "Stk", new BigDecimal("40"), null, false, false, List.of(), null, null, null);
     }
 
     @Test

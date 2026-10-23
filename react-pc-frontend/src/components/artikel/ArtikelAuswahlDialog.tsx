@@ -29,6 +29,9 @@ export interface ArtikelAuswahl {
     einzelpreis: number;
     /** Artikelnummer (eigene, sonst die des Lieferanten), für die Spalte "Artikel-Nr."; leer, wenn keine bekannt ist. */
     artikelnummer?: string;
+    kgProMeter?: number | null;
+    handelseinheitBezeichnung?: string | null;
+    handelseinheitMeter?: number | null;
 }
 
 /**
@@ -73,6 +76,9 @@ const zuAuswahl = (artikel: Artikel, menge: number): ArtikelAuswahl => ({
     // durcheinanderbringen.
     einzelpreis: artikel.positionsEinzelpreis ?? 0,
     artikelnummer: artikel.artikelnummer?.trim() || artikel.externeArtikelnummer?.trim() || undefined,
+    kgProMeter: artikel.kgProMeter ?? null,
+    handelseinheitBezeichnung: artikel.handelseinheitBezeichnung ?? null,
+    handelseinheitMeter: artikel.handelseinheitMeter ?? null,
 });
 
 export function ArtikelAuswahlDialog({ offen, onSchliessen, onUebernehmen }: ArtikelAuswahlDialogProps) {

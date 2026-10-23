@@ -103,6 +103,9 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     }));
     const [laenge, setLaenge] = useState(zahlText(artikel.standardlaenge));
 
+    const [handelseinheitBez, setHandelseinheitBez] = useState(artikel.handelseinheitBezeichnung ?? '');
+    const [handelseinheitM, setHandelseinheitM] = useState(zahlText(artikel.handelseinheitMeter));
+
     // Gewicht und Oberfläche je Meter: aus der Profiltabelle gewählt, aus den Maßen berechnet oder von Hand eingetragen
     const [kgJeMeter, setKgJeMeter] = useState(zahlText(artikel.kgProMeter));
     const [m2JeMeter, setM2JeMeter] = useState(zahlText(artikel.mantelflaeche));
@@ -288,6 +291,8 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     standardlaenge: v.laenge,
                     kgProMeter: art === "METER" ? v.kg ?? null : null,
                     mantelflaeche: art === "METER" ? v.m2 ?? null : null,
+                    handelseinheitBezeichnung: art === "METER" ? (handelseinheitBez.trim() || null) : null,
+                    handelseinheitMeter: art === "METER" && handelseinheitBez.trim() ? (parseFloat(handelseinheitM.replace(',', '.')) || null) : null,
                     kgProQm: art === "BLECH" ? v.kgQm ?? null : null,
                     flaecheJeQm: art === "BLECH" ? v.flQm ?? null : null,
                     kgJeStueck: art === "STUECK" ? v.kgStk ?? null : null,
@@ -487,6 +492,44 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                                 <Input id="sd-m2" value={m2JeMeter} inputMode="decimal" onChange={e => setM2JeMeter(e.target.value)} />
                                 <p className="text-xs text-slate-500">Zum Pulverbeschichten. Gemeint ist die Außenfläche, bei Rohren ohne Innenseite.</p>
                             </div>
+                        </div>
+                    )}
+                    {art === "METER" && kgJeMeter && parseFloat(kgJeMeter.replace(',', '.')) > 0 && (
+                        <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-3">
+                            <p className="text-xs font-medium text-slate-700">Handelseinheit (optional)</p>
+                            <p className="text-xs text-slate-500">Wenn dieser Artikel in Stangen, Bunden o.ä. gehandelt wird: Bezeichnung und Standardlänge eintragen. Dann können Bestellungen und Lagerbuchungen in dieser Einheit erfasst werden.</p>
+                            <div className="grid grid-cols-2 gap-3">
+                                <div>
+                                    <label className="block text-xs text-slate-600 mb-1">Bezeichnung (z.B. Stange, Bund)</label>
+                                    <input
+                                        value={handelseinheitBez}
+                                        onChange={e => setHandelseinheitBez(e.target.value)}
+                                        maxLength={50}
+                                        placeholder="z.B. Stange"
+                                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm bg-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                    />
+                                </div>
+                                <div>
+                                    <label className="block text-xs text-slate-600 mb-1">Länge je Einheit (Meter)</label>
+                                    <input
+                                        value={handelseinheitM}
+                                        onChange={e => setHandelseinheitM(e.target.value)}
+                                        inputMode="decimal"
+                                        placeholder="z.B. 6"
+                                        className="w-full px-3 py-1.5 border border-slate-200 rounded-md text-sm bg-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
+                                    />
+                                </div>
+                            </div>
+                            {handelseinheitBez.trim() && handelseinheitM && (() => {
+                                const m = parseFloat(handelseinheitM.replace(',', '.'));
+                                const kg = parseFloat(kgJeMeter.replace(',', '.'));
+                                if (m > 0 && kg > 0) return (
+                                    <p className="text-xs text-slate-500">
+                                        1 {handelseinheitBez.trim()} ({m} m) = {(m * kg).toLocaleString('de-DE', { maximumFractionDigits: 3 })} kg
+                                    </p>
+                                );
+                                return null;
+                            })()}
                         </div>
                     )}
                     {art === "BLECH" && (

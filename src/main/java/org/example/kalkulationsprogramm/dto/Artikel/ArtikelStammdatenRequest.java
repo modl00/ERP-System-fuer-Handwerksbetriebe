@@ -47,6 +47,10 @@ public class ArtikelStammdatenRequest {
     private BigDecimal flanschdicke;
     private Integer standardlaenge;
 
+    /** Handelseinheit: z.B. "Stange" mit 6,0 m – Anzeige und Berechnung überall wo Mengen eingegeben werden. */
+    private String handelseinheitBezeichnung;
+    private BigDecimal handelseinheitMeter;
+
     /** Gewicht je Meter in kg/m und Oberfläche je Meter in m²/m (nur Halbzeug); leer = keine Angabe. */
     private BigDecimal kgProMeter;
     private BigDecimal mantelflaeche;

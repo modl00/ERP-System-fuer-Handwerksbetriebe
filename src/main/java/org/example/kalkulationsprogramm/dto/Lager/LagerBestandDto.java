@@ -21,7 +21,10 @@ public record LagerBestandDto(
         BigDecimal mindestbestand,
         boolean unterMindestbestand,
         boolean negativ,
-        List<OrtBestand> orte) {
+        List<OrtBestand> orte,
+        BigDecimal kgProMeter,
+        String handelseinheitBezeichnung,
+        BigDecimal handelseinheitMeter) {
 
     /** Bestand an einem Lagerort. */
     public record OrtBestand(Long lagerortId, String lagerortName, BigDecimal bestand) {

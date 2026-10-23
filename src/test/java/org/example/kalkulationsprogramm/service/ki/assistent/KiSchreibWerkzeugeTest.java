@@ -190,7 +190,7 @@ class KiSchreibWerkzeugeTest {
 
     private LagerBestandDto bestand(String imHauptlager) {
         BigDecimal b = new BigDecimal(imHauptlager);
-        return new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", b, null, false, false, List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", b)));
+        return new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", b, null, false, false, List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", b)), null, null, null);
     }
 
     private ObjectNode zugang() {
@@ -255,7 +255,7 @@ class KiSchreibWerkzeugeTest {
     @DisplayName("Ausführen bucht über den Lagerdienst mit Artikel, Lagerort, Menge, Projekt und Notiz und meldet den neuen Bestand")
     void lagerAusfuehren() {
         lagerAufbauen();
-        when(lagerService.buche(any())).thenReturn(new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", new BigDecimal("32.5"), null, false, false, List.of()));
+        when(lagerService.buche(any())).thenReturn(new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", new BigDecimal("32.5"), null, false, false, List.of(), null, null, null));
 
         String text = lagerWerkzeug.ausfuehren(zugang().put("notiz", "Lieferung RE-77"), anna);
 

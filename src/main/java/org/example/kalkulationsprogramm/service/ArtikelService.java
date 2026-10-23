@@ -392,6 +392,14 @@ public class ArtikelService implements ArtikelServiceContract {
         artikel.setWerkstoffnorm(stammdatenText(r.getWerkstoffnorm(), 64, "Die Werkstoffnorm"));
         artikel.setVerzinkungsgeeignet(r.getVerzinkungsgeeignet());
         artikel.setPulverbeschichtungsgeeignet(r.getPulverbeschichtungsgeeignet());
+        String handelseinheitBez = stammdatenText(r.getHandelseinheitBezeichnung(), 50, "Die Handelseinheitsbezeichnung");
+        java.math.BigDecimal handelseinheitM = r.getHandelseinheitMeter();
+        if (handelseinheitM != null && handelseinheitM.signum() <= 0)
+            throw stammdatenUngueltig("Die Länge je Handelseinheit muss größer als 0 sein.");
+        if ((handelseinheitBez != null) != (handelseinheitM != null))
+            throw stammdatenUngueltig("Handelseinheit: Bezeichnung und Länge müssen gemeinsam angegeben oder beide leer sein.");
+        artikel.setHandelseinheitBezeichnung(handelseinheitBez);
+        artikel.setHandelseinheitMeter(handelseinheitM);
         if (artikel instanceof ArtikelWerkstoffe aw) {
             aw.setDurchmesser(stammdatenMass(r.getDurchmesser(), "Der Durchmesser"));
             aw.setHoehe(stammdatenMass(r.getHoehe(), "Die Höhe"));

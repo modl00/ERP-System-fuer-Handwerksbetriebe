@@ -392,6 +392,8 @@ export interface Artikel {
   werkstoffId?: number;
   werkstoffName?: string;
   kgProMeter?: number;
+  handelseinheitBezeichnung?: string | null;
+  handelseinheitMeter?: number | null;
   flaecheJeQm?: number;
   kgJeStueck?: number;
   m2JeStueck?: number;

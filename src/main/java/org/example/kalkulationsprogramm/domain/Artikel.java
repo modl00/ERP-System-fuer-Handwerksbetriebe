@@ -270,6 +270,12 @@ public class Artikel
     @Column(name = "archiviert_am")
     private LocalDateTime archiviertAm;
 
+    @Column(name = "handelseinheit_bezeichnung", length = 50)
+    private String handelseinheitBezeichnung;
+
+    @Column(name = "handelseinheit_meter", precision = 10, scale = 3)
+    private java.math.BigDecimal handelseinheitMeter;
+
     /** Vorschaubild und Zusatzdokumente (Zulassungen, Zeichnungen, Datenblaetter, ...). */
     @OneToMany(mappedBy = "artikel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ArtikelDokument> dokumente = new ArrayList<>();

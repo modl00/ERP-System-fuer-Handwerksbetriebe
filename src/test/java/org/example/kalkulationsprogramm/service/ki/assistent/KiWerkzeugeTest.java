@@ -187,8 +187,8 @@ class KiWerkzeugeTest {
         LagerService s = mock(LagerService.class);
         when(s.bestand(eq("rohr"), eq(false))).thenReturn(List.of(
                 new LagerBestandDto(7L, "Rundrohr 42,4", "ST-RR-042", "m", new BigDecimal("12.500"), new BigDecimal("20"), true, false,
-                        List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", new BigDecimal("12.500")))),
-                new LagerBestandDto(8L, "Flachstahl", null, "m", new BigDecimal("-2"), null, false, true, List.of())));
+                        List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", new BigDecimal("12.500"))), null, null, null),
+                new LagerBestandDto(8L, "Flachstahl", null, "m", new BigDecimal("-2"), null, false, true, List.of(), null, null, null)));
 
         String text = lager(true, true, s).ausfuehren(suche("rohr"), anna);
 

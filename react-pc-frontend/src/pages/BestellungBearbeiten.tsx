@@ -23,6 +23,7 @@ import {
     vorschlaegeMindestbestand, vorschlaegeProjekt,
     type Bestellung, type Herkunft, type PositionEingabe, type Vorschlag,
 } from '../features/bestellwesen/bestellwesenApi';
+import { HandelseinheitEingabe } from '../components/HandelseinheitEingabe';
 import { StandMarke } from './BestellListe';
 
 /** Eine Zeile des Entwurfs, wie sie am Bildschirm bearbeitet wird (Menge als Text, damit "12," beim Tippen stehen bleibt). */
@@ -39,6 +40,9 @@ interface Zeile {
     projektName: string | null;
     artikelInProjektId: number | null;
     kommentar: string | null;
+    kgProMeter?: number | null;
+    handelseinheitBezeichnung?: string | null;
+    handelseinheitMeter?: number | null;
 }
 
 const HERKUNFT_TEXT: Record<Herkunft, string> = { LAGER: 'Lager auffüllen', PROJEKT: 'Projekt', FREI: 'Frei bestellt' };
@@ -143,6 +147,7 @@ const BestellungBearbeiten = () => {
         setZeilen((z) => [...z, {
             key: ++zaehler.current, artikelId: a.id, bezeichnung: a.titel, artikelnummer: a.nummer, einheit: a.einheit.kurz, menge: mengeText(menge), einzelpreis: null,
             herkunft: 'FREI', projektId: null, projektName: null, artikelInProjektId: null, kommentar: null,
+            kgProMeter: a.kgProMeter ?? null, handelseinheitBezeichnung: a.handelseinheitBezeichnung ?? null, handelseinheitMeter: a.handelseinheitMeter ?? null,
         }]);
     };
 
@@ -333,11 +338,21 @@ const BestellungBearbeiten = () => {
                                             <td className="hidden px-4 py-3 text-slate-600 md:table-cell">{z.projektName ?? HERKUNFT_TEXT[z.herkunft]}</td>
                                             <td className="px-4 py-3 text-right">
                                                 {istEntwurf ? (
-                                                    <span className="inline-flex items-center gap-1">
-                                                        <input inputMode="decimal" aria-label={`Menge ${z.bezeichnung}`} value={z.menge}
-                                                            onChange={(e) => setZeilen((l) => l.map((x) => (x.key === z.key ? { ...x, menge: e.target.value } : x)))}
-                                                            className="w-24 rounded-lg border border-slate-300 px-2 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-rose-500" />
-                                                        <span className="w-8 text-left text-slate-600">{z.einheit}</span>
+                                                    <span className="inline-flex items-start gap-1">
+                                                        {z.kgProMeter && z.handelseinheitBezeichnung && z.handelseinheitMeter ? (
+                                                            <HandelseinheitEingabe
+                                                                artikel={{ einheit: z.einheit, kgProMeter: z.kgProMeter, handelseinheitBezeichnung: z.handelseinheitBezeichnung, handelseinheitMeter: z.handelseinheitMeter }}
+                                                                value={z.menge}
+                                                                onChange={(val) => setZeilen((l) => l.map((x) => x.key === z.key ? { ...x, menge: val } : x))}
+                                                            />
+                                                        ) : (
+                                                            <>
+                                                                <input inputMode="decimal" aria-label={`Menge ${z.bezeichnung}`} value={z.menge}
+                                                                    onChange={(e) => setZeilen((l) => l.map((x) => (x.key === z.key ? { ...x, menge: e.target.value } : x)))}
+                                                                    className="w-24 rounded-lg border border-slate-300 px-2 py-1.5 text-right text-sm focus:outline-none focus:ring-2 focus:ring-rose-500" />
+                                                                <span className="w-8 text-left text-slate-600">{z.einheit}</span>
+                                                            </>
+                                                        )}
                                                     </span>
                                                 ) : <span className="text-slate-900">{z.menge} {z.einheit}</span>}
                                             </td>

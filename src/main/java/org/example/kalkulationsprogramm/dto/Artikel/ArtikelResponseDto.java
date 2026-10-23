@@ -27,6 +27,8 @@ public class ArtikelResponseDto {
     private String waehrung;
     private BigDecimal preis;
     private BigDecimal kgProMeter;
+    private String handelseinheitBezeichnung;
+    private BigDecimal handelseinheitMeter;
     private Date preisDatum;
     private Long lieferantId;
     private String lieferantenname;

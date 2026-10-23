@@ -12,6 +12,7 @@ import { SearchableSelect } from '../../components/ui/searchable-select';
 import { useToast } from '../../components/ui/toast';
 import { cn } from '../../lib/utils';
 import { formatDecimalInput, validateDecimalInput } from '../../lib/numberInput';
+import { HandelseinheitEingabe } from '../../components/HandelseinheitEingabe';
 import { LagerArtikelWahl, type GewaehlterArtikel } from './LagerArtikelWahl';
 import {
     aendereArtikel, buche, EINHEIT_AUSWAHL, einheitAusKuerzel, einheitSchluesselAusKuerzel, ladeVerlauf, mengeText, setzeMindestbestand, umbuche,
@@ -44,7 +45,7 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
     const toast = useToast();
     const aktiveOrte = orte.filter(o => o.aktiv);
     const [art, setArt] = useState<Buchungsart>(startArt);
-    const [artikel, setArtikel] = useState<{ id: number; titel: string; nummer: string | null; einheit: string; einheitLang: string; orte: LagerBestand['orte'] } | null>(null);
+    const [artikel, setArtikel] = useState<{ id: number; titel: string; nummer: string | null; einheit: string; einheitLang: string; orte: LagerBestand['orte']; kgProMeter?: number | null; handelseinheitBezeichnung?: string | null; handelseinheitMeter?: number | null } | null>(null);
     const [waehlt, setWaehlt] = useState(false);
     const [ortId, setOrtId] = useState('');
     const [menge, setMenge] = useState('');
@@ -58,7 +59,7 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
     useEffect(() => {
         if (!offen) return;
         setArt(startArt);
-        setArtikel(startArtikel ? { id: startArtikel.artikelId, titel: startArtikel.bezeichnung, nummer: startArtikel.artikelnummer, einheit: startArtikel.einheit, einheitLang: einheitAusKuerzel(startArtikel.einheit).lang, orte: startArtikel.orte } : null);
+        setArtikel(startArtikel ? { id: startArtikel.artikelId, titel: startArtikel.bezeichnung, nummer: startArtikel.artikelnummer, einheit: startArtikel.einheit, einheitLang: einheitAusKuerzel(startArtikel.einheit).lang, orte: startArtikel.orte, kgProMeter: startArtikel.kgProMeter ?? null, handelseinheitBezeichnung: startArtikel.handelseinheitBezeichnung ?? null, handelseinheitMeter: startArtikel.handelseinheitMeter ?? null } : null);
         setWaehlt(!startArtikel);
         // Der Lagerort beginnt dort, wo der Artikel liegt (sonst der erste aktive)
         const vorort = startArtikel?.orte.find(o => aktiveOrte.some(a => a.id === o.lagerortId))?.lagerortId;
@@ -85,7 +86,7 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
     }, [offen, art, projekte]);
 
     const artikelGewaehlt = (a: GewaehlterArtikel) => {
-        setArtikel({ id: a.id, titel: a.titel, nummer: a.nummer, einheit: a.einheit.kurz, einheitLang: a.einheit.lang, orte: [] });
+        setArtikel({ id: a.id, titel: a.titel, nummer: a.nummer, einheit: a.einheit.kurz, einheitLang: a.einheit.lang, orte: [], kgProMeter: a.kgProMeter ?? null, handelseinheitBezeichnung: a.handelseinheitBezeichnung ?? null, handelseinheitMeter: a.handelseinheitMeter ?? null });
         setWaehlt(false);
         setFehler('');
     };
@@ -162,8 +163,19 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
                                     options={aktiveOrte.map(o => ({ value: String(o.id), label: o.name }))} />
                             </div>
                             <div>
-                                <DecimalInput label={`${ART_TEXT[art].mengeLabel}${artikel ? ` in ${artikel.einheitLang} (${artikel.einheit})` : ''}`} value={menge} min={art === 'KORREKTUR' ? 0 : 0.001} max={MAX_MENGE}
-                                    onChange={setMenge} placeholder={art === 'KORREKTUR' ? 'z. B. 42' : 'z. B. 5'} />
+                                {artikel && artikel.kgProMeter && artikel.handelseinheitBezeichnung && artikel.handelseinheitMeter ? (
+                                    <HandelseinheitEingabe
+                                        artikel={{ einheit: artikel.einheit, kgProMeter: artikel.kgProMeter, handelseinheitBezeichnung: artikel.handelseinheitBezeichnung, handelseinheitMeter: artikel.handelseinheitMeter }}
+                                        value={menge}
+                                        onChange={setMenge}
+                                        label={ART_TEXT[art].mengeLabel}
+                                        min={art === 'KORREKTUR' ? 0 : 0.001}
+                                        max={MAX_MENGE}
+                                    />
+                                ) : (
+                                    <DecimalInput label={`${ART_TEXT[art].mengeLabel}${artikel ? ` in ${artikel.einheitLang} (${artikel.einheit})` : ''}`} value={menge} min={art === 'KORREKTUR' ? 0 : 0.001} max={MAX_MENGE}
+                                        onChange={setMenge} placeholder={art === 'KORREKTUR' ? 'z. B. 42' : 'z. B. 5'} />
+                                )}
                                 {art === 'KORREKTUR' && artikel && artikel.orte.length > 0 && (
                                     <p className="mt-1 text-xs text-slate-500">Aktuell gebucht: {mengeText(gebucht, artikel.einheit)}</p>
                                 )}

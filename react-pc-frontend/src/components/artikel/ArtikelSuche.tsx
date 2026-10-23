@@ -145,6 +145,8 @@ export interface ArtikelSucheProps {
     onLadezustand?: (laedt: boolean) => void;
     /** Zugriff auf {@link ArtikelSucheHandle}. */
     ref?: React.Ref<ArtikelSucheHandle>;
+    /** Nur archivierte Artikel anzeigen (statt der aktiven). */
+    nurArchiviert?: boolean;
 }
 
 // ==================== MAIN COMPONENT ====================
@@ -158,6 +160,7 @@ export function ArtikelSuche({
     seitenGroesseAusHoehe = false,
     nurMitLieferantenpreis = false,
     onLadezustand,
+    nurArchiviert = false,
     ref,
 }: ArtikelSucheProps) {
     const navigate = useNavigate();
@@ -243,6 +246,7 @@ export function ArtikelSuche({
             params.set("sort", sortColumn);
             params.set("dir", sortDirection);
             if (nurMitLieferantenpreis) params.set("nurMitLieferantenpreis", "true");
+            if (nurArchiviert) params.set("nurArchiviert", "true");
 
             if (filters.q) params.set("q", filters.q);
             if (filters.lieferant) params.set("lieferant", filters.lieferant);
@@ -274,7 +278,7 @@ export function ArtikelSuche({
                 setErsteAntwortDa(true);
             }
         }
-    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis, toast]);
+    }, [page, filters, sortColumn, sortDirection, effektiveSeitenGroesse, nurMitLieferantenpreis, nurArchiviert, toast]);
 
     useEffect(() => {
         loadArtikel();
@@ -668,11 +672,16 @@ export function ArtikelSuche({
                                         </td>
                                         <td className="px-4 py-3 font-mono text-xs text-slate-600">{artikel.artikelnummer || '-'}</td>
                                         <td className="px-4 py-3">
-                                            <div
-                                                className="font-medium text-slate-900"
-                                                title={artikel.profilform?.erklaerung}
-                                            >
-                                                {artikelBezeichnung(artikel)}
+                                            <div className="flex items-center gap-2">
+                                                <div
+                                                    className="font-medium text-slate-900"
+                                                    title={artikel.profilform?.erklaerung}
+                                                >
+                                                    {artikelBezeichnung(artikel)}
+                                                </div>
+                                                {artikel.archiviert && (
+                                                    <span className="shrink-0 inline-block rounded bg-amber-100 text-amber-700 text-xs px-1.5 py-0.5">Archiviert</span>
+                                                )}
                                             </div>
                                             {artikel.massnorm && (
                                                 <div className="text-xs text-slate-400">{artikel.massnorm}</div>

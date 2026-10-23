@@ -750,7 +750,7 @@ export default function BestellungenUebersicht() {
                 kette={kette}
                 heute={heute}
                 onOpenPdf={handleOpenPdf}
-                showZuordnenButton={tab === 'abgeschlossen' || tab === 'zugeordnet'}
+                showZuordnenButton={tab === 'abgeschlossen' || tab === 'zugeordnet' || tab === 'laufend'}
                 onZuordnen={setZuordnungKette}
                 onAusblenden={istAusgeblendetTab || istPrivatTab ? undefined : (k) => setKetteAusgeblendet(k, true)}
                 onEinblenden={istAusgeblendetTab ? (k) => setKetteAusgeblendet(k, false) : undefined}

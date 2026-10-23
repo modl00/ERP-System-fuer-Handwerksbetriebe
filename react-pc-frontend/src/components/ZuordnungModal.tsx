@@ -72,9 +72,14 @@ export interface ZuordnungModalProps {
      * bleibt der Dialog offen (z. B. weil er zur nächsten Rechnung springt).
      */
     onSuccess: () => void | 'offen-lassen' | Promise<void>;
+    /**
+     * Wenn gesetzt, ist keine Lager-Buchung möglich (kein LAGER-Typ in der
+     * Kostenstellen-Auswahl, kein Lager-Panel). Gilt für AB/Lieferschein-Zuordnung.
+     */
+    keineLagerBuchung?: boolean;
 }
 
-export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, lieferantName, pdfUrl, previewMimeType, rechnungsLeiste, onClose, onSuccess }: ZuordnungModalProps) {
+export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, lieferantName, pdfUrl, previewMimeType, rechnungsLeiste, onClose, onSuccess, keineLagerBuchung }: ZuordnungModalProps) {
     const toast = useToast();
     const titelId = useId();
     const isBelegZuordnung = belegId != null;
@@ -315,8 +320,8 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     }, 0);
     const rest = Number((betragNetto - sumBetrag).toFixed(2));
 
-    // LAGER-Buchung: aktiv wenn in dieser Sitzung eine LAGER-Kostenstelle hinzugefügt wurde
-    const lagerKsBuchen = !isBelegZuordnung && anteile.some(a => a.kostenstellenTyp === 'LAGER');
+    // LAGER-Buchung: aktiv wenn in dieser Sitzung eine LAGER-Kostenstelle hinzugefügt wurde (nicht bei AB/Lieferschein)
+    const lagerKsBuchen = !isBelegZuordnung && !keineLagerBuchung && anteile.some(a => a.kostenstellenTyp === 'LAGER');
 
     // Speichern - mit berechneten Werten für den letzten Eintrag
     const speichernNachPositionen = async () => {
@@ -590,6 +595,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                                     <KostenstelleSelectModal
                                         onSelect={addKostenstelle}
                                         onClose={() => setShowKostenstelleModal(false)}
+                                        ausschliessenTypen={keineLagerBuchung ? ['LAGER'] : undefined}
                                     />
                                 )}
 

@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookTemplate, RefreshCw, FolderPlus, Plus, Percent, Cuboid } from "lucide-react";
+import { BookTemplate, RefreshCw, FolderPlus, Plus, Percent, Cuboid, Archive } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { cn } from "../lib/utils";
@@ -23,6 +23,7 @@ export default function ArtikelEditor() {
     const [showVorlagen, setShowVorlagen] = useState(false);
     const darfAufschlaegeAendern = useDarfAufschlaegeAendern();
     const [showAufschlaege, setShowAufschlaege] = useState(false);
+    const [nurArchiviert, setNurArchiviert] = useState(false);
     const schliesseAufschlaege = (offen: boolean) => {
         setShowAufschlaege(offen);
         if (!offen && aufschlaegeGeaendert.current) { aufschlaegeGeaendert.current = false; sucheRef.current?.neuLaden(); }
@@ -87,6 +88,15 @@ export default function ArtikelEditor() {
                         <Cuboid className="w-4 h-4 mr-2" aria-hidden="true" />
                         Werkstoffe pflegen
                     </Button>
+                    <Button
+                        variant="outline"
+                        size="sm"
+                        className={nurArchiviert ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-rose-300 text-rose-700 hover:bg-rose-50"}
+                        onClick={() => { setNurArchiviert(v => !v); setSucheSchluessel(k => k + 1); }}
+                    >
+                        <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
+                        {nurArchiviert ? 'Archiv (aktiv)' : 'Archiv anzeigen'}
+                    </Button>
                     <Button variant="outline" size="sm" onClick={() => sucheRef.current?.neuLaden()}>
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
                         Aktualisieren
@@ -94,7 +104,7 @@ export default function ArtikelEditor() {
                 </>
             }
         >
-            <ArtikelSuche key={sucheSchluessel} ref={sucheRef} urlSync onLadezustand={setLoading} />
+            <ArtikelSuche key={sucheSchluessel} ref={sucheRef} urlSync onLadezustand={setLoading} nurArchiviert={nurArchiviert} />
 
             {showCreateModal && (
                 <CreateArticleModal

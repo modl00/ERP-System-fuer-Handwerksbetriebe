@@ -220,6 +220,7 @@ public class ArtikelController {
             @RequestParam(value = "profilform", required = false) String profilform,
             @RequestParam(value = "verzinkbar", required = false) Boolean verzinkbar,
             @RequestParam(value = "pulverbeschichtbar", required = false) Boolean pulverbeschichtbar,
+            @RequestParam(value = "nurArchiviert", defaultValue = "false") boolean nurArchiviert,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size,
             @RequestParam(value = "sort", defaultValue = "produktname") String sort,
@@ -229,7 +230,7 @@ public class ArtikelController {
         List<Integer> kategorieIds = kategorieService.findeKategorieUndUnterkategorieIds(kategorieId);
         Specification<Artikel> specification = buildArtikelSpecification(query, lieferant, produktlinie, werkstoff,
             kategorieId, kategorieIds, nurMitLieferantenpreis,
-            herstellverfahren, fertigungszustand, profilform, verzinkbar, pulverbeschichtbar);
+            herstellverfahren, fertigungszustand, profilform, verzinkbar, pulverbeschichtbar, nurArchiviert);
         Page<Artikel> result = artikelService.suche(specification,
                 PageRequest.of(pageIndex, pageSize, buildSort(sort, direction)));
 
@@ -688,9 +689,11 @@ public class ArtikelController {
             String fertigungszustand,
             String profilform,
             Boolean verzinkbar,
-            Boolean pulverbeschichtbar) {
-        Specification<Artikel> specification = Specification.where(
-                (root, cq, cb) -> cb.isFalse(root.get("archiviert")));
+            Boolean pulverbeschichtbar,
+            boolean nurArchiviert) {
+        Specification<Artikel> specification = nurArchiviert
+                ? Specification.where((root, cq, cb) -> cb.isTrue(root.get("archiviert")))
+                : Specification.where((root, cq, cb) -> cb.isFalse(root.get("archiviert")));
 
         if (StringUtils.hasText(query)) {
             specification = specification.and(ArtikelFreitextSuche.fuer(query));

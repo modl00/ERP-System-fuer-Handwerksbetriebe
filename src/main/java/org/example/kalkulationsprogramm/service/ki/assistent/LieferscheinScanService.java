@@ -8,6 +8,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
+import org.example.kalkulationsprogramm.domain.PreisQuelle;
 import org.example.kalkulationsprogramm.domain.Verrechnungseinheit;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelCreateDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBuchungEingabe;
@@ -16,6 +17,7 @@ import org.example.kalkulationsprogramm.repository.LieferantDokumentPositionRepo
 import org.example.kalkulationsprogramm.service.ArtikelService;
 import org.example.kalkulationsprogramm.service.GeminiDokumentAnalyseService;
 import org.example.kalkulationsprogramm.service.LagerService;
+import org.example.kalkulationsprogramm.service.LieferantArtikelpreisService;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
 import org.example.kalkulationsprogramm.service.ki.KiFunktion;
@@ -65,6 +67,7 @@ public class LieferscheinScanService {
     private final ArtikelRepository artikelRepository;
     private final ArtikelService artikelService;
     private final LagerService lagerService;
+    private final LieferantArtikelpreisService artikelpreisService;
     private final ObjectMapper objectMapper;
     private final LieferantDokumentPositionRepository positionRepository;
 
@@ -379,6 +382,14 @@ public class LieferscheinScanService {
         if (positionen.isEmpty()) {
             return new BuchenErgebnis(0, 0, List.of("Keine Positionen im Dokument gefunden."));
         }
+        // Lieferant aus dem ersten Dokument des Geschäftsdokuments ermitteln (für Preishistorie)
+        Long lieferantId = positionen.stream()
+                .filter(p -> p.getGeschaeftsdokument() != null && p.getGeschaeftsdokument().getDokument() != null
+                        && p.getGeschaeftsdokument().getDokument().getLieferant() != null)
+                .findFirst()
+                .map(p -> p.getGeschaeftsdokument().getDokument().getLieferant().getId())
+                .orElse(null);
+
         List<BuchenPosition> buchenPositionen = positionen.stream().map(p -> {
             Long explizit = expliziteArtikelIds.get(p.getId());
             if (explizit != null) {
@@ -400,7 +411,23 @@ public class LieferscheinScanService {
                     p.getMengeneinheit() != null ? p.getMengeneinheit() : "Stk",
                     treffer.isEmpty());
         }).toList();
-        return buchen(new BuchenEingabe(buchenPositionen, lagerortId, "Wareneingang aus Lieferantenrechnung"), benutzer);
+
+        BuchenErgebnis ergebnis = buchen(new BuchenEingabe(buchenPositionen, lagerortId, "Wareneingang aus Lieferantenrechnung"), benutzer);
+
+        // Einkaufspreis je Artikel aus der Rechnung in die Preishistorie übernehmen
+        if (lieferantId != null) {
+            for (int i = 0; i < positionen.size(); i++) {
+                var pos = positionen.get(i);
+                if (pos.getEinzelpreis() == null || pos.getEinzelpreis().compareTo(BigDecimal.ZERO) <= 0) continue;
+                Long artikelId = buchenPositionen.get(i).artikelId();
+                if (artikelId == null) continue;
+                artikelpreisService.schreibePreisstand(
+                        lieferantId, artikelId, pos.getEinzelpreis(),
+                        pos.getExterneArtikelnummer(), PreisQuelle.RECHNUNG, null);
+            }
+        }
+
+        return ergebnis;
     }
 
     private Optional<Artikel> sucheArtikel(String externeArtikelnummer, String bezeichnung) {

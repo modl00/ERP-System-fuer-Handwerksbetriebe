@@ -1,5 +1,5 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
-import { AlertCircle, ChevronDown, ChevronRight } from 'lucide-react';
+import { AlertCircle, ChevronDown, ChevronRight, Gem, Loader2 } from 'lucide-react';
 import { useToast } from '../../components/ui/toast';
 import { formatEuro, formatMenge, type DokumentPosition } from '../../components/zuordnung/positionen';
 import {
@@ -9,6 +9,7 @@ import {
     ladeDokumentPositionen,
     positionTrifftSuche,
     positionenStand,
+    vergissDokumentPositionen,
 } from './dokumentPositionen';
 
 type Zustand =
@@ -108,6 +109,50 @@ interface DokumentPositionenListeProps {
     className?: string;
 }
 
+/** Zeigt "Keine Positionen erkannt" mit einem KI-Button zum erneuten Auslesen. */
+function PositionenAuslesen({ id, dokumentId, className = '' }: { id?: string; dokumentId: number; className?: string }) {
+    const toast = useToast();
+    const [laeuft, setLaeuft] = useState(false);
+
+    const auslesen = async () => {
+        setLaeuft(true);
+        try {
+            const res = await fetch(
+                `/api/bestellungen-uebersicht/positionen/${encodeURIComponent(String(dokumentId))}/auslesen`,
+                { method: 'POST' },
+            );
+            if (!res.ok) {
+                const daten = await res.json().catch(() => ({})) as { message?: string };
+                throw new Error(daten.message ?? 'Positionen konnten nicht ausgelesen werden.');
+            }
+            vergissDokumentPositionen(dokumentId);
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : 'Positionen konnten nicht ausgelesen werden.');
+        } finally {
+            setLaeuft(false);
+        }
+    };
+
+    return (
+        <div id={id} className={`flex items-center gap-2 ${className}`}>
+            <span className="text-xs text-slate-500">Keine Artikelpositionen erkannt.</span>
+            <button
+                type="button"
+                onClick={auslesen}
+                disabled={laeuft}
+                className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium text-rose-700 bg-rose-50 hover:bg-rose-100 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 transition-colors"
+                title="Positionen per KI aus dem Dokument auslesen"
+                aria-label="Positionen per KI auslesen"
+            >
+                {laeuft
+                    ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    : <Gem className="w-3 h-3" aria-hidden="true" />}
+                {laeuft ? 'Wird ausgelesen …' : 'KI auslesen'}
+            </button>
+        </div>
+    );
+}
+
 /**
  * Kompakte Liste der Artikelpositionen eines Dokuments: Pos., Art.-Nr., Bezeichnung,
  * Menge, Einzelpreis, Gesamt netto. Werkstoff, Charge und Abmessung stehen grau unter
@@ -132,7 +177,7 @@ export function DokumentPositionenListe({ dokumentId, suchbegriff, id, kompakt =
         );
     }
     if (zustand.positionen.length === 0) {
-        return <p id={id} className={`text-xs text-slate-500 ${className}`}>Keine Artikelpositionen erkannt.</p>;
+        return <PositionenAuslesen id={id} dokumentId={dokumentId} className={className} />;
     }
 
     return (

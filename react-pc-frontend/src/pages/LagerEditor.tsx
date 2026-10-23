@@ -9,6 +9,7 @@ import { useToast } from '../components/ui/toast';
 import { cn } from '../lib/utils';
 import { ArtikelDialog, BuchungsDialog, MindestbestandDialog, UmbuchungsDialog, VerlaufDialog } from '../features/lager/LagerDialoge';
 import { LieferscheinScanDialog } from '../features/lager/LieferscheinScanDialog';
+import { WareneingangAusBestellungenDialog } from '../features/lager/WareneingangAusBestellungenDialog';
 import { LagerorteBereich } from '../features/lager/LagerorteBereich';
 import {
     ladeBestand, ladeOrte, ladeZusammenfassung, mengeText,
@@ -75,6 +76,7 @@ const LagerEditor = () => {
     const bedarf = zusammenfassung ? zusammenfassung.unterMindestbestand + zusammenfassung.negativ : 0;
     const oeffneBuchung = (art: Buchungsart, artikel: LagerBestand | null = null) => setBuchung({ art, artikel });
     const [lieferscheinScan, setLieferscheinScan] = useState(false);
+    const [wareneingangOffen, setWareneingangOffen] = useState(false);
 
     return (
         <PageLayout
@@ -83,6 +85,10 @@ const LagerEditor = () => {
             subtitle="Bestand, Zugänge und Entnahmen. Wer Material „aus Lager“ ins Projekt nimmt, bucht automatisch ab."
             actions={
                 <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => setWareneingangOffen(true)} disabled={orte.every(o => !o.aktiv)}
+                        title={orte.every(o => !o.aktiv) ? 'Zuerst einen Lagerort anlegen' : undefined}>
+                        <PackagePlus className="w-4 h-4 text-rose-500" /> Wareneingang
+                    </Button>
                     <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => setLieferscheinScan(true)} disabled={orte.every(o => !o.aktiv)}
                         title={orte.every(o => !o.aktiv) ? 'Zuerst einen Lagerort anlegen' : undefined}>
                         <Gem className="w-4 h-4 text-rose-500" /> <ScanLine className="w-4 h-4" /> Lieferschein scannen
@@ -211,6 +217,7 @@ const LagerEditor = () => {
             <UmbuchungsDialog artikel={umbuchung} orte={orte} onSchliessen={() => setUmbuchung(null)} onGebucht={() => { ladeListe(); }} />
             <ArtikelDialog artikel={bearbeiten} onSchliessen={() => setBearbeiten(null)} onGespeichert={() => { ladeListe(); }} />
             <LieferscheinScanDialog offen={lieferscheinScan} orte={orte} onSchliessen={() => setLieferscheinScan(false)} onGebucht={() => { ladeListe(); }} />
+            <WareneingangAusBestellungenDialog offen={wareneingangOffen} orte={orte} onSchliessen={() => setWareneingangOffen(false)} onGebucht={() => { ladeListe(); }} />
         </PageLayout>
     );
 };

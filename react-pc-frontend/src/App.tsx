@@ -50,6 +50,7 @@ const BelegeKasseEditor = lazy(() => import('./pages/BelegeKasseEditor'));
 const DokumentUebersichtEditor = lazy(() => import('./pages/DokumentUebersichtEditor'));
 const FirmaEditor = lazy(() => import('./pages/FirmaEditor'));
 const BestellungEditor = lazy(() => import('./pages/BestellungEditor'));
+const BestellListe = lazy(() => import('./pages/BestellListe'));
 const DocumentEditorPage = lazy(() => import('./pages/DocumentEditorPage'));
 const ArbeitszeitartEditor = lazy(() => import('./pages/ArbeitszeitartEditor'));
 const EinstellungenEditor = lazy(() => import('./pages/EinstellungenEditor'));
@@ -108,6 +109,7 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/projekte" element={<Seite><ProjektEditor /></Seite>} />
                 <Route path="/anfragen" element={<Seite><AnfrageEditor /></Seite>} />
                 <Route path="/bestellungen" element={<Seite><BestellungenUebersicht /></Seite>} />
+                <Route path="/bestellungen/liste" element={<Seite><BestellListe /></Seite>} />
                 <Route path={BESTELLBEDARF_PFAD} element={istFreigegeben(BESTELLBEDARF_PFAD)
                     ? <Seite><BestellungEditor /></Seite>
                     : <Navigate to="/bestellungen" replace />} />

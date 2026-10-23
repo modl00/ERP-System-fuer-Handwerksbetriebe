@@ -10,7 +10,8 @@ export const CHANGELOG: ChangelogEintrag[] = [
         datum: '23. Oktober 2026',
         eintraege: [
             'Bestellübersicht: Lager-Vorschau beim Einbuchen – jede Position zeigt ob der Artikel erkannt wurde oder noch angelegt werden muss',
-            'Artikel anlegen direkt aus dem Lager-Dialog mit der gleichen Maske wie im Artikelstamm, vorausgefüllt mit Bezeichnung und Lieferanten-Nummer',
+            'Artikel anlegen direkt aus dem Lager-Dialog mit der gleichen Maske wie im Artikelstamm, vorausgefüllt mit Bezeichnung, Preis und Lieferant',
+            'Einkaufspreis wird beim Wareneingang automatisch in der Preishistorie des Artikels gespeichert (Quelle: Rechnung)',
             'Bestellübersicht: Neuer Reiter „Privat" – Rechnungen die nicht zur Firma gehören können markiert und jederzeit wieder in den normalen Workflow zurückgeholt werden',
             'Erledigt-Tab: Zuordnung nachträglich bearbeiten wieder möglich',
         ],

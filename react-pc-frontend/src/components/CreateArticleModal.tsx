@@ -24,6 +24,9 @@ interface CreateArticleModalProps {
     vorausfuellung?: {
         name?: string;
         externeNummer?: string;
+        einkaufspreis?: number;
+        lieferantId?: number;
+        lieferantName?: string;
     };
 }
 
@@ -60,7 +63,10 @@ const typLabel = (typ: ArtikelDokumentTyp) => ARTIKEL_DOKUMENT_TYPEN.find((t) =>
  */
 export function CreateArticleModal({ onClose, onSave, vorausfuellung }: CreateArticleModalProps) {
     const toast = useToast();
-    const [reiter, setReiter] = useState<AnlegenReiterId>("wichtig");
+    // Wenn Preis/Lieferant vorausgefüllt sind, direkt auf dem Preis-Reiter öffnen
+    const [reiter, setReiter] = useState<AnlegenReiterId>(
+        vorausfuellung?.lieferantId || vorausfuellung?.einkaufspreis != null ? "preis" : "wichtig"
+    );
 
     // Das Wichtigste
     const [produktname, setProduktname] = useState(vorausfuellung?.name ?? "");
@@ -77,10 +83,16 @@ export function CreateArticleModal({ onClose, onSave, vorausfuellung }: CreateAr
     const [vorschau, setVorschau] = useState<{ status: "laedt" | "da" | "fehler"; nummer?: string }>({ status: "laedt" });
 
     // Preis & Lieferant
-    const [lieferant, setLieferant] = useState<{ id: number; name: string } | null>(null);
+    const [lieferant, setLieferant] = useState<{ id: number; name: string } | null>(
+        vorausfuellung?.lieferantId && vorausfuellung?.lieferantName
+            ? { id: vorausfuellung.lieferantId, name: vorausfuellung.lieferantName }
+            : null
+    );
     const [lieferantenNummer, setLieferantenNummer] = useState("");
     // Als Text: leer heisst "kein Preis", nicht 0 Euro.
-    const [preis, setPreis] = useState("");
+    const [preis, setPreis] = useState(
+        vorausfuellung?.einkaufspreis != null ? String(vorausfuellung.einkaufspreis) : ""
+    );
 
     // Bilder & Unterlagen
     const [bild, setBild] = useState<File | null>(null);

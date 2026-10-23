@@ -87,7 +87,10 @@ public class LieferscheinScanService {
             String externeArtikelnummer,
             Long artikelId,
             String artikelName,
-            boolean abgeglichen) {
+            boolean abgeglichen,
+            BigDecimal einzelpreis,
+            Long lieferantId,
+            String lieferantName) {
     }
 
     public record ScanErgebnis(
@@ -340,6 +343,9 @@ public class LieferscheinScanService {
                 .filter(p -> p.getMenge() != null && p.getMenge().compareTo(BigDecimal.ZERO) > 0)
                 .map(p -> {
                     Optional<Artikel> treffer = sucheArtikel(p.getExterneArtikelnummer(), p.getBezeichnung());
+                    var lieferant = p.getGeschaeftsdokument() != null && p.getGeschaeftsdokument().getDokument() != null
+                            ? p.getGeschaeftsdokument().getDokument().getLieferant()
+                            : null;
                     return new LagerVorschauPosition(
                             p.getId(),
                             p.getBezeichnung(),
@@ -348,7 +354,10 @@ public class LieferscheinScanService {
                             p.getExterneArtikelnummer(),
                             treffer.map(Artikel::getId).orElse(null),
                             treffer.map(Artikel::getProduktname).orElse(null),
-                            treffer.isPresent());
+                            treffer.isPresent(),
+                            p.getEinzelpreis(),
+                            lieferant != null ? lieferant.getId() : null,
+                            lieferant != null ? lieferant.getLieferantenname() : null);
                 })
                 .toList();
     }

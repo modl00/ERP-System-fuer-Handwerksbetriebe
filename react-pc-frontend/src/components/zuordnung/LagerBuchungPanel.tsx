@@ -19,6 +19,9 @@ interface VorschauPosition {
     artikelId: number | null;
     artikelName: string | null;
     abgeglichen: boolean;
+    einzelpreis: number | null;
+    lieferantId: number | null;
+    lieferantName: string | null;
 }
 
 interface LagerBuchungPanelProps {
@@ -174,7 +177,13 @@ export function LagerBuchungPanel({
             {/* CreateArticleModal für unbekannte Positionen */}
             {artikelAnlegenFuer && (
                 <CreateArticleModal
-                    vorausfuellung={{ name: artikelAnlegenFuer.bezeichnung, externeNummer: artikelAnlegenFuer.externeArtikelnummer ?? undefined }}
+                    vorausfuellung={{
+                        name: artikelAnlegenFuer.bezeichnung,
+                        externeNummer: artikelAnlegenFuer.externeArtikelnummer ?? undefined,
+                        einkaufspreis: artikelAnlegenFuer.einzelpreis ?? undefined,
+                        lieferantId: artikelAnlegenFuer.lieferantId ?? undefined,
+                        lieferantName: artikelAnlegenFuer.lieferantName ?? undefined,
+                    }}
                     onClose={() => setArtikelAnlegenFuer(null)}
                     onSave={artikel => artikelAngelegt(artikelAnlegenFuer, artikel)}
                 />

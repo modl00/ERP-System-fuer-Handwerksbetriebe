@@ -9,6 +9,7 @@ export const CHANGELOG: ChangelogEintrag[] = [
         version: '2026.10.23',
         datum: '23. Oktober 2026',
         eintraege: [
+            'Bestellübersicht: Rechnungs-Zuordnung korrigiert – Waren werden jetzt zuverlässig ins Lager gebucht und Projektzuordnungen erscheinen sofort unter Projekte → Material',
             'Bestellübersicht: Lager-Vorschau beim Einbuchen – jede Position zeigt ob der Artikel erkannt wurde oder noch angelegt werden muss',
             'Artikel anlegen direkt aus dem Lager-Dialog mit der gleichen Maske wie im Artikelstamm, vorausgefüllt mit Bezeichnung, Preis und Lieferant',
             'Einkaufspreis wird beim Wareneingang automatisch in der Preishistorie des Artikels gespeichert (Quelle: Rechnung)',

@@ -6,6 +6,16 @@ export interface ChangelogEintrag {
 
 export const CHANGELOG: ChangelogEintrag[] = [
     {
+        version: '2026.10.23',
+        datum: '23. Oktober 2026',
+        eintraege: [
+            'Bestellübersicht: Lager-Vorschau beim Einbuchen – jede Position zeigt ob der Artikel erkannt wurde oder noch angelegt werden muss',
+            'Artikel anlegen direkt aus dem Lager-Dialog mit der gleichen Maske wie im Artikelstamm, vorausgefüllt mit Bezeichnung und Lieferanten-Nummer',
+            'Bestellübersicht: Neuer Reiter „Privat" – Rechnungen die nicht zur Firma gehören können markiert und jederzeit wieder in den normalen Workflow zurückgeholt werden',
+            'Erledigt-Tab: Zuordnung nachträglich bearbeiten wieder möglich',
+        ],
+    },
+    {
         version: '2026.10.20',
         datum: '20. Oktober 2026',
         eintraege: [

@@ -32,11 +32,13 @@ import org.example.kalkulationsprogramm.repository.LieferantDokumentVerknuepfung
 import org.example.kalkulationsprogramm.repository.LieferantGeschaeftsdokumentRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
 import org.example.kalkulationsprogramm.service.LieferantDokumentPositionLeser.KiAntwort;
+import org.example.kalkulationsprogramm.service.ki.AnbieterTyp;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
 import org.example.kalkulationsprogramm.service.ki.KiFunktion;
 import org.example.kalkulationsprogramm.service.ki.KiPdfSeiten;
 import org.example.kalkulationsprogramm.service.ki.KiTypen;
+import org.example.kalkulationsprogramm.service.ki.MistralOcrService;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -79,6 +81,7 @@ public class GeminiDokumentAnalyseService {
     private final TransactionTemplate transactionTemplate;
     private final LieferantDokumentDateiService dokumentDateiService;
     private final KiAnbieterService kiAnbieterService;
+    private final MistralOcrService mistralOcr;
 
     /** Ausgabelimit je KI-Aufruf. */
     @Value("${ai.gemini.dokument-analyse.max-output-tokens:65536}")
@@ -615,6 +618,16 @@ public class GeminiDokumentAnalyseService {
     public String rufGeminiApiMitPrompt(byte[] bytes, String mimeType, String customPrompt, boolean useProModel) {
         try {
             var anbieter = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN);
+            // Mistral: OCR zuerst, dann Chat mit extrahiertem Text
+            if (anbieter.typ() == AnbieterTyp.MISTRAL) {
+                String ocrText = mistralOcr.extrahiereText(bytes, mimeType);
+                if (ocrText != null) {
+                    KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(null,
+                            List.of(new KiTypen.Nutzer(customPrompt + "\n\nDokumentinhalt (OCR):\n" + ocrText, List.of())),
+                            List.of(), 0.0, maxOutputTokens);
+                    return extrahiereJson(anbieter.chat(anfrage).text());
+                }
+            }
             var anhang = KiPdfSeiten.fuer(anbieter,
                     List.of(new KiTypen.Anhang(mimeType, bytes)));
             KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
@@ -2332,6 +2345,19 @@ public class GeminiDokumentAnalyseService {
             boolean useProModel) {
         try {
             var anbieter = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN);
+            // Mistral: OCR zuerst, dann Chat mit extrahiertem Text
+            if (anbieter.typ() == AnbieterTyp.MISTRAL) {
+                String ocrText = mistralOcr.extrahiereText(dokumentBytes, mimeType);
+                if (ocrText != null) {
+                    KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(systemPrompt,
+                            List.of(new KiTypen.Nutzer(userText + "\n\nDokumentinhalt (OCR):\n" + ocrText, List.of())),
+                            List.of(), 0.0, maxOutputTokens);
+                    String roh = anbieter.chat(anfrage).text();
+                    String text = extrahiereJson(roh);
+                    log.info("[KI-Analyse] Mistral-OCR-Analyse erfolgreich ({} Zeichen)", text.length());
+                    return new KiAntwort(text, isJsonTruncated(text));
+                }
+            }
             var anhang = KiPdfSeiten.fuer(anbieter,
                     List.of(new KiTypen.Anhang(mimeType, dokumentBytes)));
             KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(

@@ -6,7 +6,8 @@ import java.util.Optional;
  * Die KI-Anbieter, zwischen denen je Funktion gewählt werden kann.
  * {@code lokal}: Die Daten verlassen das eigene Netz nicht.
  * {@code kannBild}: Der Anbieter kann Bilder (JPEG, PNG, GIF, WebP) verarbeiten.
- * {@code kannPdf}: Der Anbieter kann PDF-Dateien nativ als Dokument lesen (Gemini, Claude). Ohne PDF-Support bekommt der Anbieter die Seiten als Bilder.
+ * {@code kannPdf}: Der Anbieter kann PDF-Dateien nativ als Dokument lesen (Gemini, Claude). Ohne PDF-Support bekommt der Anbieter die Seiten als Bilder –
+ * Mistral liest PDFs über die separate OCR-API ({@code /v1/ocr}, {@link MistralOcrService}) und fällt sonst auf Pixtral-Bildanalyse zurück.
  */
 public enum AnbieterTyp {
 

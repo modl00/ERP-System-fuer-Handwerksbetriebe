@@ -179,6 +179,7 @@ export function ausblendenOptimistisch<T extends Kette & { id: string }>(
         abgeschlossen: daten.abgeschlossen.filter(k => !ids.has(k.id)),
         zugeordnet: daten.zugeordnet.filter(k => !ids.has(k.id)),
         ausgeblendet: [...ketten, ...daten.ausgeblendet.filter(k => !ids.has(k.id))],
+        privat: daten.privat,
         gesamt: neu,
     };
 }

@@ -5,7 +5,7 @@
  * Optionaler Preis-Update bei erkanntem Artikel.
  */
 import { useEffect, useState } from 'react';
-import { Check, ChevronRight, Gem, Loader2, PackagePlus, RefreshCw, X } from 'lucide-react';
+import { Check, ChevronRight, Loader2, PackagePlus, RefreshCw, X } from 'lucide-react';
 
 import { Button } from '../../components/ui/button';
 import { DecimalInput } from '../../components/ui/decimal-input';
@@ -419,7 +419,7 @@ export function WareneingangAusBestellungenDialog({
                                     <Select
                                         id="wareneingang-ort"
                                         value={ortId}
-                                        onChange={e => setOrtId(e.target.value)}
+                                        onChange={v => setOrtId(v)}
                                         options={aktiveOrte.map(o => ({ value: String(o.id), label: o.name }))}
                                     />
                                 </div>

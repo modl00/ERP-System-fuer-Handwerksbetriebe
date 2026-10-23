@@ -19,6 +19,8 @@ public class DokumentRef {
     public LocalDate eingangsDatum;
     /** Ausgeblendet (z. B. bezahlte Rechnung) – gehört trotzdem zur Kette. */
     public boolean ausgeblendet;
+    /** Als Privatrechnung markiert – gehört nicht zur Firma. */
+    public boolean privat;
     /** Hat schon Projekt- oder Kostenstellen-Anteile (auch die automatische Standard-Kostenstelle). */
     public boolean zugeordnet;
     /** Als Lagerbestellung markiert – braucht keine Projekt-Zuordnung. */

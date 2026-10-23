@@ -27,6 +27,7 @@ export interface GruppenGesamt {
     abgeschlossen: number;
     zugeordnet: number;
     ausgeblendet: number;
+    privat: number;
 }
 
 export type GruppenSchluessel = Exclude<keyof GruppenGesamt, 'offeneAnfragenAktuell' | 'laufendeBestellungenAktuell'>;
@@ -37,7 +38,7 @@ const AKTUELL_ZAEHLER = {
     laufendeBestellungen: 'laufendeBestellungenAktuell',
 } as const satisfies Partial<Record<GruppenSchluessel, keyof GruppenGesamt>>;
 
-export const GRUPPEN: GruppenSchluessel[] = ['offeneAnfragen', 'laufendeBestellungen', 'abgeschlossen', 'zugeordnet', 'ausgeblendet'];
+export const GRUPPEN: GruppenSchluessel[] = ['offeneAnfragen', 'laufendeBestellungen', 'abgeschlossen', 'zugeordnet', 'ausgeblendet', 'privat'];
 
 export interface UebersichtListen<T> {
     offeneAnfragen: T[];
@@ -45,6 +46,7 @@ export interface UebersichtListen<T> {
     abgeschlossen: T[];
     zugeordnet: T[];
     ausgeblendet: T[];
+    privat: T[];
     gesamt?: GruppenGesamt | null;
 }
 
@@ -78,6 +80,7 @@ export function normalisiereUebersicht<T>(json: unknown): UebersichtListen<T> {
         abgeschlossen: liste(roh.abgeschlossen),
         zugeordnet: liste(roh.zugeordnet),
         ausgeblendet: liste(roh.ausgeblendet),
+        privat: liste(roh.privat),
         gesamt,
     };
 }
@@ -101,6 +104,7 @@ export function gesamtJeGruppe<T extends Kette>(daten: UebersichtListen<T>, heut
         abgeschlossen: zahlOder(g?.abgeschlossen, daten.abgeschlossen.length),
         zugeordnet: zahlOder(g?.zugeordnet, daten.zugeordnet.length),
         ausgeblendet: zahlOder(g?.ausgeblendet, daten.ausgeblendet.length),
+        privat: zahlOder(g?.privat, daten.privat.length),
     };
 }
 

@@ -13,6 +13,8 @@ export const CHANGELOG: ChangelogEintrag[] = [
             'Artikel anlegen direkt aus dem Lager-Dialog mit der gleichen Maske wie im Artikelstamm, vorausgefüllt mit Bezeichnung, Preis und Lieferant',
             'Einkaufspreis wird beim Wareneingang automatisch in der Preishistorie des Artikels gespeichert (Quelle: Rechnung)',
             'Bestellübersicht: Neuer Reiter „Privat" – Rechnungen die nicht zur Firma gehören können markiert und jederzeit wieder in den normalen Workflow zurückgeholt werden',
+            'Bestellübersicht: Projektzuordnung jetzt auch schon bei Auftragsbestätigung und Lieferschein möglich (ohne Lagerbuchung)',
+            'Artikelstamm: Archiv-Schalter zeigt archivierte Artikel – von dort direkt löschen',
             'Erledigt-Tab: Zuordnung nachträglich bearbeiten wieder möglich',
         ],
     },

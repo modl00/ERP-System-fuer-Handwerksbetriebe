@@ -172,7 +172,7 @@ public class VerrechnungslohnService {
 
         BigDecimal selbstkosten = BigDecimal.ZERO;
         if (stundenSumme.compareTo(BigDecimal.ZERO) > 0) {
-            selbstkosten = lohnsumme.add(gemeinkosten).divide(stundenSumme, 2, RoundingMode.HALF_UP);
+            selbstkosten = lohnsumme.add(gemeinErgebnis.gesamt()).divide(stundenSumme, 2, RoundingMode.HALF_UP);
         }
         dto.setSelbstkostenProStunde(selbstkosten);
 

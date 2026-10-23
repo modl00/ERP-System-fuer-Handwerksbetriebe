@@ -19,6 +19,7 @@ import org.example.kalkulationsprogramm.service.LieferantDokumentService;
 import org.example.kalkulationsprogramm.service.LieferantDokumentZugriffService;
 import org.example.kalkulationsprogramm.service.LieferantDokumentZuordnungService;
 import org.example.kalkulationsprogramm.service.RechnungsVorschlagService;
+import org.example.kalkulationsprogramm.service.ki.assistent.LieferscheinScanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -60,6 +61,7 @@ public class BestellungsUebersichtController {
     private final BestellungsUebersichtService bestellungsUebersichtService;
     private final LieferantDokumentZuordnungService zuordnungService;
     private final LieferantDokumentZugriffService zugriffService;
+    private final LieferscheinScanService lieferscheinScanService;
 
     /** Höchstzahl Dokumente einer Kette für die Vorschlagssuche. */
     private static final int MAX_KETTEN_DOKUMENTE = 50;
@@ -655,6 +657,35 @@ public class BestellungsUebersichtController {
                 "success", true,
                 "message", "Als Lagerbestellung markiert"));
     }
+
+    /**
+     * Bucht die erkannten Positionen eines Lieferanten-Dokuments als Lagerzugang.
+     * Artikel werden nach externer Artikelnummer und Bezeichnung abgeglichen;
+     * unbekannte Artikel werden automatisch angelegt.
+     */
+    @PostMapping("/{dokId}/ins-lager-buchen")
+    public ResponseEntity<?> insLagerBuchen(
+            @PathVariable @Positive Long dokId,
+            @RequestBody InsLagerBuchenRequest request,
+            @RequestParam(value = "token", required = false) String token,
+            Authentication auth) {
+        var sichtbareTypen = zugriffService.sichtbareTypen(token, auth);
+        if (sichtbareTypen.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!zugriffService.istSichtbar(dokId, sichtbareTypen.get())) {
+            return ResponseEntity.notFound().build();
+        }
+        if (request == null || request.lagerortId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bitte einen Lagerort auswaehlen."));
+        }
+        String benutzer = auth != null ? auth.getName() : "System";
+        LieferscheinScanService.BuchenErgebnis ergebnis =
+                lieferscheinScanService.buchenAusDokument(dokId, request.lagerortId(), benutzer);
+        return ResponseEntity.ok(ergebnis);
+    }
+
+    record InsLagerBuchenRequest(Long lagerortId) {}
 
     /**
      * Hebt die Zuordnung einer Rechnung zu allen Projekten auf.

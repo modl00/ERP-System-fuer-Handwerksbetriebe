@@ -4,13 +4,14 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 
 interface KostenstelleSelectModalProps {
-    onSelect: (kostenstelle: { id: number; bezeichnung: string }) => void;
+    onSelect: (kostenstelle: { id: number; bezeichnung: string; typ: string }) => void;
     onClose: () => void;
 }
 
 interface Kostenstelle {
     id: number;
     bezeichnung: string;
+    typ: string;
     nummer?: string;
     beschreibung?: string;
 }
@@ -86,7 +87,7 @@ export const KostenstelleSelectModal: React.FC<KostenstelleSelectModalProps> = (
                                 <button
                                     key={k.id}
                                     className="w-full text-left px-3 py-2 rounded hover:bg-rose-50 text-sm text-slate-700 hover:text-rose-700 transition-colors flex items-baseline gap-2"
-                                    onClick={() => onSelect({ id: k.id, bezeichnung: k.bezeichnung })}
+                                    onClick={() => onSelect({ id: k.id, bezeichnung: k.bezeichnung, typ: k.typ })}
                                 >
                                     <span className="font-medium shrink-0">{k.bezeichnung}</span>
                                     {k.beschreibung && (

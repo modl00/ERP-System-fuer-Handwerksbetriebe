@@ -304,6 +304,34 @@ public class BestellungsUebersichtController {
                 "geaendert", dokumente.size()));
     }
 
+    /** Markiert alle Dokumente einer Kette als Privatrechnung (gehört nicht zur Firma). */
+    @PostMapping("/als-privat")
+    @Transactional
+    public ResponseEntity<?> alsPrivat(@Valid @RequestBody AusblendenRequest request, Authentication auth) {
+        return setPrivat(request, true, auth);
+    }
+
+    /** Hebt die Privat-Markierung auf; die Kette erscheint wieder im normalen Workflow. */
+    @PostMapping("/privat-aufheben")
+    @Transactional
+    public ResponseEntity<?> privatAufheben(@Valid @RequestBody AusblendenRequest request, Authentication auth) {
+        return setPrivat(request, false, auth);
+    }
+
+    private ResponseEntity<?> setPrivat(AusblendenRequest request, boolean wert, Authentication auth) {
+        var sichtbareTypen = zugriffService.sichtbareTypen(null, auth);
+        if (sichtbareTypen.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        List<LieferantDokument> dokumente = dokumentRepository.findAllById(request.dokumentIds()).stream()
+                .filter(d -> sichtbareTypen.get().contains(d.getTyp()))
+                .toList();
+        for (LieferantDokument d : dokumente) {
+            d.setPrivat(wert);
+        }
+        return ResponseEntity.ok(Map.of("success", true, "geaendert", dokumente.size()));
+    }
+
     /**
      * Gibt die Geschäftsdaten eines Dokuments für die Bearbeitung zurück.
      */
@@ -659,9 +687,28 @@ public class BestellungsUebersichtController {
     }
 
     /**
+     * Vorschau: welche Positionen des Dokuments können automatisch einem Artikel zugeordnet werden?
+     * Gibt pro Position zurück, ob ein Artikel gefunden wurde (mit ID und Name) oder nicht.
+     */
+    @GetMapping("/{dokId}/lager-vorschau")
+    public ResponseEntity<?> lagerVorschau(
+            @PathVariable @Positive Long dokId,
+            @RequestParam(value = "token", required = false) String token,
+            Authentication auth) {
+        var sichtbareTypen = zugriffService.sichtbareTypen(token, auth);
+        if (sichtbareTypen.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!zugriffService.istSichtbar(dokId, sichtbareTypen.get())) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(lieferscheinScanService.vorschauFuerDokument(dokId));
+    }
+
+    /**
      * Bucht die erkannten Positionen eines Lieferanten-Dokuments als Lagerzugang.
-     * Artikel werden nach externer Artikelnummer und Bezeichnung abgeglichen;
-     * unbekannte Artikel werden automatisch angelegt.
+     * Für Positionen ohne automatischen Treffer können explizite Artikel-IDs mitgegeben werden
+     * (z. B. nach dem manuellen Anlegen über die Artikel-Maske).
      */
     @PostMapping("/{dokId}/ins-lager-buchen")
     public ResponseEntity<?> insLagerBuchen(
@@ -680,12 +727,18 @@ public class BestellungsUebersichtController {
             return ResponseEntity.badRequest().body(Map.of("error", "Bitte einen Lagerort auswaehlen."));
         }
         String benutzer = auth != null ? auth.getName() : "System";
+        Map<Long, Long> explizit = request.artikelZuordnungen() != null
+                ? request.artikelZuordnungen().stream()
+                        .filter(z -> z.positionId() != null && z.artikelId() != null)
+                        .collect(java.util.stream.Collectors.toMap(ArtikelZuordnung::positionId, ArtikelZuordnung::artikelId, (a, b) -> b))
+                : Map.of();
         LieferscheinScanService.BuchenErgebnis ergebnis =
-                lieferscheinScanService.buchenAusDokument(dokId, request.lagerortId(), benutzer);
+                lieferscheinScanService.buchenAusDokument(dokId, request.lagerortId(), benutzer, explizit);
         return ResponseEntity.ok(ergebnis);
     }
 
-    record InsLagerBuchenRequest(Long lagerortId) {}
+    record ArtikelZuordnung(Long positionId, Long artikelId) {}
+    record InsLagerBuchenRequest(Long lagerortId, List<ArtikelZuordnung> artikelZuordnungen) {}
 
     /**
      * Hebt die Zuordnung einer Rechnung zu allen Projekten auf.

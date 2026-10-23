@@ -20,6 +20,11 @@ interface CreateArticleModalProps {
     onClose: () => void;
     /** Der Artikel ist angelegt (Dateien sind hochgeladen oder als Warnung gemeldet). */
     onSave: (artikel: Artikel) => void;
+    /** Vorausgefüllte Felder, z. B. aus einem erkannten Lieferschein-Eintrag. */
+    vorausfuellung?: {
+        name?: string;
+        externeNummer?: string;
+    };
 }
 
 const VERRECHNUNGSEINHEITEN = [
@@ -53,20 +58,22 @@ const typLabel = (typ: ArtikelDokumentTyp) => ARTIKEL_DOKUMENT_TYPEN.find((t) =>
  * vergibt der Server automatisch, solange man keine eigene eintraegt.
  * Gewaehlte Bilder und Unterlagen werden direkt nach dem Anlegen hochgeladen.
  */
-export function CreateArticleModal({ onClose, onSave }: CreateArticleModalProps) {
+export function CreateArticleModal({ onClose, onSave, vorausfuellung }: CreateArticleModalProps) {
     const toast = useToast();
     const [reiter, setReiter] = useState<AnlegenReiterId>("wichtig");
 
     // Das Wichtigste
-    const [produktname, setProduktname] = useState("");
+    const [produktname, setProduktname] = useState(vorausfuellung?.name ?? "");
     const [nameFehlt, setNameFehlt] = useState(false);
     const [einheit, setEinheit] = useState("STUECK");
     const [kategorie, setKategorie] = useState<{ id: number; name: string } | null>(null);
     const [werkstoffId, setWerkstoffId] = useState("");
     // Werkstoffe mit ID, weil der Artikel die ID braucht - nicht nur den Namen.
     const [werkstoffe, setWerkstoffe] = useState<{ id: number; name: string }[]>([]);
-    const [nummerModus, setNummerModus] = useState<"automatisch" | "eigen">("automatisch");
-    const [eigeneNummer, setEigeneNummer] = useState("");
+    const [nummerModus, setNummerModus] = useState<"automatisch" | "eigen">(
+        vorausfuellung?.externeNummer ? "eigen" : "automatisch"
+    );
+    const [eigeneNummer, setEigeneNummer] = useState(vorausfuellung?.externeNummer ?? "");
     const [vorschau, setVorschau] = useState<{ status: "laedt" | "da" | "fehler"; nummer?: string }>({ status: "laedt" });
 
     // Preis & Lieferant

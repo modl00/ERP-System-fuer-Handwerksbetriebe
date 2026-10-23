@@ -5,7 +5,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { InfoAbschnitt, InfoButton } from '../components/ui/info-button';
-import { RefreshCw, FileText, FilePlus2, Package, Clock, CheckCircle, AlertCircle, X, FolderOpen, EyeOff, Eye, Archive, Search, ChevronDown, ChevronRight, Check, Sparkles, Plus } from 'lucide-react';
+import { RefreshCw, FileText, FilePlus2, Package, Clock, CheckCircle, AlertCircle, X, FolderOpen, EyeOff, Eye, Archive, Search, ChevronDown, ChevronRight, Check, Sparkles, Plus, UserX, Undo2 } from 'lucide-react';
 import { useToast } from '../components/ui/toast';
 import { ZuordnungModal as BelegZuordnungModal } from '../components/ZuordnungModal';
 import { useConfirm } from '../components/ui/confirm-dialog';
@@ -55,7 +55,7 @@ interface DokumentenKette {
     rechnungsVorschlag?: RechnungsVorschlag | null;
 }
 
-type TabKey = 'offen' | 'laufend' | 'abgeschlossen' | 'zugeordnet' | 'ausgeblendet';
+type TabKey = 'offen' | 'laufend' | 'abgeschlossen' | 'zugeordnet' | 'ausgeblendet' | 'privat';
 
 type BestellungsUebersicht = UebersichtListen<DokumentenKette>;
 
@@ -66,6 +66,7 @@ const GRUPPE_JE_TAB: Record<TabKey, GruppenSchluessel> = {
     abgeschlossen: 'abgeschlossen',
     zugeordnet: 'zugeordnet',
     ausgeblendet: 'ausgeblendet',
+    privat: 'privat',
 };
 
 /** Wie die Liste geladen wird: entscheidet, welcher Ladezustand sichtbar ist. */
@@ -146,6 +147,8 @@ interface KetteCardProps {
     onZuordnen?: (kette: DokumentenKette) => void;
     onAusblenden?: (kette: DokumentenKette) => void;
     onEinblenden?: (kette: DokumentenKette) => void;
+    onAlsPrivat?: (kette: DokumentenKette) => void;
+    onPrivatAufheben?: (kette: DokumentenKette) => void;
     /** Rechnung suchen am offenen Ende der Kette (nicht bei Angeboten und Ausgeblendetem). */
     onRechnungSuchen?: (kette: DokumentenKette) => void;
     /** „Dokument hinzufügen“ in der Fußzeile: beliebige Dokumentart nachträglich zuordnen. */
@@ -159,7 +162,7 @@ interface KetteCardProps {
     busy?: boolean;
 }
 
-function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, onAusblenden, onEinblenden, onRechnungSuchen, onDokumentHinzufuegen, onGeaendert, onVorschlagUebernehmen, uebernehmenBusy, ohneRechnungHinweis, busy }: KetteCardProps) {
+function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, onAusblenden, onEinblenden, onAlsPrivat, onPrivatAufheben, onRechnungSuchen, onDokumentHinzufuegen, onGeaendert, onVorschlagUebernehmen, uebernehmenBusy, ohneRechnungHinweis, busy }: KetteCardProps) {
     const betrag = kettenBetrag(kette);
     const alter = formatiereAlter(letzteBewegung(kette), heute);
     const vorschlag = onVorschlagUebernehmen ? kette.rechnungsVorschlag : null;
@@ -272,7 +275,7 @@ function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, on
             )}
 
             {/* Fußzeile: Aktionen */}
-            {(showZuordnenButton || onDokumentHinzufuegen || onAusblenden || onEinblenden) && (
+            {(showZuordnenButton || onDokumentHinzufuegen || onAusblenden || onEinblenden || onAlsPrivat || onPrivatAufheben) && (
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex gap-2 flex-wrap">
                         {showZuordnenButton && onZuordnen && (
@@ -298,19 +301,40 @@ function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, on
                                 Wieder einblenden
                             </Button>
                         )}
+                        {onPrivatAufheben && (
+                            <Button onClick={() => onPrivatAufheben(kette)} size="sm" variant="outline" disabled={busy}>
+                                <Undo2 className="w-4 h-4" aria-hidden="true" />
+                                Zurück in den normalen Workflow
+                            </Button>
+                        )}
                     </div>
-                    {onAusblenden && (
-                        <Button
-                            onClick={() => onAusblenden(kette)}
-                            size="sm"
-                            variant="ghost"
-                            disabled={busy}
-                            className="text-slate-500 hover:text-rose-700 hover:bg-rose-50 ml-auto"
-                        >
-                            <EyeOff className="w-4 h-4" aria-hidden="true" />
-                            Ausblenden
-                        </Button>
-                    )}
+                    <div className="flex gap-2 ml-auto">
+                        {onAlsPrivat && (
+                            <Button
+                                onClick={() => onAlsPrivat(kette)}
+                                size="sm"
+                                variant="ghost"
+                                disabled={busy}
+                                className="text-slate-500 hover:text-amber-700 hover:bg-amber-50"
+                                title="Diese Rechnung gehört nicht zur Firma – aus dem normalen Workflow entfernen"
+                            >
+                                <UserX className="w-4 h-4" aria-hidden="true" />
+                                Privat (gehört nicht zur Firma)
+                            </Button>
+                        )}
+                        {onAusblenden && (
+                            <Button
+                                onClick={() => onAusblenden(kette)}
+                                size="sm"
+                                variant="ghost"
+                                disabled={busy}
+                                className="text-slate-500 hover:text-rose-700 hover:bg-rose-50"
+                            >
+                                <EyeOff className="w-4 h-4" aria-hidden="true" />
+                                Ausblenden
+                            </Button>
+                        )}
+                    </div>
                 </div>
             )}
         </Card>
@@ -655,6 +679,25 @@ export default function BestellungenUebersicht() {
         }
     }, [heute, loadData, toast]);
 
+    const setKettePrivat = useCallback(async (kette: DokumentenKette, privat: boolean) => {
+        setBusyKetteId(kette.id);
+        try {
+            const res = await fetch(`/api/bestellungen-uebersicht/${privat ? 'als-privat' : 'privat-aufheben'}`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ dokumentIds: kette.dokumente.map(d => d.id) }),
+            });
+            if (!res.ok) throw new Error('Fehler');
+            await loadData('still');
+            toast.success(privat ? 'Als privat markiert' : 'Wieder im normalen Workflow');
+        } catch {
+            toast.error('Aktion fehlgeschlagen');
+            await loadData('still');
+        } finally {
+            setBusyKetteId(null);
+        }
+    }, [loadData, toast]);
+
     // Die Suche filtert der Server über alle Bestellungen; sie wirkt auf alle Reiter gleichzeitig
     const sucheAktiv = geladeneSuche !== '';
     const gefiltert = useMemo(() => ({
@@ -663,6 +706,7 @@ export default function BestellungenUebersicht() {
         abgeschlossen: data?.abgeschlossen ?? [],
         zugeordnet: data?.zugeordnet ?? [],
         ausgeblendet: data?.ausgeblendet ?? [],
+        privat: data?.privat ?? [],
     } satisfies Record<TabKey, DokumentenKette[]>), [data]);
     const gesamt = useMemo(() => gesamtJeGruppe(data ?? normalisiereUebersicht<DokumentenKette>(null), heute), [data, heute]);
     const gesamtImTab = (key: TabKey) => gesamt[GRUPPE_JE_TAB[key]];
@@ -681,6 +725,8 @@ export default function BestellungenUebersicht() {
             erklaerung: 'Bestellungen, deren Kosten schon zugeordnet sind.', leer: 'Noch keine Bestellungen zugeordnet.' },
         { key: 'ausgeblendet', label: 'Ausgeblendet', icon: <Archive className="w-4 h-4" />, zaehler: gesamt.ausgeblendet,
             erklaerung: 'Ausgeblendete Einträge. Sie lassen sich jederzeit wieder einblenden.', leer: 'Keine ausgeblendeten Einträge.' },
+        { key: 'privat', label: 'Privat', icon: <UserX className="w-4 h-4" />, zaehler: gesamt.privat ?? 0,
+            erklaerung: 'Rechnungen, die nicht zur Firma gehören (z. B. private Einkäufe). Sie erscheinen nicht im normalen Workflow.', leer: 'Keine privaten Rechnungen.' },
     ];
     const aktiverTab = tabs.find(t => t.key === tab) ?? tabs[0];
     const currentList = gefiltert[tab];
@@ -694,6 +740,7 @@ export default function BestellungenUebersicht() {
 
     const renderKarte = (kette: DokumentenKette, optionen: { ohneRechnungHinweis?: boolean } = {}) => {
         const istAusgeblendetTab = tab === 'ausgeblendet';
+        const istPrivatTab = tab === 'privat';
         const istBestellt = tab === 'laufend';
         // Bestellt, Rechnung zuordnen, Erledigt: dort kann noch ein Dokument fehlen
         const dokumenteErgaenzbar = tab === 'laufend' || tab === 'abgeschlossen' || tab === 'zugeordnet';
@@ -703,12 +750,14 @@ export default function BestellungenUebersicht() {
                 kette={kette}
                 heute={heute}
                 onOpenPdf={handleOpenPdf}
-                showZuordnenButton={tab === 'abgeschlossen'}
+                showZuordnenButton={tab === 'abgeschlossen' || tab === 'zugeordnet'}
                 onZuordnen={setZuordnungKette}
-                onAusblenden={istAusgeblendetTab ? undefined : (k) => setKetteAusgeblendet(k, true)}
+                onAusblenden={istAusgeblendetTab || istPrivatTab ? undefined : (k) => setKetteAusgeblendet(k, true)}
                 onEinblenden={istAusgeblendetTab ? (k) => setKetteAusgeblendet(k, false) : undefined}
+                onAlsPrivat={istAusgeblendetTab || istPrivatTab ? undefined : (k) => setKettePrivat(k, true)}
+                onPrivatAufheben={istPrivatTab ? (k) => setKettePrivat(k, false) : undefined}
                 // Rechnung suchen/hochladen: bei laufenden Bestellungen und bei Teillieferungen ohne Rechnung
-                onRechnungSuchen={tab !== 'offen' && !istAusgeblendetTab ? k => setDokumentSuche({ kette: k, startTyp: 'RECHNUNG' }) : undefined}
+                onRechnungSuchen={tab !== 'offen' && !istAusgeblendetTab && !istPrivatTab ? k => setDokumentSuche({ kette: k, startTyp: 'RECHNUNG' }) : undefined}
                 onDokumentHinzufuegen={dokumenteErgaenzbar ? k => setDokumentSuche({ kette: k, startTyp: null }) : undefined}
                 onGeaendert={neuLadenNachAenderung}
                 onVorschlagUebernehmen={istBestellt ? vorschlagUebernehmen : undefined}

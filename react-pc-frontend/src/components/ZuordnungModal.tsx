@@ -1,13 +1,14 @@
 import { useState, useEffect, useId, type ReactNode } from 'react';
 import { PdfCanvasViewer } from './ui/PdfCanvasViewer';
 import { Button } from './ui/button';
-import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks, Warehouse } from 'lucide-react';
+import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks } from 'lucide-react';
 import { ProjektSearchModal } from './ProjektSearchModal';
 import { KostenstelleSelectModal } from './KostenstelleSelectModal';
 import { useToast } from './ui/toast';
 import { toSafeResourceUrl } from '../lib/htmlSanitizer';
 import { PositionsAufteilung, type AufteilungsZiel } from './zuordnung/PositionsAufteilung';
 import { usePositionsAufteilung } from './zuordnung/usePositionsAufteilung';
+import { LagerBuchungPanel } from './zuordnung/LagerBuchungPanel';
 import { zieleAusPositionen, zielSchluessel } from './zuordnung/positionen';
 import { PositionsZielZeile } from './zuordnung/PositionsZielZeile';
 import { freierFarbIndex, zielFarbe } from './zuordnung/zielFarben';
@@ -87,6 +88,8 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     // Lager-Buchung: aktiv wenn eine LAGER-Kostenstelle gewählt wurde (nur für Lieferanten-Dokumente)
     const [lagerOrtId, setLagerOrtId] = useState<number | null>(null);
     const [lagerorte, setLagerorte] = useState<Lagerort[]>([]);
+    // Explizit zugeordnete Artikel für unbekannte Positionen (aus CreateArticleModal)
+    const [artikelZuordnungen, setArtikelZuordnungen] = useState<Array<{ positionId: number; artikelId: number }>>([]);
     // Aufteilung nach Positionen – nur für Lieferanten-Dokumente, nicht für Kassenbelege.
     const positionsAufteilung = usePositionsAufteilung(isBelegZuordnung ? null : geschaeftsdokumentId, modus === 'positionen');
     const nachPositionen = modus === 'positionen';
@@ -351,7 +354,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 const lagerRes = await fetch(`/api/bestellungen-uebersicht/${geschaeftsdokumentId}/ins-lager-buchen`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lagerortId: lagerOrtId })
+                    body: JSON.stringify({ lagerortId: lagerOrtId, artikelZuordnungen: artikelZuordnungen })
                 });
                 if (lagerRes.ok) {
                     const erg: { gebucht: number; neuAngelegt: number; meldungen: string[] } = await lagerRes.json();
@@ -703,39 +706,14 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                                 )}
 
                                 {/* LAGER-Buchung Panel */}
-                                {lagerKsBuchen && (
-                                    <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 space-y-3">
-                                        <div className="flex items-center gap-2">
-                                            <Warehouse className="w-4 h-4 text-rose-600 shrink-0" />
-                                            <span className="font-medium text-sm text-slate-800">Artikel ins Lager buchen</span>
-                                        </div>
-                                        <p className="text-xs text-slate-500">
-                                            Die erkannten Positionen dieser Rechnung werden beim Speichern als Lagerzugang gebucht. Unbekannte Artikel werden automatisch angelegt.
-                                        </p>
-                                        <div className="flex items-center gap-3">
-                                            <label className="text-sm text-slate-600 shrink-0">Lagerort</label>
-                                            <select
-                                                value={lagerOrtId ?? ''}
-                                                onChange={e => setLagerOrtId(e.target.value ? Number(e.target.value) : null)}
-                                                className="flex-1 px-3 py-1.5 border border-slate-200 rounded-lg text-sm bg-white focus:ring-2 focus:ring-rose-500 focus:border-transparent"
-                                            >
-                                                <option value="">– kein Lagerzugang –</option>
-                                                {lagerorte.map(o => (
-                                                    <option key={o.id} value={o.id}>{o.name}</option>
-                                                ))}
-                                            </select>
-                                        </div>
-                                        {positionsAufteilung.positionen.length === 0 && (
-                                            <p className="text-xs text-amber-700">
-                                                Noch keine Positionen erkannt – bitte erst „Positionen auslesen" ausführen oder die Aufteilung nach Positionen wählen.
-                                            </p>
-                                        )}
-                                        {positionsAufteilung.positionen.length > 0 && (
-                                            <p className="text-xs text-green-700">
-                                                {positionsAufteilung.positionen.length} Position{positionsAufteilung.positionen.length !== 1 ? 'en' : ''} erkannt und bereit zum Buchen.
-                                            </p>
-                                        )}
-                                    </div>
+                                {lagerKsBuchen && geschaeftsdokumentId != null && (
+                                    <LagerBuchungPanel
+                                        geschaeftsdokumentId={geschaeftsdokumentId}
+                                        lagerOrtId={lagerOrtId}
+                                        lagerorte={lagerorte}
+                                        onLagerOrtChange={setLagerOrtId}
+                                        onArtikelZuordnungenChange={setArtikelZuordnungen}
+                                    />
                                 )}
 
                                 {/* Zusammenfassung */}

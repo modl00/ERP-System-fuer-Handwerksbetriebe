@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
@@ -75,6 +76,18 @@ public class LieferscheinScanService {
             Long artikelId,
             String artikelName,
             boolean gefunden) {
+    }
+
+    /** Vorschau einer Dokument-Position für die Lager-Buchung. */
+    public record LagerVorschauPosition(
+            Long positionId,
+            String bezeichnung,
+            BigDecimal menge,
+            String mengeneinheit,
+            String externeArtikelnummer,
+            Long artikelId,
+            String artikelName,
+            boolean abgeglichen) {
     }
 
     public record ScanErgebnis(
@@ -318,13 +331,39 @@ public class LieferscheinScanService {
     }
 
     /**
+     * Gibt eine Vorschau zurück: welche Positionen konnten einem Artikel zugeordnet werden?
+     * Das Ergebnis zeigt dem Nutzer vor dem Buchen, welche Positionen noch einen neuen Artikel benötigen.
+     */
+    @Transactional(readOnly = true)
+    public List<LagerVorschauPosition> vorschauFuerDokument(Long geschaeftsdokumentId) {
+        return positionRepository.findByGeschaeftsdokumentId(geschaeftsdokumentId).stream()
+                .filter(p -> p.getMenge() != null && p.getMenge().compareTo(BigDecimal.ZERO) > 0)
+                .map(p -> {
+                    Optional<Artikel> treffer = sucheArtikel(p.getExterneArtikelnummer(), p.getBezeichnung());
+                    return new LagerVorschauPosition(
+                            p.getId(),
+                            p.getBezeichnung(),
+                            p.getMenge(),
+                            p.getMengeneinheit() != null ? p.getMengeneinheit() : "Stk",
+                            p.getExterneArtikelnummer(),
+                            treffer.map(Artikel::getId).orElse(null),
+                            treffer.map(Artikel::getProduktname).orElse(null),
+                            treffer.isPresent());
+                })
+                .toList();
+    }
+
+    /**
      * Bucht die bereits erkannten Positionen eines Lieferanten-Dokuments direkt
      * als Lagerzugang. Artikel werden nach externer Artikelnummer und Bezeichnung
-     * abgeglichen; unbekannte Artikel werden automatisch angelegt (wie beim
-     * Lieferschein-Scan per Datei-Upload).
+     * abgeglichen. Für Positionen ohne automatischen Treffer kann der Aufrufer
+     * explizit eine Artikel-ID mitgeben (z. B. aus einer zuvor geöffneten Anlegen-Maske).
+     *
+     * @param expliziteArtikelIds Positions-ID → Artikel-ID, überschreibt den automatischen Abgleich
      */
     @Transactional
-    public BuchenErgebnis buchenAusDokument(Long geschaeftsdokumentId, Long lagerortId, String benutzer) {
+    public BuchenErgebnis buchenAusDokument(Long geschaeftsdokumentId, Long lagerortId, String benutzer,
+            Map<Long, Long> expliziteArtikelIds) {
         var positionen = positionRepository.findByGeschaeftsdokumentId(geschaeftsdokumentId).stream()
                 .filter(p -> p.getMenge() != null && p.getMenge().compareTo(BigDecimal.ZERO) > 0)
                 .toList();
@@ -332,25 +371,40 @@ public class LieferscheinScanService {
             return new BuchenErgebnis(0, 0, List.of("Keine Positionen im Dokument gefunden."));
         }
         List<BuchenPosition> buchenPositionen = positionen.stream().map(p -> {
-            Optional<Artikel> treffer = Optional.empty();
-            String extNr = p.getExterneArtikelnummer();
-            if (extNr != null && !extNr.isBlank()) {
-                treffer = artikelRepository.findByArtikelnummer(extNr);
-                if (treffer.isEmpty()) {
-                    treffer = artikelRepository.findByExterneArtikelnummer(extNr);
-                }
+            Long explizit = expliziteArtikelIds.get(p.getId());
+            if (explizit != null) {
+                Artikel artikel = artikelRepository.findById(explizit)
+                        .orElseThrow(() -> new ResponseStatusException(
+                                HttpStatus.BAD_REQUEST,
+                                "Artikel mit ID " + explizit + " nicht gefunden."));
+                return new BuchenPosition(
+                        artikel.getId(), p.getMenge(),
+                        p.getExterneArtikelnummer(), p.getBezeichnung(),
+                        p.getMengeneinheit() != null ? p.getMengeneinheit() : "Stk", false);
             }
-            if (treffer.isEmpty() && p.getBezeichnung() != null && !p.getBezeichnung().isBlank()) {
-                treffer = artikelRepository.findFirstByProduktnameIgnoreCase(p.getBezeichnung());
-            }
+            Optional<Artikel> treffer = sucheArtikel(p.getExterneArtikelnummer(), p.getBezeichnung());
             return new BuchenPosition(
                     treffer.map(Artikel::getId).orElse(null),
                     p.getMenge(),
-                    extNr,
+                    p.getExterneArtikelnummer(),
                     p.getBezeichnung(),
                     p.getMengeneinheit() != null ? p.getMengeneinheit() : "Stk",
                     treffer.isEmpty());
         }).toList();
         return buchen(new BuchenEingabe(buchenPositionen, lagerortId, "Wareneingang aus Lieferantenrechnung"), benutzer);
+    }
+
+    private Optional<Artikel> sucheArtikel(String externeArtikelnummer, String bezeichnung) {
+        Optional<Artikel> treffer = Optional.empty();
+        if (externeArtikelnummer != null && !externeArtikelnummer.isBlank()) {
+            treffer = artikelRepository.findByArtikelnummer(externeArtikelnummer);
+            if (treffer.isEmpty()) {
+                treffer = artikelRepository.findByExterneArtikelnummer(externeArtikelnummer);
+            }
+        }
+        if (treffer.isEmpty() && bezeichnung != null && !bezeichnung.isBlank()) {
+            treffer = artikelRepository.findFirstByProduktnameIgnoreCase(bezeichnung);
+        }
+        return treffer;
     }
 }

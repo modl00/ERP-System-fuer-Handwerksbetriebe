@@ -37,6 +37,8 @@ interface LagerBuchungPanelProps {
     onLagerOrtChange: (id: number | null) => void;
     /** Wird aufgerufen wenn sich die expliziten Artikel-IDs ändern */
     onArtikelZuordnungenChange: (zuordnungen: Array<{ positionId: number; artikelId: number }>) => void;
+    /** Wird aufgerufen sobald die Vorschau geladen wurde (Anzahl erkannter Positionen) */
+    onPositionenGeladen?: (anzahl: number) => void;
 }
 
 export function LagerBuchungPanel({
@@ -45,6 +47,7 @@ export function LagerBuchungPanel({
     lagerorte,
     onLagerOrtChange,
     onArtikelZuordnungenChange,
+    onPositionenGeladen,
 }: LagerBuchungPanelProps) {
     const toast = useToast();
     const [vorschau, setVorschau] = useState<VorschauPosition[]>([]);
@@ -62,6 +65,7 @@ export function LagerBuchungPanel({
                 const data: LagerVorschau = await res.json();
                 setVorschau(data.positionen);
                 setLagerGebuchtAm(data.lagerGebuchtAm);
+                onPositionenGeladen?.(data.positionen.length);
             } else {
                 toast.error('Vorschau konnte nicht geladen werden.');
             }

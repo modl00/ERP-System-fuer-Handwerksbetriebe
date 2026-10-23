@@ -92,6 +92,8 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     const [showKostenstelleModal, setShowKostenstelleModal] = useState(false);
     // Lager-Buchung: aktiv wenn eine LAGER-Kostenstelle gewählt wurde (nur für Lieferanten-Dokumente)
     const [lagerOrtId, setLagerOrtId] = useState<number | null>(null);
+    // Anzahl erkannter Lager-Positionen (null = noch nicht geladen, 0 = keine)
+    const [lagerPositionenAnzahl, setLagerPositionenAnzahl] = useState<number | null>(null);
     const [hatGespeicherteZuordnung, setHatGespeicherteZuordnung] = useState(false);
     const [lagerorte, setLagerorte] = useState<Lagerort[]>([]);
     // Explizit zugeordnete Artikel für unbekannte Positionen (aus CreateArticleModal)
@@ -336,6 +338,30 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 beschreibung: a.beschreibung,
                 streckungJahre: a.kostenstelleId != null ? (a.streckungJahre && a.streckungJahre > 1 ? a.streckungJahre : 1) : undefined,
             })));
+            // Lager-Buchung nach dem Speichern der Positionen auslösen (alle Positionen werden gebucht)
+            if (lagerKsBuchen && lagerOrtId != null && geschaeftsdokumentId != null) {
+                const lagerRes = await fetch(`/api/bestellungen-uebersicht/${geschaeftsdokumentId}/ins-lager-buchen`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ lagerortId: lagerOrtId, artikelZuordnungen: artikelZuordnungen })
+                });
+                if (lagerRes.ok) {
+                    const erg: { gebucht: number; neuAngelegt: number; meldungen: string[] } = await lagerRes.json();
+                    const info = [
+                        erg.gebucht > 0 ? `${erg.gebucht} Artikel ins Lager gebucht` : null,
+                        erg.neuAngelegt > 0 ? `${erg.neuAngelegt} neu angelegt` : null,
+                    ].filter(Boolean).join(', ');
+                    if (info) toast.success(info + '.');
+                    erg.meldungen.forEach(m => toast.error(m));
+                    if (erg.gebucht === 0 && erg.meldungen.length > 0) {
+                        return; // Lagerbuchung fehlgeschlagen – nicht schließen
+                    }
+                } else {
+                    const body = await lagerRes.json().catch(() => ({}));
+                    toast.error((body as { error?: string }).error || 'Lager-Buchung fehlgeschlagen.');
+                    return; // Lagerbuchung fehlgeschlagen – nicht schließen
+                }
+            }
             abschliessen();
         } catch (err) {
             toast.error(err instanceof Error && err.message !== 'Failed to fetch' ? err.message : 'Die Aufteilung konnte nicht gespeichert werden.');
@@ -372,9 +398,16 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                     ].filter(Boolean).join(', ');
                     if (info) toast.success(info + '.');
                     erg.meldungen.forEach(m => toast.error(m));
+                    // Wenn nichts gebucht wurde und Fehler vorliegen, Dialog offen lassen – Nutzer soll Problem beheben
+                    if (erg.gebucht === 0 && erg.meldungen.length > 0) {
+                        setSaving(false);
+                        return;
+                    }
                 } else {
                     const body = await lagerRes.json().catch(() => ({}));
                     toast.error((body as { error?: string }).error || 'Lager-Buchung fehlgeschlagen.');
+                    setSaving(false);
+                    return;
                 }
             }
 
@@ -405,6 +438,19 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 })
             });
             if (res.ok) {
+                // Erfolgs-Toast für Projektzuordnung (damit der Nutzer weiß, wo er es findet)
+                const hatProjektAnteil = anteileZumSpeichern.some(a => a.projektId != null);
+                if (hatProjektAnteil) {
+                    const projektnamen = anteile
+                        .filter(a => a.projektId != null && a.projektName)
+                        .map(a => a.projektName!)
+                        .filter((n, i, arr) => arr.indexOf(n) === i);
+                    if (projektnamen.length > 0) {
+                        toast.success(`Rechnung dem Projekt „${projektnamen.join(', ')}" zugeordnet – sichtbar unter Projekte → Material.`);
+                    } else {
+                        toast.success('Rechnung dem Projekt zugeordnet – sichtbar unter Projekte → Material.');
+                    }
+                }
                 abschliessen();
             } else {
                 toast.error('Fehler beim Speichern');
@@ -446,6 +492,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     const speichernGesperrtGrund = (() => {
         if (anteile.length === 0) return isBelegZuordnung ? 'Erst eine Kostenstelle hinzufügen.' : 'Erst ein Projekt oder eine Kostenstelle hinzufügen.';
         if (lagerKsBuchen && lagerOrtId == null) return 'Bitte einen Lagerort wählen (oder Lagerbuchung weglassen).';
+        if (lagerKsBuchen && lagerPositionenAnzahl === 0) return 'Keine Artikel erkannt – bitte erst Positionen auslesen (Modus „Nach Positionen" → Auslesen).';
         if (!nachPositionen) return null;
         if (positionsAufteilung.positionen.length === 0) return 'Erst die Positionen auslesen.';
         const offen = positionsAufteilung.anzahlOffen;
@@ -736,6 +783,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                                         lagerorte={lagerorte}
                                         onLagerOrtChange={setLagerOrtId}
                                         onArtikelZuordnungenChange={setArtikelZuordnungen}
+                                        onPositionenGeladen={setLagerPositionenAnzahl}
                                     />
                                 )}
 

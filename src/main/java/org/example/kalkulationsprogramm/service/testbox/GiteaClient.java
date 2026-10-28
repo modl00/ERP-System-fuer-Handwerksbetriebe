@@ -47,7 +47,7 @@ public class GiteaClient {
         try {
             return sende(HttpRequest.newBuilder(uri(pfad)).header("Content-Type", "application/json")
                     .POST(HttpRequest.BodyPublishers.ofString(JSON.writeValueAsString(koerper), StandardCharsets.UTF_8)), pfad);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalArgumentException("Der Text konnte nicht gesendet werden.");
         }
     }
@@ -85,7 +85,7 @@ public class GiteaClient {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalArgumentException("Die Anfrage an Gitea wurde abgebrochen.");
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalArgumentException("Gitea ist nicht erreichbar. Bitte die Adresse prüfen.");
         }
     }

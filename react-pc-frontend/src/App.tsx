@@ -12,10 +12,12 @@ import { RequireModul } from './features/modulschalter/RequireModul';
 import { RequireWartungModul } from './features/modulschalter/RequireWartungModul';
 import { RequireLagerModul } from './features/modulschalter/RequireLagerModul';
 import { AnrufFensterHost } from './features/telefon/AnrufFensterHost';
+import { ErrorBoundary } from './components/ErrorBoundary';
 
 // Jede Seite ist eine eigene Datei und wird erst beim Öffnen geladen – der erste Aufruf
 // (von unterwegs über Tailscale) lädt so nur das Gerüst und die aktuelle Seite.
 const TextbausteinEditor = lazy(() => import('./pages/TextbausteinEditor'));
+const Startbildschirm = lazy(() => import('./pages/Startbildschirm'));
 const LeistungenUndKategorien = lazy(() => import('./pages/leistungen/LeistungenUndKategorien'));
 const Kundeneditor = lazy(() => import('./pages/Kundeneditor'));
 const LieferantenEditor = lazy(() => import('./pages/LieferantenEditor'));
@@ -48,8 +50,22 @@ const RechnungsuebersichtEditor = lazy(() => import('./pages/Rechnungsuebersicht
 const BelegeKasseEditor = lazy(() => import('./pages/BelegeKasseEditor'));
 const DokumentUebersichtEditor = lazy(() => import('./pages/DokumentUebersichtEditor'));
 const Eingangskorb = lazy(() => import('./pages/Eingangskorb'));
+const KostenrechnungPage = lazy(() => import('./pages/KostenrechnungPage'));
+const FremdleistungenPage = lazy(() => import('./pages/FremdleistungenPage'));
+const LagerEditor = lazy(() => import('./pages/LagerEditor'));
+const ProduktkategorieEditor = lazy(() => import('./pages/ProduktkategorieEditor'));
+const BestellListe = lazy(() => import('./pages/BestellListe'));
+const BestellungBearbeiten = lazy(() => import('./pages/BestellungBearbeiten'));
+const WartungUebersicht = lazy(() => import('./pages/WartungUebersicht'));
+const WartungProtokoll = lazy(() => import('./pages/WartungProtokoll'));
+const WartungModulEditor = lazy(() => import('./pages/WartungModulEditor'));
+const WartungAnlage = lazy(() => import('./pages/WartungAnlage'));
+const RechteUebersichtSeite = lazy(() => import('./pages/RechteUebersicht'));
+const MeinTagesverlauf = lazy(() => import('./pages/MeinTagesverlauf'));
+const AktivitaetenImSystem = lazy(() => import('./pages/AktivitaetenImSystem'));
+const AbteilungBerechtigungenEditor = lazy(() => import('./pages/AbteilungBerechtigungenEditor'));
+const Plantafel = lazy(() => import('./pages/Plantafel'));
 const FirmaEditor = lazy(() => import('./pages/FirmaEditor'));
-const BestellungEditor = lazy(() => import('./pages/BestellungEditor'));
 const DocumentEditorPage = lazy(() => import('./pages/DocumentEditorPage'));
 const ArbeitszeitartEditor = lazy(() => import('./pages/ArbeitszeitartEditor'));
 const EinstellungenEditor = lazy(() => import('./pages/EinstellungenEditor'));
@@ -79,7 +95,7 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/start" element={<ErrorBoundary><Startbildschirm /></ErrorBoundary>} />
 
                 <Route path="/textbausteine" element={<ErrorBoundary><TextbausteinEditor /></ErrorBoundary>} />
-                <Route path="/leistungen" element={<ErrorBoundary><Leistungseditor /></ErrorBoundary>} />
+                <Route path="/leistungen" element={<ErrorBoundary><LeistungenUndKategorien /></ErrorBoundary>} />
                 <Route path="/arbeitszeitarten" element={<ErrorBoundary><ArbeitszeitartEditor /></ErrorBoundary>} />
                 <Route path="/kunden" element={<ErrorBoundary><Kundeneditor /></ErrorBoundary>} />
                 <Route path="/mitarbeiter" element={<ErrorBoundary><MitarbeiterEditor /></ErrorBoundary>} />

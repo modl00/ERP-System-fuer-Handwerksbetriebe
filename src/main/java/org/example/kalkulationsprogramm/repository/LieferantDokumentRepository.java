@@ -1,5 +1,6 @@
 package org.example.kalkulationsprogramm.repository;
 
+import org.example.kalkulationsprogramm.domain.EingangStatus;
 import org.example.kalkulationsprogramm.domain.LieferantDokument;
 import org.example.kalkulationsprogramm.domain.LieferantDokumentTyp;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -165,4 +166,14 @@ public interface LieferantDokumentRepository extends JpaRepository<LieferantDoku
         @Query("SELECT COUNT(d) FROM LieferantDokument d WHERE d.id = :id " +
                         "AND (d.verknuepfteDokumente IS NOT EMPTY OR d.verknuepftVon IS NOT EMPTY)")
         long zaehleMitVerknuepfung(@Param("id") Long id);
+
+        @Query("SELECT d FROM LieferantDokument d "
+                        + "LEFT JOIN FETCH d.attachment a "
+                        + "LEFT JOIN FETCH a.email "
+                        + "LEFT JOIN FETCH d.lieferant "
+                        + "WHERE d.eingangStatus = :status "
+                        + "ORDER BY d.uploadDatum DESC")
+        List<LieferantDokument> findByEingangStatusOrderByUploadDatumDesc(@Param("status") EingangStatus status);
+
+        long countByEingangStatus(EingangStatus status);
 }

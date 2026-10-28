@@ -27,6 +27,7 @@ import org.example.kalkulationsprogramm.domain.Email;
 import org.example.kalkulationsprogramm.domain.EmailDirection;
 import org.example.kalkulationsprogramm.domain.FrontendUserProfile;
 import org.example.kalkulationsprogramm.domain.KalenderEintrag;
+import org.example.kalkulationsprogramm.domain.EingangStatus;
 import org.example.kalkulationsprogramm.domain.LieferantDokument;
 import org.example.kalkulationsprogramm.domain.LieferantGeschaeftsdokument;
 import org.example.kalkulationsprogramm.domain.LieferantReklamation;
@@ -108,7 +109,7 @@ public class BenachrichtigungService {
             "EMAILS_SPAM", "EMAILS_NEWSLETTER", "URLAUBSANTRAEGE", "BAUTAGEBUCH", "EINGANG_FAELLIG",
             "AUSGANG_UEBERFAELLIG", "RECHNUNGEN", "TERMINE", "LIEFERSCHEINE", "REKLAMATIONEN",
             "FREIGABEN_ANGENOMMEN", "ZEITEN_AUTO_BEENDET", "MONATSABSCHLUSS", "SPRACHNACHRICHTEN",
-            "VERPASSTE_ANRUFE", "SICHERUNG", "UPDATE");
+            "VERPASSTE_ANRUFE", "SICHERUNG", "UPDATE", "DOKUMENT_EINGANG");
 
     private static final String EMAIL_ART = "EMAIL";
 
@@ -402,6 +403,7 @@ public class BenachrichtigungService {
         if (zeiterfassung) {
             quellen.add(new QuellenAufruf("URLAUBSANTRAEGE", this::urlaubsantraege));
         }
+        quellen.add(new QuellenAufruf("DOKUMENT_EINGANG", this::dokumentEingang));
         quellen.add(new QuellenAufruf("BAUTAGEBUCH", this::bautagebuch));
         quellen.add(new QuellenAufruf("EINGANG_FAELLIG", () -> eingangsrechnungenFaellig(heute)));
         quellen.add(new QuellenAufruf("AUSGANG_UEBERFAELLIG", () -> ausgangsrechnungenUeberfaellig(heute)));
@@ -859,6 +861,22 @@ public class BenachrichtigungService {
      * Filter auf Mails, die der Benutzer sieht und selbst noch nicht gelesen hat; {@code null},
      * wenn sich das nicht ermitteln lässt (dann keine Mail-Hinweise).
      */
+    private Quelle<?> dokumentEingang() {
+        List<LieferantDokument> wartend = lieferantDokumentRepository
+                .findByEingangStatusOrderByUploadDatumDesc(EingangStatus.WARTE_AUF_ZUORDNUNG);
+        return Quelle.von("DOKUMENT_EINGANG", "Dokumente im Eingangskorb", "Inbox",
+                "/eingangskorb", wartend,
+                d -> "DOKUMENT_EINGANG:" + d.getId(),
+                d -> new BenachrichtigungEintragDto(
+                        "DOKUMENT_EINGANG:" + d.getId(),
+                        "DOKUMENT_EINGANG",
+                        d.getEffektiverDateiname() != null ? d.getEffektiverDateiname() : "Dokument",
+                        d.getLieferant().getLieferantenname() + " – Zuordnung ausstehend",
+                        d.getUploadDatum() != null ? d.getUploadDatum().toLocalDate().toString() : "",
+                        "/eingangskorb"),
+                3);
+    }
+
     private Predicate<Email> ungeleseneSichtbareMails(Authentication authentication) {
         try {
             Set<Long> verborgen = postfachSichtbarkeitService

@@ -452,6 +452,7 @@ public class EmailAttachmentProcessingService {
         dokument.setOriginalDateiname(anzeigeFilename);
         dokument.setGespeicherterDateiname(effektiveAnzeige.getStoredFilename()); // Korrekter Setter
         dokument.setUploadDatum(LocalDateTime.now());
+        dokument.setEingangStatus(EingangStatus.WARTE_AUF_ZUORDNUNG);
 
         // Typ setzen basierend auf KI-Analyse, Nummer oder Default
         LieferantDokumentTyp typ = LieferantDokumentTyp.SONSTIG;

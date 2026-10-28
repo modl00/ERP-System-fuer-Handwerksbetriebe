@@ -57,6 +57,10 @@ public class LieferantDokument {
     @Column(nullable = false)
     private LocalDateTime uploadDatum;
 
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 40)
+    private EingangStatus eingangStatus = EingangStatus.ZUGEORDNET;
+
     @Column(nullable = false)
     private boolean ausgeblendet = false;
 

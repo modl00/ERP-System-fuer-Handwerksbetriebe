@@ -105,7 +105,7 @@ public class HeroVerbindungService {
                 felder.add(new Feld(f.path("name").asText(), String.join(", ", args), typName(f.path("type"))));
             }
             return felder;
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             throw new IllegalStateException("Die Antwort von Hero war nicht lesbar.");
         }
     }

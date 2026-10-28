@@ -131,28 +131,31 @@ function BriefpapierFeld({ titel, bild, onBild }: { titel: string; bild: string 
                 toast.error('Das Briefpapier konnte nicht geladen werden.');
                 return;
             }
-            const blob = await res.blob();
+            const puffer = await res.arrayBuffer();
+            const bytes = new Uint8Array(puffer);
 
-            if (blob.type === 'application/pdf') {
-                const bild = await pdfZuBild(await blob.arrayBuffer());
+            // Format aus Magic-Bytes erkennen (robuster als blob.type / Content-Type)
+            const istPdf  = bytes[0] === 0x25 && bytes[1] === 0x50 && bytes[2] === 0x44 && bytes[3] === 0x46; // %PDF
+            const istPng  = bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4E && bytes[3] === 0x47; // \x89PNG
+            const istJpeg = bytes[0] === 0xFF && bytes[1] === 0xD8 && bytes[2] === 0xFF;
+
+            if (istPdf) {
+                const bild = await pdfZuBild(puffer);
                 onBild(bild);
                 toast.success('Briefpapier aus den Firmen-Einstellungen übernommen.');
                 return;
             }
 
-            // Bild-Formate: bisheriger FileReader-Pfad
-            const reader = new FileReader();
-            reader.onload = () => {
-                const ergebnis = typeof reader.result === 'string' ? reader.result : '';
-                if (!sichereBildQuelle(ergebnis)) {
-                    toast.error('Das Briefpapier aus den Firmen-Einstellungen hat ein nicht unterstütztes Format.');
-                    return;
-                }
-                onBild(ergebnis);
-                toast.success('Briefpapier aus den Firmen-Einstellungen übernommen.');
-            };
-            reader.onerror = () => toast.error('Das Briefpapier konnte nicht gelesen werden.');
-            reader.readAsDataURL(blob);
+            const mimeType = istPng ? 'image/png' : istJpeg ? 'image/jpeg' : null;
+            if (!mimeType) {
+                toast.error('Das Briefpapier aus den Firmen-Einstellungen hat ein nicht unterstütztes Format.');
+                return;
+            }
+
+            const base64 = btoa(bytes.reduce((s, b) => s + String.fromCharCode(b), ''));
+            const ergebnis = `data:${mimeType};base64,${base64}`;
+            onBild(ergebnis);
+            toast.success('Briefpapier aus den Firmen-Einstellungen übernommen.');
         } catch {
             toast.error('Das Briefpapier konnte nicht geladen werden.');
         } finally {

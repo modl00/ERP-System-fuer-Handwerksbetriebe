@@ -30,6 +30,7 @@ import org.example.kalkulationsprogramm.dto.Verrechnungslohn.VerrechnungslohnErg
 import org.example.kalkulationsprogramm.dto.Verrechnungslohn.VerrechnungslohnErgebnisDto.MitarbeiterStundenZeile;
 import org.example.kalkulationsprogramm.dto.Verrechnungslohn.VerrechnungslohnErgebnisDto.Modus;
 import org.example.kalkulationsprogramm.dto.Verrechnungslohn.VerrechnungslohnUebernehmenRequest;
+import org.example.kalkulationsprogramm.domain.Kostenstelle;
 import org.example.kalkulationsprogramm.repository.AbteilungRepository;
 import org.example.kalkulationsprogramm.repository.AbwesenheitRepository;
 import org.example.kalkulationsprogramm.repository.ArbeitsgangRepository;
@@ -37,6 +38,7 @@ import org.example.kalkulationsprogramm.repository.ArbeitsgangStundensatzReposit
 import org.example.kalkulationsprogramm.repository.BelegKostenstellenAnteilRepository;
 import org.example.kalkulationsprogramm.repository.BelegRepository;
 import org.example.kalkulationsprogramm.repository.FirmeninformationRepository;
+import org.example.kalkulationsprogramm.repository.KostenstelleRepository;
 import org.example.kalkulationsprogramm.repository.LangzeitkrankmeldungPhaseRepository;
 import org.example.kalkulationsprogramm.repository.LieferantDokumentProjektAnteilRepository;
 import org.example.kalkulationsprogramm.repository.LohnabrechnungRepository;
@@ -96,6 +98,8 @@ public class VerrechnungslohnService {
     private final ArbeitsgangStundensatzRepository stundensatzRepository;
     private final BelegRepository belegRepository;
     private final BelegKostenstellenAnteilRepository belegKostenstellenAnteilRepository;
+    private final KostenstelleRepository kostenstelleRepository;
+    private final GemeinkostenSchaetzung gemeinkostenSchaetzung;
     // Bewusst OHNE TagesSollService: kalkulatorisches Jahres-Normalsoll aus
     // Vertragsversionen; Krankheitsphasen werden separat ausgeklammert.
     private final LangzeitkrankmeldungPhaseRepository phaseRepository;
@@ -156,15 +160,19 @@ public class VerrechnungslohnService {
             stundenSumme = stundenSumme.add(stdZeile.getVerkaeuflicheStunden());
         }
 
-        BigDecimal gemeinkosten = berechneGemeinkosten(dto.getKostenstellen(), jahr);
+        GemeinkostenErgebnis gemeinErgebnis = berechneGemeinkosten(dto.getKostenstellen(), jahr);
 
         dto.setLohnsummeGesamt(lohnsumme.setScale(2, RoundingMode.HALF_UP));
         dto.setVerkaeuflicheStundenGesamt(stundenSumme.setScale(2, RoundingMode.HALF_UP));
-        dto.setGemeinkostenGesamt(gemeinkosten.setScale(2, RoundingMode.HALF_UP));
+        dto.setGemeinkostenGesamt(gemeinErgebnis.gesamt().setScale(2, RoundingMode.HALF_UP));
+        dto.setGemeinkostenIst(gemeinErgebnis.ist().setScale(2, RoundingMode.HALF_UP));
+        dto.setEnthaeltSchaetzwerte(gemeinErgebnis.enthaeltSchaetzwerte());
+        dto.setGemeinkostenSchaetzung(gemeinErgebnis.schaetzung());
+        dto.setSchaetzungGilt(gemeinErgebnis.schaetzungGilt());
 
         BigDecimal selbstkosten = BigDecimal.ZERO;
         if (stundenSumme.compareTo(BigDecimal.ZERO) > 0) {
-            selbstkosten = lohnsumme.add(gemeinkosten).divide(stundenSumme, 2, RoundingMode.HALF_UP);
+            selbstkosten = lohnsumme.add(gemeinErgebnis.gesamt()).divide(stundenSumme, 2, RoundingMode.HALF_UP);
         }
         dto.setSelbstkostenProStunde(selbstkosten);
 
@@ -645,9 +653,12 @@ public class VerrechnungslohnService {
 
     // ==================== Gemeinkosten-Block ====================
 
-    private BigDecimal berechneGemeinkosten(List<KostenstelleAnteil> bucket, int jahr) {
+    private record GemeinkostenErgebnis(BigDecimal gesamt, BigDecimal ist, boolean enthaeltSchaetzwerte,
+            boolean schaetzungGilt, BigDecimal schaetzung) { }
+
+    private GemeinkostenErgebnis berechneGemeinkosten(List<KostenstelleAnteil> bucket, int jahr) {
         Map<Long, KostenstelleAnteil> proKs = new HashMap<>();
-        BigDecimal summe = BigDecimal.ZERO;
+        BigDecimal summeIst = BigDecimal.ZERO;
 
         // 1) Lieferantenrechnungen ueber LieferantDokumentProjektAnteil (Bestandslogik).
         for (LieferantDokumentProjektAnteil anteil : anteilRepository.findAll()) {
@@ -655,7 +666,7 @@ public class VerrechnungslohnService {
             if (!anteil.getKostenstelle().isIstFixkosten()) continue;
             if (!anteil.isStreckungAktivFuerJahr(jahr)) continue;
             BigDecimal jahresAnteil = nz(anteil.getJahresanteil());
-            summe = summe.add(jahresAnteil);
+            summeIst = summeIst.add(jahresAnteil);
             KostenstelleAnteil bucketEintrag = proKs.computeIfAbsent(
                     anteil.getKostenstelle().getId(),
                     id -> {
@@ -701,7 +712,7 @@ public class VerrechnungslohnService {
             if (gesamt.signum() <= 0) continue;
             BigDecimal basis = gesamt.subtract(nz(bereitsAufgeteilt.get(beleg.getId())));
             if (basis.signum() <= 0) continue;
-            summe = summe.add(basis);
+            summeIst = summeIst.add(basis);
             final Long ksId = beleg.getKostenstelle().getId();
             final String bezeichnung = beleg.getKostenstelle().getBezeichnung();
             KostenstelleAnteil bucketEintrag = proKs.computeIfAbsent(ksId, id -> {
@@ -724,7 +735,7 @@ public class VerrechnungslohnService {
             if (anteil.getKostenstelle() == null) continue;
             BigDecimal jahresAnteil = nz(anteil.getJahresanteil());
             if (jahresAnteil.signum() <= 0) continue;
-            summe = summe.add(jahresAnteil);
+            summeIst = summeIst.add(jahresAnteil);
             final Long ksId = anteil.getKostenstelle().getId();
             final String bezeichnung = anteil.getKostenstelle().getBezeichnung();
             KostenstelleAnteil bucketEintrag = proKs.computeIfAbsent(ksId, id -> {
@@ -741,11 +752,57 @@ public class VerrechnungslohnService {
             }
         }
 
+        // 4) Soll-Werte der Fixkosten-Kostenstellen einbeziehen: für laufende und
+        //    künftige Jahre gilt max(Ist, Soll), damit der Stundensatz nicht zu
+        //    niedrig ist, solange noch nicht alle Belege gebucht sind.
+        //    Kostenstellen mit Soll aber noch ohne Belege werden dem Bucket hinzugefügt.
+        boolean istVergangenesJahr = jahr < Year.now().getValue();
+        Map<Long, BigDecimal> sollProKs = new HashMap<>();
+        for (Kostenstelle ks : kostenstelleRepository.findByIstFixkostenTrueAndAktivTrue()) {
+            if (ks.getJahresSoll() == null) continue;
+            sollProKs.put(ks.getId(), ks.getJahresSoll());
+            final Kostenstelle ksRef = ks;
+            proKs.computeIfAbsent(ks.getId(), id -> {
+                KostenstelleAnteil ka = new KostenstelleAnteil();
+                ka.setKostenstelleId(id);
+                ka.setBezeichnung(ksRef.getBezeichnung());
+                ka.setJahresbetrag(BigDecimal.ZERO);
+                ka.setGestreckt(false);
+                return ka;
+            });
+        }
+
+        // Verwendet = max(Ist, Soll) für laufende/zukünftige Jahre; Ist für vergangene.
+        boolean enthaeltSchaetzwerte = false;
+        BigDecimal summeVerwendet = BigDecimal.ZERO;
         for (KostenstelleAnteil k : proKs.values()) {
             k.setJahresbetrag(k.getJahresbetrag().setScale(2, RoundingMode.HALF_UP));
+            BigDecimal soll = sollProKs.get(k.getKostenstelleId());
+            k.setSoll(soll);
+            BigDecimal verwendet;
+            boolean sollGilt;
+            if (!istVergangenesJahr && soll != null && soll.compareTo(k.getJahresbetrag()) > 0) {
+                verwendet = soll;
+                sollGilt = true;
+                enthaeltSchaetzwerte = true;
+            } else {
+                verwendet = k.getJahresbetrag();
+                sollGilt = false;
+            }
+            k.setVerwendet(verwendet.setScale(2, RoundingMode.HALF_UP));
+            k.setSollGilt(sollGilt);
+            summeVerwendet = summeVerwendet.add(verwendet);
             bucket.add(k);
         }
-        return summe;
+
+        // 5) Globale Schätzung als Fallback: nur wenn keine Kostenstelle einen Soll-Wert hat.
+        if (sollProKs.isEmpty()) {
+            GemeinkostenSchaetzung.Wahl wahl = gemeinkostenSchaetzung.waehle(jahr, summeVerwendet);
+            return new GemeinkostenErgebnis(wahl.verwendet(), wahl.ist(), wahl.schaetzungGilt(),
+                    wahl.schaetzungGilt(), wahl.schaetzung());
+        }
+
+        return new GemeinkostenErgebnis(summeVerwendet, summeIst, enthaeltSchaetzwerte, false, null);
     }
 
     // ==================== Helpers ====================

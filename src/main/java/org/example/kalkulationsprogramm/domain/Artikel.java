@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -262,6 +263,18 @@ public class Artikel
         }
         return werkstoff != null ? werkstoff.getWerkstoffnorm() : null;
     }
+
+    @Column(name = "archiviert", nullable = false)
+    private boolean archiviert = false;
+
+    @Column(name = "archiviert_am")
+    private LocalDateTime archiviertAm;
+
+    @Column(name = "handelseinheit_bezeichnung", length = 50)
+    private String handelseinheitBezeichnung;
+
+    @Column(name = "handelseinheit_meter", precision = 10, scale = 3)
+    private java.math.BigDecimal handelseinheitMeter;
 
     /** Vorschaubild und Zusatzdokumente (Zulassungen, Zeichnungen, Datenblaetter, ...). */
     @OneToMany(mappedBy = "artikel", cascade = CascadeType.ALL, orphanRemoval = true)

@@ -36,6 +36,8 @@ public class LieferantDokumentDto {
         private GeschaeftsdatenRef geschaeftsdaten;
         /** Auf der Seite Bestellungen als erledigt ausgeblendet; der Beleg bleibt vollständig erhalten. */
         private boolean ausgeblendet;
+        /** Rechnung gehört nicht zur Firma (Privatrechnung). */
+        private boolean privat;
     }
 
     @Data

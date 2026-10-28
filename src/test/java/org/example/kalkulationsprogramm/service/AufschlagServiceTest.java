@@ -16,6 +16,7 @@ import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
 import org.example.kalkulationsprogramm.domain.Kategorie;
+import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.example.kalkulationsprogramm.repository.KategorieRepository;
 import org.example.kalkulationsprogramm.service.AufschlagService.Quelle;
 import org.junit.jupiter.api.BeforeEach;
@@ -26,6 +27,7 @@ class AufschlagServiceTest {
 
     private final SystemSettingsService einstellungen = mock(SystemSettingsService.class);
     private final KategorieRepository kategorien = mock(KategorieRepository.class);
+    private final ArtikelRepository artikel = mock(ArtikelRepository.class);
     private final Map<String, String> gespeichert = new HashMap<>();
     private AufschlagService service;
 
@@ -50,7 +52,7 @@ class AufschlagServiceTest {
         when(einstellungen.get(anyString(), any())).thenAnswer(a -> gespeichert.getOrDefault(a.<String>getArgument(0), a.getArgument(1)));
         org.mockito.Mockito.doAnswer(a -> { gespeichert.put(a.getArgument(0), a.getArgument(1)); return null; }).when(einstellungen).save(anyString(), any(), any());
         when(kategorien.save(any(Kategorie.class))).thenAnswer(a -> a.getArgument(0));
-        service = new AufschlagService(einstellungen, kategorien);
+        service = new AufschlagService(einstellungen, kategorien, artikel);
     }
 
     @Test

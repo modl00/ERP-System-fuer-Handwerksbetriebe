@@ -19,6 +19,7 @@ import org.example.kalkulationsprogramm.service.LieferantDokumentService;
 import org.example.kalkulationsprogramm.service.LieferantDokumentZugriffService;
 import org.example.kalkulationsprogramm.service.LieferantDokumentZuordnungService;
 import org.example.kalkulationsprogramm.service.RechnungsVorschlagService;
+import org.example.kalkulationsprogramm.service.ki.assistent.LieferscheinScanService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -60,6 +61,7 @@ public class BestellungsUebersichtController {
     private final BestellungsUebersichtService bestellungsUebersichtService;
     private final LieferantDokumentZuordnungService zuordnungService;
     private final LieferantDokumentZugriffService zugriffService;
+    private final LieferscheinScanService lieferscheinScanService;
 
     /** Höchstzahl Dokumente einer Kette für die Vorschlagssuche. */
     private static final int MAX_KETTEN_DOKUMENTE = 50;
@@ -300,6 +302,34 @@ public class BestellungsUebersichtController {
         return ResponseEntity.ok(Map.of(
                 "success", true,
                 "geaendert", dokumente.size()));
+    }
+
+    /** Markiert alle Dokumente einer Kette als Privatrechnung (gehört nicht zur Firma). */
+    @PostMapping("/als-privat")
+    @Transactional
+    public ResponseEntity<?> alsPrivat(@Valid @RequestBody AusblendenRequest request, Authentication auth) {
+        return setPrivat(request, true, auth);
+    }
+
+    /** Hebt die Privat-Markierung auf; die Kette erscheint wieder im normalen Workflow. */
+    @PostMapping("/privat-aufheben")
+    @Transactional
+    public ResponseEntity<?> privatAufheben(@Valid @RequestBody AusblendenRequest request, Authentication auth) {
+        return setPrivat(request, false, auth);
+    }
+
+    private ResponseEntity<?> setPrivat(AusblendenRequest request, boolean wert, Authentication auth) {
+        var sichtbareTypen = zugriffService.sichtbareTypen(null, auth);
+        if (sichtbareTypen.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        List<LieferantDokument> dokumente = dokumentRepository.findAllById(request.dokumentIds()).stream()
+                .filter(d -> sichtbareTypen.get().contains(d.getTyp()))
+                .toList();
+        for (LieferantDokument d : dokumente) {
+            d.setPrivat(wert);
+        }
+        return ResponseEntity.ok(Map.of("success", true, "geaendert", dokumente.size()));
     }
 
     /**
@@ -657,6 +687,60 @@ public class BestellungsUebersichtController {
     }
 
     /**
+     * Vorschau: welche Positionen des Dokuments können automatisch einem Artikel zugeordnet werden?
+     * Gibt pro Position zurück, ob ein Artikel gefunden wurde (mit ID und Name) oder nicht.
+     */
+    @GetMapping("/{dokId}/lager-vorschau")
+    public ResponseEntity<?> lagerVorschau(
+            @PathVariable @Positive Long dokId,
+            @RequestParam(value = "token", required = false) String token,
+            Authentication auth) {
+        var sichtbareTypen = zugriffService.sichtbareTypen(token, auth);
+        if (sichtbareTypen.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!zugriffService.istSichtbar(dokId, sichtbareTypen.get())) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.ok(lieferscheinScanService.vorschauFuerDokument(dokId));
+    }
+
+    /**
+     * Bucht die erkannten Positionen eines Lieferanten-Dokuments als Lagerzugang.
+     * Für Positionen ohne automatischen Treffer können explizite Artikel-IDs mitgegeben werden
+     * (z. B. nach dem manuellen Anlegen über die Artikel-Maske).
+     */
+    @PostMapping("/{dokId}/ins-lager-buchen")
+    public ResponseEntity<?> insLagerBuchen(
+            @PathVariable @Positive Long dokId,
+            @RequestBody InsLagerBuchenRequest request,
+            @RequestParam(value = "token", required = false) String token,
+            Authentication auth) {
+        var sichtbareTypen = zugriffService.sichtbareTypen(token, auth);
+        if (sichtbareTypen.isEmpty()) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
+        }
+        if (!zugriffService.istSichtbar(dokId, sichtbareTypen.get())) {
+            return ResponseEntity.notFound().build();
+        }
+        if (request == null || request.lagerortId() == null) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Bitte einen Lagerort auswaehlen."));
+        }
+        String benutzer = auth != null ? auth.getName() : "System";
+        Map<Long, Long> explizit = request.artikelZuordnungen() != null
+                ? request.artikelZuordnungen().stream()
+                        .filter(z -> z.positionId() != null && z.artikelId() != null)
+                        .collect(java.util.stream.Collectors.toMap(ArtikelZuordnung::positionId, ArtikelZuordnung::artikelId, (a, b) -> b))
+                : Map.of();
+        LieferscheinScanService.BuchenErgebnis ergebnis =
+                lieferscheinScanService.buchenAusDokument(dokId, request.lagerortId(), benutzer, explizit);
+        return ResponseEntity.ok(ergebnis);
+    }
+
+    record ArtikelZuordnung(Long positionId, Long artikelId) {}
+    record InsLagerBuchenRequest(Long lagerortId, List<ArtikelZuordnung> artikelZuordnungen) {}
+
+    /**
      * Hebt die Zuordnung einer Rechnung zu allen Projekten auf.
      * Die Rechnung wird wieder als "Abgeschlossen" angezeigt.
      */
@@ -706,6 +790,9 @@ public class BestellungsUebersichtController {
             } else if (a.getKostenstelle() != null) {
                 dto.kostenstelleId = a.getKostenstelle().getId();
                 dto.kostenstelleName = a.getKostenstelle().getBezeichnung();
+                if (a.getKostenstelle().getTyp() != null) {
+                    dto.kostenstellenTyp = a.getKostenstelle().getTyp().name();
+                }
             }
             dto.betrag = a.getBerechneterBetrag();
             dto.prozentanteil = a.getProzent() != null ? BigDecimal.valueOf(a.getProzent()) : null;
@@ -1038,6 +1125,7 @@ public class BestellungsUebersichtController {
         public String projektName;
         public Long kostenstelleId;
         public String kostenstelleName;
+        public String kostenstellenTyp;
         public BigDecimal betrag;
         public BigDecimal prozentanteil;
         public String beschreibung;

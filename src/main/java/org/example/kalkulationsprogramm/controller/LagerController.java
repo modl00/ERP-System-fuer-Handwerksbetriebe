@@ -1,5 +1,6 @@
 package org.example.kalkulationsprogramm.controller;
 
+import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
@@ -13,7 +14,9 @@ import org.example.kalkulationsprogramm.dto.Lager.LagerortDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerortEingabe;
 import org.example.kalkulationsprogramm.dto.Lager.MindestbestandEingabe;
 import org.example.kalkulationsprogramm.service.LagerService;
+import org.example.kalkulationsprogramm.service.ki.assistent.LieferscheinScanService;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -22,6 +25,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import lombok.RequiredArgsConstructor;
 
@@ -32,6 +36,7 @@ import lombok.RequiredArgsConstructor;
 public class LagerController {
 
     private final LagerService lagerService;
+    private final LieferscheinScanService lieferscheinScanService;
 
     @GetMapping("/orte")
     public List<LagerortDto> orte() {
@@ -97,5 +102,37 @@ public class LagerController {
     @PutMapping("/artikel/{artikelId}/mindestbestand")
     public ResponseEntity<LagerBestandDto> mindestbestand(@PathVariable Long artikelId, @RequestBody MindestbestandEingabe eingabe) {
         return ResponseEntity.ok(lagerService.setzeMindestbestand(artikelId, eingabe == null ? null : eingabe.mindestbestand()));
+    }
+
+    @PostMapping("/orte/{id}/archivieren")
+    public ResponseEntity<LagerortDto> ortArchivieren(@PathVariable Long id) {
+        return ResponseEntity.ok(lagerService.ortArchivieren(id));
+    }
+
+    @PostMapping("/orte/{id}/wiederherstellen")
+    public ResponseEntity<LagerortDto> ortWiederherstellen(@PathVariable Long id) {
+        return ResponseEntity.ok(lagerService.ortWiederherstellen(id));
+    }
+
+    @DeleteMapping("/orte/{id}")
+    public ResponseEntity<Void> ortLoeschen(@PathVariable Long id) {
+        lagerService.ortLoeschen(id);
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Lieferschein (PDF oder Foto) per KI scannen und Artikelpositionen erkennen. */
+    @PostMapping("/lieferschein-scan")
+    public ResponseEntity<LieferscheinScanService.ScanErgebnis> lieferscheinScan(
+            @RequestParam("datei") MultipartFile datei) {
+        return ResponseEntity.ok(lieferscheinScanService.scanDatei(datei));
+    }
+
+    /** Erkannte Positionen ins Lager buchen (Zugänge). */
+    @PostMapping("/lieferschein-scan/buchen")
+    public ResponseEntity<LieferscheinScanService.BuchenErgebnis> lieferscheinBuchen(
+            @RequestBody LieferscheinScanService.BuchenEingabe eingabe,
+            Principal principal) {
+        String benutzer = principal != null ? principal.getName() : "system";
+        return ResponseEntity.ok(lieferscheinScanService.buchen(eingabe, benutzer));
     }
 }

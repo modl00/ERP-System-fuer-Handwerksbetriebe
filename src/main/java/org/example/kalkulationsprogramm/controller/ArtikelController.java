@@ -220,6 +220,7 @@ public class ArtikelController {
             @RequestParam(value = "profilform", required = false) String profilform,
             @RequestParam(value = "verzinkbar", required = false) Boolean verzinkbar,
             @RequestParam(value = "pulverbeschichtbar", required = false) Boolean pulverbeschichtbar,
+            @RequestParam(value = "nurArchiviert", defaultValue = "false") boolean nurArchiviert,
             @RequestParam(value = "page", defaultValue = "0") int page,
             @RequestParam(value = "size", defaultValue = "50") int size,
             @RequestParam(value = "sort", defaultValue = "produktname") String sort,
@@ -229,7 +230,7 @@ public class ArtikelController {
         List<Integer> kategorieIds = kategorieService.findeKategorieUndUnterkategorieIds(kategorieId);
         Specification<Artikel> specification = buildArtikelSpecification(query, lieferant, produktlinie, werkstoff,
             kategorieId, kategorieIds, nurMitLieferantenpreis,
-            herstellverfahren, fertigungszustand, profilform, verzinkbar, pulverbeschichtbar);
+            herstellverfahren, fertigungszustand, profilform, verzinkbar, pulverbeschichtbar, nurArchiviert);
         Page<Artikel> result = artikelService.suche(specification,
                 PageRequest.of(pageIndex, pageSize, buildSort(sort, direction)));
 
@@ -383,6 +384,10 @@ public class ArtikelController {
         dto.setPositionsEinheit(vorschlag.einheit());
         dto.setPositionsEinzelpreis(vorschlag.einzelpreis());
         dto.setPreisHinweis(vorschlag.hinweis().name());
+        dto.setArchiviert(artikel.isArchiviert());
+        dto.setArchiviertAm(artikel.getArchiviertAm());
+        dto.setHandelseinheitBezeichnung(artikel.getHandelseinheitBezeichnung());
+        dto.setHandelseinheitMeter(artikel.getHandelseinheitMeter());
         return dto;
     }
 
@@ -395,15 +400,6 @@ public class ArtikelController {
         }
         artikelService.fuegeExterneNummerHinzu(artikelId, lieferant, dto.getNummer());
         return ResponseEntity.ok().build();
-    }
-
-    @PutMapping("/{id}/stammdaten")
-    @Transactional
-    public ResponseEntity<ArtikelResponseDto> aktualisiereStammdaten(
-            @PathVariable Long id,
-            @RequestBody ArtikelStammdatenRequest request) {
-        Artikel aktualisiert = artikelService.aktualisiereStammdaten(id, request);
-        return ResponseEntity.ok(mappeArtikelZuDto(aktualisiert, null));
     }
 
     /**
@@ -695,8 +691,11 @@ public class ArtikelController {
             String fertigungszustand,
             String profilform,
             Boolean verzinkbar,
-            Boolean pulverbeschichtbar) {
-        Specification<Artikel> specification = Specification.where((root, cq, cb) -> cb.conjunction());
+            Boolean pulverbeschichtbar,
+            boolean nurArchiviert) {
+        Specification<Artikel> specification = nurArchiviert
+                ? Specification.where((root, cq, cb) -> cb.isTrue(root.get("archiviert")))
+                : Specification.where((root, cq, cb) -> cb.isFalse(root.get("archiviert")));
 
         if (StringUtils.hasText(query)) {
             specification = specification.and(ArtikelFreitextSuche.fuer(query));
@@ -843,6 +842,22 @@ public class ArtikelController {
         }
         Collections.reverse(parts);
         return String.join(" > ", parts);
+    }
+
+    @PostMapping("/{id}/archivieren")
+    public ResponseEntity<ArtikelResponseDto> archivieren(@PathVariable Long id) {
+        return ResponseEntity.ok(toDto(artikelService.archivieren(id), null));
+    }
+
+    @PostMapping("/{id}/wiederherstellen")
+    public ResponseEntity<ArtikelResponseDto> wiederherstellen(@PathVariable Long id) {
+        return ResponseEntity.ok(toDto(artikelService.wiederherstellen(id), null));
+    }
+
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> loeschen(@PathVariable Long id) {
+        artikelService.loeschen(id);
+        return ResponseEntity.noContent().build();
     }
 
     private record SortField(String property, boolean ignoreCase) {

@@ -4,6 +4,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.math.BigDecimal;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Date;
 
@@ -26,6 +27,8 @@ public class ArtikelResponseDto {
     private String waehrung;
     private BigDecimal preis;
     private BigDecimal kgProMeter;
+    private String handelseinheitBezeichnung;
+    private BigDecimal handelseinheitMeter;
     private Date preisDatum;
     private Long lieferantId;
     private String lieferantenname;
@@ -136,5 +139,8 @@ public class ArtikelResponseDto {
      * in der Detailansicht einzeln - siehe {@code ArtikelController}.
      */
     private String vorschaubildUrl;
+
+    private boolean archiviert;
+    private LocalDateTime archiviertAm;
 }
 

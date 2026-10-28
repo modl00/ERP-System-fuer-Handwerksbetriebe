@@ -42,9 +42,9 @@ concurrency:
 jobs:
   image:
     name: Bauen, Starttest, Veroeffentlichen
-    # NUR von main - auch beim manuellen Start. Sonst koennte ein ungetesteter
-    # Feature-Branch als :stable bei allen Kunden landen.
-    if: github.ref == 'refs/heads/main'
+    # NUR von main und NUR auf GitHub (nicht auf der lokalen Gitea-Instanz,
+    # die keinen ubuntu-latest-Runner und keine GHCR-Zugangsdaten hat).
+    if: github.server_url == 'https://github.com' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     permissions:
       contents: read

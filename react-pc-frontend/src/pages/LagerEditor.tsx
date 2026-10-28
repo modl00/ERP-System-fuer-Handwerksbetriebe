@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
-import { AlertTriangle, ArrowRightLeft, ClipboardList, History, Loader2, PackageMinus, PackagePlus, Pencil, Search, BellRing, Warehouse } from 'lucide-react';
+import { AlertTriangle, ArrowRightLeft, ClipboardList, Gem, History, Loader2, PackageMinus, PackagePlus, Pencil, ScanLine, Search, BellRing, Warehouse } from 'lucide-react';
+import { useAuth } from '../auth/AuthContext';
 
 import { PageLayout } from '../components/layout/PageLayout';
 import { Button } from '../components/ui/button';
@@ -7,6 +8,8 @@ import { Card } from '../components/ui/card';
 import { useToast } from '../components/ui/toast';
 import { cn } from '../lib/utils';
 import { ArtikelDialog, BuchungsDialog, MindestbestandDialog, UmbuchungsDialog, VerlaufDialog } from '../features/lager/LagerDialoge';
+import { LieferscheinScanDialog } from '../features/lager/LieferscheinScanDialog';
+import { WareneingangAusBestellungenDialog } from '../features/lager/WareneingangAusBestellungenDialog';
 import { LagerorteBereich } from '../features/lager/LagerorteBereich';
 import {
     ladeBestand, ladeOrte, ladeZusammenfassung, mengeText,
@@ -19,6 +22,7 @@ interface BuchungsZiel { art: Buchungsart; artikel: LagerBestand | null }
 
 const LagerEditor = () => {
     const toast = useToast();
+    const { isAdmin } = useAuth();
     const [reiter, setReiter] = useState<Reiter>('bestand');
     const [sucheText, setSucheText] = useState('');
     const [suche, setSuche] = useState('');
@@ -71,6 +75,8 @@ const LagerEditor = () => {
 
     const bedarf = zusammenfassung ? zusammenfassung.unterMindestbestand + zusammenfassung.negativ : 0;
     const oeffneBuchung = (art: Buchungsart, artikel: LagerBestand | null = null) => setBuchung({ art, artikel });
+    const [lieferscheinScan, setLieferscheinScan] = useState(false);
+    const [wareneingangOffen, setWareneingangOffen] = useState(false);
 
     return (
         <PageLayout
@@ -79,6 +85,14 @@ const LagerEditor = () => {
             subtitle="Bestand, Zugänge und Entnahmen. Wer Material „aus Lager“ ins Projekt nimmt, bucht automatisch ab."
             actions={
                 <div className="flex gap-2">
+                    <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => setWareneingangOffen(true)} disabled={orte.every(o => !o.aktiv)}
+                        title={orte.every(o => !o.aktiv) ? 'Zuerst einen Lagerort anlegen' : undefined}>
+                        <PackagePlus className="w-4 h-4 text-rose-500" /> Wareneingang
+                    </Button>
+                    <Button variant="outline" size="sm" className="border-slate-200 text-slate-700 hover:bg-slate-50" onClick={() => setLieferscheinScan(true)} disabled={orte.every(o => !o.aktiv)}
+                        title={orte.every(o => !o.aktiv) ? 'Zuerst einen Lagerort anlegen' : undefined}>
+                        <Gem className="w-4 h-4 text-rose-500" /> <ScanLine className="w-4 h-4" /> Lieferschein scannen
+                    </Button>
                     <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" onClick={() => oeffneBuchung('ABGANG')} disabled={orte.every(o => !o.aktiv)}>
                         <PackageMinus className="w-4 h-4" /> Entnahme buchen
                     </Button>
@@ -101,7 +115,7 @@ const LagerEditor = () => {
             </div>
 
             {reiter === 'orte' ? (
-                <LagerorteBereich orte={orte} onGeaendert={() => { ladeListe(); }} />
+                <LagerorteBereich orte={orte} istAdmin={isAdmin} onGeaendert={() => { ladeListe(); }} />
             ) : (
                 <div className="space-y-4">
                     <div className="flex flex-col sm:flex-row gap-3 sm:items-center">
@@ -202,6 +216,8 @@ const LagerEditor = () => {
             <VerlaufDialog artikel={verlauf} onSchliessen={() => setVerlauf(null)} />
             <UmbuchungsDialog artikel={umbuchung} orte={orte} onSchliessen={() => setUmbuchung(null)} onGebucht={() => { ladeListe(); }} />
             <ArtikelDialog artikel={bearbeiten} onSchliessen={() => setBearbeiten(null)} onGespeichert={() => { ladeListe(); }} />
+            <LieferscheinScanDialog offen={lieferscheinScan} orte={orte} onSchliessen={() => setLieferscheinScan(false)} onGebucht={() => { ladeListe(); }} />
+            <WareneingangAusBestellungenDialog offen={wareneingangOffen} orte={orte} onSchliessen={() => setWareneingangOffen(false)} onGebucht={() => { ladeListe(); }} />
         </PageLayout>
     );
 };

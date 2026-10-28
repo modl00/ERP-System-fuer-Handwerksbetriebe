@@ -63,6 +63,8 @@ class KiTextWeicheTest {
         assertThat(weiche.frage(KiFunktion.EMAIL_EINORDNEN, "s", "u", 0.1, 100, false)).startsWith("```json");
         assertThat(KiTextWeiche.ohneCodeZaeune("  {\"a\":1}  ")).isEqualTo("{\"a\":1}");
         assertThat(KiTextWeiche.ohneCodeZaeune(null)).isEmpty();
+        // Thinking-Text vor dem Code-Block (Gemini 2.5 Flash)
+        assertThat(KiTextWeiche.ohneCodeZaeune("Hier ist das Ergebnis:\n```json\n{\"b\":2}\n```")).isEqualTo("{\"b\":2}");
     }
 
     @Test

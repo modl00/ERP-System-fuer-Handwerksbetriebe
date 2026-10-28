@@ -47,4 +47,10 @@ public interface ArtikelServiceContract {
      * @throws org.springframework.web.server.ResponseStatusException 400 bei ungültigen Werten, 409 bei Doppelung oder veraltetem Stand
      */
     Artikel aktualisiereStammdaten(Long id, ArtikelStammdatenRequest request);
+
+    Artikel archivieren(Long id);
+
+    Artikel wiederherstellen(Long id);
+
+    void loeschen(Long id);
 }

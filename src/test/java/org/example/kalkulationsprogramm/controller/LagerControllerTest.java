@@ -39,7 +39,7 @@ class LagerControllerTest {
 
     private static LagerBestandDto zeile() {
         return new LagerBestandDto(5L, "Pfosten verzinkt", "A-1", "Stk", new BigDecimal("42"), new BigDecimal("10"), false, false,
-                List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", new BigDecimal("42"))));
+                List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", new BigDecimal("42"))), null, null, null);
     }
 
     @BeforeEach
@@ -49,8 +49,8 @@ class LagerControllerTest {
 
     @Test
     void orteLiefernUndAnlegen() throws Exception {
-        when(service.orte()).thenReturn(List.of(new LagerortDto(1L, "Hauptlager", null, true, 0)));
-        when(service.ortAnlegen(any())).thenReturn(new LagerortDto(2L, "Fahrzeug", "Sprinter", true, 1));
+        when(service.orte()).thenReturn(List.of(new LagerortDto(1L, "Hauptlager", null, true, 0, false, null)));
+        when(service.ortAnlegen(any())).thenReturn(new LagerortDto(2L, "Fahrzeug", "Sprinter", true, 1, false, null));
 
         mvc.perform(get("/api/lager/orte")).andExpect(status().isOk()).andExpect(jsonPath("$[0].name").value("Hauptlager"));
         mvc.perform(post("/api/lager/orte").contentType(MediaType.APPLICATION_JSON).content("{\"name\":\"Fahrzeug\",\"beschreibung\":\"Sprinter\"}"))
@@ -59,7 +59,7 @@ class LagerControllerTest {
 
     @Test
     void aktivErwartetDenWertImBody() throws Exception {
-        when(service.ortAktiv(eq(1L), anyBoolean())).thenReturn(new LagerortDto(1L, "Hauptlager", null, false, 0));
+        when(service.ortAktiv(eq(1L), anyBoolean())).thenReturn(new LagerortDto(1L, "Hauptlager", null, false, 0, false, null));
 
         mvc.perform(put("/api/lager/orte/1/aktiv").contentType(MediaType.APPLICATION_JSON).content("{\"aktiv\":false}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.aktiv").value(false));

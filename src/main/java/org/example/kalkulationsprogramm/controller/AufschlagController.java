@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 
 /**
  * Aufschläge einstellen: allgemein und je Kategorie. Der Aufschlag am Artikel bleibt am Artikel. Ansehen und Ändern darf nur, wer das Recht
- * „Aufschläge ändern“ hat (Administratoren immer); {@code /berechtigung} darf jeder angemeldete Benutzer fragen, damit die Oberfläche den Knopf zeigt oder nicht.
+ * „Aufschläge ändern" hat (Administratoren immer); {@code /berechtigung} darf jeder angemeldete Benutzer fragen, damit die Oberfläche den Knopf zeigt oder nicht.
  */
 @RestController
 @RequestMapping("/api/aufschlaege")
@@ -42,6 +42,12 @@ public class AufschlagController {
     public Uebersicht uebersicht(Authentication authentication) {
         berechtigung.verlange(authentication);
         return service.uebersicht();
+    }
+
+    /** Welcher Aufschlag für diesen Artikel gilt und woher er kommt (Artikel, Kategorie, allgemein oder keiner). */
+    @GetMapping("/artikel/{id}")
+    public AufschlagService.Wirksam fuerArtikel(@PathVariable Long id) {
+        return service.wirksamerFuerArtikel(id);
     }
 
     @PutMapping("/allgemein")

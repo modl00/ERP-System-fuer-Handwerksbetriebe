@@ -3995,7 +3995,10 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
 
                     {/* Content Editor - scrollable */}
                     <div className="flex-1 overflow-y-auto">
-                        <div className="mx-auto px-4 py-4 space-y-2.5 max-w-4xl">
+                        {/* pl-10 statt px-4: SortableBlock-Handle liegt bei left-[-32px] außerhalb
+                            des Blocks; overflow-y:auto clippt implizit auch overflow-x. 40px links
+                            geben dem 24px breiten Handle 8px Abstand zum Scroll-Container-Rand. */}
+                        <div className="mx-auto pl-10 pr-4 py-4 space-y-2.5 max-w-4xl">
                             {/* Rechnungsadresse – editierbar pro Dokument */}
                             <RechnungsadresseBlock
                                 value={kontextDaten.rechnungsadresse || ''}

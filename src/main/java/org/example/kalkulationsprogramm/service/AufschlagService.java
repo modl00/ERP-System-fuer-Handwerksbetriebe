@@ -15,6 +15,7 @@ import java.util.function.Supplier;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
 import org.example.kalkulationsprogramm.domain.Kategorie;
+import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.example.kalkulationsprogramm.repository.KategorieRepository;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -24,9 +25,9 @@ import org.springframework.web.server.ResponseStatusException;
 import lombok.RequiredArgsConstructor;
 
 /**
- * Welcher Aufschlag auf den Einkaufspreis gilt. Die Regel ist <b>„das Genauere gewinnt“</b>: erst der Aufschlag am <b>Artikel</b>, sonst der der
+ * Welcher Aufschlag auf den Einkaufspreis gilt. Die Regel ist <b>„das Genauere gewinnt"</b>: erst der Aufschlag am <b>Artikel</b>, sonst der der
  * <b>Kategorie</b> (hat sie keinen, der der nächsten Oberkategorie), sonst der <b>allgemeine</b> Aufschlag. Ist nirgends einer eingestellt, gibt es keinen,
- * und die Position zeigt den Einkaufspreis mit dem Hinweis „ohne Aufschlag“ (wie bisher).
+ * und die Position zeigt den Einkaufspreis mit dem Hinweis „ohne Aufschlag" (wie bisher).
  */
 @Service
 @RequiredArgsConstructor
@@ -39,6 +40,7 @@ public class AufschlagService {
 
     private final SystemSettingsService einstellungen;
     private final KategorieRepository kategorien;
+    private final ArtikelRepository artikel;
 
     public enum Quelle { ARTIKEL, KATEGORIE, ALLGEMEIN, KEINER }
 
@@ -70,17 +72,23 @@ public class AufschlagService {
             }
             return gemerkt[0];
         };
-        return artikel -> wirksamer(artikel, einmal);
+        return a -> wirksamer(a, einmal);
     }
 
-    private Wirksam wirksamer(Artikel artikel, Supplier<BigDecimal> allgemein) {
-        if (artikel == null) {
+    private Wirksam wirksamer(Artikel a, Supplier<BigDecimal> allgemein) {
+        if (a == null) {
             return new Wirksam(null, Quelle.KEINER, null);
         }
-        if (artikel.getVerkaufsaufschlagProzent() != null) {
-            return new Wirksam(artikel.getVerkaufsaufschlagProzent(), Quelle.ARTIKEL, null);
+        if (a.getVerkaufsaufschlagProzent() != null) {
+            return new Wirksam(a.getVerkaufsaufschlagProzent(), Quelle.ARTIKEL, null);
         }
-        return ausKategorieOderAllgemein(artikel.getKategorie(), allgemein);
+        return ausKategorieOderAllgemein(a.getKategorie(), allgemein);
+    }
+
+    /** Der geltende Aufschlag eines Artikels nach seiner Nummer (für die Anzeige am Artikel). */
+    @Transactional(readOnly = true)
+    public Wirksam wirksamerFuerArtikel(Long artikelId) {
+        return wirksamer(artikel.findById(artikelId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Den Artikel gibt es nicht.")));
     }
 
     @Transactional(readOnly = true)

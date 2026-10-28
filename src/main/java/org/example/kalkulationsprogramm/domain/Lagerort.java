@@ -9,6 +9,8 @@ import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
+
 /** Ein Ort, an dem Ware lagert (Halle, Fahrzeug, Regal). Wird nie gelöscht, nur deaktiviert. */
 @Entity
 @Table(name = "lagerort")
@@ -31,4 +33,10 @@ public class Lagerort {
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
+
+    @Column(name = "archiviert", nullable = false)
+    private boolean archiviert = false;
+
+    @Column(name = "archiviert_am")
+    private LocalDateTime archiviertAm;
 }

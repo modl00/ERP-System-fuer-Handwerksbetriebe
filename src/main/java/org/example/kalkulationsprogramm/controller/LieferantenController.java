@@ -1246,6 +1246,38 @@ public class LieferantenController {
         return ResponseEntity.noContent().build();
     }
 
+    @PostMapping("/{id}/archivieren")
+    @Transactional
+    public ResponseEntity<LieferantListItemDto> archivieren(@PathVariable Long id) {
+        Lieferanten lieferant = lieferantenRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lieferant nicht gefunden."));
+        lieferant.setArchiviert(true);
+        lieferant.setArchiviertAm(java.time.LocalDateTime.now());
+        return ResponseEntity.ok(lieferantMapper.toListItem(lieferantenRepository.save(lieferant)));
+    }
+
+    @PostMapping("/{id}/wiederherstellen")
+    @Transactional
+    public ResponseEntity<LieferantListItemDto> wiederherstellen(@PathVariable Long id) {
+        Lieferanten lieferant = lieferantenRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lieferant nicht gefunden."));
+        lieferant.setArchiviert(false);
+        lieferant.setArchiviertAm(null);
+        return ResponseEntity.ok(lieferantMapper.toListItem(lieferantenRepository.save(lieferant)));
+    }
+
+    @DeleteMapping("/{id}")
+    @Transactional
+    public ResponseEntity<Void> loeschen(@PathVariable Long id) {
+        Lieferanten lieferant = lieferantenRepository.findById(id)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Lieferant nicht gefunden."));
+        if (!lieferant.isArchiviert()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nur archivierte Lieferanten dürfen gelöscht werden.");
+        }
+        lieferantenRepository.delete(lieferant);
+        return ResponseEntity.noContent().build();
+    }
+
     public static class LieferantBildDto {
         public Long id;
         public String originalDateiname;

@@ -226,15 +226,22 @@ public class LesbareAblageService {
         return ergebnis;
     }
 
-    /** Ordner eines Projekts: Projekte/<Jahr>/<Kunde>/<Auftragsnummer> - <Bauvorhaben>; ohne Kunde steht „Ohne Kunde“. */
+    /** Ordner eines Projekts: &lt;Kunde&gt;/&lt;Jahr&gt;/Projekte/&lt;Auftragsnummer&gt; - &lt;Bauvorhaben&gt;; ohne Kunde steht "Ohne Kunde". */
     static String projektOrdner(Projekt p) {
+        String kunde = p.getKundenId() == null || nz(p.getKundenId().getName()).isBlank() ? "Ohne Kunde"
+                : AblageNamen.ordner(nz(p.getKundenId().getName()), "Kunde " + p.getKundenId().getId());
+        return kunde + "/" + jahr(p.getAnlegedatum()) + "/Projekte/" + projektName(p);
+    }
+
+    /** Frühere Form (mit Kunde): Projekte/&lt;Jahr&gt;/&lt;Kunde&gt;/&lt;Auftragsnummer&gt; - &lt;Bauvorhaben&gt;. Nur noch zum Erkennen alter Ordner. */
+    static String projektOrdnerAlt(Projekt p) {
         String kunde = p.getKundenId() == null || nz(p.getKundenId().getName()).isBlank() ? "Ohne Kunde"
                 : AblageNamen.ordner(nz(p.getKundenId().getName()), "Kunde " + p.getKundenId().getId());
         return "Projekte/" + jahr(p.getAnlegedatum()) + "/" + kunde + "/" + projektName(p);
     }
 
-    /** Der frühere Ordner ohne Kunde: Projekte/<Jahr>/<Auftragsnummer> - <Bauvorhaben>. Nur noch zum Erkennen alter Ordner auf einer Netzwerkfreigabe. */
-    static String projektOrdnerAlt(Projekt p) {
+    /** Älteste Form ohne Kunde: Projekte/&lt;Jahr&gt;/&lt;Auftragsnummer&gt; - &lt;Bauvorhaben&gt;. Nur noch zum Erkennen sehr alter Ordner. */
+    static String projektOrdnerAlt2(Projekt p) {
         return "Projekte/" + jahr(p.getAnlegedatum()) + "/" + projektName(p);
     }
 

@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
-import { CheckCircle2, Cloud, Download, Loader2, Lock, ShieldCheck, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle2, Cloud, Download, Loader2, Lock, ShieldCheck, XCircle } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Select } from '../../ui/select-custom';
 import { useToast } from '../../ui/toast';
@@ -18,8 +18,10 @@ interface Funktion {
     auswahl: Record<string, string>;
     /** Je Anbieter: das Modell, das ohne Wahl gilt. */
     standards: Record<string, string>;
+    benoetigtBild: boolean;
+    benoetigtPdf: boolean;
 }
-interface AnbieterStand { typ: Anbieter; anzeige: string; lokal: boolean; eingerichtet: boolean }
+interface AnbieterStand { typ: Anbieter; anzeige: string; lokal: boolean; eingerichtet: boolean; kannBild: boolean; kannPdf: boolean }
 interface Uebersicht { funktionen: Funktion[]; anbieter: AnbieterStand[] }
 interface GeminiFunktion { schluessel: string; anzeige: string; modell: string; standard: string; gewaehlt: boolean }
 interface GeminiUebersicht { funktionen: GeminiFunktion[]; websuche: boolean }
@@ -252,6 +254,7 @@ export function KiFunktionenKarte() {
                                 {zeilen.map(zeile => {
                                     const { anbieter, wert, standard } = modellInfo(zeile);
                                     const e = zeile.fest ? null : entwurf[zeile.id];
+                                    const funk = daten?.funktionen.find(f => f.funktion === zeile.id);
                                     const s = stand(anbieter);
                                     const test = tests[zeile.id];
                                     const lokalGesperrt = e?.datenschutz === 'NUR_LOKAL';
@@ -265,6 +268,7 @@ export function KiFunktionenKarte() {
                                                         ? <span className="inline-flex items-center gap-1 text-emerald-700"><ShieldCheck className="w-3.5 h-3.5" aria-hidden="true" /> {lokalGesperrt ? 'Daten bleiben im Haus' : 'Lokale KI, Daten bleiben im Haus'}</span>
                                                         : <span className="inline-flex items-center gap-1 text-amber-700"><Cloud className="w-3.5 h-3.5" aria-hidden="true" /> Fragen gehen an den Anbieter</span>}
                                                     {s && !s.eingerichtet && <span className="text-rose-700">{s.anzeige} ist noch nicht eingerichtet</span>}
+                                                    {funk?.benoetigtPdf && s && !s.kannPdf && <span className="inline-flex items-center gap-1 text-amber-700" title="Dieser Anbieter liest PDFs nicht nativ – die Seiten werden automatisch als Bilder übertragen"><AlertTriangle className="w-3.5 h-3.5 shrink-0" aria-hidden="true" /> PDF wird als Bilder gesendet</span>}
                                                 </span>
                                             </th>
                                             <td className="px-2 py-2.5 w-52">

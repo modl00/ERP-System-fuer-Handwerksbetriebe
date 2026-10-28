@@ -34,7 +34,7 @@ import lombok.extern.slf4j.Slf4j;
 
 /**
  * Gleicht die Dokumente in beide Richtungen mit einer Netzwerkfreigabe ab (SMB), in der das Programm eine lesbare Ordnerstruktur anlegt
- * ({@code Projekte/<Jahr>/<Kunde>/<Auftragsnummer> - <Bauvorhaben>/<Gruppe>/<Datei>}, dieselbe wie die lesbare Ablage).
+ * ({@code <Kunde>/<Jahr>/Projekte/<Auftragsnummer> - <Bauvorhaben>/<Gruppe>/<Datei>}, dieselbe wie die lesbare Ablage).
  *
  * <p><b>Die eigentliche Ablage des Programms bleibt unverändert.</b> Der Abgleich ist eine Zusatzfunktion: Es wird nie etwas in der Ablage gelöscht,
  * und auf der Freigabe wird ebenfalls nie etwas gelöscht. Was der Abgleich im Einzelnen tut:</p>
@@ -251,7 +251,7 @@ public class SmbAbgleichService {
                 long lm = Files.getLastModifiedTime(q).toMillis();
                 Datei r = fern.get(schluessel);
                 Stand alt = stand.get(schluessel);
-                boolean zurueckErlaubt = e.relativ().startsWith("Projekte/");
+                boolean zurueckErlaubt = projektFuer(e.relativ(), projekte) != null;
                 if (r == null) {
                     if (alt != null) {
                         hinweise.add("Auf dem Gerät gelöscht oder verschoben (bleibt in der App): " + e.relativ());
@@ -304,13 +304,10 @@ public class SmbAbgleichService {
             }
         }
 
-        // Die frühere Ordnerform ohne Kunde: Diese Dateien gibt es jetzt unter dem neuen Pfad (der Abgleich legt sie dort an); sie werden nicht noch einmal übernommen
+        // Frühere Ordnerformen: Diese Dateien gibt es jetzt unter dem neuen Pfad; sie werden nicht noch einmal übernommen
         Set<String> frueherePfade = new HashSet<>();
         for (String neuerPfad : inDerApp) {
-            String alt = fruehererPfad(neuerPfad);
-            if (alt != null) {
-                frueherePfade.add(alt);
-            }
+            frueherePfade.addAll(frueherePfade(neuerPfad));
         }
         int inAlterStruktur = 0;
 
@@ -347,7 +344,7 @@ public class SmbAbgleichService {
         }
 
         if (inAlterStruktur > 0) {
-            hinweise.add(0, inAlterStruktur + " Dateien liegen noch in der früheren Ordnerstruktur auf dem Gerät (Projekte/Jahr/Projekt, ohne Kunde). Sie sind jetzt unter Projekte/Jahr/Kunde/Projekt abgelegt; die alten Ordner können Sie auf dem Gerät löschen, das Programm löscht nichts.");
+            hinweise.add(0, inAlterStruktur + " Dateien liegen noch in einer früheren Ordnerstruktur auf dem Gerät. Sie sind jetzt unter Kunde/Jahr/Projekte/Projekt abgelegt; die alten Ordner können Sie auf dem Gerät löschen, das Programm löscht nichts.");
         }
 
         if (!probelauf) {
@@ -358,17 +355,32 @@ public class SmbAbgleichService {
         return new Ergebnis(probelauf, zaehler[0], zaehler[1], zaehler[2], zaehler[3], zaehler[4], begrenze(hinweise), begrenze(fehler));
     }
 
-    /** Aus Projekte/Jahr/Kunde/Projekt/... den früheren Pfad Projekte/Jahr/Projekt/... (in Kleinbuchstaben), sonst {@code null}. */
-    static String fruehererPfad(String neuerPfadKlein) {
+    /**
+     * Frühhere Pfade (in Kleinbuchstaben) für den aktuellen Pfad – damit alte Dateien auf der Freigabe nicht erneut übernommen werden.
+     * <ul>
+     *   <li>Neu: {@code Kunde/Jahr/Projekte/Projekt/...} → {@code Projekte/Jahr/Kunde/Projekt/...} und {@code Projekte/Jahr/Projekt/...}</li>
+     *   <li>Alt (mit Kunde): {@code Projekte/Jahr/Kunde/Projekt/...} → {@code Projekte/Jahr/Projekt/...}</li>
+     * </ul>
+     */
+    static List<String> frueherePfade(String neuerPfadKlein) {
         String[] teile = neuerPfadKlein.split("/");
-        if (teile.length < 6 || !teile[0].equals("projekte")) {
-            return null;
+        // Neues Format: Kunde/Jahr/Projekte/Projekt/...
+        if (teile.length >= 5 && teile[2].equals("projekte")) {
+            // Alt 1: Projekte/Jahr/Kunde/Projekt/...
+            StringBuilder alt1 = new StringBuilder("projekte").append('/').append(teile[1]).append('/').append(teile[0]);
+            for (int i = 3; i < teile.length; i++) alt1.append('/').append(teile[i]);
+            // Alt 2: Projekte/Jahr/Projekt/... (ohne Kunde)
+            StringBuilder alt2 = new StringBuilder("projekte").append('/').append(teile[1]);
+            for (int i = 3; i < teile.length; i++) alt2.append('/').append(teile[i]);
+            return List.of(alt1.toString(), alt2.toString());
         }
-        StringBuilder sb = new StringBuilder(teile[0]).append('/').append(teile[1]);
-        for (int i = 3; i < teile.length; i++) {
-            sb.append('/').append(teile[i]);
+        // Altes Format: Projekte/Jahr/Kunde/Projekt/... → Projekte/Jahr/Projekt/...
+        if (teile.length >= 6 && teile[0].equals("projekte")) {
+            StringBuilder sb = new StringBuilder(teile[0]).append('/').append(teile[1]);
+            for (int i = 3; i < teile.length; i++) sb.append('/').append(teile[i]);
+            return List.of(sb.toString());
         }
-        return sb.toString();
+        return List.of();
     }
 
     private static List<String> begrenze(List<String> l) {
@@ -412,11 +424,15 @@ public class SmbAbgleichService {
                 || lower.endsWith(".part") || lower.endsWith(".crdownload") || lower.endsWith(".lnk")) {
             return "";
         }
-        if (!"Projekte".equals(teile[0])) {
-            return "Neue Datei auf dem Gerät außerhalb von „Projekte“, wird nicht übernommen";
-        }
-        if (tiefeFuer(d.relativ(), projekte) == 0) {
-            return "Neue Datei auf dem Gerät ohne passendes Projekt (Ordner <Jahr>/<Kunde>/<Auftragsnummer> - <Bauvorhaben> stimmt nicht)";
+        int tiefe = tiefeFuer(d.relativ(), projekte);
+        if (tiefe == 0) {
+            // Sieht es aus wie ein Projektordner (bekanntes Format, aber unbekanntes Projekt)?
+            boolean looksProjekt = (teile.length >= 4 && "projekte".equals(teile[0].toLowerCase(Locale.ROOT)))
+                    || (teile.length >= 5 && "projekte".equals(teile[2].toLowerCase(Locale.ROOT)));
+            if (looksProjekt) {
+                return "Neue Datei auf dem Gerät ohne passendes Projekt (Ordner <Jahr>/<Kunde>/<Auftragsnummer> - <Bauvorhaben> stimmt nicht)";
+            }
+            return "Neue Datei auf dem Gerät ausserhalb des Projektordners, wird nicht übernommen";
         }
         int punkt = lower.lastIndexOf('.');
         if (punkt >= 0 && GESPERRT.contains(lower.substring(punkt + 1))) {
@@ -431,7 +447,6 @@ public class SmbAbgleichService {
         if (uhr.millis() - d.geaendert() < RUHEZEIT_MS) {
             return "";   // wird gerade noch kopiert, kommt beim nächsten Mal
         }
-        int tiefe = tiefeFuer(d.relativ(), projekte);
         if ("Ausgangsdokumente".equals(teile.length >= tiefe + 2 ? teile[tiefe] : "")) {
             return "Ausgangsdokumente (eigene Rechnungen und Angebote) werden nicht von Hand übernommen";
         }
@@ -460,6 +475,9 @@ public class SmbAbgleichService {
     /** Die Projektordner, auch die frühere Form ohne Kunde (Dateien, die jemand dort ablegt, werden weiter dem Projekt zugeordnet). */
     private Map<String, Projekt> projekteNachOrdner() {
         Map<String, Projekt> m = new HashMap<>();
+        for (Projekt p : projektRepository.findAll()) {
+            m.put(LesbareAblageService.projektOrdnerAlt2(p).toLowerCase(Locale.ROOT), p);
+        }
         for (Projekt p : projektRepository.findAll()) {
             m.put(LesbareAblageService.projektOrdnerAlt(p).toLowerCase(Locale.ROOT), p);
         }
@@ -490,7 +508,7 @@ public class SmbAbgleichService {
         return projekte.get(String.join("/", java.util.Arrays.copyOf(teile, tiefe)).toLowerCase(Locale.ROOT));
     }
 
-    /** Ordner unter dem Projekt ist die Dokumentgruppe; liegt die Datei direkt im Projektordner oder ist der Ordner unbekannt, gilt „Diverse Dokumente“. */
+    /** Ordner unter dem Projekt ist die Dokumentgruppe; liegt die Datei direkt im Projektordner oder ist der Ordner unbekannt, gilt "Diverse Dokumente". */
     static DokumentGruppe gruppeAus(String relativ, int tiefe) {
         String[] teile = relativ.split("/");
         if (tiefe > 0 && teile.length >= tiefe + 2) {

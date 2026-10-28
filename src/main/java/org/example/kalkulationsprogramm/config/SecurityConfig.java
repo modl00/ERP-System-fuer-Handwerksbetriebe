@@ -22,8 +22,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
 import org.springframework.security.web.csrf.CsrfToken;
 import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
-import tools.jackson.core.JacksonException;
-import tools.jackson.databind.ObjectMapper;
+
+import com.fasterxml.jackson.databind.ObjectMapper;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -147,11 +147,6 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.DELETE, "/api/kunden/*").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/kunden/*/datenschutz-sperre").hasRole("ADMIN")
                     .requestMatchers(HttpMethod.POST, "/api/kunden/*/anonymisieren").hasRole("ADMIN")
-                    // Arbeitsgänge und ihre Stundensätze pflegt nur der Admin (Stammdaten → Arbeitsgänge).
-                    // Lesen bleibt offen: Zeiterfassung, Kalender und Projekte brauchen die Liste.
-                    .requestMatchers(HttpMethod.POST, "/api/arbeitsgaenge", "/api/arbeitsgaenge/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.PUT, "/api/arbeitsgaenge/**").hasRole("ADMIN")
-                    .requestMatchers(HttpMethod.DELETE, "/api/arbeitsgaenge/**").hasRole("ADMIN")
                     .anyRequest().authenticated())
                 .exceptionHandling(ex -> ex
                     .authenticationEntryPoint((request, response, exception) -> writeJson(response, 401, Map.of("error", "Anmeldung erforderlich.")))
@@ -173,14 +168,7 @@ public class SecurityConfig {
             "/dokument-editor", "/dokument-editor/**",
             "/login", "/login/**", "/onboarding", "/onboarding/**",
             "/error", "/error/**",
-            "/actuator/health",
-            // Update-Abfrage des OpenFile Launchers: läuft außerhalb des Browsers, ohne Login.
-            // Nur lesend, Antwort unterschrieben (OpenFileLauncherService); von außen sperrt
-            // ZeiterfassungSecurityFilter wie alles außer der Handy-App.
-            "/openfile-launcher/aktuell",
-            // Mac-Einrichtung per Terminal-Befehl: curl ohne Login. Nur lesend; gilt nur mit einem
-            // Einmal-Link, den ein Admin erzeugt hat (10 Minuten, einmal einlösbar, EinmalLinks).
-            "/openfile-launcher/mac/**"
+            "/actuator/health"
     };
 
     /**
@@ -270,10 +258,7 @@ public class SecurityConfig {
                         "/api/firma/steuerberater",
                         "/api/firma/steuerberater/*").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/abteilungen/*/berechtigungen").hasRole("ADMIN")
-                // Abteilungen anlegen, umbenennen, löschen (Einstellungen → Abteilungen & Rechte). Lesen bleibt offen,
-                // weil der Mitarbeiter-Editor und der Monatsabschluss die Liste brauchen.
                 .requestMatchers(HttpMethod.POST, "/api/abteilungen").hasRole("ADMIN")
-                .requestMatchers(HttpMethod.PUT, "/api/abteilungen/*").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/abteilungen/*").hasRole("ADMIN")
                 // Feiertage anlegen, anpassen, löschen wirkt auf Soll und Lohn aller Mitarbeiter (Issue #222).
                 .requestMatchers(HttpMethod.POST, "/api/zeitverwaltung/feiertage",
@@ -281,8 +266,6 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/zeitverwaltung/feiertage/*").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/zeitverwaltung/feiertage/*").hasRole("ADMIN")
                 .requestMatchers("/api/firma/**", "/api/settings/**", "/api/frontend-users/**", "/api/postfaecher", "/api/postfaecher/**").hasRole("ADMIN")
-                // Einrichtungs-Dateien des OpenFile Launchers gibt es nur unter Einstellungen (Admin)
-                .requestMatchers("/api/openfile-launcher/**").hasRole("ADMIN")
                 // System-Signatur fuer automatische E-Mails ist firmenweite Konfiguration
                 // (wirkt auf Mahnungen, Auto-Auftragsbestaetigungen) — nur Admins duerfen sie umbiegen.
                 .requestMatchers(HttpMethod.PUT, "/api/email/signatures/*/system-default").hasRole("ADMIN")
@@ -311,6 +294,10 @@ public class SecurityConfig {
                 // Massenläufe ohne Knopf in der Oberfläche: gehen über alle Mails, Lieferanten-
                 // Dokumente oder Zeitkonten und kosten teils KI-Aufrufe - nur Admin.
                 .requestMatchers(ADMIN_MASSENLAEUFE).hasRole("ADMIN")
+                // Stammdaten endgültig löschen ist eine irreversible Admin-Aktion (nur aus Archiv)
+                .requestMatchers(HttpMethod.DELETE, "/api/artikel/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/lieferanten/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.DELETE, "/api/lager/orte/**").hasRole("ADMIN")
                 // Lieferantendokumente löschen ist eine irreversible Admin-Aktion
                 .requestMatchers(HttpMethod.DELETE, "/api/lieferant-dokumente/**").hasRole("ADMIN")
                 // Backfill der Dokumentenketten schreibt über den gesamten Lieferanten-Bestand.
@@ -413,7 +400,7 @@ public class SecurityConfig {
             response.setStatus(status);
             response.setContentType("application/json;charset=UTF-8");
             objectMapper.writeValue(response.getWriter(), body);
-        } catch (IOException | JacksonException ignored) {
+        } catch (IOException ignored) {
             response.setStatus(status);
         }
         }

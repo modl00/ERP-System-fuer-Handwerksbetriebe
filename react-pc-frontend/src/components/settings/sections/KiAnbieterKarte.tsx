@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react';
-import { CheckCircle2, Download, Loader2, Plug, XCircle } from 'lucide-react';
+import { CheckCircle2, Download, FileText, Image, Loader2, Plug, XCircle } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { Input } from '../../ui/input';
 import { Select } from '../../ui/select-custom';
@@ -9,7 +9,7 @@ import { SaveButton, SectionLoading, SettingsCard } from '../settingsUi';
 import { parseErrorMessage } from '../settingsApi';
 
 type Anbieter = 'GEMINI' | 'LOKAL' | 'CLAUDE' | 'MISTRAL';
-interface AnbieterStand { typ: Anbieter; anzeige: string; lokal: boolean; eingerichtet: boolean; modell: string; schluesselGesetzt: boolean }
+interface AnbieterStand { typ: Anbieter; anzeige: string; lokal: boolean; eingerichtet: boolean; modell: string; schluesselGesetzt: boolean; kannBild: boolean; kannPdf: boolean }
 interface Uebersicht { anbieter: AnbieterStand[] }
 interface Testergebnis { ok: boolean; art: string; meldung: string }
 interface Modell { name: string; anzeigename: string }
@@ -146,7 +146,11 @@ export function KiAnbieterKarte({ geminiZugang = null, lokalZugang = null }: { g
                                 const name = typ === 'CLAUDE' ? 'Claude (Anthropic)' : 'Mistral';
                                 return (
                                     <fieldset key={typ} className="rounded-lg border border-slate-200 p-3 space-y-2" data-testid={`ki-zugang-${typ}`}>
-                                        <legend className="px-1 text-sm font-semibold text-slate-800">{name}</legend>
+                                        <legend className="px-1 text-sm font-semibold text-slate-800 flex items-center gap-2">
+                                            {name}
+                                            {s?.kannBild && <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-600" title="Kann Bilder verarbeiten"><Image className="w-3 h-3" aria-hidden="true" /> Bilder</span>}
+                                            {s?.kannPdf && <span className="inline-flex items-center gap-1 rounded-full bg-slate-100 px-2 py-0.5 text-xs font-normal text-slate-600" title="Kann PDFs nativ lesen"><FileText className="w-3 h-3" aria-hidden="true" /> PDF</span>}
+                                        </legend>
                                         <div className="grid gap-2 sm:grid-cols-[9rem_1fr] sm:items-center">
                                             <label htmlFor={`ki-${typ}-schluessel`} className="text-sm text-slate-700">Schlüssel</label>
                                             <Input id={`ki-${typ}-schluessel`} type="password" autoComplete="new-password" value={schluessel[typ] ?? ''} className="font-mono text-sm"

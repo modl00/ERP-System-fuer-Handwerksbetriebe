@@ -25,7 +25,6 @@ import org.example.kalkulationsprogramm.repository.AbteilungRepository;
 import org.example.kalkulationsprogramm.repository.FeiertagRepository;
 import org.example.kalkulationsprogramm.repository.LieferantDokumentProjektAnteilRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
-import org.example.kalkulationsprogramm.repository.SystemSettingRepository;
 import org.example.kalkulationsprogramm.service.FeiertagService;
 import org.example.kalkulationsprogramm.repository.ProjektRepository;
 import org.example.kalkulationsprogramm.repository.planung.PlanAbhaengigkeitRepository;
@@ -65,7 +64,7 @@ public class PlanungsService {
     private final PlanProjektRepository termine;
     private final ProjektRepository projekte;
     private final FeiertagRepository feiertage;
-    private final SystemSettingRepository einstellungenRepository;
+    private final FeiertagService feiertagService;
     private final AbteilungRepository abteilungen;
     private final AngebotsZeiten angebotsZeiten;
     private final PlanungsEinstellungen einstellungen;
@@ -1050,7 +1049,7 @@ public class PlanungsService {
     private Set<LocalDate> feiertageAb(LocalDate datum) {
         Set<LocalDate> menge = new HashSet<>();
         for (int jahr = datum.getYear(); jahr <= datum.getYear() + 3; jahr++) {
-            for (Feiertag f : feiertage.findByJahrAndBundesland(jahr, FeiertagService.bundeslandAus(einstellungenRepository))) {
+            for (Feiertag f : feiertage.findByJahrAndBundesland(jahr, feiertagService.aktuellesBundesland())) {
                 if (!f.isHalbTag()) {
                     menge.add(f.getDatum());
                 }

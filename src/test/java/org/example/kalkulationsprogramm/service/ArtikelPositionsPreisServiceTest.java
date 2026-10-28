@@ -5,7 +5,6 @@ import org.example.kalkulationsprogramm.domain.ArtikelPreisHinweis;
 import org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe;
 import org.example.kalkulationsprogramm.domain.LieferantenArtikelPreise;
 import org.example.kalkulationsprogramm.domain.Verrechnungseinheit;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 
 import java.math.BigDecimal;
@@ -246,6 +245,7 @@ class ArtikelPositionsPreisServiceTest {
 
     @Test
     void ohneAufschlagsregelnZaehltNurDerAufschlagAmArtikel() {
+        // Der Standard-Konstruktor (ohne Spring) kennt weder Kategorie- noch allgemeinen Aufschlag: wie bisher
         Artikel rohr = new Artikel();
         rohr.setVerrechnungseinheit(Verrechnungseinheit.LAUFENDE_METER);
         mitPreis(rohr, "10.00");
@@ -282,6 +282,7 @@ class ArtikelPositionsPreisServiceTest {
 
         var vorschlag = service.berechne(konsole);
 
+        // 2,00 je kg × 2,5 kg je Stück = 5,00 je Stück
         assertThat(vorschlag.einheit()).isEqualTo("Stk");
         assertThat(vorschlag.einzelpreis()).isEqualByComparingTo("5.00");
         assertThat(vorschlag.hinweis()).isEqualTo(ArtikelPreisHinweis.OK);
@@ -311,6 +312,7 @@ class ArtikelPositionsPreisServiceTest {
 
         var v = service.berechneZuschnitt(blech, new BigDecimal("39.25"), new BigDecimal("1"));
 
+        // 2,00 je kg × 39,25 kg = 78,50, plus 10 % = 86,35 je Stück
         assertThat(v.einheit()).isEqualTo("Stk");
         assertThat(v.einzelpreis()).isEqualByComparingTo("86.35");
         assertThat(v.hinweis()).isEqualTo(ArtikelPreisHinweis.OK);

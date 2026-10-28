@@ -6,6 +6,21 @@ export interface ChangelogEintrag {
 
 export const CHANGELOG: ChangelogEintrag[] = [
     {
+        version: '2026.10.23',
+        datum: '23. Oktober 2026',
+        eintraege: [
+            'Bestellübersicht: Rechnungs-Zuordnung korrigiert – Waren werden jetzt zuverlässig ins Lager gebucht und Projektzuordnungen erscheinen sofort unter Projekte → Material',
+            'Bestellübersicht: Lager-Vorschau beim Einbuchen – jede Position zeigt ob der Artikel erkannt wurde oder noch angelegt werden muss',
+            'Artikel anlegen direkt aus dem Lager-Dialog mit der gleichen Maske wie im Artikelstamm, vorausgefüllt mit Bezeichnung, Preis und Lieferant',
+            'Einkaufspreis wird beim Wareneingang automatisch in der Preishistorie des Artikels gespeichert (Quelle: Rechnung)',
+            'Bestellübersicht: Neuer Reiter „Privat" – Rechnungen die nicht zur Firma gehören können markiert und jederzeit wieder in den normalen Workflow zurückgeholt werden',
+            'Bestellübersicht: Projektzuordnung jetzt auch schon bei Auftragsbestätigung und Lieferschein möglich (ohne Lagerbuchung)',
+            'Artikelstamm: Archiv-Schalter zeigt archivierte Artikel – von dort direkt löschen',
+            'Erledigt-Tab: Zuordnung nachträglich bearbeiten wieder möglich',
+            'Handelseinheit für Artikel: Stangen, Pakete und ähnliche Verkaufseinheiten hinterlegen – Anzahl × Länge × kg/m wird überall automatisch in kg umgerechnet (Bestellungen, Lager, Stammdaten)',
+        ],
+    },
+    {
         version: '2026.10.20',
         datum: '20. Oktober 2026',
         eintraege: [

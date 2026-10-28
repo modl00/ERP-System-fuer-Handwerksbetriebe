@@ -32,10 +32,13 @@ import org.example.kalkulationsprogramm.repository.LieferantDokumentVerknuepfung
 import org.example.kalkulationsprogramm.repository.LieferantGeschaeftsdokumentRepository;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
 import org.example.kalkulationsprogramm.service.LieferantDokumentPositionLeser.KiAntwort;
+import org.example.kalkulationsprogramm.service.ki.AnbieterTyp;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterFehler;
 import org.example.kalkulationsprogramm.service.ki.KiAnbieterService;
 import org.example.kalkulationsprogramm.service.ki.KiFunktion;
+import org.example.kalkulationsprogramm.service.ki.KiPdfSeiten;
 import org.example.kalkulationsprogramm.service.ki.KiTypen;
+import org.example.kalkulationsprogramm.service.ki.MistralOcrService;
 import org.hibernate.Hibernate;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
@@ -43,10 +46,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionTemplate;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -78,6 +81,7 @@ public class GeminiDokumentAnalyseService {
     private final TransactionTemplate transactionTemplate;
     private final LieferantDokumentDateiService dokumentDateiService;
     private final KiAnbieterService kiAnbieterService;
+    private final MistralOcrService mistralOcr;
 
     /** Ausgabelimit je KI-Aufruf. */
     @Value("${ai.gemini.dokument-analyse.max-output-tokens:65536}")
@@ -517,7 +521,7 @@ public class GeminiDokumentAnalyseService {
                 int totalPages = originalDoc.getNumberOfPages();
 
                 for (var invoiceNode : jsonArray) {
-                    String pageRange = invoiceNode.has("seiten") ? invoiceNode.get("seiten").asString("") : "alle";
+                    String pageRange = invoiceNode.has("seiten") ? invoiceNode.get("seiten").asText() : "alle";
 
                     // Parse AnalyzeResponse von diesem Invoice-Node
                     var analyzeResponse = parseJsonToAnalyzeResponse(invoiceNode.toString());
@@ -613,27 +617,25 @@ public class GeminiDokumentAnalyseService {
 
     public String rufGeminiApiMitPrompt(byte[] bytes, String mimeType, String customPrompt, boolean useProModel) {
         try {
-            KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
-                    null,
-                    List.of(new KiTypen.Nutzer(customPrompt, List.of(new KiTypen.Anhang(mimeType, bytes)))),
-                    List.of(), 0.0, maxOutputTokens);
-            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text().trim();
-
-            // JSON aus Markdown extrahieren falls vorhanden
-            if (text.contains("```json")) {
-                int start = text.indexOf("```json") + 7;
-                int end = text.indexOf("```", start);
-                if (end > start) {
-                    return text.substring(start, end).trim();
-                }
-            } else if (text.contains("```")) {
-                int start = text.indexOf("```") + 3;
-                int end = text.indexOf("```", start);
-                if (end > start) {
-                    return text.substring(start, end).trim();
+            var anbieter = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN);
+            // Mistral: OCR zuerst, dann Chat mit extrahiertem Text
+            if (anbieter.typ() == AnbieterTyp.MISTRAL) {
+                String ocrText = mistralOcr.extrahiereText(bytes, mimeType);
+                if (ocrText != null) {
+                    KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(null,
+                            List.of(new KiTypen.Nutzer(customPrompt + "\n\nDokumentinhalt (OCR):\n" + ocrText, List.of())),
+                            List.of(), 0.0, maxOutputTokens);
+                    return extrahiereJson(anbieter.chat(anfrage).text());
                 }
             }
-            return text;
+            var anhang = KiPdfSeiten.fuer(anbieter,
+                    List.of(new KiTypen.Anhang(mimeType, bytes)));
+            KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
+                    null,
+                    List.of(new KiTypen.Nutzer(customPrompt, anhang)),
+                    List.of(), 0.0, maxOutputTokens);
+            String text = anbieter.chat(anfrage).text();
+            return extrahiereJson(text);
         } catch (KiAnbieterFehler e) {
             log.debug("[Dokument-Analyse] KI nicht eingerichtet – Aufruf übersprungen: {}", e.getMessage());
             return null;
@@ -845,7 +847,7 @@ public class GeminiDokumentAnalyseService {
             var builder = org.example.kalkulationsprogramm.dto.LieferantDokumentDto.AnalyzeResponse.builder();
 
             // Dokumenttyp
-            String typStr = json.has("dokumentTyp") ? json.get("dokumentTyp").asString(null) : null;
+            String typStr = json.has("dokumentTyp") ? json.get("dokumentTyp").asText(null) : null;
             if (typStr != null) {
                 typStr = typStr.replace(" (Kopie)", "").trim();
                 try {
@@ -859,35 +861,35 @@ public class GeminiDokumentAnalyseService {
 
             // Dokumentnummer
             if (json.has("dokumentNummer") && !json.get("dokumentNummer").isNull()) {
-                builder.dokumentNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("dokumentNummer").asString("")));
+                builder.dokumentNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("dokumentNummer").asText()));
             }
 
             // Datum
             LocalDate parsedDokumentDatum = null;
             if (json.has("dokumentDatum") && !json.get("dokumentDatum").isNull()) {
-                parsedDokumentDatum = parseDateFlexibel(json.get("dokumentDatum").asString(""));
+                parsedDokumentDatum = parseDateFlexibel(json.get("dokumentDatum").asText());
                 if (parsedDokumentDatum != null) {
                     builder.dokumentDatum(parsedDokumentDatum);
                 } else {
-                    log.warn("Konnte dokumentDatum nicht parsen: '{}'", json.get("dokumentDatum").asString(""));
+                    log.warn("Konnte dokumentDatum nicht parsen: '{}'", json.get("dokumentDatum").asText());
                 }
             }
 
             // Beträge
             if (json.has("betragNetto") && !json.get("betragNetto").isNull()) {
-                builder.betragNetto(new java.math.BigDecimal(json.get("betragNetto").asString("")));
+                builder.betragNetto(new java.math.BigDecimal(json.get("betragNetto").asText()));
             }
             if (json.has("betragBrutto") && !json.get("betragBrutto").isNull()) {
-                builder.betragBrutto(new java.math.BigDecimal(json.get("betragBrutto").asString("")));
+                builder.betragBrutto(new java.math.BigDecimal(json.get("betragBrutto").asText()));
             }
             if (json.has("mwstSatz") && !json.get("mwstSatz").isNull()) {
-                builder.mwstSatz(new java.math.BigDecimal(json.get("mwstSatz").asString("")));
+                builder.mwstSatz(new java.math.BigDecimal(json.get("mwstSatz").asText()));
             }
 
             // Zahlungsziel
             LocalDate parsedZahlungsziel = null;
             if (json.has("zahlungsziel") && !json.get("zahlungsziel").isNull()) {
-                String zahlungszielStr = json.get("zahlungsziel").asString("");
+                String zahlungszielStr = json.get("zahlungsziel").asText();
                 parsedZahlungsziel = parseDateFlexibel(zahlungszielStr);
                 if (parsedZahlungsziel != null) {
                     builder.zahlungsziel(parsedZahlungsziel);
@@ -898,22 +900,22 @@ public class GeminiDokumentAnalyseService {
 
             // Referenzen
             if (json.has("bestellnummer") && !json.get("bestellnummer").isNull()) {
-                builder.bestellnummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("bestellnummer").asString("")));
+                builder.bestellnummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("bestellnummer").asText()));
             }
             if (json.has("referenzNummer") && !json.get("referenzNummer").isNull()) {
-                builder.referenzNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("referenzNummer").asString("")));
+                builder.referenzNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("referenzNummer").asText()));
             }
 
             // Skonto
             Integer parsedNettoTage = null;
             if (json.has("skontoTage") && !json.get("skontoTage").isNull()) {
-                builder.skontoTage(json.get("skontoTage").asInt(0));
+                builder.skontoTage(json.get("skontoTage").asInt());
             }
             if (json.has("skontoProzent") && !json.get("skontoProzent").isNull()) {
-                builder.skontoProzent(new java.math.BigDecimal(json.get("skontoProzent").asString("")));
+                builder.skontoProzent(new java.math.BigDecimal(json.get("skontoProzent").asText()));
             }
             if (json.has("nettoTage") && !json.get("nettoTage").isNull()) {
-                parsedNettoTage = json.get("nettoTage").asInt(0);
+                parsedNettoTage = json.get("nettoTage").asInt();
                 builder.nettoTage(parsedNettoTage);
             }
 
@@ -926,29 +928,29 @@ public class GeminiDokumentAnalyseService {
 
             // Bereits gezahlt
             if (json.has("bereitsGezahlt") && !json.get("bereitsGezahlt").isNull()) {
-                builder.bereitsGezahlt(json.get("bereitsGezahlt").asBoolean(false));
+                builder.bereitsGezahlt(json.get("bereitsGezahlt").asBoolean());
             }
             if (json.has("zahlungsart") && !json.get("zahlungsart").isNull()) {
-                builder.zahlungsart(normalizeZahlungsart(json.get("zahlungsart").asString("")));
+                builder.zahlungsart(normalizeZahlungsart(json.get("zahlungsart").asText()));
             }
 
             // Lieferantendaten
             if (json.has("lieferantName") && !json.get("lieferantName").isNull()) {
-                builder.lieferantName(json.get("lieferantName").asString(""));
+                builder.lieferantName(json.get("lieferantName").asText());
             }
             if (json.has("lieferantStrasse") && !json.get("lieferantStrasse").isNull()) {
-                builder.lieferantStrasse(json.get("lieferantStrasse").asString(""));
+                builder.lieferantStrasse(json.get("lieferantStrasse").asText());
             }
             if (json.has("lieferantPlz") && !json.get("lieferantPlz").isNull()) {
-                builder.lieferantPlz(json.get("lieferantPlz").asString(""));
+                builder.lieferantPlz(json.get("lieferantPlz").asText());
             }
             if (json.has("lieferantOrt") && !json.get("lieferantOrt").isNull()) {
-                builder.lieferantOrt(json.get("lieferantOrt").asString(""));
+                builder.lieferantOrt(json.get("lieferantOrt").asText());
             }
 
             // Confidence
             if (json.has("confidence") && !json.get("confidence").isNull()) {
-                builder.aiConfidence(json.get("confidence").asDouble(0.0));
+                builder.aiConfidence(json.get("confidence").asDouble());
             } else {
                 builder.aiConfidence(0.8);
             }
@@ -2342,11 +2344,28 @@ public class GeminiDokumentAnalyseService {
     private KiAntwort rufGemini(byte[] dokumentBytes, String mimeType, String systemPrompt, String userText,
             boolean useProModel) {
         try {
+            var anbieter = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN);
+            // Mistral: OCR zuerst, dann Chat mit extrahiertem Text
+            if (anbieter.typ() == AnbieterTyp.MISTRAL) {
+                String ocrText = mistralOcr.extrahiereText(dokumentBytes, mimeType);
+                if (ocrText != null) {
+                    KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(systemPrompt,
+                            List.of(new KiTypen.Nutzer(userText + "\n\nDokumentinhalt (OCR):\n" + ocrText, List.of())),
+                            List.of(), 0.0, maxOutputTokens);
+                    String roh = anbieter.chat(anfrage).text();
+                    String text = extrahiereJson(roh);
+                    log.info("[KI-Analyse] Mistral-OCR-Analyse erfolgreich ({} Zeichen)", text.length());
+                    return new KiAntwort(text, isJsonTruncated(text));
+                }
+            }
+            var anhang = KiPdfSeiten.fuer(anbieter,
+                    List.of(new KiTypen.Anhang(mimeType, dokumentBytes)));
             KiTypen.KiAnfrage anfrage = new KiTypen.KiAnfrage(
                     systemPrompt,
-                    List.of(new KiTypen.Nutzer(userText, List.of(new KiTypen.Anhang(mimeType, dokumentBytes)))),
+                    List.of(new KiTypen.Nutzer(userText, anhang)),
                     List.of(), 0.0, maxOutputTokens);
-            String text = kiAnbieterService.waehle(KiFunktion.DOKUMENT_ERKENNEN).chat(anfrage).text();
+            String roh = anbieter.chat(anfrage).text();
+            String text = extrahiereJson(roh);
             log.info("[KI-Analyse] Dokumentanalyse erfolgreich ({} Zeichen)", text.length());
             return new KiAntwort(text, isJsonTruncated(text));
         } catch (KiAnbieterFehler e) {
@@ -2361,16 +2380,48 @@ public class GeminiDokumentAnalyseService {
         }
     }
 
+    /**
+     * Extrahiert das JSON-Objekt aus einer Gemini-Antwort, die Markdown-Code-Blöcke
+     * oder Thinking-Text enthalten kann. Gibt den unveränderten Text zurück, wenn kein
+     * Wrapper erkannt wird.
+     */
+    private static String extrahiereJson(String text) {
+        if (text == null) {
+            return null;
+        }
+        String t = text.trim();
+        if (t.contains("```json")) {
+            int start = t.indexOf("```json") + 7;
+            int end = t.indexOf("```", start);
+            if (end > start) {
+                return t.substring(start, end).trim();
+            }
+        } else if (t.contains("```")) {
+            int start = t.indexOf("```") + 3;
+            int end = t.indexOf("```", start);
+            if (end > start) {
+                return t.substring(start, end).trim();
+            }
+        }
+        // Thinking-Text vor dem JSON: erstes { bis letztes }
+        int jsonStart = t.indexOf('{');
+        int jsonEnd = t.lastIndexOf('}');
+        if (jsonStart > 0 && jsonEnd > jsonStart) {
+            return t.substring(jsonStart, jsonEnd + 1);
+        }
+        return t;
+    }
+
     /** Die KI sagt ausdrücklich: kein Geschäftsdokument bzw. Typ SONSTIG. */
     private static boolean istKeinGeschaeftsdokument(JsonNode json) {
         if (json == null) {
             return false;
         }
-        if (json.has("istGeschaeftsdokument") && !json.get("istGeschaeftsdokument").asBoolean(false)) {
+        if (json.has("istGeschaeftsdokument") && !json.get("istGeschaeftsdokument").asBoolean()) {
             return true;
         }
         return json.has("dokumentTyp") && !json.get("dokumentTyp").isNull()
-                && "SONSTIG".equals(json.get("dokumentTyp").asString("").toUpperCase());
+                && "SONSTIG".equals(json.get("dokumentTyp").asText().toUpperCase());
     }
 
     /**
@@ -2392,7 +2443,7 @@ public class GeminiDokumentAnalyseService {
 
     private static boolean hatWert(JsonNode json, String feld) {
         JsonNode wert = json.get(feld);
-        return wert != null && !wert.isNull() && !wert.asString("").isBlank();
+        return wert != null && !wert.isNull() && !wert.asText().isBlank();
     }
 
     /**
@@ -2425,7 +2476,7 @@ public class GeminiDokumentAnalyseService {
 
             // Dokumenttyp aus KI-Response
             if (json.has("dokumentTyp") && !json.get("dokumentTyp").isNull()) {
-                String typString = json.get("dokumentTyp").asString("").toUpperCase();
+                String typString = json.get("dokumentTyp").asText().toUpperCase();
                 LieferantDokumentTyp typ = typAusKiAntwort(typString);
                 if (typ != null) {
                     gd.setDetectedTyp(typ);
@@ -2437,57 +2488,57 @@ public class GeminiDokumentAnalyseService {
 
             // Dokumentnummer
             if (json.has("dokumentNummer") && !json.get("dokumentNummer").isNull()) {
-                gd.setDokumentNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("dokumentNummer").asString("")));
+                gd.setDokumentNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("dokumentNummer").asText()));
             }
 
             // Datum
             if (json.has("dokumentDatum") && !json.get("dokumentDatum").isNull()) {
                 try {
                     gd.setDokumentDatum(
-                            LocalDate.parse(json.get("dokumentDatum").asString(""), DateTimeFormatter.ISO_LOCAL_DATE));
+                            LocalDate.parse(json.get("dokumentDatum").asText(), DateTimeFormatter.ISO_LOCAL_DATE));
                 } catch (Exception e) {
-                    log.debug("Konnte Datum nicht parsen: {}", json.get("dokumentDatum").asString(""));
+                    log.debug("Konnte Datum nicht parsen: {}", json.get("dokumentDatum").asText());
                 }
             }
 
             // Beträge
             if (json.has("betragNetto") && !json.get("betragNetto").isNull()) {
-                gd.setBetragNetto(new BigDecimal(json.get("betragNetto").asString("")));
+                gd.setBetragNetto(new BigDecimal(json.get("betragNetto").asText()));
             }
             if (json.has("betragBrutto") && !json.get("betragBrutto").isNull()) {
-                gd.setBetragBrutto(new BigDecimal(json.get("betragBrutto").asString("")));
+                gd.setBetragBrutto(new BigDecimal(json.get("betragBrutto").asText()));
             }
             if (json.has("mwstSatz") && !json.get("mwstSatz").isNull()) {
-                gd.setMwstSatz(new BigDecimal(json.get("mwstSatz").asString("")));
+                gd.setMwstSatz(new BigDecimal(json.get("mwstSatz").asText()));
             }
 
             // Liefertermin
             if (json.has("liefertermin") && !json.get("liefertermin").isNull()) {
                 try {
                     gd.setLiefertermin(
-                            LocalDate.parse(json.get("liefertermin").asString(""), DateTimeFormatter.ISO_LOCAL_DATE));
+                            LocalDate.parse(json.get("liefertermin").asText(), DateTimeFormatter.ISO_LOCAL_DATE));
                 } catch (Exception e) {
-                    log.debug("Konnte Liefertermin nicht parsen: {}", json.get("liefertermin").asString(""));
+                    log.debug("Konnte Liefertermin nicht parsen: {}", json.get("liefertermin").asText());
                 }
             }
 
             // Bestellnummer und Referenznummer
             if (json.has("bestellnummer") && !json.get("bestellnummer").isNull()) {
-                gd.setBestellnummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("bestellnummer").asString("")));
+                gd.setBestellnummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("bestellnummer").asText()));
             }
             if (json.has("referenzNummer") && !json.get("referenzNummer").isNull()) {
-                gd.setReferenzNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("referenzNummer").asString("")));
+                gd.setReferenzNummer(LieferantDokumentAbgleich.bereinigeNummernfeld(json.get("referenzNummer").asText()));
             }
 
             // Zahlungsziel
             LocalDate zahlungszielDatum = null;
             if (json.has("zahlungsziel") && !json.get("zahlungsziel").isNull()) {
                 try {
-                    zahlungszielDatum = LocalDate.parse(json.get("zahlungsziel").asString(""),
+                    zahlungszielDatum = LocalDate.parse(json.get("zahlungsziel").asText(),
                             DateTimeFormatter.ISO_LOCAL_DATE);
                     gd.setZahlungsziel(zahlungszielDatum);
                 } catch (Exception e) {
-                    log.debug("Konnte Zahlungsziel nicht parsen: {}", json.get("zahlungsziel").asString(""));
+                    log.debug("Konnte Zahlungsziel nicht parsen: {}", json.get("zahlungsziel").asText());
                 }
             }
 
@@ -2497,17 +2548,17 @@ public class GeminiDokumentAnalyseService {
             Integer nettoTage = null;
 
             if (json.has("skontoTage") && !json.get("skontoTage").isNull()) {
-                skontoTage = json.get("skontoTage").asInt(0);
+                skontoTage = json.get("skontoTage").asInt();
                 gd.setSkontoTage(skontoTage);
                 log.info("Skonto erkannt: {} Tage", skontoTage);
             }
             if (json.has("skontoProzent") && !json.get("skontoProzent").isNull()) {
-                skontoProzent = new BigDecimal(json.get("skontoProzent").asString(""));
+                skontoProzent = new BigDecimal(json.get("skontoProzent").asText());
                 gd.setSkontoProzent(skontoProzent);
                 log.info("Skonto Prozent: {}%", skontoProzent);
             }
             if (json.has("nettoTage") && !json.get("nettoTage").isNull()) {
-                nettoTage = json.get("nettoTage").asInt(0);
+                nettoTage = json.get("nettoTage").asInt();
                 gd.setNettoTage(nettoTage);
                 log.info("Netto Tage: {}", nettoTage);
             } else {
@@ -2525,19 +2576,19 @@ public class GeminiDokumentAnalyseService {
 
             // Bereits gezahlt (Vorauskasse etc.)
             if (json.has("bereitsGezahlt") && !json.get("bereitsGezahlt").isNull()) {
-                boolean bereitsGezahlt = json.get("bereitsGezahlt").asBoolean(false);
+                boolean bereitsGezahlt = json.get("bereitsGezahlt").asBoolean();
                 gd.setBereitsGezahlt(bereitsGezahlt);
                 if (bereitsGezahlt) {
                     gd.setBezahlt(true); // Wenn bereits gezahlt, setze auch bezahlt-Flag
                 }
             }
             if (json.has("zahlungsart") && !json.get("zahlungsart").isNull()) {
-                gd.setZahlungsart(normalizeZahlungsart(json.get("zahlungsart").asString("")));
+                gd.setZahlungsart(normalizeZahlungsart(json.get("zahlungsart").asText()));
             }
 
             // Confidence
             if (json.has("confidence") && !json.get("confidence").isNull()) {
-                gd.setAiConfidence(json.get("confidence").asDouble(0.0));
+                gd.setAiConfidence(json.get("confidence").asDouble());
             }
 
             // Positionen fuer die Speicherung mitgeben. Die Preisuebernahme passiert
@@ -2637,7 +2688,7 @@ public class GeminiDokumentAnalyseService {
         if (pos == null || !pos.has(feld) || pos.get(feld).isNull()) {
             return null;
         }
-        String wert = pos.get(feld).asString("");
+        String wert = pos.get(feld).asText();
         return wert == null || wert.isBlank() ? null : wert.trim();
     }
 

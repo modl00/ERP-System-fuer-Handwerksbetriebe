@@ -27,7 +27,9 @@
         <url/>
     </scm>
     <properties>
-        <java.version>25</java.version>
+        <!-- Java 23: NAS-Kernel 3.10.108 unterstuetzt eclipse-temurin:25 nicht (fehlende Syscalls).
+             Spring Boot 4.x laeuft problemlos auf Java 23. Upgrade auf 25 sobald NAS-Kernel aktuell. -->
+        <java.version>23</java.version>
         <!-- Nur fuer Tests: H2 2.4.240 verliert bei IN-Pruefbedingungen (Enum-Spalten) die Sitzung,
              sobald die Verbindung geschlossen ist, die die Tabelle angelegt hat ("Datenbank ist bereits
              geschlossen"). 2.3.232 ist die Version aus Spring Boot 3.5. -->
@@ -37,7 +39,7 @@
         <flyway.url>${env.FLYWAY_URL}</flyway.url>
         <flyway.user>${env.FLYWAY_USER}</flyway.user>
         <flyway.password>${env.FLYWAY_PASSWORD}</flyway.password>
-        
+
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
     </properties>
@@ -61,6 +63,7 @@
             </dependency>
         </dependencies>
     </dependencyManagement>
+
     <dependencies>
         <!-- SMB-Netzwerkfreigaben (Modul smb-abgleich) -->
         <dependency>
@@ -93,7 +96,6 @@
                 </exclusion>
             </exclusions>
         </dependency>
-
 
         <dependency>
             <groupId>org.springframework.boot</groupId>
@@ -205,6 +207,8 @@
                 </exclusion>
             </exclusions>
         </dependency>
+        <!-- OpenPDF 3.x hat API-Breaking-Changes (PdfPCell, PdfContentByte, BaseFont entfernt).
+             RechnungPdfService nutzt noch die 1.x-API – Migration als eigenes Issue. -->
         <dependency>
             <groupId>com.github.librepdf</groupId>
             <artifactId>openpdf</artifactId>
@@ -289,7 +293,7 @@
 
     <build>
         <plugins>
-<plugin>
+            <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
                 <artifactId>maven-compiler-plugin</artifactId>
                 <configuration>

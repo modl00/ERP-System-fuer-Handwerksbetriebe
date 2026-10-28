@@ -4,21 +4,23 @@ on:
   push:
     branches:
       - main
+      - 'feature/**'
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: docker
-    timeout-minutes: 90
+    timeout-minutes: 150
     steps:
       - name: Repository auschecken
         run: |
-          rm -rf repo
-          git clone ${{ gitea.server_url }}/${{ gitea.repository }}.git repo --depth=1 --branch=${{ gitea.ref_name }}
+          git config --global --add safe.directory /gitea-repos/m/erp-handwerk.git
+          git clone --local --no-hardlinks /gitea-repos/m/erp-handwerk.git repo
+
+      - name: Docker CLI installieren
+        run: apk add --no-cache docker-cli
 
       - name: Image bauen und taggen
-        env:
-          DOCKER_BUILDKIT: "1"
         run: |
           cd repo
           docker build \

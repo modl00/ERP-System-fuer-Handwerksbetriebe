@@ -56,6 +56,10 @@ concurrency:
 jobs:
   automatik:
     name: Gruene PRs mergen, veraltete aktualisieren
+    # Nur auf GitHub ausfuehren – auf der lokalen Gitea-Instanz gibt es keinen
+    # ubuntu-latest-Runner und keine GitHub-API, daher wird dieser Job dort
+    # einfach uebersprungen (skipped statt cancelled/failure).
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     permissions:

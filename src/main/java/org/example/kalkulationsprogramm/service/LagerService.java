@@ -14,6 +14,7 @@ import java.util.Set;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
 import org.example.kalkulationsprogramm.domain.ArtikelInProjekt;
+import org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe;
 import org.example.kalkulationsprogramm.domain.LagerArtikel;
 import org.example.kalkulationsprogramm.domain.LagerBuchung;
 import org.example.kalkulationsprogramm.domain.Lagerort;
@@ -450,7 +451,9 @@ public class LagerService {
                 .sorted(Comparator.comparing(LagerBestandDto.OrtBestand::lagerortName))
                 .toList();
         boolean unter = mindest != null && summe.compareTo(mindest) < 0;
-        return new LagerBestandDto(a.getId(), bezeichnung(a), a.getArtikelnummer(), einheit(a), summe, mindest, unter, summe.signum() < 0, liste);
+        BigDecimal kgProMeter = a instanceof ArtikelWerkstoffe aw ? aw.getMasse() : null;
+        return new LagerBestandDto(a.getId(), bezeichnung(a), a.getArtikelnummer(), einheit(a), summe, mindest, unter, summe.signum() < 0, liste,
+                kgProMeter, a.getHandelseinheitBezeichnung(), a.getHandelseinheitMeter());
     }
 
     private void speichere(Artikel a, Lagerort o, LagerBuchung.Art art, BigDecimal signiert, Projekt projekt, Long positionId, String notiz) {
@@ -541,7 +544,36 @@ public class LagerService {
     }
 
     private static LagerortDto dto(Lagerort o) {
-        return new LagerortDto(o.getId(), o.getName(), o.getBeschreibung(), o.isAktiv(), o.getSortOrder());
+        return new LagerortDto(o.getId(), o.getName(), o.getBeschreibung(), o.isAktiv(), o.getSortOrder(),
+                o.isArchiviert(), o.getArchiviertAm());
+    }
+
+    @Transactional
+    public LagerortDto ortArchivieren(Long id) {
+        Lagerort o = ort(id);
+        o.setArchiviert(true);
+        o.setArchiviertAm(java.time.LocalDateTime.now());
+        return dto(orte.save(o));
+    }
+
+    @Transactional
+    public LagerortDto ortWiederherstellen(Long id) {
+        Lagerort o = ort(id);
+        o.setArchiviert(false);
+        o.setArchiviertAm(null);
+        return dto(orte.save(o));
+    }
+
+    @Transactional
+    public void ortLoeschen(Long id) {
+        Lagerort o = ort(id);
+        if (!o.isArchiviert()) {
+            throw fehler("Nur archivierte Lagerorte dürfen gelöscht werden.");
+        }
+        if (buchungen.existsByLagerortId(id)) {
+            throw fehler("Dieser Lagerort hat Buchungen und kann nicht gelöscht werden. Die Buchungshistorie muss erhalten bleiben.");
+        }
+        orte.delete(o);
     }
 
     private static String projektName(Projekt p) {

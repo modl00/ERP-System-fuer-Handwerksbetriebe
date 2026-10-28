@@ -26,6 +26,7 @@ concurrency:
 jobs:
   backend_tests:
     name: Backend Tests
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 35
     steps:
@@ -47,6 +48,7 @@ jobs:
   # Wegwerf-Datenbank nur fuer diesen Job - das Passwort ist kein Geheimnis.
   db_kompatibilitaet:
     name: Datenbank-Kompatibilitaet (PostgreSQL)
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     services:
@@ -120,6 +122,7 @@ jobs:
 
   pc_lint:
     name: PC Frontend Lint
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -144,6 +147,7 @@ jobs:
 
   pc_unit_tests:
     name: PC Frontend Unit Tests
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -168,6 +172,7 @@ jobs:
 
   pc_build:
     name: PC Frontend Build
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -197,6 +202,7 @@ jobs:
   # die Backend-Tests sind ohnehin ~4,5 Minuten unterwegs.
   pc_e2e:
     name: PC Frontend E2E (${{ matrix.shard }}/3)
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 25
     strategy:
@@ -240,6 +246,7 @@ jobs:
 
   mobile_lint:
     name: Zeiterfassung Lint
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 15
     defaults:
@@ -264,6 +271,7 @@ jobs:
 
   mobile_unit_tests:
     name: Zeiterfassung Unit Tests
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -288,6 +296,7 @@ jobs:
 
   mobile_build:
     name: Zeiterfassung Build
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
@@ -312,6 +321,7 @@ jobs:
 
   mobile_e2e:
     name: Zeiterfassung E2E
+    if: github.server_url == 'https://github.com'
     runs-on: ubuntu-latest
     timeout-minutes: 30
     defaults:
@@ -386,7 +396,7 @@ jobs:
   quality_gate:
     name: PR Quality Gate
     runs-on: ubuntu-latest
-    if: always()
+    if: always() && github.server_url == 'https://github.com'
     needs:
       - launcher_skripte
       - backend_tests

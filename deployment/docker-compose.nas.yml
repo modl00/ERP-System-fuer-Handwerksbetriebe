@@ -1,0 +1,45 @@
+# NAS-Betrieb: Portainer Repository-Stack.
+# Das Image "erp-handwerk:main" wird vom Gitea Action Runner bei jedem Push auf main gebaut.
+# Portainer: Repository-URL + Compose-Pfad "deployment/docker-compose.nas.yml"
+# Umgebungsvariablen in Portainer setzen:
+#   DB_PASSWORD            Datenbankpasswort
+#   MAIL_CREDENTIALS_ENCRYPTION_KEY  Schlüssel für E-Mail-Passwörter
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: erp-postgres
+    environment:
+      POSTGRES_DB: kalkulationsprogramm_db
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-test1234}
+      TZ: Europe/Berlin
+    volumes:
+      - /volume2/docker/erp-handwerk/datenbank:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U erp_user -d kalkulationsprogramm_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  app:
+    image: erp-handwerk:main
+    pull_policy: never
+    container_name: erp-app
+    ports:
+      - "8080:8080"
+    environment:
+      SPRING_PROFILES_ACTIVE: docker,postgres
+      TZ: Europe/Berlin
+      APP_DB_USER: erp_user
+      APP_DB_PASS: ${DB_PASSWORD:-test1234}
+      MAIL_CREDENTIALS_ENCRYPTION_KEY: ${MAIL_CREDENTIALS_ENCRYPTION_KEY:-}
+      EMAIL_FEATURES_ENABLED: "true"
+    volumes:
+      - /volume2/docker/erp-handwerk/uploads:/app/uploads
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped

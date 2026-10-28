@@ -22,10 +22,10 @@ import org.example.kalkulationsprogramm.service.kihilfe.KiHilfeWerkzeuge;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
-import tools.jackson.databind.node.ArrayNode;
-import tools.jackson.databind.node.ObjectNode;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -164,10 +164,10 @@ public class KiHilfeService {
             Beschreibe die Navigation IMMER als: Hauptreiter → Menüpunkt (z.B. "Projektmanagement → Anfragen").
             
             ### 1. Vorlagen & Stammdaten
-            - **Dokumente:** Leistungen & Kategorien (Leistungen in Ordnern; dieselben Ordner sind die Kategorien der Projekte, mit Auswertung), Textvorlagen, Stundensätze
+            - **Dokumente:** Textvorlagen, Leistungen, Stundensätze
             - **Kontakte:** Kunden, Mitarbeiter, Lieferanten
-            - **Katalog:** Artikel
-            - **Administration:** (nur Admin) Firma, Formularwesen, Arbeitsgänge, Einstellungen (dort u. a. der Reiter „Abteilungen & Rechte“)
+            - **Katalog:** Artikel, Arbeitsgänge, Projekt-Kategorien
+            - **Administration:** Firma, Formularwesen, Einstellungen (dort u. a. der Reiter „Berechtigungen“)
             
             ### 2. Projektmanagement
             - **Aufträge:** Projekte, Anfragen
@@ -210,9 +210,11 @@ public class KiHilfeService {
             | Mitarbeiter | [Mitarbeiter](/mitarbeiter) |
             | Lieferanten | [Lieferanten](/lieferanten) |
             | Artikel | [Artikel](/artikel) |
+            | Bestellungen | [Bestellungen](/bestellungen) |
             | Arbeitsgänge | [Arbeitsgänge](/arbeitsgaenge) |
+            | Projekt-Kategorien | [Projekt-Kategorien](/produktkategorien) |
             | Textvorlagen | [Textvorlagen](/textbausteine) |
-            | Leistungen & Kategorien | [Leistungen & Kategorien](/leistungen) |
+            | Leistungen | [Leistungen](/leistungen) |
             | Stundensätze | [Stundensätze](/arbeitszeitarten) |
             | Firma | [Firma](/firma) |
             | Formularwesen | [Formularwesen](/formulare) |
@@ -574,7 +576,7 @@ public class KiHilfeService {
                 }
                 String replyText = GeminiVerlauf.text(kandidat);
                 if (replyText.isBlank() && nachschlagen
-                        && KAPUTTER_AUFRUF.equals(kandidat.path("finishReason").asString(""))) {
+                        && KAPUTTER_AUFRUF.equals(kandidat.path("finishReason").asText(""))) {
                     // Die KI hat einen Werkzeug-Aufruf verbockt: noch einmal, dann aber mit Antwortpflicht
                     log.warn("  -> Gemini: kaputter Werkzeug-Aufruf, Antwort ohne weiteres Nachschlagen");
                     antwortErzwingen = true;
@@ -677,7 +679,7 @@ public class KiHilfeService {
         if (!queries.isArray() || queries.isEmpty()) return;
         log.info("  -> Google Search Queries: {}", queries.size());
         for (JsonNode query : queries) {
-            String text = query.asString("").strip();
+            String text = query.asText("").strip();
             if (text.isEmpty() || bisher.size() >= MAX_WEBSUCHEN_ANZEIGE || !bisher.add(text)) continue;
             melden.accept("Sucht im Internet: " + text);
         }
@@ -727,8 +729,8 @@ public class KiHilfeService {
         List<SourceLink> sources = new ArrayList<>();
         for (JsonNode chunk : chunks) {
             JsonNode web = chunk.path("web");
-            String uri = web.path("uri").asString("");
-            String title = web.path("title").asString("");
+            String uri = web.path("uri").asText("");
+            String title = web.path("title").asText("");
             if (!uri.isEmpty()) {
                 sources.add(new SourceLink(title.isEmpty() ? uri : title, uri));
             }

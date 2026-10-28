@@ -1,12 +1,15 @@
 package org.example.kalkulationsprogramm.service;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
 import java.math.BigDecimal;
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.BestellHerkunft;
 import org.example.kalkulationsprogramm.domain.BestellStatus;
@@ -23,13 +26,22 @@ class LieferantenBestellungPdfServiceTest {
 
     private final LieferantenBestellungService bestellungen = mock(LieferantenBestellungService.class);
     private final FirmeninformationService firma = mock(FirmeninformationService.class);
-    private final LieferantenBestellungPdfService pdf = new LieferantenBestellungPdfService(bestellungen, firma);
+    private final FormularTemplateService formularTemplateService = mock(FormularTemplateService.class);
+    private final RechnungPdfService rechnungPdfService = mock(RechnungPdfService.class);
+    private final LieferantenBestellungPdfService pdf =
+            new LieferantenBestellungPdfService(bestellungen, firma, formularTemplateService, rechnungPdfService);
+
+    {
+        // Kein Formulareditor-Template → Fallback auf Hardcode-Layout
+        when(formularTemplateService.getPreferredTemplateForDokumenttyp(any(), isNull()))
+                .thenReturn(Optional.empty());
+    }
 
     private static BestellungDto bestellung(String nummer, BestellStatus status, BigDecimal preis) {
         BestellungDto.Position p1 = new BestellungDto.Position(1L, 10L, "R-4040", "Rohr 40x40", new BigDecimal("12.5"), "m", preis,
-                preis == null ? null : preis.multiply(new BigDecimal("12.5")), BestellHerkunft.PROJEKT, 7L, "2026/014 Anbau Halle", 55L, "Zuschnitt 3 m", null);
+                preis == null ? null : preis.multiply(new BigDecimal("12.5")), BestellHerkunft.PROJEKT, 7L, "2026/014 Anbau Halle", 55L, "Zuschnitt 3 m", null, List.of());
         BestellungDto.Position p2 = new BestellungDto.Position(2L, 11L, null, "Schraube M8", new BigDecimal("200"), "Stk", null, null, BestellHerkunft.LAGER,
-                null, null, null, null, null);
+                null, null, null, null, null, List.of());
         return new BestellungDto(5L, nummer, status, status.name(), 3L, "Stahlhandel Muster", List.of(), "Bitte Anfang der Woche liefern",
                 LocalDateTime.of(2026, 10, 5, 8, 0), "admin", nummer == null ? null : LocalDateTime.of(2026, 10, 5, 9, 30), "admin", "EMAIL", null, null,
                 preis == null ? BigDecimal.ZERO : preis.multiply(new BigDecimal("12.5")), 2, 0, 0, false, 7, List.of("2026/014 Anbau Halle"), List.of(p1, p2));

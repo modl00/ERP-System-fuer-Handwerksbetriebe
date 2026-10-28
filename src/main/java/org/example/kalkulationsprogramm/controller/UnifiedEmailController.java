@@ -104,6 +104,9 @@ public class UnifiedEmailController {
     private final org.example.kalkulationsprogramm.service.EmailGelesenService emailGelesenService;
     private final org.example.kalkulationsprogramm.service.FreigabeEmpfaengerService freigabeEmpfaengerService;
     private final org.example.kalkulationsprogramm.service.FreigabeAbloesungService freigabeAbloesungService;
+    private final org.example.kalkulationsprogramm.service.ImapSyncService imapSyncService;
+    private final org.example.kalkulationsprogramm.service.EmailAnlageVorschlagService emailAnlageVorschlagService;
+    private final org.example.kalkulationsprogramm.service.SystemSettingsService systemSettingsService;
 
     @org.springframework.beans.factory.annotation.Value("${file.mail-attachment-dir}")
     private String mailAttachmentDir;
@@ -505,6 +508,12 @@ public class UnifiedEmailController {
                 log.debug("[SpamML] Vorheriges HAM-Training für Email {} rückgängig gemacht", emailId);
             }
             spamBayesService.train(email, true);
+        }
+
+        try {
+            imapSyncService.verschiebeInSpam(email);
+        } catch (Exception e) {
+            log.warn("[ImapSync] Server-Verschiebung Spam für Email {} fehlgeschlagen: {}", emailId, e.getMessage());
         }
 
         log.info("[SpamML] Email {} als Spam markiert (User-Feedback), subject='{}'",
@@ -1144,6 +1153,12 @@ public class UnifiedEmailController {
         email.setDeletedAt(LocalDateTime.now());
         emailRepository.save(email);
 
+        try {
+            imapSyncService.verschiebeInPapierkorb(email);
+        } catch (Exception e) {
+            log.warn("[ImapSync] Server-Verschiebung Papierkorb für Email {} fehlgeschlagen: {}", id, e.getMessage());
+        }
+
         log.info("Email {} in den Papierkorb verschoben", id);
         return ResponseEntity.noContent().build();
     }
@@ -1234,13 +1249,21 @@ public class UnifiedEmailController {
                         spamBayesService.train(email, false);
                     }
                 }
-                case "trash" -> email.setDeletedAt(LocalDateTime.now());
+                case "trash" -> {
+                    email.setDeletedAt(LocalDateTime.now());
+                    try { imapSyncService.verschiebeInPapierkorb(email); } catch (Exception ex) {
+                        log.warn("[ImapSync] Papierkorb-Verschiebung für Email {} fehlgeschlagen: {}", email.getId(), ex.getMessage());
+                    }
+                }
                 case "spam" -> {
                     email.setDeletedAt(null);
                     email.setSpam(true);
                     email.setUserSpamVerdict("SPAM");
                     email.setSpamScore(100);
                     spamBayesService.train(email, true);
+                    try { imapSyncService.verschiebeInSpam(email); } catch (Exception ex) {
+                        log.warn("[ImapSync] Spam-Verschiebung für Email {} fehlgeschlagen: {}", email.getId(), ex.getMessage());
+                    }
                 }
                 case "newsletter" -> {
                     email.setDeletedAt(null);
@@ -1619,6 +1642,18 @@ public class UnifiedEmailController {
                         "Email nicht gefunden: " + id));
 
         return ResponseEntity.ok(emailAutoAssignmentService.findPossibleAssignments(email));
+    }
+
+    /**
+     * Schlägt Felder für ein neues Projekt oder eine neue Anfrage aus der E-Mail vor.
+     */
+    @GetMapping("/{id}/ki-anlage-vorschlag")
+    public ResponseEntity<org.example.kalkulationsprogramm.dto.KiAnlageVorschlagDto> kiAnlageVorschlag(
+            @PathVariable Long id, org.springframework.security.core.Authentication authentication) {
+        Email email = findeLesbar(id, authentication)
+                .orElseThrow(() -> new org.example.kalkulationsprogramm.exception.NotFoundException(
+                        "Email nicht gefunden: " + id));
+        return ResponseEntity.ok(emailAnlageVorschlagService.ermittleVorschlag(email));
     }
 
     /**
@@ -2375,5 +2410,52 @@ public class UnifiedEmailController {
         String input = raw.length() > EMAIL_HEADER_MAX_LEN ? raw.substring(0, EMAIL_HEADER_MAX_LEN) : raw;
         java.util.regex.Matcher m = EMAIL_PATTERN.matcher(input);
         return m.find() ? m.group() : null;
+    }
+
+    // ═══════════════════════════════════════════════════════════════
+    // IMAP ORDNER-EINSTELLUNGEN
+    // ═══════════════════════════════════════════════════════════════
+
+    /**
+     * Gibt alle verfügbaren IMAP-Ordner des angegebenen Postfachs zurück.
+     * Ohne {@code postfachId} → Hauptpostfach.
+     */
+    @org.springframework.web.bind.annotation.GetMapping("/imap-ordner")
+    public ResponseEntity<List<String>> listeImapOrdner(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId) {
+        return ResponseEntity.ok(imapSyncService.listeImapOrdner(postfachId));
+    }
+
+    /** Gibt die konfigurierten Papierkorb- und Spam-Ordner zurück. Ohne {@code postfachId} → global. */
+    @org.springframework.web.bind.annotation.GetMapping("/ordner-einstellungen")
+    public ResponseEntity<Map<String, String>> getOrdnerEinstellungen(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId) {
+        var e = imapSyncService.getOrdnerEinstellungen(postfachId);
+        return ResponseEntity.ok(Map.of("papierkorb", e.papierkorb(), "spam", e.spam()));
+    }
+
+    public record OrdnerEinstellungenRequest(String papierkorb, String spam) {}
+
+    /** Speichert die Papierkorb- und Spam-Ordner-Zuordnung. Ohne {@code postfachId} → global. */
+    @org.springframework.web.bind.annotation.PostMapping("/ordner-einstellungen")
+    @Transactional
+    public ResponseEntity<Void> saveOrdnerEinstellungen(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId,
+            @org.springframework.web.bind.annotation.RequestBody OrdnerEinstellungenRequest req) {
+        if (req == null) throw new org.springframework.web.server.ResponseStatusException(
+                org.springframework.http.HttpStatus.BAD_REQUEST, "Anfrage-Body fehlt");
+        imapSyncService.saveOrdnerEinstellungen(
+                postfachId,
+                req.papierkorb() == null ? "" : req.papierkorb(),
+                req.spam() == null ? "" : req.spam());
+        return ResponseEntity.noContent().build();
+    }
+
+    /** Erkennt Papierkorb- und Spam-Ordner automatisch über IMAP-Special-Use-Attribute. */
+    @org.springframework.web.bind.annotation.PostMapping("/ordner-einstellungen/auto-erkennen")
+    public ResponseEntity<Map<String, String>> autoErkenneOrdner(
+            @org.springframework.web.bind.annotation.RequestParam(required = false) Long postfachId) {
+        var ergebnis = imapSyncService.erkenneSpezialOrdner(postfachId);
+        return ResponseEntity.ok(Map.of("papierkorb", ergebnis.papierkorb(), "spam", ergebnis.spam()));
     }
 }

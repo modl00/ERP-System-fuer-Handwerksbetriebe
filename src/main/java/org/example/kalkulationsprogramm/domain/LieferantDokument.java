@@ -60,6 +60,9 @@ public class LieferantDokument {
     @Column(nullable = false)
     private boolean ausgeblendet = false;
 
+    /** Rechnung gehört nicht zur Firma (Privatrechnung). Wird aus dem normalen Workflow ausgeblendet. */
+    private boolean privat = false;
+
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "uploaded_by_id")
     private Mitarbeiter uploadedBy;

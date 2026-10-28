@@ -38,4 +38,6 @@ public interface LagerBuchungRepository extends JpaRepository<LagerBuchung, Long
     List<LagerBuchung> findByArtikelIdOrderByGebuchtAmDescIdDesc(Long artikelId, Pageable seite);
 
     List<LagerBuchung> findByArtikelInProjektIdOrderByIdDesc(Long positionId);
+
+    boolean existsByLagerortId(Long lagerortId);
 }

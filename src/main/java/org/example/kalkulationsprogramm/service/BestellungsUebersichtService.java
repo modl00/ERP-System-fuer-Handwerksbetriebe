@@ -102,22 +102,23 @@ public class BestellungsUebersichtService {
         List<DokumentenKette> abgeschlossen = gefiltert(alle.abgeschlossen(), suche);
         List<DokumentenKette> zugeordnet = gefiltert(alle.zugeordnet(), suche);
         List<DokumentenKette> ausgeblendet = gefiltert(alle.ausgeblendet(), suche);
+        List<DokumentenKette> privat = gefiltert(alle.privat(), suche);
         LocalDate heute = LocalDate.now();
         // Angebote und laufende Bestellungen zeigt die Seite getrennt nach aktuell und alt (alt =
-        // eingeklappt bzw. „Seit über 2 Monaten keine Rechnung“). Beide Teile je für sich kürzen –
-        // sonst kämen die alten, die nach Datum ganz hinten stehen, erst nach vielen „Mehr laden“.
+        // eingeklappt bzw. „Seit über 2 Monaten keine Rechnung”). Beide Teile je für sich kürzen –
+        // sonst kämen die alten, die nach Datum ganz hinten stehen, erst nach vielen „Mehr laden”.
         List<DokumentenKette> offenGekuerzt = jeAlterGekuerzt(offen, max, heute);
         List<DokumentenKette> laufendGekuerzt = jeAlterGekuerzt(laufend, max, heute);
         var gesamt = new BestellungsUebersichtDto.Gesamt(offen.size(), anzahlAktuell(offen, heute),
                 laufend.size(), anzahlAktuell(laufend, heute), abgeschlossen.size(), zugeordnet.size(),
-                ausgeblendet.size());
+                ausgeblendet.size(), privat.size());
 
         var speicher = rechnungsVorschlagService.neuerSpeicher();
         List<DokumentenKette> laufendMitVorschlag = laufendGekuerzt.stream()
                 .map(kette -> kette.mitVorschlag(besterVorschlag(kette, bestand, speicher)))
                 .toList();
         return new BestellungsUebersichtDto(offenGekuerzt, laufendMitVorschlag, gekuerzt(abgeschlossen, max),
-                gekuerzt(zugeordnet, max), gekuerzt(ausgeblendet, max), gesamt);
+                gekuerzt(zugeordnet, max), gekuerzt(ausgeblendet, max), gekuerzt(privat, max), gesamt);
     }
 
     private static int anzahlAktuell(List<DokumentenKette> ketten, LocalDate heute) {
@@ -371,6 +372,7 @@ public class BestellungsUebersichtService {
         List<DokumentenKette> abgeschlossen = new ArrayList<>();
         List<DokumentenKette> zugeordnet = new ArrayList<>();
         List<DokumentenKette> ausgeblendet = new ArrayList<>();
+        List<DokumentenKette> privat = new ArrayList<>();
 
         for (DokumentenKette kette : alleKetten) {
             // Status je Dokument: Bei mehreren Rechnungen (Teilrechnungen) zeigt die
@@ -385,6 +387,7 @@ public class BestellungsUebersichtService {
                 case ZUGEORDNET -> zugeordnet.add(kette);
                 case LAUFEND -> laufendeBestellungen.add(kette);
                 case ANFRAGE -> offeneAnfragen.add(kette);
+                case PRIVAT -> privat.add(kette);
                 case KEINE -> { /* z. B. nur sonstige Dokumente – gehört nicht in die Übersicht */ }
             }
         }
@@ -397,13 +400,14 @@ public class BestellungsUebersichtService {
         abgeschlossen.sort(byDate);
         zugeordnet.sort(byDate);
         ausgeblendet.sort(byDate);
+        privat.sort(byDate);
 
         return new BestellungsUebersichtDto(
-                offeneAnfragen, laufendeBestellungen, abgeschlossen, zugeordnet, ausgeblendet);
+                offeneAnfragen, laufendeBestellungen, abgeschlossen, zugeordnet, ausgeblendet, privat);
     }
 
     private enum Bereich {
-        ANFRAGE, LAUFEND, RECHNUNG_ZUORDNEN, ZUGEORDNET, ERLEDIGT, KEINE
+        ANFRAGE, LAUFEND, RECHNUNG_ZUORDNEN, ZUGEORDNET, ERLEDIGT, PRIVAT, KEINE
     }
 
     /**
@@ -417,8 +421,12 @@ public class BestellungsUebersichtService {
      */
     private static Bereich einordnen(DokumentenKette kette) {
         List<DokumentRef> dokumente = kette.dokumente();
+        // Wenn alle Dokumente als privat markiert sind, gehört die Kette in den Privat-Bereich.
+        if (dokumente.stream().allMatch(d -> d.privat)) {
+            return Bereich.PRIVAT;
+        }
         boolean offeneRechnung = dokumente.stream()
-                .anyMatch(d -> d.typ == LieferantDokumentTyp.RECHNUNG && !d.ausgeblendet
+                .anyMatch(d -> d.typ == LieferantDokumentTyp.RECHNUNG && !d.ausgeblendet && !d.privat
                         && !d.zugeordnet && !d.lagerbestellung);
         if (offeneRechnung) {
             return Bereich.RECHNUNG_ZUORDNEN;
@@ -553,6 +561,7 @@ public class BestellungsUebersichtService {
         ref.dateiname = d.getEffektiverDateiname();
         ref.eingangsDatum = d.getUploadDatum() != null ? d.getUploadDatum().toLocalDate() : null;
         ref.ausgeblendet = d.isAusgeblendet();
+        ref.privat = d.isPrivat();
 
         if (d.getGeschaeftsdaten() != null) {
             var gd = d.getGeschaeftsdaten();

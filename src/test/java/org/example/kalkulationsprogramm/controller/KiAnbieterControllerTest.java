@@ -39,7 +39,7 @@ class KiAnbieterControllerTest {
 
     private static Uebersicht uebersicht() {
         return new Uebersicht(List.of(new FunktionsEinstellung("assistent", "KI-Assistent", AnbieterTyp.LOKAL, Datenschutz.NUR_LOKAL)),
-                List.of(new AnbieterStand(AnbieterTyp.CLAUDE, "Claude (Anthropic)", false, true, "claude-sonnet-5-5", true)), List.of("Scanner"));
+                List.of(new AnbieterStand(AnbieterTyp.CLAUDE, "Claude (Anthropic)", false, true, "claude-sonnet-5-5", true, true, true)), List.of("Scanner"));
     }
 
     @BeforeEach

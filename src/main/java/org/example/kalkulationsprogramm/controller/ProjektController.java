@@ -31,8 +31,10 @@ import org.example.kalkulationsprogramm.domain.ProjektDokument;
 import org.example.kalkulationsprogramm.domain.ProjektGeschaeftsdokument;
 import org.example.kalkulationsprogramm.domain.ProjektNotiz;
 import org.example.kalkulationsprogramm.domain.ProjektNotizBild;
+import org.example.kalkulationsprogramm.dto.Artikel.ArtikelInProjektResponseDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelInProjektUpdateDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelMengeDto;
+import org.example.kalkulationsprogramm.dto.Lager.LagerBestandDto;
 import org.example.kalkulationsprogramm.dto.Bestellung.Verbindung;
 import org.example.kalkulationsprogramm.dto.Freigabe.FreigabeStatusKurzDto;
 import org.example.kalkulationsprogramm.dto.Materialkosten.MaterialkostenErfassenDto;
@@ -61,7 +63,9 @@ import org.example.kalkulationsprogramm.service.AngemeldeterMitarbeiterService;
 import org.example.kalkulationsprogramm.service.LieferantDokumentKette;
 import org.example.kalkulationsprogramm.service.PdfAiExtractorService;
 import org.example.kalkulationsprogramm.service.ProjektManagementService;
+import org.example.kalkulationsprogramm.service.ProjektMaterialService;
 import org.example.kalkulationsprogramm.service.ProjektListenPdfService;
+import org.example.kalkulationsprogramm.service.ki.assistent.StuecklisteScanService;
 import org.example.kalkulationsprogramm.service.StuecklistePdfService;
 import org.example.kalkulationsprogramm.service.ZugferdErstellService;
 import org.example.kalkulationsprogramm.service.ZugferdExtractorService;
@@ -120,6 +124,8 @@ public class ProjektController {
     private final ProjektRepository projektRepository;
     private final ZeitbuchungRepository zeitbuchungRepository;
     private final DokumentFreigabeService dokumentFreigabeService;
+    private final ProjektMaterialService projektMaterialService;
+    private final StuecklisteScanService stuecklisteScanService;
 
     /**
      * Liefert pro angefragter Projekt-ID die jüngste relevante digitale Freigabe
@@ -317,6 +323,64 @@ public class ProjektController {
     public ResponseEntity<ProjektResponseDto> entferneMaterialkosten(@PathVariable Long projektID,
             @PathVariable Long materialID) {
         return ResponseEntity.ok(projektManagementService.entferneMaterialkosten(projektID, materialID));
+    }
+
+    // ── Bedarfsliste: Aus-Lager / Reservierung ────────────────────────────────
+
+    /** Lagerbestand aller Artikel, die im Projekt als ArtikelInProjekt stehen. */
+    @GetMapping("/{projektID}/material/lagerbestand")
+    public ResponseEntity<List<LagerBestandDto>> materialLagerbestand(@PathVariable Long projektID) {
+        return ResponseEntity.ok(projektMaterialService.lagerbestandFuerProjekt(projektID));
+    }
+
+    /**
+     * Bucht eine Position direkt aus dem Lager (physische Entnahme).
+     * Body: { lagerortId, menge }
+     */
+    @PostMapping("/{projektID}/material/{positionId}/aus-lager")
+    public ResponseEntity<ArtikelInProjektResponseDto> ausLagerBuchen(
+            @PathVariable Long projektID,
+            @PathVariable Long positionId,
+            @RequestBody AusLagerEingabe eingabe) {
+        return ResponseEntity.ok(projektMaterialService.ausLagerBuchen(positionId, eingabe.lagerortId(), eingabe.menge()));
+    }
+
+    /** Reserviert eine Menge im Lager für diese Position (logisch, ohne Buchung). */
+    @PostMapping("/{projektID}/material/{positionId}/reservieren")
+    public ResponseEntity<ArtikelInProjektResponseDto> reservieren(
+            @PathVariable Long projektID,
+            @PathVariable Long positionId,
+            @RequestBody ReservierungEingabe eingabe) {
+        return ResponseEntity.ok(projektMaterialService.reservieren(positionId, eingabe.menge()));
+    }
+
+    /** Hebt eine bestehende Reservierung auf. */
+    @PostMapping("/{projektID}/material/{positionId}/reservierung-aufheben")
+    public ResponseEntity<ArtikelInProjektResponseDto> reservierungAufheben(
+            @PathVariable Long projektID,
+            @PathVariable Long positionId) {
+        return ResponseEntity.ok(projektMaterialService.reservierungAufheben(positionId));
+    }
+
+    record AusLagerEingabe(Long lagerortId, BigDecimal menge) {}
+    record ReservierungEingabe(BigDecimal menge) {}
+
+    // ── Stücklisten-Scan: KI liest Positionen aus Dokument → Bedarfsliste ────────
+
+    /** KI scannt eine hochgeladene Datei und gibt erkannte Positionen zurück. */
+    @PostMapping("/{projektID}/bedarfsliste/aus-dokument/scan")
+    public ResponseEntity<StuecklisteScanService.ScanErgebnis> stuecklisteScan(
+            @PathVariable Long projektID,
+            @RequestParam("datei") MultipartFile datei) {
+        return ResponseEntity.ok(stuecklisteScanService.scanDatei(datei));
+    }
+
+    /** Übernimmt die vom Nutzer bestätigten Positionen in die Bedarfsliste des Projekts. */
+    @PostMapping("/{projektID}/bedarfsliste/aus-dokument/uebernehmen")
+    public ResponseEntity<StuecklisteScanService.UebernahmeErgebnis> stuecklisteUebernehmen(
+            @PathVariable Long projektID,
+            @RequestBody List<StuecklisteScanService.UebernahmePosition> positionen) {
+        return ResponseEntity.ok(stuecklisteScanService.uebernehmen(projektID, positionen));
     }
 
     @PostMapping("/{projektID}/produktkategorien")

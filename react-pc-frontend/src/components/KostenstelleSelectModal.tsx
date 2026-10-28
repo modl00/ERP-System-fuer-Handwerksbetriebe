@@ -4,18 +4,21 @@ import { Card } from './ui/card';
 import { Input } from './ui/input';
 
 interface KostenstelleSelectModalProps {
-    onSelect: (kostenstelle: { id: number; bezeichnung: string }) => void;
+    onSelect: (kostenstelle: { id: number; bezeichnung: string; typ: string }) => void;
     onClose: () => void;
+    /** Kostenstellen mit diesen Typen werden ausgeblendet. */
+    ausschliessenTypen?: string[];
 }
 
 interface Kostenstelle {
     id: number;
     bezeichnung: string;
+    typ: string;
     nummer?: string;
     beschreibung?: string;
 }
 
-export const KostenstelleSelectModal: React.FC<KostenstelleSelectModalProps> = ({ onSelect, onClose }) => {
+export const KostenstelleSelectModal: React.FC<KostenstelleSelectModalProps> = ({ onSelect, onClose, ausschliessenTypen }) => {
     const [searchTerm, setSearchTerm] = useState('');
     const [kostenstellen, setKostenstellen] = useState<Kostenstelle[]>([]);
     const [loading, setLoading] = useState(false);
@@ -44,11 +47,12 @@ export const KostenstelleSelectModal: React.FC<KostenstelleSelectModalProps> = (
         fetchKostenstellen();
     }, []);
 
-    // Filter based on search term
-    const filtered = kostenstellen.filter(k => 
-        k.bezeichnung.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    // Filter based on search term and excluded types
+    const filtered = kostenstellen.filter(k =>
+        !(ausschliessenTypen?.includes(k.typ)) &&
+        (k.bezeichnung.toLowerCase().includes(searchTerm.toLowerCase()) ||
         (k.nummer && k.nummer.toLowerCase().includes(searchTerm.toLowerCase())) ||
-        (k.beschreibung && k.beschreibung.toLowerCase().includes(searchTerm.toLowerCase()))
+        (k.beschreibung && k.beschreibung.toLowerCase().includes(searchTerm.toLowerCase())))
     );
 
     return (
@@ -86,7 +90,7 @@ export const KostenstelleSelectModal: React.FC<KostenstelleSelectModalProps> = (
                                 <button
                                     key={k.id}
                                     className="w-full text-left px-3 py-2 rounded hover:bg-rose-50 text-sm text-slate-700 hover:text-rose-700 transition-colors flex items-baseline gap-2"
-                                    onClick={() => onSelect({ id: k.id, bezeichnung: k.bezeichnung })}
+                                    onClick={() => onSelect({ id: k.id, bezeichnung: k.bezeichnung, typ: k.typ })}
                                 >
                                     <span className="font-medium shrink-0">{k.bezeichnung}</span>
                                     {k.beschreibung && (

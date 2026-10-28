@@ -36,6 +36,9 @@ import {
     Upload,
     User,
     X,
+    ShoppingCart,
+    Paperclip,
+    Gem,
 } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
@@ -81,6 +84,7 @@ import { ArtikelSuche } from '../components/artikel/ArtikelSuche';
 import { artikelBezeichnung } from '../components/artikel/artikelBezeichnung';
 import { KettenLinie } from '../features/bestellungen/KettenLinie';
 import { alsKettenTyp, type KettenLinienDokument, type KettenVerbindung } from '../features/bestellungen/kettenLinieLogik';
+import { StuecklistenScanDialog } from '../features/projekt/StuecklistenScanDialog';
 import { FreigabeRechtsnachweis } from '../features/freigabe/FreigabeRechtsnachweis';
 import type { FreigabeRechtsnachweisDaten } from '../features/freigabe/rechtsnachweisLogik';
 import { ProjektWartungReiter } from '../features/wartung/ProjektWartungReiter';
@@ -294,6 +298,29 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     };
     const [showMaterialModal, setShowMaterialModal] = useState(false);
     const [showLagerArtikelModal, setShowLagerArtikelModal] = useState(false);
+    // Bedarfsliste: Aus-Lager / Reservierung
+    const [ausLagerDialogPosition, setAusLagerDialogPosition] = useState<ArtikelInProjekt | null>(null);
+    const [lagerbestand, setLagerbestand] = useState<Record<number, number>>({});
+    const [lagerOrte, setLagerOrte] = useState<{ id: number; name: string }[]>([]);
+    const [ausLagerLagerortId, setAusLagerLagerortId] = useState<string>('');
+    const [ausLagerMenge, setAusLagerMenge] = useState<string>('');
+    const [ausLagerModus, setAusLagerModus] = useState<'buchen' | 'reservieren'>('buchen');
+    const [ausLagerLaeuft, setAusLagerLaeuft] = useState(false);
+
+    // Bedarfsliste: Bestellen
+    interface BestellDialogPosition { id: number; artikelId: number; name: string; menge: number; einheit: string; lieferantId?: number; lieferantName?: string; }
+    interface OffeneBestellung { id: number; nummer: string; lieferantName: string; }
+    const [bestellDialogPositionen, setBestellDialogPositionen] = useState<BestellDialogPosition[]>([]);
+    const [bestellDialogOffen, setBestellDialogOffen] = useState(false);
+    const [bestellModus, setBestellModus] = useState<'neu' | 'vorhandene'>('neu');
+    const [bestellLieferantId, setBestellLieferantId] = useState<string>('');
+    const [bestellNotiz, setBestellNotiz] = useState('');
+    const [offeneBestellungen, setOffeneBestellungen] = useState<OffeneBestellung[]>([]);
+    const [gewaehlteBestNr, setGewaehlteBestNr] = useState<string>('');
+    const [bestellProjektDoks, setBestellProjektDoks] = useState<{ id: number; originalDateiname: string }[]>([]);
+    const [bestellDokIds, setBestellDokIds] = useState<Set<number>>(new Set());
+    const [bestellDokZeigen, setBestellDokZeigen] = useState(false);
+    const [bestellLaeuft, setBestellLaeuft] = useState(false);
     const [newMaterial, setNewMaterial] = useState<{ beschreibung: string, betrag: string, lieferantId?: string, rechnungsnummer: string }>({ beschreibung: '', betrag: '', rechnungsnummer: '' });
     const [savingMaterial, setSavingMaterial] = useState(false);
     const [savingLagerArtikel, setSavingLagerArtikel] = useState(false);
@@ -514,6 +541,10 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
 
     // Dateien (Dokumente) Anzahl
     const [dokumenteCount, setDokumenteCount] = useState(0);
+
+    // Stücklisten-Scan Dialog
+    const [stuecklisteScanOffen, setStuecklisteScanOffen] = useState(false);
+    const [stuecklisteDoks, setStuecklisteDoks] = useState<{ id: number; originalDateiname: string }[]>([]);
 
     // Notizen laden
     // (Promise-Kette: Zustand wird erst gesetzt, wenn die Antwort da ist.)
@@ -779,7 +810,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     };
 
     useEffect(() => {
-        if (!showMaterialModal && !showSupplierPicker) return;
+        if (!showMaterialModal && !showSupplierPicker && !bestellDialogOffen) return;
 
         const fetchSuppliers = async () => {
             try {
@@ -800,9 +831,22 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
 
         const timer = setTimeout(fetchSuppliers, 300);
         return () => clearTimeout(timer);
-    }, [showMaterialModal, showSupplierPicker, supplierSearchQuery]);
+    }, [showMaterialModal, showSupplierPicker, bestellDialogOffen, supplierSearchQuery]);
 
-
+    useEffect(() => {
+        if (activeTab !== 'materialkosten' || !projekt?.id) return;
+        let abgebrochen = false;
+        fetch(`/api/projekte/${projekt.id}/material/lagerbestand`)
+            .then(r => r.ok ? r.json() as Promise<{ artikelId: number; bestand: number }[]> : Promise.resolve([]))
+            .then(data => {
+                if (abgebrochen) return;
+                const map: Record<number, number> = {};
+                data.forEach(d => { map[d.artikelId] = d.bestand; });
+                setLagerbestand(map);
+            })
+            .catch(() => { /* ignorieren */ });
+        return () => { abgebrochen = true; };
+    }, [activeTab, projekt?.id]);
 
     const formatCurrency = (val?: number) =>
         new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(val || 0);
@@ -827,7 +871,6 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         setSelectedLagerArtikelKeys(new Set());
         setSelectedLagerArtikelData({});
         setLagerArtikelMengen({});
-        setLagerArtikelBeschaffung({});
     };
 
     /**
@@ -866,7 +909,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         // Eine frisch angehakte Zeile faengt wieder bei 1 an, auch wenn vorher
         // schon etwas im Mengenfeld stand.
         setLagerArtikelMengen(prev => ({ ...prev, [key]: '1' }));
-        setLagerArtikelBeschaffung(prev => ({ ...prev, [key]: 'lager' }));
+        setLagerArtikelBeschaffung(prev => ({ ...prev, [key]: 'bestellen' }));
     };
 
     /**
@@ -879,8 +922,8 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         setLagerArtikelMengen(prev => ({ ...prev, [artikel.id]: value }));
     };
 
-    const handleLagerBeschaffungChange = (artikel: Artikel, beschaffung: 'lager' | 'bestellen') => {
-        setLagerArtikelBeschaffung(prev => ({ ...prev, [artikel.id]: beschaffung }));
+    const handleLagerBeschaffungChange = (artikel: Artikel, wert: 'lager' | 'bestellen') => {
+        setLagerArtikelBeschaffung(prev => ({ ...prev, [artikel.id]: wert }));
     };
 
     /** Menge einer gewaehlten Zeile als Zahl - NaN, solange die Eingabe unbrauchbar ist. */
@@ -921,11 +964,11 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     artikelId: artikel.id,
                     // Lieferant und Preis stammen vom guenstigsten Anbieter - genau
                     // dem, der in der Trefferliste danebensteht.
-                    lieferantId: artikel.lieferantId,
-                    preis: artikel.preis,
+                    lieferantId: artikel.lieferantId ?? null,
+                    preis: artikel.preis ?? null,
                     menge: getLagerMenge(key),
                     einheit: mapEinheitForBackend(artikel.verrechnungseinheit),
-                    ausLager: (lagerArtikelBeschaffung[key] ?? 'lager') === 'lager',
+                    ausLager: lagerArtikelBeschaffung[key] === 'lager',
                 };
             })
             .filter((item): item is NonNullable<typeof item> => item !== null);
@@ -994,6 +1037,199 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
             toast.error('Artikel konnte nicht entfernt werden.');
         } finally {
             setLoeschendeArtikelId(null);
+        }
+    };
+
+    // ── Bedarfsliste: Aus-Lager-Dialog öffnen ───────────────────────────────────
+    const oeffneAusLagerDialog = async (pos: ArtikelInProjekt) => {
+        setAusLagerDialogPosition(pos);
+        setAusLagerModus('buchen');
+        setAusLagerMenge(String(pos.stueckzahl ?? pos.meter ?? pos.kilogramm ?? 1));
+        setAusLagerLagerortId('');
+        // Lagerorte laden (gecacht)
+        if (lagerOrte.length === 0) {
+            try {
+                const r = await fetch('/api/lager/orte');
+                if (r.ok) {
+                    const data = await r.json() as { id: number; name: string }[];
+                    setLagerOrte(data);
+                    if (data.length === 1) setAusLagerLagerortId(String(data[0].id));
+                }
+            } catch { /* ignorieren */ }
+        } else if (lagerOrte.length === 1) {
+            setAusLagerLagerortId(String(lagerOrte[0].id));
+        }
+        // Lagerbestand für diesen Artikel abrufen
+        if (pos.artikelId) {
+            try {
+                const r = await fetch(`/api/projekte/${projekt.id}/material/lagerbestand`);
+                if (r.ok) {
+                    const data = await r.json() as { artikelId: number; menge: number }[];
+                    const map: Record<number, number> = {};
+                    data.forEach(d => { map[d.artikelId] = d.menge; });
+                    setLagerbestand(map);
+                }
+            } catch { /* ignorieren */ }
+        }
+    };
+
+    const handleAusLagerOderReservieren = async () => {
+        if (!ausLagerDialogPosition) return;
+        const lagerortId = ausLagerModus === 'buchen' ? Number(ausLagerLagerortId) : null;
+        const menge = parseFloat(ausLagerMenge.replace(',', '.'));
+        if (isNaN(menge) || menge <= 0) {
+            toast.error('Bitte eine gültige Menge eingeben.');
+            return;
+        }
+        if (ausLagerModus === 'buchen' && !lagerortId) {
+            toast.error('Bitte einen Lagerort auswählen.');
+            return;
+        }
+        setAusLagerLaeuft(true);
+        try {
+            const url = ausLagerModus === 'buchen'
+                ? `/api/projekte/${projekt.id}/material/${ausLagerDialogPosition.id}/aus-lager`
+                : `/api/projekte/${projekt.id}/material/${ausLagerDialogPosition.id}/reservieren`;
+            const body = ausLagerModus === 'buchen'
+                ? { lagerortId, menge }
+                : { menge };
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(body),
+            });
+            if (!res.ok) {
+                toast.error(await leseFehlermeldung(res, 'Die Aktion konnte nicht ausgeführt werden.'));
+                return;
+            }
+            toast.success(ausLagerModus === 'buchen' ? 'Aus Lager entnommen.' : 'Reserviert.');
+            setAusLagerDialogPosition(null);
+            await onRefresh();
+        } catch {
+            toast.error('Die Aktion konnte nicht ausgeführt werden.');
+        } finally {
+            setAusLagerLaeuft(false);
+        }
+    };
+
+    const handleReservierungAufheben = async (pos: ArtikelInProjekt) => {
+        try {
+            const res = await fetch(`/api/projekte/${projekt.id}/material/${pos.id}/reservierung-aufheben`, { method: 'POST' });
+            if (!res.ok) {
+                toast.error(await leseFehlermeldung(res, 'Reservierung konnte nicht aufgehoben werden.'));
+                return;
+            }
+            toast.success('Reservierung aufgehoben.');
+            await onRefresh();
+        } catch {
+            toast.error('Reservierung konnte nicht aufgehoben werden.');
+        }
+    };
+
+    const oeffneBestellDialog = async (pos: ArtikelInProjekt) => {
+        const menge = pos.stueckzahl ?? pos.meter ?? pos.kilogramm ?? 1;
+        const einheit = pos.stueckzahl ? 'Stück' : pos.meter ? 'm' : 'kg';
+        setBestellDialogPositionen([{
+            id: pos.id,
+            artikelId: pos.artikelId,
+            name: pos.produktname ?? pos.beschreibung ?? 'Artikel',
+            menge,
+            einheit,
+            lieferantId: pos.lieferantId ?? undefined,
+            lieferantName: pos.lieferantName ?? undefined,
+        }]);
+        setBestellLieferantId(pos.lieferantId ? String(pos.lieferantId) : '');
+        setBestellNotiz('');
+        setBestellModus('neu');
+        setGewaehlteBestNr('');
+        setOffeneBestellungen([]);
+        setBestellDokIds(new Set());
+        setBestellDokZeigen(false);
+        setBestellProjektDoks([]);
+        setBestellDialogOffen(true);
+        if (projekt.id) {
+            fetch(`/api/projekte/${projekt.id}/email-dokumente`)
+                .then(r => r.ok ? r.json() as Promise<{ id: number; originalDateiname: string }[]> : Promise.resolve([]))
+                .then(docs => {
+                    const erlaubt = new Set(['dxf', 'step', 'stp', 'dwg', 'dxb', 'pdf']);
+                    const gefiltert = docs.filter(d => {
+                        const ext = d.originalDateiname.split('.').pop()?.toLowerCase() ?? '';
+                        return erlaubt.has(ext);
+                    });
+                    setBestellProjektDoks(gefiltert);
+                })
+                .catch(() => { /* keine Zeichnungen = kein Problem */ });
+        }
+    };
+
+    const ladeOffeneBestellungen = async (lieferantId: string) => {
+        if (!lieferantId) { setOffeneBestellungen([]); return; }
+        try {
+            const res = await fetch(`/api/bestellungen?stand=OFFEN&lieferantId=${lieferantId}`);
+            if (res.ok) {
+                const data = await res.json() as { id: number; bestellNummer?: string; lieferantName?: string }[];
+                setOffeneBestellungen(data.map(b => ({ id: b.id, nummer: b.bestellNummer ?? String(b.id), lieferantName: b.lieferantName ?? '' })));
+            }
+        } catch { /* ignore */ }
+    };
+
+    const handleBestellen = async () => {
+        if (!projekt.id) return;
+        setBestellLaeuft(true);
+        try {
+            if (bestellModus === 'neu') {
+                if (!bestellLieferantId) { toast.error('Bitte einen Lieferanten auswählen.'); return; }
+                const body = {
+                    lieferantId: Number(bestellLieferantId),
+                    notiz: bestellNotiz || null,
+                    positionen: bestellDialogPositionen.map(p => ({
+                        artikelId: p.artikelId,
+                        menge: p.menge,
+                        einheit: p.einheit,
+                        einzelpreis: null,
+                        herkunft: 'PROJEKT',
+                        projektId: projekt.id,
+                        artikelInProjektId: p.id,
+                        kommentar: null,
+                    })),
+                };
+                const res = await fetch('/api/bestellungen', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) { toast.error(await leseFehlermeldung(res, 'Bestellung konnte nicht angelegt werden.')); return; }
+                const bestellung = await res.json() as { id: number; positionen: { id: number }[] };
+                if (bestellDokIds.size > 0 && bestellung.positionen?.length > 0) {
+                    const positionId = bestellung.positionen[0].id;
+                    await Promise.allSettled(
+                        [...bestellDokIds].map(dokId =>
+                            fetch(`/api/bestellungen/${bestellung.id}/positionen/${positionId}/anhaenge/vom-projekt-dokument/${dokId}`, { method: 'POST' })
+                        )
+                    );
+                }
+                toast.success('Bestellung angelegt.');
+            } else {
+                if (!gewaehlteBestNr) { toast.error('Bitte eine Bestellung auswählen.'); return; }
+                const bestId = Number(gewaehlteBestNr);
+                const bestellung = await fetch(`/api/bestellungen/${bestId}`).then(r => r.json()) as { lieferantId: number; notiz?: string; positionen: unknown[] };
+                const neuePositionen = bestellDialogPositionen.map(p => ({
+                    artikelId: p.artikelId,
+                    menge: p.menge,
+                    einheit: p.einheit,
+                    einzelpreis: null,
+                    herkunft: 'PROJEKT',
+                    projektId: projekt.id,
+                    artikelInProjektId: p.id,
+                    kommentar: null,
+                }));
+                const body = { lieferantId: bestellung.lieferantId, notiz: bestellung.notiz ?? null, positionen: [...(bestellung.positionen as object[]), ...neuePositionen] };
+                const res = await fetch(`/api/bestellungen/${bestId}`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+                if (!res.ok) { toast.error(await leseFehlermeldung(res, 'Bestellung konnte nicht erweitert werden.')); return; }
+                toast.success('Position zur Bestellung hinzugefügt.');
+            }
+            setBestellDialogOffen(false);
+            await onRefresh();
+        } catch {
+            toast.error('Bestellung fehlgeschlagen.');
+        } finally {
+            setBestellLaeuft(false);
         }
     };
 
@@ -1737,7 +1973,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                     onClick={() => setShowLagerArtikelModal(true)}
                                     className="border-rose-300 text-rose-700 hover:bg-rose-50"
                                 >
-                                    <Package className="w-4 h-4 mr-2" /> Artikel aus Lager
+                                    <Package className="w-4 h-4 mr-2" /> Artikel hinzufügen
                                 </Button>
                                 <Button size="sm" onClick={() => setShowMaterialModal(true)} className="bg-rose-600 text-white hover:bg-rose-700">
                                     <Plus className="w-4 h-4 mr-2" /> Kosten erfassen
@@ -1768,22 +2004,99 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     </div>
 
                     <div className="space-y-3">
-                        <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Artikel aus Lager</h4>
+                        <div className="flex items-center justify-between">
+                            <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Bedarfsliste</h4>
+                            <div className="flex items-center gap-2">
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => {
+                                        if (projekt.id) {
+                                            fetch(`/api/projekte/${projekt.id}/dokumente`)
+                                                .then(r => r.ok ? r.json() as Promise<{ id: number; originalDateiname: string }[]> : Promise.resolve([]))
+                                                .then(docs => setStuecklisteDoks(docs))
+                                                .catch(() => setStuecklisteDoks([]));
+                                        }
+                                        setStuecklisteScanOffen(true);
+                                    }}
+                                    className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                                >
+                                    <Gem className="w-4 h-4 mr-1" /> Aus Dokument
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant="outline"
+                                    onClick={() => setShowLagerArtikelModal(true)}
+                                    className="border-rose-300 text-rose-700 hover:bg-rose-50"
+                                >
+                                    <Plus className="w-4 h-4 mr-1" /> Artikel hinzufügen
+                                </Button>
+                            </div>
+                        </div>
                         {projekt.artikel && projekt.artikel.length > 0 ? (
                             projekt.artikel.map((a) => (
                                 <div key={a.id} className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-slate-100">
                                     <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-slate-900 break-words">{a.produktname || a.beschreibung || 'Artikel'}</p>
+                                        <div className="flex items-center gap-2 flex-wrap">
+                                            <p className="font-medium text-slate-900 break-words">{a.produktname || a.beschreibung || 'Artikel'}</p>
+                                            {/* Status-Badge */}
+                                            {a.ausLager && (
+                                                <span className="text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 rounded px-1.5 py-0.5">Aus Lager</span>
+                                            )}
+                                            {!a.ausLager && a.reserviert && (
+                                                <span className="text-[11px] font-medium text-indigo-700 bg-indigo-50 border border-indigo-200 rounded px-1.5 py-0.5">Reserviert</span>
+                                            )}
+                                            {!a.ausLager && !a.reserviert && a.bestellt && (
+                                                <span className="text-[11px] font-medium text-amber-700 bg-amber-50 border border-amber-200 rounded px-1.5 py-0.5">Bestellt</span>
+                                            )}
+                                            {!a.ausLager && !a.reserviert && !a.bestellt && (
+                                                <span className="text-[11px] font-medium text-slate-500 bg-slate-100 border border-slate-200 rounded px-1.5 py-0.5">Offen</span>
+                                            )}
+                                        </div>
                                         <p className="text-xs text-slate-500 mt-0.5 break-words">
                                             {a.externeArtikelnummer ? `Nr. ${a.externeArtikelnummer} · ` : ''}
                                             {a.lieferantName ? `${a.lieferantName} · ` : ''}
                                             {a.stueckzahl ? `${a.stueckzahl} Stück` : a.meter ? `${a.meter} m` : a.kilogramm ? `${a.kilogramm} kg` : '-'}
+                                            {a.artikelId && lagerbestand[a.artikelId] !== undefined && (
+                                                <span className={`ml-1.5 ${lagerbestand[a.artikelId] > 0 ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                                    · Lager: {lagerbestand[a.artikelId]}
+                                                </span>
+                                            )}
                                         </p>
                                     </div>
-                                    <div className="flex items-center gap-3 shrink-0">
-                                        {/* Bestellte Ware steht mit in der Liste, zaehlt aber nicht in
-                                            die Materialkosten - sie kommt erst mit der Lieferantenrechnung.
-                                            Der blasse Preis sagt das schon, der Vermerk daneben sagt warum. */}
+                                    <div className="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+                                        {/* Aktions-Buttons für offene Positionen */}
+                                        {!a.ausLager && !a.bestellt && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className={`h-7 text-xs ${a.artikelId && (lagerbestand[a.artikelId] ?? 0) > 0 ? 'border-emerald-400 bg-emerald-50 text-emerald-700 hover:bg-emerald-100' : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'}`}
+                                                onClick={() => void oeffneAusLagerDialog(a)}
+                                            >
+                                                Aus Lager
+                                            </Button>
+                                        )}
+                                        {!a.ausLager && !a.bestellt && (
+                                            <Button
+                                                size="sm"
+                                                variant="outline"
+                                                className="h-7 text-xs border-blue-300 text-blue-700 hover:bg-blue-50"
+                                                onClick={() => void oeffneBestellDialog(a)}
+                                            >
+                                                <ShoppingCart className="h-3 w-3 mr-1" />Bestellen
+                                            </Button>
+                                        )}
+                                        {a.reserviert && !a.ausLager && (
+                                            <Button
+                                                size="sm"
+                                                variant="ghost"
+                                                className="h-7 text-xs text-slate-500 hover:text-slate-700"
+                                                onClick={() => void handleReservierungAufheben(a)}
+                                            >
+                                                Reservierung aufheben
+                                            </Button>
+                                        )}
+                                        {/* Preis */}
                                         {a.ausLager ? (
                                             <p className="font-semibold text-slate-900">{formatCurrency(a.gesamtpreis ?? a.preisProStueck ?? 0)}</p>
                                         ) : (
@@ -3216,6 +3529,248 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                 />
             )}
 
+            {/* Aus-Lager / Reservieren Dialog */}
+            {ausLagerDialogPosition && (
+                <Dialog open onOpenChange={(open) => { if (!open) setAusLagerDialogPosition(null); }}>
+                    <DialogContent className="max-w-sm">
+                        <DialogHeader>
+                            <DialogTitle>
+                                {ausLagerDialogPosition.produktname || ausLagerDialogPosition.beschreibung || 'Artikel'}
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                            {/* Modus-Wahl */}
+                            <div className="flex gap-2">
+                                <Button
+                                    size="sm"
+                                    variant={ausLagerModus === 'buchen' ? 'default' : 'outline'}
+                                    className={ausLagerModus === 'buchen' ? 'bg-rose-600 hover:bg-rose-700 flex-1' : 'flex-1'}
+                                    onClick={() => setAusLagerModus('buchen')}
+                                >
+                                    Entnehmen
+                                </Button>
+                                <Button
+                                    size="sm"
+                                    variant={ausLagerModus === 'reservieren' ? 'default' : 'outline'}
+                                    className={ausLagerModus === 'reservieren' ? 'bg-rose-600 hover:bg-rose-700 flex-1' : 'flex-1'}
+                                    onClick={() => setAusLagerModus('reservieren')}
+                                >
+                                    Reservieren
+                                </Button>
+                            </div>
+                            {ausLagerModus === 'buchen' && (
+                                <p className="text-xs text-slate-500">Die Ware wird sofort aus dem Lager gebucht und gilt als Materialkosten des Projekts.</p>
+                            )}
+                            {ausLagerModus === 'reservieren' && (
+                                <p className="text-xs text-slate-500">Die Menge wird für dieses Projekt zurückgehalten. Die eigentliche Entnahme erfolgt später.</p>
+                            )}
+                            {/* Verfügbarer Bestand */}
+                            {ausLagerDialogPosition.artikelId && lagerbestand[ausLagerDialogPosition.artikelId] !== undefined && (
+                                <p className="text-sm text-slate-600">
+                                    Verfügbar im Lager: <span className="font-semibold">{lagerbestand[ausLagerDialogPosition.artikelId]}</span>
+                                </p>
+                            )}
+                            {/* Menge */}
+                            <div className="space-y-1">
+                                <Label htmlFor="aus-lager-menge">Menge</Label>
+                                <Input
+                                    id="aus-lager-menge"
+                                    type="number"
+                                    min="0.001"
+                                    step="1"
+                                    value={ausLagerMenge}
+                                    onChange={e => setAusLagerMenge(e.target.value)}
+                                />
+                            </div>
+                            {/* Lagerort – nur bei Entnahme */}
+                            {ausLagerModus === 'buchen' && (
+                                <div className="space-y-1">
+                                    <Label htmlFor="aus-lager-ort">Lagerort</Label>
+                                    <Select
+                                        id="aus-lager-ort"
+                                        value={ausLagerLagerortId}
+                                        onChange={setAusLagerLagerortId}
+                                        options={lagerOrte.map(o => ({ value: String(o.id), label: o.name }))}
+                                        placeholder="Bitte wählen …"
+                                    />
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setAusLagerDialogPosition(null)} disabled={ausLagerLaeuft}>
+                                Abbrechen
+                            </Button>
+                            <Button
+                                className="bg-rose-600 text-white hover:bg-rose-700"
+                                onClick={() => void handleAusLagerOderReservieren()}
+                                disabled={ausLagerLaeuft}
+                            >
+                                {ausLagerLaeuft ? 'Wird ausgeführt …' : ausLagerModus === 'buchen' ? 'Entnehmen' : 'Reservieren'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
+            {/* Stücklisten-Scan Dialog */}
+            {stuecklisteScanOffen && projekt.id && (
+                <StuecklistenScanDialog
+                    offen={stuecklisteScanOffen}
+                    projektId={projekt.id}
+                    projektDokumente={stuecklisteDoks}
+                    onSchliessen={() => setStuecklisteScanOffen(false)}
+                    onUebernommen={() => { void onRefresh(); }}
+                />
+            )}
+
+            {/* Bestellen-Dialog */}
+            {bestellDialogOffen && (
+                <Dialog open onOpenChange={(open) => { if (!open) setBestellDialogOffen(false); }}>
+                    <DialogContent className="max-w-lg">
+                        <DialogHeader>
+                            <DialogTitle className="flex items-center gap-2">
+                                <ShoppingCart className="h-5 w-5 text-blue-600" />
+                                Artikel bestellen
+                            </DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4 py-2">
+                            {/* Positionsliste */}
+                            <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm text-slate-700">
+                                {bestellDialogPositionen.map(p => (
+                                    <div key={p.id} className="flex items-center justify-between">
+                                        <span className="font-medium">{p.name}</span>
+                                        <span className="text-slate-500">{p.menge} {p.einheit}</span>
+                                    </div>
+                                ))}
+                            </div>
+
+                            {/* Modus-Wahl */}
+                            <div className="flex gap-2">
+                                <button
+                                    onClick={() => setBestellModus('neu')}
+                                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${bestellModus === 'neu' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                >
+                                    Neue Bestellung
+                                </button>
+                                <button
+                                    onClick={() => { setBestellModus('vorhandene'); void ladeOffeneBestellungen(bestellLieferantId); }}
+                                    className={`flex-1 rounded-lg border px-3 py-2 text-sm font-medium transition-colors ${bestellModus === 'vorhandene' ? 'border-blue-400 bg-blue-50 text-blue-700' : 'border-slate-200 text-slate-600 hover:bg-slate-50'}`}
+                                >
+                                    Zu bestehender Bestellung
+                                </button>
+                            </div>
+
+                            {/* Lieferant (immer) */}
+                            <div className="space-y-1">
+                                <Label htmlFor="bestell-lieferant">Lieferant</Label>
+                                <Select
+                                    value={bestellLieferantId}
+                                    options={[
+                                        { value: '', label: '-- Lieferant wählen --' },
+                                        ...suppliers.map(s => ({ value: String(s.id), label: s.lieferantenname })),
+                                    ]}
+                                    onChange={(v) => {
+                                        setBestellLieferantId(v);
+                                        if (bestellModus === 'vorhandene') void ladeOffeneBestellungen(v);
+                                    }}
+                                    className="w-full"
+                                />
+                            </div>
+
+                            {/* Bestehende Bestellung wählen */}
+                            {bestellModus === 'vorhandene' && (
+                                <div className="space-y-1">
+                                    <Label htmlFor="bestell-vorhandene">Offene Bestellung</Label>
+                                    {offeneBestellungen.length === 0 ? (
+                                        <p className="text-sm text-slate-500">Keine offenen Bestellungen für diesen Lieferanten.</p>
+                                    ) : (
+                                        <Select
+                                            value={gewaehlteBestNr}
+                                            options={[
+                                                { value: '', label: '-- Bestellung wählen --' },
+                                                ...offeneBestellungen.map(b => ({ value: String(b.id), label: `#${b.nummer} – ${b.lieferantName}` })),
+                                            ]}
+                                            onChange={(v) => setGewaehlteBestNr(v)}
+                                            className="w-full"
+                                        />
+                                    )}
+                                </div>
+                            )}
+
+                            {/* Notiz */}
+                            {bestellModus === 'neu' && (
+                                <div className="space-y-1">
+                                    <Label htmlFor="bestell-notiz">Notiz (optional)</Label>
+                                    <Input
+                                        id="bestell-notiz"
+                                        value={bestellNotiz}
+                                        onChange={(e) => setBestellNotiz(e.target.value)}
+                                        placeholder="z. B. dringend, bis KW 45"
+                                    />
+                                </div>
+                            )}
+
+                            {/* Zeichnungen anhängen (nur neue Bestellung, nur wenn Dokumente vorhanden) */}
+                            {bestellModus === 'neu' && bestellProjektDoks.length > 0 && (
+                                <div className="rounded-lg border border-slate-200">
+                                    <button
+                                        type="button"
+                                        className="flex w-full items-center justify-between px-3 py-2 text-sm font-medium text-slate-700 hover:bg-slate-50 rounded-lg"
+                                        onClick={() => setBestellDokZeigen(v => !v)}
+                                        aria-expanded={bestellDokZeigen}
+                                    >
+                                        <span className="flex items-center gap-1.5">
+                                            <Paperclip className="h-4 w-4 text-slate-500" aria-hidden="true" />
+                                            Zeichnungen aus dem Projekt anhängen
+                                            {bestellDokIds.size > 0 && (
+                                                <span className="ml-1 rounded-full bg-blue-100 px-1.5 py-0.5 text-xs font-semibold text-blue-700">
+                                                    {bestellDokIds.size}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <ChevronDown className={`h-4 w-4 text-slate-400 transition-transform ${bestellDokZeigen ? 'rotate-180' : ''}`} aria-hidden="true" />
+                                    </button>
+                                    {bestellDokZeigen && (
+                                        <div className="border-t border-slate-200 px-3 py-2 space-y-1.5">
+                                            {bestellProjektDoks.map(dok => (
+                                                <label key={dok.id} className="flex items-center gap-2 cursor-pointer py-0.5 text-sm text-slate-700 hover:text-slate-900">
+                                                    <input
+                                                        type="checkbox"
+                                                        className="h-4 w-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                                                        checked={bestellDokIds.has(dok.id)}
+                                                        onChange={e => {
+                                                            setBestellDokIds(prev => {
+                                                                const next = new Set(prev);
+                                                                if (e.target.checked) next.add(dok.id); else next.delete(dok.id);
+                                                                return next;
+                                                            });
+                                                        }}
+                                                    />
+                                                    <span className="truncate">{dok.originalDateiname}</span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                        <DialogFooter>
+                            <Button variant="outline" onClick={() => setBestellDialogOffen(false)} disabled={bestellLaeuft}>
+                                Abbrechen
+                            </Button>
+                            <Button
+                                onClick={() => void handleBestellen()}
+                                disabled={bestellLaeuft}
+                                className="bg-blue-600 hover:bg-blue-700 text-white"
+                            >
+                                <ShoppingCart className="h-4 w-4 mr-1" />
+                                {bestellLaeuft ? 'Wird gespeichert …' : bestellModus === 'neu' ? 'Bestellung anlegen' : 'Hinzufügen'}
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
+            )}
+
             {/* Material Modal */}
             <Dialog open={showMaterialModal} onOpenChange={setShowMaterialModal}>
                 <DialogContent>
@@ -3295,7 +3850,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
             >
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Artikel aus Lager hinzufügen</DialogTitle>
+                        <DialogTitle>Artikel aus dem Artikelstamm hinzufügen</DialogTitle>
                         <p className="text-sm text-slate-500">
                             {BESTELLBEDARF_AKTIV
                                 ? 'Suchen wie in der Materialverwaltung — Menge eintragen und festlegen, ob der Artikel aus dem Lager kommt oder bestellt werden muss.'
@@ -3324,18 +3879,14 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                             urlSync={false}
                             seitenGroesse={LAGER_ARTIKEL_PAGE_SIZE}
                             seitenGroesseAusHoehe
-                            nurMitLieferantenpreis
                             onZeilenKlick={handleToggleLagerArtikel}
                             zeilenGedrueckt={(artikel) => selectedLagerArtikelKeys.has(artikel.id)}
                             zeilenAktion={(artikel) => {
                                 const key = artikel.id;
                                 const checked = selectedLagerArtikelKeys.has(key);
-                                const beschaffung = lagerArtikelBeschaffung[key] ?? 'lager';
                                 const mengeFehlt = checked && lagerMengeUngueltig(key);
-                                // Dieselbe Bezeichnung, die in der Zeile steht - sonst
-                                // sagt der Screenreader "100x100x4 auswählen", wo
-                                // sichtbar "Quadratrohr 100 x 100 x 4" steht.
                                 const name = artikelBezeichnung(artikel);
+                                const beschaffung = lagerArtikelBeschaffung[key] ?? 'bestellen';
                                 return (
                                     <div className="flex items-center gap-3">
                                         <input
@@ -3345,9 +3896,6 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                             aria-label={`${name} auswählen`}
                                             className="h-4 w-4 accent-rose-600"
                                         />
-                                        {/* Die Einheit steht schon in der Preisspalte
-                                            ("11,80 € / Laufende Meter") - hier waere sie
-                                            nur eine zweite, abgeschnittene Kopie. */}
                                         <Input
                                             type="number"
                                             min={istStueckware(artikel) ? '1' : '0.01'}

@@ -113,6 +113,9 @@ public class LieferantGeschaeftsdokument {
     @Column(nullable = false)
     private Boolean manuellePruefungErforderlich = false;
 
+    /** Wann das Dokument zuletzt als Lagerzugang gebucht wurde. Null = noch nicht gebucht. */
+    private java.time.LocalDateTime lagerGebuchtAm;
+
     // Transient field to transport detected type from AI analysis to creation
     // service
     @Transient

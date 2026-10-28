@@ -152,7 +152,7 @@ public class BeitraegeWebsiteClient {
         byte[] body;
         try {
             body = multipartBody(boundary, bild);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new BeitraegeWebsiteException("Bilddatei konnte nicht gelesen werden.", e);
         }
 
@@ -219,7 +219,7 @@ public class BeitraegeWebsiteClient {
         HttpResponse<byte[]> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new BeitraegeWebsiteException("Netzwerkfehler beim Laden des Bildes: " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -354,7 +354,7 @@ public class BeitraegeWebsiteClient {
         HttpResponse<String> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new BeitraegeWebsiteException("Netzwerkfehler beim Aufruf der Website-API: " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

@@ -97,7 +97,7 @@ public class FormularTemplateService {
             Files.createDirectories(this.templateDir);
             Files.createDirectories(this.assetDir);
             Files.createDirectories(this.templatesDir);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Vorlagenverzeichnis konnte nicht erstellt werden.", e);
         }
     }
@@ -299,7 +299,7 @@ public class FormularTemplateService {
             if (Files.exists(templateFile)) {
                 return Files.readString(templateFile);
             }
-        } catch (IOException ignored) {
+        } catch (Exception ignored) {
             // Fallback auf Standard, wenn Lesen fehlschlägt
         }
         return defaultTemplate();
@@ -311,7 +311,7 @@ public class FormularTemplateService {
             Files.writeString(templateFile, html, StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
             return html;
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Vorlage konnte nicht gespeichert werden.", e);
         }
     }
@@ -338,7 +338,7 @@ public class FormularTemplateService {
         }
         try {
             Files.copy(file.getInputStream(), target, StandardCopyOption.REPLACE_EXISTING);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Logo konnte nicht gespeichert werden.", e);
         }
         return "/api/formulare/template/assets/" + filename;
@@ -369,7 +369,7 @@ public class FormularTemplateService {
                         .toOffsetDateTime();
                 return odt.format(DateTimeFormatter.ISO_OFFSET_DATE_TIME);
             }
-        } catch (IOException ignored) {
+        } catch (Exception ignored) {
         }
         return null;
     }
@@ -434,7 +434,7 @@ public class FormularTemplateService {
                     .filter(Objects::nonNull)
                     .sorted(Comparator.comparing(FormularTemplateListDto::getModified).reversed())
                     .collect(Collectors.toList());
-        } catch (IOException e) {
+        } catch (Exception e) {
             return List.of();
         }
     }
@@ -618,7 +618,7 @@ public class FormularTemplateService {
             if (textbausteinDefaultService != null) {
                 textbausteinDefaultService.deleteForTemplate(name);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Vorlage konnte nicht gelöscht werden.", e);
         }
     }

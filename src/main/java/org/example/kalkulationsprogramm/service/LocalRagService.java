@@ -476,7 +476,7 @@ public class LocalRagService {
                 try {
                     indexer.speichern(datei, ergebnis.abschnitte());
                     log.info("RAG-Datei gespeichert: {} Abschnitte -> {}", ergebnis.abschnitte().size(), datei);
-                } catch (IOException e) {
+                } catch (Exception e) {
                     log.warn("RAG-Datei konnte nicht gespeichert werden: {}", e.getMessage());
                 }
             }

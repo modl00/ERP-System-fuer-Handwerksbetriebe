@@ -310,7 +310,7 @@ public class BeitragKiService {
                 ObjectNode inline = teile.addObject().putObject("inline_data");
                 inline.put("mime_type", bild.getContentType() == null ? "image/jpeg" : bild.getContentType());
                 inline.put("data", Base64.getEncoder().encodeToString(bild.getBytes()));
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.warn("[BeitragKi] Bild konnte nicht gelesen werden, wird uebersprungen: {}",
                         e.getClass().getSimpleName());
             }
@@ -361,7 +361,7 @@ public class BeitragKiService {
         HttpResponse<String> antwort;
         try {
             antwort = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Die KI ist nicht erreichbar.", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

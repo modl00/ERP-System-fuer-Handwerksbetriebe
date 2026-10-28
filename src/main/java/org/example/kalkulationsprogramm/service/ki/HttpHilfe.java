@@ -52,13 +52,13 @@ final class HttpHilfe {
             throw new KiAnbieterFehler(womit + " ist nicht erreichbar." + erreichbarHinweis);
         } catch (HttpTimeoutException e) {
             throw new KiAnbieterFehler(womit + " hat nicht rechtzeitig geantwortet. Bitte erneut versuchen.");
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new KiAnbieterFehler("Die Verbindung zu " + womit + " ist fehlgeschlagen.", e);
         }
         if (antwort.statusCode() == 200) {
             try {
                 return JSON.readTree(antwort.body());
-            } catch (IOException e) {
+            } catch (Exception e) {
                 throw new KiAnbieterFehler("Die Antwort von " + womit + " ist nicht lesbar.", e);
             }
         }

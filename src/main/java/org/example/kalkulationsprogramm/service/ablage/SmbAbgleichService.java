@@ -535,7 +535,7 @@ public class SmbAbgleichService {
         try {
             return json.readValue(s.lies(MANIFEST), new TypeReference<HashMap<String, Stand>>() {
             });
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             throw new IOException("Der Merkzettel _erp/abgleich.json auf der Freigabe ist unlesbar. Bitte die Datei umbenennen oder löschen (dann wird neu abgeglichen).", ex);
         }
     }

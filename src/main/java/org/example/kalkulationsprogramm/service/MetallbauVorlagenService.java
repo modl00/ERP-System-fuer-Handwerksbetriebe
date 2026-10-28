@@ -114,7 +114,7 @@ public class MetallbauVorlagenService {
                 liste.add(v);
             }
             return List.copyOf(liste);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Der Katalog der Arbeitsgänge ist nicht lesbar.", e);
         }
     }
@@ -227,7 +227,7 @@ public class MetallbauVorlagenService {
                 }
                 liste.add(rechne(zeile.split(";")));
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Die Maßreihen der Stahlprofile sind nicht lesbar.", e);
         }
         for (Profilform form : profilTabelle.formen()) {

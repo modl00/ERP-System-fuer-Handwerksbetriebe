@@ -148,7 +148,7 @@ public class HeroVerbindungService {
                 return new Ergebnis(false, "Hero meldet einen Fehler: " + kuerze(fehler, 300), kuerze(text, maxAntwort));
             }
             return new Ergebnis(true, "OK", kuerze(text, maxAntwort));
-        } catch (IOException ex) {
+        } catch (Exception ex) {
             // Ohne Details aus der Ausnahme: Sie könnte die Adresse, nie aber den Schlüssel enthalten; trotzdem nur der Typ ins Log
             log.warn("[Hero] Verbindung fehlgeschlagen: {}", ex.getClass().getSimpleName());
             return new Ergebnis(false, "Keine Verbindung zu Hero. Ist der Server im Internet erreichbar?", "");

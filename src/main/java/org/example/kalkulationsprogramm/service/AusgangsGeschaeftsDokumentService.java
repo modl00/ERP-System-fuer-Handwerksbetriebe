@@ -1268,7 +1268,7 @@ public class AusgangsGeschaeftsDokumentService {
         try {
             Files.createDirectories(dokumentenSpeicherplatz);
             Files.write(zielPfad, pdfBytes);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new RuntimeException("PDF konnte nicht gespeichert werden", e);
         }
 

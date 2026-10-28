@@ -104,7 +104,7 @@ public final class StandaloneRagIndexer {
         RagIndexer.Ergebnis ergebnis = indexer.aktualisieren(quellen, vorlage, einbetterFuer.apply(key), zeitLimit);
         try {
             indexer.speichern(datei, ergebnis.abschnitte());
-        } catch (IOException e) {
+        } catch (Exception e) {
             aus.println("RAG-Datei konnte nicht geschrieben werden: " + e.getMessage());
             return FEHLER;
         }

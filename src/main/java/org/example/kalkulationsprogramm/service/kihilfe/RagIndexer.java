@@ -181,7 +181,7 @@ public final class RagIndexer {
                     .filter(p -> !TESTDATEI.matcher(p.getFileName().toString()).find())
                     .sorted()
                     .forEach(datei -> zerlegeDatei(abschnitte, wurzel, datei, quelle.kategorie()));
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("RAG: Ordner nicht lesbar: {}", ordner);
         }
     }
@@ -190,7 +190,7 @@ public final class RagIndexer {
         String inhalt;
         try {
             inhalt = Files.readString(datei);
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("RAG: Datei nicht lesbar: {}", datei);
             return;
         }

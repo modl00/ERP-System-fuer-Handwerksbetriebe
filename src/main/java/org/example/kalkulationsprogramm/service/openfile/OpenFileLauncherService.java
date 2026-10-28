@@ -349,7 +349,7 @@ public class OpenFileLauncherService {
     private static String leseRessource(String name) {
         try (InputStream in = new ClassPathResource(ORDNER + name).getInputStream()) {
             return new String(in.readAllBytes(), StandardCharsets.UTF_8);
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Launcher-Datei fehlt: " + name, e);
         }
     }

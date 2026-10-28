@@ -105,7 +105,7 @@ public class EntwicklungsWunschService {
                 case 404 -> new Testergebnis(false, "Das Repository " + s.repository() + " gibt es unter dieser Adresse nicht, oder der Schlüssel darf es nicht sehen.");
                 default -> new Testergebnis(false, "Gitea antwortet mit Fehler " + r.statusCode() + ". Bitte Adresse und Repository prüfen.");
             };
-        } catch (IOException e) {
+        } catch (Exception e) {
             return new Testergebnis(false, "Gitea ist unter dieser Adresse nicht erreichbar. Bitte Adresse und Netzwerk prüfen.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -146,7 +146,7 @@ public class EntwicklungsWunschService {
             }
             JsonNode n = JSON.readTree(r.body());
             return new Angelegt(n.path("number").asInt(), n.path("html_url").asText(""));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Gitea ist nicht erreichbar. Der Wunsch wurde nicht angelegt.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -187,7 +187,7 @@ public class EntwicklungsWunschService {
                     break;
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             return List.of();
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -212,7 +212,7 @@ public class EntwicklungsWunschService {
                 return null;
             }
             return new Aehnlich(i.path("number").asInt(), i.path("title").asText(""), i.path("html_url").asText(""), 0);
-        } catch (IOException e) {
+        } catch (Exception e) {
             return null;
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -238,7 +238,7 @@ public class EntwicklungsWunschService {
                 throw new IllegalStateException("Der Kommentar konnte nicht geschrieben werden. " + grund);
             }
             return new Angelegt(nummer, JSON.readTree(r.body()).path("html_url").asText(""));
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Gitea ist nicht erreichbar. Der Kommentar wurde nicht geschrieben.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -282,7 +282,7 @@ public class EntwicklungsWunschService {
                     }
                 }
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             // ohne Labels weiter
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();

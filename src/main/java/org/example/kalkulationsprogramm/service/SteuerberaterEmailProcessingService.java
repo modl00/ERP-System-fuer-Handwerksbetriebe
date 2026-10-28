@@ -378,7 +378,7 @@ public class SteuerberaterEmailProcessingService {
             if (datei.startsWith(basis)) {
                 Files.deleteIfExists(datei);
             }
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("[Steuerberater] Alte Lohnabrechnungs-PDF konnte nicht gelöscht werden: {}", e.getMessage());
         }
     }

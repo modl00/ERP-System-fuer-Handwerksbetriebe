@@ -643,7 +643,7 @@ public class BelegKiKostenkontoService {
                                 List.of(new KiTypen.Anhang(mimeType, bytes)), 0.0, 1024, true);
                     }
                 }
-            } catch (IOException e) {
+            } catch (Exception e) {
                 log.debug("KI-Kostenkonto (Weiche) Beleg {}: Datei nicht lesbar — ohne Datei", beleg.getId());
             }
         }

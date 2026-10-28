@@ -206,7 +206,7 @@ public class LokalerKiService {
             return new Testergebnis(true, "OK", "Die lokale KI antwortet (Modell " + k.modell() + "): " + kurz(antwort));
         } catch (LokaleKiFehler e) {
             return new Testergebnis(false, art(e.getMessage()), e.getMessage());
-        } catch (IOException e) {
+        } catch (Exception e) {
             return new Testergebnis(false, "FEHLER", "Die lokale KI konnte nicht befragt werden.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
@@ -232,7 +232,7 @@ public class LokalerKiService {
             throw new LokaleKiFehler("Die lokale KI ist unter " + k.adresse() + " nicht erreichbar. Läuft Ollama, ist die Adresse richtig und erlaubt die Firewall Port 11434 (und ist OLLAMA_HOST=0.0.0.0 gesetzt)?");
         } catch (HttpTimeoutException e) {
             throw new LokaleKiFehler("Die lokale KI hat nicht rechtzeitig geantwortet. Das Modell ist vielleicht zu groß oder lädt noch; bitte erneut versuchen.");
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("Lokale KI nicht erreichbar: {}", e.toString());
             throw new LokaleKiFehler("Die Verbindung zur lokalen KI ist fehlgeschlagen (" + k.adresse() + ").");
         }

@@ -178,7 +178,7 @@ public class PlanungsKi {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalArgumentException("Die Anfrage an die KI wurde abgebrochen.");
-        } catch (IOException e) {
+        } catch (Exception e) {
             log.warn("[PlanungsKi] {}", e.getMessage());
             throw new IllegalArgumentException(e.getMessage() == null || e.getMessage().isBlank() ? "Die KI antwortet nicht." : e.getMessage());
         }

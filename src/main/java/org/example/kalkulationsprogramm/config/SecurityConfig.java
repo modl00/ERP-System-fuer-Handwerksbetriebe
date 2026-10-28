@@ -400,7 +400,7 @@ public class SecurityConfig {
             response.setStatus(status);
             response.setContentType("application/json;charset=UTF-8");
             objectMapper.writeValue(response.getWriter(), body);
-        } catch (IOException ignored) {
+        } catch (Exception ignored) {
             response.setStatus(status);
         }
         }

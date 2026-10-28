@@ -110,7 +110,7 @@ public class StuecklisteScanService {
         byte[] bytes;
         try {
             bytes = datei.getBytes();
-        } catch (IOException e) {
+        } catch (Exception e) {
             throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "Die Datei konnte nicht gelesen werden.");
         }
 

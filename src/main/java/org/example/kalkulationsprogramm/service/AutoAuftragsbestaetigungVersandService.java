@@ -225,7 +225,7 @@ public class AutoAuftragsbestaetigungVersandService
         {
             for (Path temp : tempDateien)
             {
-                try { Files.deleteIfExists(temp); } catch (IOException ignored) { /* temp-Datei ggf. schon weg */ }
+                try { Files.deleteIfExists(temp); } catch (Exception ignored) { /* temp-Datei ggf. schon weg */ }
             }
         }
     }

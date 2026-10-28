@@ -471,7 +471,7 @@ public class BelegKiKostenkontoService {
                         attempt, MAX_GEMINI_ATTEMPTS, status, errBody);
                 return null;
 
-            } catch (JacksonException | java.io.IOException ioe) {
+            } catch (Exception ioe) {
                 // Netzwerk-/Timeout-Fehler: ebenfalls retry-bar.
                 if (attempt < MAX_GEMINI_ATTEMPTS) {
                     long backoff = RETRY_BACKOFF_MS[attempt - 1];

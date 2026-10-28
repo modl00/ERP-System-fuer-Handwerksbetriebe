@@ -146,7 +146,7 @@ public class MailOrdnerService {
         List<Eintrag> ergebnis = new ArrayList<>(neu.values());
         try {
             einstellungen.save(SCHLUESSEL, ergebnis.isEmpty() ? "" : JSON.writeValueAsString(ergebnis), "Ordner, die das E-Mail-Center liest");
-        } catch (com.fasterxml.jackson.core.JsonProcessingException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Die Auswahl konnte nicht gespeichert werden.");
         }
         return ergebnis;

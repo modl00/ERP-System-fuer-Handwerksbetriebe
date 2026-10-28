@@ -47,7 +47,7 @@ export function ordneAuftraege(auftraege: readonly Auftrag[], sortierung: Sortie
         });
 }
 
-/** Die Zeile eines Auftrags in der Gruppe „Allgemein“: seine Vorgänge als Balken, Schlüssel {@code P<Nr>}. */
+/** Die Zeile eines Auftrags in der Gruppe „Allgemein": seine Vorgänge als Balken, Schlüssel {@code P<Nr>}. */
 export function auftragsZeile(a: Auftrag): BelegungZeile {
     const eintraege: BelegungEintrag[] = a.vorgaenge.filter(v => v.start && v.ende).map(v => ({
         id: `V${v.id}`,
@@ -72,7 +72,7 @@ export function auftragsZeile(a: Auftrag): BelegungZeile {
 }
 
 /**
- * Bei großen Zeitstufen sind einzelne Termine nicht lesbar: Sie werden je Woche zu einem Eintrag „3 Termine“ zusammengefasst.
+ * Bei großen Zeitstufen sind einzelne Termine nicht lesbar: Sie werden je Woche zu einem Eintrag „3 Termine" zusammengefasst.
  * Alles andere bleibt unverändert.
  */
 export function verdichteTermine(eintraege: readonly BelegungEintrag[]): BelegungEintrag[] {

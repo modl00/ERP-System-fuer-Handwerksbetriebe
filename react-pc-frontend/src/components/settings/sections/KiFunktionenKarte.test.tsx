@@ -75,7 +75,7 @@ describe('KiFunktionenKarte: eine Tabelle für Anbieter, Modell und Datenschutz'
         expect(scanner.getByRole('combobox', { name: 'Modell für Scanner' })).toBeVisible();
         // Funktionen mit Anbieterwahl stehen nicht doppelt in der Tabelle
         expect(screen.getAllByText('KI-Hilfe (Chat)')).toHaveLength(1);
-        // PDF-Auslesen ist wählbar (#232) und steht nicht zusätzlich als „Gemini (fest)“ da
+        // PDF-Auslesen ist wählbar (#232) und steht nicht zusätzlich als „Gemini (fest)" da
         expect((await zeile('pdf-auslesen')).getByRole('combobox', { name: 'Anbieter für PDF-Rechnungen und -Angebote auslesen' })).toBeVisible();
         expect(screen.queryByTestId('ki-modell-pdf-extractor')).not.toBeInTheDocument();
     });
@@ -86,7 +86,7 @@ describe('KiFunktionenKarte: eine Tabelle für Anbieter, Modell und Datenschutz'
         expect((await zeile('hilfe')).getByText('Fragen gehen an den Anbieter')).toBeVisible();
     });
 
-    it('sperrt Cloud-Anbieter bei „Nur lokal“', async () => {
+    it('sperrt Cloud-Anbieter bei „Nur lokal"', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByTestId('ki-anbieter-assistent');
@@ -95,7 +95,7 @@ describe('KiFunktionenKarte: eine Tabelle für Anbieter, Modell und Datenschutz'
         expect(screen.getByRole('option', { name: /Lokale KI/ })).not.toHaveAttribute('aria-disabled', 'true');
     });
 
-    it('zeigt das gewählte Modell oder den Standard, und „Speichern“ geht erst nach einer Änderung', async () => {
+    it('zeigt das gewählte Modell oder den Standard, und „Speichern" geht erst nach einer Änderung', async () => {
         zeige();
         const mail = await zeile('email-text');
         expect(mail.getByRole('combobox', { name: 'Modell für E-Mail-Texte verbessern' })).toHaveTextContent('mistral-large-latest');
@@ -117,7 +117,7 @@ describe('KiFunktionenKarte: eine Tabelle für Anbieter, Modell und Datenschutz'
         expect(screen.getByRole('option', { name: 'Standard (mistral-small-latest)' })).toBeVisible();
     });
 
-    it('sperrt „Modelle laden“ und „Testen“ für einen Anbieter ohne Zugang', async () => {
+    it('sperrt „Modelle laden" und „Testen" für einen Anbieter ohne Zugang', async () => {
         zeige();
         await screen.findByTestId('ki-funktionen-karte');
         expect(screen.getByRole('button', { name: 'Verfügbare Modelle von Claude (Anthropic) laden' })).toBeDisabled();
@@ -125,7 +125,7 @@ describe('KiFunktionenKarte: eine Tabelle für Anbieter, Modell und Datenschutz'
         expect(aufrufe('GET', '/modelle')).toHaveLength(0);
     });
 
-    it('speichert Anbieter, Datenschutz und Modell je Funktion; „Nur lokal“ stellt auf die lokale KI', async () => {
+    it('speichert Anbieter, Datenschutz und Modell je Funktion; „Nur lokal" stellt auf die lokale KI', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByTestId('ki-anbieter-hilfe');
@@ -187,7 +187,7 @@ describe('KiFunktionenKarte: eine Tabelle für Anbieter, Modell und Datenschutz'
     it('zeigt einen Fehler des Servers beim Speichern und lässt die Eingaben stehen', async () => {
         const user = userEvent.setup();
         fetcher.mockImplementation(async (url: string, init?: RequestInit) => {
-            if (init?.method === 'PUT') return antwort({ message: 'Der Modellname für „E-Mail-Texte verbessern“ ist ungültig.' }, false, 400);
+            if (init?.method === 'PUT') return antwort({ message: 'Der Modellname für „E-Mail-Texte verbessern" ist ungültig.' }, false, 400);
             return url.endsWith('/ki-modelle') ? antwort(gemini()) : antwort(uebersicht());
         });
         zeige();
@@ -195,7 +195,7 @@ describe('KiFunktionenKarte: eine Tabelle für Anbieter, Modell und Datenschutz'
         await user.click(screen.getByRole('combobox', { name: 'Datenschutz für KI-Hilfe (Chat)' }));
         await user.click(await screen.findByRole('option', { name: 'Nur lokal' }));
         await user.click(screen.getByRole('button', { name: 'Speichern' }));
-        expect(await screen.findByText('Der Modellname für „E-Mail-Texte verbessern“ ist ungültig.')).toBeVisible();
+        expect(await screen.findByText('Der Modellname für „E-Mail-Texte verbessern" ist ungültig.')).toBeVisible();
         expect(screen.getByRole('combobox', { name: 'Datenschutz für KI-Hilfe (Chat)' })).toHaveTextContent('Nur lokal');
     });
 

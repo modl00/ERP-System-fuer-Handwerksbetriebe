@@ -116,12 +116,12 @@ describe('WartungProtokoll', () => {
 
     it('nimmt die Bewertung zurück und zeigt die Meldung des Servers, wenn das Speichern scheitert', async () => {
         stubServer(protokoll(), (url, init) => (url.endsWith('/pruefpunkte/101') && init?.method === 'PUT'
-            ? antwort(409, { message: 'Dieses Protokoll ist „abgeschlossen“ und lässt sich nicht mehr ändern.' }) : undefined));
+            ? antwort(409, { message: 'Dieses Protokoll ist „abgeschlossen" und lässt sich nicht mehr ändern.' }) : undefined));
         zeige();
         const zeile = await screen.findByTestId('pruefpunkt-101');
         await userEvent.click(within(zeile).getByRole('button', { name: /^In Ordnung/ }));
 
-        expect(await screen.findByText('Dieses Protokoll ist „abgeschlossen“ und lässt sich nicht mehr ändern.')).toBeVisible();
+        expect(await screen.findByText('Dieses Protokoll ist „abgeschlossen" und lässt sich nicht mehr ändern.')).toBeVisible();
         await waitFor(() => expect(within(screen.getByTestId('pruefpunkt-101')).getByRole('button', { name: /^In Ordnung/ })).toHaveAttribute('aria-pressed', 'false'));
         expect(screen.getByText(/1 von 2 bewertet/)).toBeVisible();
     });
@@ -333,14 +333,14 @@ describe('WartungProtokoll', () => {
 
     it('ergänzt nichts ohne Text und zeigt die Meldung des Servers bei einem Fehler', async () => {
         const fetcher = stubServer(protokoll(), (url, init) => (url.endsWith('/pruefpunkte') && init?.method === 'POST'
-            ? antwort(409, { message: 'Dieses Protokoll ist „abgeschlossen“ und lässt sich nicht mehr ändern.' }) : undefined));
+            ? antwort(409, { message: 'Dieses Protokoll ist „abgeschlossen" und lässt sich nicht mehr ändern.' }) : undefined));
         zeige();
         await screen.findByText('Zulassungsschild lesbar');
         expect(screen.getByRole('button', { name: 'Hinzufügen' })).toBeDisabled();
         await userEvent.type(screen.getByLabelText('Was ist zusätzlich zu prüfen?'), 'X');
         await userEvent.click(screen.getByRole('button', { name: 'Hinzufügen' }));
 
-        expect(await screen.findByText('Dieses Protokoll ist „abgeschlossen“ und lässt sich nicht mehr ändern.')).toBeVisible();
+        expect(await screen.findByText('Dieses Protokoll ist „abgeschlossen" und lässt sich nicht mehr ändern.')).toBeVisible();
         expect(fetcher.mock.calls.filter(([, init]) => init?.method === 'POST')).toHaveLength(1);
         expect(screen.getByLabelText('Was ist zusätzlich zu prüfen?')).toHaveValue('X');
     });

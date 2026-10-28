@@ -74,7 +74,7 @@ describe('KI-Einstellungen: Reiter und Übersicht', { timeout: 30000 }, () => {
         expect(screen.queryByText('Wie weit darf die KI gehen?')).toBeNull();
     });
 
-    it('zeigt, was die Grenze sperrt: „nur im Haus“ sperrt Cloud-Anbieter, „aus“ alles, nicht eingerichtet ist „Schlüssel fehlt“', async () => {
+    it('zeigt, was die Grenze sperrt: „nur im Haus" sperrt Cloud-Anbieter, „aus" alles, nicht eingerichtet ist „Schlüssel fehlt"', async () => {
         stub({ ...GRENZE, datenschutz: 'LOKAL' });
         rendern();
         const hilfe = await screen.findByTestId('ki-uebersicht-hilfe');

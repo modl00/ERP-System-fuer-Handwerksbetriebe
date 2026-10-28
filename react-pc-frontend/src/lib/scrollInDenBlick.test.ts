@@ -142,7 +142,7 @@ describe('scrolleMittigInDenBlick', () => {
         }
     });
 
-    it('springt ohne Animation, wenn „Bewegung reduzieren“ eingestellt ist', () => {
+    it('springt ohne Animation, wenn „Bewegung reduzieren" eingestellt ist', () => {
         reduzierteBewegung(true);
         const liste = box('auto', { oben: 0, hoehe: 400, inhalt: 2000 });
         scrolleMittigInDenBlick(box(null, { oben: 600, hoehe: 100 }, liste));

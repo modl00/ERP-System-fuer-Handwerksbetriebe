@@ -11,7 +11,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
-import org.mockito.*;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.web.server.ResponseStatusException;
 import java.math.BigDecimal;
@@ -43,7 +45,17 @@ class ZeitkontenmodellServiceTest {
     @Test void updatePrueftSperrversionUndAendertNurKatalog() {
         var v = modell(); when(repository.saveAndFlush(v)).thenReturn(v);
         var result = service.aktualisieren(1L, new ZeitkontenmodellDto.Update(3L, "Teilzeit", arbeitszeit("7")));
-        assertEquals("Teilzeit", result.bezeichnung()); verifyNoInteractions(versionRepository);
+        assertEquals("Teilzeit", result.bezeichnung()); assertFalse(result.zugewiesen());
+        // Die Historie wird nur gelesen (zugewiesen?), nie geändert.
+        verify(versionRepository).existsByVorlageId(1L); verifyNoMoreInteractions(versionRepository);
+    }
+    @Test void alleMarkiertZugewieseneVorlagen() {
+        var werkstatt = new Zeitkontenmodell(); werkstatt.setId(1L); werkstatt.setBezeichnung("Werkstatt");
+        var buero = new Zeitkontenmodell(); buero.setId(2L); buero.setBezeichnung("Büro");
+        when(repository.findAll(any(org.springframework.data.domain.Sort.class))).thenReturn(java.util.List.of(buero, werkstatt));
+        when(versionRepository.findZugewieseneVorlageIds()).thenReturn(java.util.Set.of(1L));
+        var result = service.alle();
+        assertFalse(result.get(0).zugewiesen()); assertTrue(result.get(1).zugewiesen());
     }
     @Test void veraltetesUpdateIstKonflikt() {
         var v = modell();

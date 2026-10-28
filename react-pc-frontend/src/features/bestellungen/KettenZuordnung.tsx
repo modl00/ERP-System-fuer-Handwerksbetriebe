@@ -21,7 +21,7 @@ interface KettenZuordnungProps {
 }
 
 /**
- * „Projekten zuordnen“ für eine ganze Bestellung: Hat sie mehrere Rechnungen,
+ * „Projekten zuordnen" für eine ganze Bestellung: Hat sie mehrere Rechnungen,
  * steht oben im Dialog die Rechnungs-Leiste. Nach dem Speichern springt der
  * Dialog zur nächsten offenen Rechnung und schließt erst, wenn keine mehr offen ist.
  */

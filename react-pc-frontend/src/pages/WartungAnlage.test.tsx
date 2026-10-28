@@ -179,7 +179,7 @@ describe('WartungAnlage: Feldeinsatz starten', () => {
         stub(anlage({ historie: [], letztePruefungId: null, module: [] }));
         zeige();
         expect(await screen.findByRole('button', { name: 'Feldeinsatz starten' })).toBeDisabled();
-        expect(screen.getByText(/zuerst unter „Bearbeiten“ ein Modul wählen/)).toBeVisible();
+        expect(screen.getByText(/zuerst unter „Bearbeiten" ein Modul wählen/)).toBeVisible();
     });
 
     it('bietet bei einem offenen Feldeinsatz nur "fortsetzen" an: kein zweiter Start nebenbei', async () => {

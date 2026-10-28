@@ -22,7 +22,7 @@ interface LieferantDokumentModalProps {
     lieferantId: number | string;
     onSave?: (updated: LieferantDokument) => void;
     /**
-     * „Zuordnen“ im Warnband „Kein Projekt zugeordnet“: Der Aufrufer öffnet seinen
+     * „Zuordnen" im Warnband „Kein Projekt zugeordnet": Der Aufrufer öffnet seinen
      * Zuordnungs-Dialog und reicht danach das neu geladene Dokument (gleiche ID) herein.
      * Ohne diese Prop gibt es keinen Knopf.
      */
@@ -55,6 +55,8 @@ export default function LieferantDokumentModal({
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [pdfBlobUrl, setPdfBlobUrl] = useState<string | null>(null);
+    /** Text statt Ladeanzeige, wenn die Vorschau nicht kommt – sonst dreht der Spinner endlos. */
+    const [pdfFehler, setPdfFehler] = useState<string | null>(null);
 
     const toast = useToast();
     const { pruefeAntwort } = useKonfliktMeldung("Dokument");
@@ -104,7 +106,7 @@ export default function LieferantDokumentModal({
             ? `${wer} bearbeitet dieses Dokument gerade — Speichern erst nach Übernahme möglich.`
             : lock.status === "error"
                 ? LOCK_FEHLER_TEXT
-                : 'Erst „Bearbeiten“ klicken, um Änderungen zu speichern.';
+                : 'Erst „Bearbeiten" klicken, um Änderungen zu speichern.';
 
     // Grund fuer den deaktivierten Bearbeiten-Knopf in der BearbeitenLeiste
     // (Task 7d: Verdrahtung der in Runde 7-1/Task 7c gebauten, bis hierher
@@ -172,7 +174,10 @@ export default function LieferantDokumentModal({
     // Formular beim Öffnen bzw. bei einem ANDEREN Dokument neu befüllen. Bewusst nicht
     // bei jedem neuen Objekt derselben ID: Lädt der Aufrufer nach dem Zuordnen neu,
     // sollen ungespeicherte Eingaben stehen bleiben.
-    useEffect(() => {
+    const formularFuer = `${isOpen}|${dokument?.id}`;
+    const [formularGefuelltFuer, setFormularGefuelltFuer] = useState<string | null>(null);
+    if (formularGefuelltFuer !== formularFuer) {
+        setFormularGefuelltFuer(formularFuer);
         if (dokument) {
             setFormData({
                 typ: dokument.typ,
@@ -197,28 +202,44 @@ export default function LieferantDokumentModal({
             setError(null);
             setShowPdf(true);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dokument?.id, isOpen]);
+    }
 
     // Lade PDF als Blob um X-Frame-Options externer URLs zu umgehen.
     // Nur an der ID festgemacht: Ein neu geladenes Objekt desselben Dokuments
     // (z. B. nach dem Zuordnen) lädt die Vorschau nicht erneut.
     const dokumentId = dokument?.id;
+    // Neue Vorschau (anderes Dokument, geöffnet/geschlossen, ein-/ausgeblendet):
+    // alte Vorschau und alten Fehler sofort verwerfen.
+    const vorschauFuer = `${isOpen}|${dokumentId}|${lieferantId}|${showPdf}`;
+    const [vorschauGeladenFuer, setVorschauGeladenFuer] = useState(vorschauFuer);
+    if (vorschauGeladenFuer !== vorschauFuer) {
+        setVorschauGeladenFuer(vorschauFuer);
+        setPdfBlobUrl(null);
+        setPdfFehler(null);
+    }
+
     useEffect(() => {
-        if (!isOpen || dokumentId == null || !showPdf) {
-            setPdfBlobUrl(null);
-            return;
-        }
+        if (!isOpen || dokumentId == null || !showPdf) return;
         const controller = new AbortController();
         let currentUrl: string | null = null;
 
         fetch(`/api/lieferanten/${lieferantId}/dokumente/${dokumentId}/download`, { signal: controller.signal })
-            .then(res => res.blob())
+            .then(res => {
+                if (res.status === 404) throw new Error('Die Datei wurde nicht gefunden.');
+                if (!res.ok) throw new Error('Vorschau konnte nicht geladen werden.');
+                return res.blob();
+            })
             .then(blob => {
                 currentUrl = URL.createObjectURL(blob);
                 setPdfBlobUrl(currentUrl);
             })
-            .catch(() => { /* AbortError bei Cleanup ignorieren */ });
+            .catch((err: unknown) => {
+                // Abbruch beim Schließen/Wechseln ist kein Fehler.
+                if (controller.signal.aborted) return;
+                setPdfFehler(err instanceof Error && err.message === 'Die Datei wurde nicht gefunden.'
+                    ? err.message
+                    : 'Vorschau konnte nicht geladen werden.');
+            });
 
         return () => {
             controller.abort();
@@ -441,6 +462,11 @@ export default function LieferantDokumentModal({
                                         className="w-full h-full border-0"
                                         title="PDF Vorschau"
                                     />
+                                ) : pdfFehler ? (
+                                    <div role="alert" className="flex flex-col items-center justify-center gap-2 h-full px-6 text-center text-slate-200 text-sm">
+                                        <AlertCircle className="w-6 h-6 text-slate-400" aria-hidden="true" />
+                                        {pdfFehler}
+                                    </div>
                                 ) : (
                                     <div className="flex items-center justify-center h-full text-white text-sm">
                                         <div className="animate-spin w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-3" />

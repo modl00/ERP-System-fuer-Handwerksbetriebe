@@ -8,7 +8,7 @@
  * sich danach von Hand nicht mehr zurückscrollen – die Seite rutscht unter die
  * Menüleiste, und unten bleibt eine leere Fläche.
  *
- * Nur senkrecht; waagerecht bleibt alles stehen. Bei „Bewegung reduzieren“
+ * Nur senkrecht; waagerecht bleibt alles stehen. Bei „Bewegung reduzieren"
  * springt die Ansicht ohne Animation.
  */
 export function scrolleMittigInDenBlick(element: HTMLElement): void {

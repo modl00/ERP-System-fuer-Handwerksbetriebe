@@ -60,7 +60,7 @@ describe('Warteschlange des Feldeinsatzes', () => {
     })
 
     it('vom Server Abgelehntes bleibt mit Meldung stehen, blockiert die übrigen nicht und wird nicht erneut gesendet; Verwerfen entfernt es', async () => {
-        const f = vi.fn(async (url: RequestInfo | URL) => (String(url).includes('/pruefpunkte/') ? json({ message: 'Dieses Protokoll ist „abgeschlossen“.' }, 409) : json({ status: 'OFFEN', statistik: {}, pruefpunkt: null, datenfeld: null })))
+        const f = vi.fn(async (url: RequestInfo | URL) => (String(url).includes('/pruefpunkte/') ? json({ message: 'Dieses Protokoll ist „abgeschlossen".' }, 409) : json({ status: 'OFFEN', statistik: {}, pruefpunkt: null, datenfeld: null })))
         vi.stubGlobal('fetch', f)
         await legeAb(3, { art: 'PRUEFPUNKT', zielId: 100, ergebnis: 'IO', bemerkung: null })
         await legeAb(3, { art: 'DATENFELD', zielId: 200, wert: 'x' })
@@ -70,7 +70,7 @@ describe('Warteschlange des Feldeinsatzes', () => {
         expect(r).toMatchObject({ gesendet: 1, abgelehnt: 1 })
         const q = await warteschlange()
         expect(q).toHaveLength(1)
-        expect(q[0].fehler).toBe('Dieses Protokoll ist „abgeschlossen“.')
+        expect(q[0].fehler).toBe('Dieses Protokoll ist „abgeschlossen".')
         await gleicheAb('t')
         expect(f).toHaveBeenCalledTimes(2)
         await verwirf(q[0].id!)

@@ -106,6 +106,30 @@ export interface KundeDetail {
   notizen?: KundeNotiz[];
   anzahlAnsprechpartner?: number;
   anzahlObjekte?: number;
+  /** Aus Datenschutzgründen gesperrt (Löschwunsch, Unterlagen müssen noch aufbewahrt werden). */
+  gesperrt?: boolean;
+  /** Zeitpunkt der Sperre (ISO-DateTime), nur bei gesperrt. */
+  gesperrtAm?: string | null;
+  /** Bis zu diesem Tag (ISO-Date) werden die Unterlagen aufbewahrt, nur bei gesperrt. */
+  aufbewahrenBis?: string | null;
+  /** Zeitpunkt der Anonymisierung (ISO-DateTime), null = nicht anonymisiert. */
+  anonymisiertAm?: string | null;
+  /** Ob der Kunde direkt gelöscht werden darf oder gesperrt werden muss (nur in der Akte). */
+  loeschPruefung?: KundeLoeschPruefung;
+}
+
+export interface KundeLoeschPruefung {
+  loeschbar: boolean;
+  /** Fertige Klartexte wie „2 Projekte", „3 Angebote/Rechnungen". */
+  hindernisse: string[];
+  /**
+   * Aufbewahrungsende bei einer Sperre (ISO-Date), null wenn löschbar. Bei
+   * gesperrten Kunden frisch berechnet, kann also nach einer späteren
+   * Gutschrift über `KundeDetail.aufbewahrenBis` hinausgehen.
+   */
+  aufbewahrenBis: string | null;
+  /** Gesperrt, noch nicht anonymisiert und die Frist ist abgelaufen. */
+  anonymisierbar?: boolean;
 }
 
 export interface LieferantStatistik {
@@ -178,6 +202,8 @@ export interface LieferantDokument {
   projektAnteile: LieferantProjektAnteil[];
   verknuepfteDokumente: LieferantDokumentRef[];
   uploadedByName?: string;
+  /** Auf der Seite Bestellungen als erledigt ausgeblendet – der Beleg bleibt erhalten. */
+  ausgeblendet?: boolean;
 }
 
 // Dokumentenkette (gruppierte verknüpfte Dokumente)
@@ -361,6 +387,7 @@ export interface Artikel {
   lieferantenname?: string;
   kategorieId?: number;
   kategoriePfad?: string;
+  werkstoffId?: number;
   werkstoffName?: string;
   kgProMeter?: number;
   werkstoffId?: number;
@@ -391,6 +418,10 @@ export interface Artikel {
 
   // Technische Stammdaten
   artikelnummer?: string;
+  /** Strichcode (EAN-8, UPC-A, EAN-13, GTIN-14), nur bei einem Teil der Artikel vorhanden. */
+  ean?: string | null;
+  /** Stand des Datensatzes: Beim Ändern der Stammdaten mitschicken, damit parallele Änderungen auffallen. */
+  version?: number | null;
   profilform?: Merkmal;
   herstellverfahren?: Merkmal;
   fertigungszustand?: Merkmal;
@@ -400,6 +431,8 @@ export interface Artikel {
   hoehe?: number;
   breite?: number;
   wandstaerke?: number;
+  stegdicke?: number;
+  flanschdicke?: number;
   abmessung?: string;
   kgProQm?: number;
   mantelflaeche?: number;
@@ -408,6 +441,9 @@ export interface Artikel {
   // Eignungen fuer die Kalkulation
   verzinkungsgeeignet?: boolean;
   pulverbeschichtungsgeeignet?: boolean;
+  /** Nur für diesen Artikel festgelegte Eignung; leer = vom Werkstoff übernommen. */
+  verzinkungsgeeignetEigen?: boolean | null;
+  pulverbeschichtungsgeeignetEigen?: boolean | null;
   beschichtungshinweis?: string;
   /** Zuschnitt-Formel (#228): Eingabefelder und Formeln für Gewicht (kg) und Außenfläche (m²) je Stück; leer = keine Formel. */
   formelFelder?: ArbeitsgangFormelFeld[] | null;
@@ -421,6 +457,10 @@ export interface Artikel {
   beschreibung?: string;
   /** Aufschlag auf den Einkaufspreis in Prozent. */
   verkaufsaufschlagProzent?: number;
+  /** Der Aufschlag, der tatsächlich gilt (Artikel, sonst Kategorie, sonst allgemein), und woher er kommt. */
+  wirksamProzent?: number | null;
+  wirksamQuelle?: 'ARTIKEL' | 'KATEGORIE' | 'ALLGEMEIN' | 'KEINER';
+  wirksamVon?: string | null;
   /** Einheit der Dokumentposition: lfm, m², kg oder Stk. */
   positionsEinheit?: string;
   /** Vorgeschlagener Einzelpreis inklusive Aufschlag. */
@@ -1027,6 +1067,10 @@ export interface OffenerPosten {
   rechnungsdatum?: string;
   faelligkeitsdatum?: string;
   rechnungsbetrag?: number;
+  /** Brutto der gebuchten Gutschriften zu dieser Rechnung (0 ohne Gutschrift). */
+  gutgeschrieben?: number;
+  /** Rechnungsbetrag minus Gutschriften; null, wenn der Server ihn nicht kennt. */
+  offenerBetrag?: number | null;
   geschaeftsdokumentart?: string;
   bezahlt: boolean;
   mahnung: boolean;
@@ -1114,6 +1158,23 @@ export interface AusgangsGeschaeftsDokument {
   pdfUrl?: string;
 }
 
+/**
+ * Rahmen fuer eine Gutschrift zu einer gebuchten Rechnung
+ * (`GET /api/ausgangs-dokumente/{rechnungId}/gutschrift-rahmen`). Alle Betraege positiv.
+ */
+export interface GutschriftRahmen {
+  rechnungId: number;
+  rechnungNummer: string;
+  rechnungBrutto: number;
+  rechnungNetto: number;
+  /** Gebuchte und Entwurfs-Gutschriften zu dieser Rechnung, ohne stornierte. */
+  bereitsGutgeschriebenBrutto: number;
+  bereitsGutgeschriebenNetto: number;
+  hoechstensNetto: number;
+  hoechstensBrutto: number;
+  mwstSatz: number;
+}
+
 export interface AusgangsGeschaeftsDokumentErstellen {
   typ: AusgangsGeschaeftsDokumentTyp;
   datum?: string;
@@ -1169,6 +1230,12 @@ export interface AbrechnungsverlaufDto {
    * welche Leistungen in einer Schlussrechnung entfallen bzw. dazugekommen sind.
    */
   basisdokumentPositionenJson?: string | null;
+  /**
+   * Nummer der nicht stornierten Rechnung oder Schlussrechnung, die den Auftrag
+   * abschliesst (ueber die Kette Angebot <-> AB). Gesetzt = keine weitere Rechnung
+   * moeglich, restbetrag ist dann 0. Fehlt bei aelteren Backends.
+   */
+  abschliessendeRechnungNummer?: string | null;
 }
 
 // ===== Belege & Kasse =====

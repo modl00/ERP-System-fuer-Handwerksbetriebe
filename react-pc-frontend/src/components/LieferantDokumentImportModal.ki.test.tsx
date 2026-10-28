@@ -8,7 +8,7 @@ import { benutzer } from '../features/ki/kiTestdaten';
 
 /**
  * Dokument-Import beim Lieferanten ohne KI-Schlüssel: E-Rechnungen liest das
- * Backend weiter selbst, alles andere kommt leer zurück (Quelle „KEINE“) und
+ * Backend weiter selbst, alles andere kommt leer zurück (Quelle „KEINE") und
  * wird von Hand eingetragen. Nur Dummy-Daten (DSGVO).
  */
 
@@ -59,7 +59,7 @@ describe('LieferantDokumentImportModal – ohne KI-Schlüssel', () => {
         const hinweis = await screen.findByRole('note');
         expect(hinweis).toHaveTextContent('Ohne KI liest das Programm nur E-Rechnungen automatisch');
         expect(hinweis).toHaveTextContent(KI_AUS_ERKLAERUNG);
-        // Kein Technik-Wort „KEINE“ neben dem Hinweis
+        // Kein Technik-Wort „KEINE" neben dem Hinweis
         expect(screen.queryByText(/Quelle:/)).not.toBeInTheDocument();
         // Von Hand ausfüllen und speichern bleibt möglich.
         expect(screen.getByRole('button', { name: /Importieren|Speichern/ })).toBeInTheDocument();

@@ -7,7 +7,7 @@ import { benutzer } from '../features/ki/kiTestdaten';
 
 /**
  * Ausgangsrechnung von Hand erfassen ohne KI-Schlüssel: Das Backend liest nur
- * E-Rechnungen selbst und meldet sonst „bitte manuell ausfüllen“
+ * E-Rechnungen selbst und meldet sonst „bitte manuell ausfüllen"
  * (OffenePostenController). Nur Dummy-Daten (DSGVO).
  */
 

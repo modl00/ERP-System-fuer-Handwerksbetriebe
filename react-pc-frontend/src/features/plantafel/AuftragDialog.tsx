@@ -71,12 +71,12 @@ function Inhalt({ auftrag, onSchliessen, onAuftrag, onEntfernt, onVorgang, onAkt
     const entfernen = () => ausfuehren(async () => {
         const ja = await bestaetigen({
             title: 'Auftrag aus der Plantafel entfernen',
-            message: `Sollen alle ${auftrag.vorgaenge.length} Vorgänge von „${auftrag.bezeichnung}“ aus der Plantafel entfernt werden? Der Auftrag selbst bleibt bestehen und lässt sich später wieder aufnehmen. Die anderen Aufträge rechnen sich neu.`,
+            message: `Sollen alle ${auftrag.vorgaenge.length} Vorgänge von „${auftrag.bezeichnung}" aus der Plantafel entfernt werden? Der Auftrag selbst bleibt bestehen und lässt sich später wieder aufnehmen. Die anderen Aufträge rechnen sich neu.`,
             variant: 'danger', confirmLabel: 'Entfernen',
         });
         if (!ja) return;
         await entferneAuftrag(auftrag.projektId);
-        toast.success(`„${auftrag.bezeichnung}“ steht nicht mehr in der Plantafel.`);
+        toast.success(`„${auftrag.bezeichnung}" steht nicht mehr in der Plantafel.`);
         onEntfernt(auftrag.projektId);
     });
 

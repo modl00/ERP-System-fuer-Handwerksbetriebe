@@ -113,7 +113,7 @@ describe('verbundeneIds', () => {
 });
 
 describe('alsKettenTyp', () => {
-    it('übernimmt bekannte Typen und macht aus unbekannten „Sonstiges“', () => {
+    it('übernimmt bekannte Typen und macht aus unbekannten „Sonstiges"', () => {
         expect(alsKettenTyp('LIEFERSCHEIN')).toBe('LIEFERSCHEIN');
         expect(alsKettenTyp('NACHTRAGSANGEBOT')).toBe('SONSTIG');
         expect(alsKettenTyp(null)).toBe('SONSTIG');

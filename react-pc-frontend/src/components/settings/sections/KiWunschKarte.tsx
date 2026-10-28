@@ -113,7 +113,7 @@ export function KiWunschKarte() {
                         placeholder="Neuen Schlüssel eintragen" className="sm:max-w-lg" />
                     <p className="text-xs text-slate-500">
                         {stand.tokenGesetzt
-                            ? (stand.verschluesselt ? 'Ein Schlüssel ist hinterlegt und verschlüsselt gespeichert. Er wird nie wieder angezeigt.' : 'Ein Schlüssel ist hinterlegt. Er wird nie wieder angezeigt. Hinweis: Er liegt wie die anderen KI-Schlüssel unverschlüsselt in den Einstellungen; für verschlüsselte Ablage muss der Server-Schlüssel „mail.credentials.encryption-key“ gesetzt sein.')
+                            ? (stand.verschluesselt ? 'Ein Schlüssel ist hinterlegt und verschlüsselt gespeichert. Er wird nie wieder angezeigt.' : 'Ein Schlüssel ist hinterlegt. Er wird nie wieder angezeigt. Hinweis: Er liegt wie die anderen KI-Schlüssel unverschlüsselt in den Einstellungen; für verschlüsselte Ablage muss der Server-Schlüssel „mail.credentials.encryption-key" gesetzt sein.')
                             : 'Der Schlüssel braucht in Gitea das Recht, Issues im Repository zu schreiben. Er wird nie wieder angezeigt.'}
                     </p>
                     {stand.tokenGesetzt && (

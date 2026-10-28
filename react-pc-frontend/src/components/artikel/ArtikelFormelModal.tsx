@@ -23,7 +23,7 @@ interface Props {
     werkstoffId: number | null;
     kgJeMeter: string;
     m2JeMeter: string;
-    /** Übernimmt die Formel ins Formular; gespeichert wird erst mit „Speichern“ der Stammdaten. Eine leere Formel entfernt sie. */
+    /** Übernimmt die Formel ins Formular; gespeichert wird erst mit „Speichern" der Stammdaten. Eine leere Formel entfernt sie. */
     onUebernehmen: (formel: ArtikelFormel) => void;
 }
 
@@ -49,7 +49,7 @@ const VORLAGEN: { name: string; felder: FeldText[]; gewicht: string; flaeche: st
         felder: [{ name: 'L', bezeichnung: 'Länge', einheit: 'mm', standard: '1000' }],
         gewicht: '(L/1000) * kg_je_meter',
         flaeche: '(L/1000) * m2_je_meter',
-        hinweis: 'Braucht Gewicht und Außenfläche je Meter am Artikel (Bereich „Gewicht und Fläche“, Meterware).',
+        hinweis: 'Braucht Gewicht und Außenfläche je Meter am Artikel (Bereich „Gewicht und Fläche", Meterware).',
     },
 ];
 

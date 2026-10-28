@@ -8,7 +8,7 @@ const feld = (extra: Partial<ProtokollDatenfeld> = {}): ProtokollDatenfeld => ({
     id: 7, abschnittId: null, modulKey: null, label: 'Baujahr', feldtyp: 'JAHR', optionen: [], wert: null, sortierung: 1, ...extra,
 });
 
-describe('Datenfeld „Jahreszahl“', () => {
+describe('Datenfeld „Jahreszahl"', () => {
     it('ist ein Zahlenfeld mit höchstens vier Stellen und speichert beim Verlassen', async () => {
         const user = userEvent.setup();
         const onSetzen = vi.fn();

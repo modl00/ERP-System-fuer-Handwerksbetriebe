@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { Brain, CheckCircle2, Loader2, MessageSquareWarning, PlugZap, PowerOff } from 'lucide-react';
+import { Brain, CheckCircle2, Loader2, MessageSquareWarning, PlugZap, PowerOff, Trash2 } from 'lucide-react';
 import { Button } from '../../ui/button';
 import { useToast } from '../../ui/toast';
+import { useConfirm } from '../../ui/confirm-dialog';
 import { InfoAbschnitt, InfoButton } from '../../ui/info-button';
 import { useOptionalAuth } from '../../../auth/AuthContext';
 import { cn } from '../../../lib/utils';
@@ -50,6 +51,7 @@ const BEREICHE: { id: Bereich; label: string }[] = [
  */
 export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
     const toast = useToast();
+    const confirm = useConfirm();
     // Nicht-werfende Variante: Die Einstellungen werden in Tests auch ohne
     // Anmelde-Rahmen gebaut. In der App ist der AuthProvider immer da.
     const auth = useOptionalAuth();
@@ -60,19 +62,18 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
     const [apiKeySet, setApiKeySet] = useState(false);
     const [apiKey, setApiKey] = useState('');
     const [saving, setSaving] = useState(false);
+    const [removing, setRemoving] = useState(false);
     const [testing, setTesting] = useState(false);
     const [testResult, setTestResult] = useState<TestResult | null>(null);
 
     const [spamFilterAktiv, setSpamFilterAktiv] = useState(true);
     const [spamFilterSaving, setSpamFilterSaving] = useState(false);
 
-    const loadSettings = useCallback(async () => {
-        setLoading(true);
-        try {
-            const [geminiRes, spamRes] = await Promise.all([
-                fetch('/api/settings/gemini'),
-                fetch('/api/settings/anfrage-funnel-spamfilter'),
-            ]);
+    const ladeEinstellungen = useCallback(() => Promise.all([
+        fetch('/api/settings/gemini'),
+        fetch('/api/settings/anfrage-funnel-spamfilter'),
+    ])
+        .then(async ([geminiRes, spamRes]) => {
             if (geminiRes.ok) {
                 const data = await geminiRes.json();
                 setApiKeySet(!!data?.apiKeySet);
@@ -81,17 +82,21 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
                 const data = await spamRes.json();
                 setSpamFilterAktiv(data?.aktiv !== false);
             }
-        } catch {
+        })
+        .catch(() => {
             toast.error('KI-Einstellungen konnten nicht geladen werden.');
-        } finally {
-            setLoading(false);
-        }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+        })
+        .finally(() => setLoading(false)), [toast]);
+
+    /** Lädt nach einer Änderung neu und zeigt dabei den Ladehinweis. */
+    const loadSettings = () => {
+        setLoading(true);
+        return ladeEinstellungen();
+    };
 
     useEffect(() => {
-        loadSettings();
-    }, [loadSettings]);
+        void ladeEinstellungen();
+    }, [ladeEinstellungen]);
 
     const handleSave = async () => {
         if (!apiKey.trim()) {
@@ -108,7 +113,7 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
             if (res.ok) {
                 toast.success('KI-Schlüssel gespeichert.');
                 setApiKey('');
-                // Anmeldedaten neu holen, damit „kiAktiv“ app-weit sofort stimmt
+                // Anmeldedaten neu holen, damit „kiAktiv" app-weit sofort stimmt
                 // (KI-Hilfe in der Menüleiste, KI-Knöpfe) – ohne Neuladen der Seite.
                 await Promise.all([loadSettings(), auth?.refreshMe()]);
                 onSaved?.();
@@ -119,6 +124,39 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
             toast.error('Verbindung zum Server fehlgeschlagen.');
         } finally {
             setSaving(false);
+        }
+    };
+
+    /** Löscht den gespeicherten Schlüssel – danach sind alle KI-Funktionen aus. */
+    const handleRemove = async () => {
+        const ok = await confirm({
+            title: 'KI-Schlüssel entfernen?',
+            message: 'Danach sind alle KI-Funktionen aus, bis Sie wieder einen Schlüssel speichern. Schon ausgelesene Daten bleiben erhalten.',
+            confirmLabel: 'Schlüssel entfernen',
+            variant: 'danger',
+        });
+        if (!ok) return;
+        setRemoving(true);
+        try {
+            const res = await fetch('/api/settings/gemini', { method: 'DELETE' });
+            if (!res.ok) {
+                toast.error(await parseErrorMessage(res, 'KI-Schlüssel konnte nicht entfernt werden.'));
+                return;
+            }
+            const data: unknown = await res.json().catch(() => null);
+            const meldung = data && typeof data === 'object' && typeof (data as { message?: unknown }).message === 'string'
+                ? (data as { message: string }).message
+                : 'KI-Schlüssel entfernt.';
+            toast.success(meldung);
+            setApiKey('');
+            setTestResult(null);
+            // Wie beim Speichern: „kiAktiv" app-weit sofort aktualisieren.
+            await Promise.all([loadSettings(), auth?.refreshMe()]);
+            onSaved?.();
+        } catch {
+            toast.error('Verbindung zum Server fehlgeschlagen. Der KI-Schlüssel wurde nicht entfernt.');
+        } finally {
+            setRemoving(false);
         }
     };
 
@@ -226,9 +264,27 @@ export function KiSettingsSection({ onSaved }: { onSaved?: () => void }) {
 
                 <TestResultBanner result={testResult} className="mt-3" />
 
-                <SaveButton onClick={handleSave} saving={saving} disabled={!apiKey.trim()}>
-                    Schlüssel speichern
-                </SaveButton>
+                <div className="flex flex-wrap items-end justify-between gap-3">
+                    {apiKeySet ? (
+                        <div className="mt-6 flex items-center gap-1">
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => void handleRemove()}
+                                disabled={removing || saving}
+                                className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                            >
+                                {removing ? <Loader2 className="w-4 h-4 motion-safe:animate-spin" /> : <Trash2 aria-hidden="true" className="w-4 h-4" />}
+                                {removing ? 'Wird entfernt …' : 'Schlüssel entfernen'}
+                            </Button>
+                            <SchluesselEntfernenInfo />
+                        </div>
+                    ) : <span />}
+                    <SaveButton onClick={handleSave} saving={saving} disabled={!apiKey.trim() || removing}
+                        title={!apiKey.trim() ? 'Bitte zuerst einen KI-Schlüssel eintragen.' : undefined}>
+                        Schlüssel speichern
+                    </SaveButton>
+                </div>
             </SettingsCard>
     );
 
@@ -326,7 +382,7 @@ const OHNE_SCHLUESSEL_FAELLT_WEG = [
 /**
  * Statuskasten ganz oben: Sind die KI-Funktionen an oder aus?
  *
- * <p>„Aus“ ist kein Fehler, sondern eine freie Entscheidung des Betriebs –
+ * <p>„Aus" ist kein Fehler, sondern eine freie Entscheidung des Betriebs –
  * deshalb ruhig in Slate statt in Alarm-Rot. Der Kasten sagt, was trotzdem
  * geht und was ohne Schlüssel wegfällt.</p>
  */
@@ -400,6 +456,23 @@ function KiFunktionenInfo() {
                     <li>Ohne Schlüssel sind KI-Knöpfe gesperrt oder ausgeblendet. Angebote, Rechnungen, Zeiterfassung und E-Mails funktionieren unverändert.</li>
                     <li>Schon ausgelesene Belege und gespeicherte Texte bleiben erhalten.</li>
                 </ul>
+            </InfoAbschnitt>
+        </InfoButton>
+    );
+}
+
+/** Erklärt, was „Schlüssel entfernen" auslöst und was erhalten bleibt. */
+function SchluesselEntfernenInfo() {
+    return (
+        <InfoButton titel="Schlüssel entfernen">
+            <InfoAbschnitt titel="Was passiert im Hintergrund?">
+                <p>Der gespeicherte Schlüssel wird gelöscht. Das Programm fragt danach keine KI mehr an.</p>
+            </InfoAbschnitt>
+            <InfoAbschnitt titel="Was bewirkt das?">
+                <p>
+                    Alle KI-Funktionen sind aus (zum Beispiel die KI-Hilfe und das automatische Auslesen von Belegen),
+                    bis Sie wieder einen Schlüssel speichern. Schon ausgelesene Daten bleiben erhalten.
+                </p>
             </InfoAbschnitt>
         </InfoButton>
     );

@@ -19,6 +19,7 @@ import {
     FolderOpen,
     Hammer,
     GitMerge,
+    HandCoins,
     Lock,
     Mail,
     MapPin,
@@ -39,8 +40,9 @@ import {
 import { Button } from "../components/ui/button";
 import { Card } from "../components/ui/card";
 import { cn } from "../lib/utils";
+import { BESTELLBEDARF_AKTIV } from "../lib/freigaben";
 import type { Projekt, ProjektDetail, Anfrage, AusgangsGeschaeftsDokument, AusgangsGeschaeftsDokumentTyp, AbrechnungsverlaufDto, AbrechnungspositionDto, Artikel, ArtikelInProjekt, Materialkosten } from "../types";
-import { canCreateEinfacheRechnung, istRechnungAmVorgaengerGesperrt, hatAktiveAuftragsbestaetigung } from "../lib/abrechnungsverlauf";
+import { canCreateEinfacheRechnung, istRechnungAmVorgaengerGesperrt, hatAktiveAuftragsbestaetigung, keineWeitereRechnungHinweis } from "../lib/abrechnungsverlauf";
 import { AUSGANGS_GESCHAEFTSDOKUMENT_TYPEN } from "../types";
 import { DetailLayout } from "../components/DetailLayout";
 import { ProjektErstellenModal } from "../components/ProjektErstellenModal";
@@ -50,6 +52,7 @@ import { Select } from "../components/ui/select-custom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Input } from "../components/ui/input";
 import { Label } from "../components/ui/label";
+import { RechnungstypInfo } from "../components/RechnungstypInfo";
 import GoogleMapsEmbed from "../components/GoogleMapsEmbed";
 import { PageLayout } from "../components/layout/PageLayout";
 
@@ -71,6 +74,7 @@ import { validateMoneyDraft } from '../features/finanzen/moneyDrafts';
 import DocumentPreviewModal from '../components/DocumentPreviewModal';
 import { ZuordnungModal } from '../components/ZuordnungModal';
 import { DokumentLoeschenDialog } from '../components/dokument/DokumentLoeschenDialog';
+import { GutschriftErstellenDialog } from '../components/GutschriftErstellenDialog';
 import { DokumentVerlaufDrawer } from '../components/dokument/DokumentVerlaufDrawer';
 import { AnfrageSearchModal } from '../components/AnfrageSearchModal';
 import { ArtikelSuche } from '../components/artikel/ArtikelSuche';
@@ -260,9 +264,12 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [kurzbeschreibung, setKurzbeschreibung] = useState(projekt.kurzbeschreibung || '');
     const [savingDesc, setSavingDesc] = useState(false);
 
-    useEffect(() => {
+    // Neue Kurzbeschreibung vom Server: Eingabefeld darauf zurücksetzen.
+    const [geladeneKurzbeschreibung, setGeladeneKurzbeschreibung] = useState(projekt.kurzbeschreibung);
+    if (geladeneKurzbeschreibung !== projekt.kurzbeschreibung) {
+        setGeladeneKurzbeschreibung(projekt.kurzbeschreibung);
         setKurzbeschreibung(projekt.kurzbeschreibung || '');
-    }, [projekt.kurzbeschreibung]);
+    }
 
     const handleSaveDescription = async () => {
         setSavingDesc(true);
@@ -313,6 +320,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [showRechnungDialog, setShowRechnungDialog] = useState(false);
     const [rechnungBasisDok, setRechnungBasisDok] = useState<AusgangsGeschaeftsDokument | null>(null);
     const [abrechnungsverlauf, setAbrechnungsverlauf] = useState<AbrechnungsverlaufDto | null>(null);
+    const keineRechnungMehr = keineWeitereRechnungHinweis(abrechnungsverlauf);
     const [rechnungTyp, setRechnungTyp] = useState<AusgangsGeschaeftsDokumentTyp>('TEILRECHNUNG');
     const [abschlagsBetrag, setAbschlagsBetrag] = useState<string>('');
     const [rechnungLoading, setRechnungLoading] = useState(false);
@@ -424,24 +432,25 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [eingangsrechnungen, setEingangsrechnungen] = useState<Eingangsrechnung[]>([]);
 
     // Eingangsrechnungen laden
-    const loadEingangsrechnungen = useCallback(async () => {
-        if (projekt.id) {
-            try {
-                const res = await fetch(`/api/projekte/${projekt.id}/eingangsrechnungen`);
+    // Promise-Kette: Zustand wird erst gesetzt, wenn die Antwort da ist.
+    const loadEingangsrechnungen = useCallback(() => {
+        if (!projekt.id) return Promise.resolve();
+        return fetch(`/api/projekte/${projekt.id}/eingangsrechnungen`)
+            .then(async (res) => {
                 if (res.ok) {
                     const data = await res.json();
                     setEingangsrechnungen(data);
                 } else {
                     setEingangsrechnungen([]);
                 }
-            } catch {
+            })
+            .catch(() => {
                 setEingangsrechnungen([]);
-            }
-        }
+            });
     }, [projekt.id]);
 
     useEffect(() => {
-        loadEingangsrechnungen();
+        void loadEingangsrechnungen();
     }, [loadEingangsrechnungen]);
 
     // Projekt-Notizen State
@@ -500,44 +509,47 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     const [auditDaten, setAuditDaten] = useState<FreigabeAuditData | null>(null);
     const [auditLoading, setAuditLoading] = useState(false);
     const [actionMenuDokument, setActionMenuDokument] = useState<AusgangsGeschaeftsDokument | null>(null);
+    /** Rechnung, zu der gerade eine Gutschrift angelegt wird (Dialog offen). */
+    const [gutschriftRechnung, setGutschriftRechnung] = useState<AusgangsGeschaeftsDokument | null>(null);
 
     // Dateien (Dokumente) Anzahl
     const [dokumenteCount, setDokumenteCount] = useState(0);
 
     // Notizen laden
-    const loadNotizen = useCallback(async () => {
-        if (projekt.id) {
-            try {
-                const res = await fetch(`/api/projekte/${projekt.id}/notizen`);
+    // (Promise-Kette: Zustand wird erst gesetzt, wenn die Antwort da ist.)
+    const loadNotizen = useCallback(() => {
+        if (!projekt.id) return Promise.resolve();
+        return fetch(`/api/projekte/${projekt.id}/notizen`)
+            .then(async (res) => {
                 if (res.ok) {
                     setNotizen(await res.json());
                 }
-            } catch {
+            })
+            .catch(() => {
                 setNotizen([]);
-            }
-        }
+            });
     }, [projekt.id]);
 
     useEffect(() => {
-        loadNotizen();
+        void loadNotizen();
     }, [loadNotizen]);
 
-    // Ausgangs-Geschäftsdokumente laden
-    const loadAusgangsDokumente = useCallback(async () => {
-        if (projekt.id) {
-            try {
-                const res = await fetch(`/api/ausgangs-dokumente/projekt/${projekt.id}`);
+    // Ausgangs-Geschäftsdokumente laden (Promise-Kette wie oben)
+    const loadAusgangsDokumente = useCallback(() => {
+        if (!projekt.id) return Promise.resolve();
+        return fetch(`/api/ausgangs-dokumente/projekt/${projekt.id}`)
+            .then(async (res) => {
                 if (res.ok) {
                     setAusgangsDokumente(await res.json());
                 }
-            } catch {
+            })
+            .catch(() => {
                 setAusgangsDokumente([]);
-            }
-        }
+            });
     }, [projekt.id]);
 
     useEffect(() => {
-        loadAusgangsDokumente();
+        void loadAusgangsDokumente();
     }, [loadAusgangsDokumente]);
 
     const openAnfrageMergeDialog = () => {
@@ -594,14 +606,17 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
     // Freigabe-Status für alle aktuell geladenen Dokumente nachziehen.
     // Symmetrisch zu DokumentHierarchie — sobald die Dokumentliste sich ändert,
     // wird der Status aller IDs in einem Request gebündelt aktualisiert.
+    // Ohne Dokument-IDs gibt es nichts nachzuziehen: Status gleich beim Rendern leeren.
+    const [freigabeStatusFuer, setFreigabeStatusFuer] = useState(ausgangsDokumente);
+    if (freigabeStatusFuer !== ausgangsDokumente) {
+        setFreigabeStatusFuer(ausgangsDokumente);
+        if (!ausgangsDokumente.some(d => typeof d.id === 'number')) setFreigabeStatus({});
+    }
     useEffect(() => {
         const ids = ausgangsDokumente
             .map(d => d.id)
             .filter((id): id is number => typeof id === 'number');
-        if (ids.length === 0) {
-            setFreigabeStatus({});
-            return;
-        }
+        if (ids.length === 0) return;
         fetch(`/api/ausgangs-dokumente/freigabe-status?ids=${encodeURIComponent(ids.join(','))}`)
             .then(res => (res.ok ? res.json() : {}))
             .then(data => setFreigabeStatus(data || {}))
@@ -960,7 +975,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         const name = artikel.produktname || artikel.beschreibung || 'Artikel';
         const bestaetigt = await confirmDialog({
             title: 'Artikel entfernen',
-            message: `„${name}“ aus dem Projekt entfernen?`,
+            message: `„${name}" aus dem Projekt entfernen?`,
             variant: 'danger',
             confirmLabel: 'Entfernen',
         });
@@ -1032,7 +1047,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
         const name = eintrag.beschreibung || 'Eintrag';
         const bestaetigt = await confirmDialog({
             title: 'Materialkosten entfernen',
-            message: `„${name}“ (${formatCurrency(eintrag.betrag)}) aus dem Projekt entfernen?`,
+            message: `„${name}" (${formatCurrency(eintrag.betrag)}) aus dem Projekt entfernen?`,
             variant: 'danger',
             confirmLabel: 'Entfernen',
         });
@@ -2207,17 +2222,37 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                                             </>
                                                         )}
 
-                                                        {/* Stornieren - nur für gebuchte Rechnungstypen die nicht schon storniert sind */}
+                                                        {/* Gutschrift erstellen - nur zu gebuchten, nicht stornierten Rechnungen */}
                                                         {dok.gebucht && !dok.storniert && ['RECHNUNG', 'TEILRECHNUNG', 'ABSCHLAGSRECHNUNG', 'SCHLUSSRECHNUNG'].includes(dok.typ) && (
+                                                            <>
+                                                                <hr className="my-1 border-slate-100" />
+                                                                <button
+                                                                    className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-2"
+                                                                    onClick={() => {
+                                                                        setActionMenuDokument(null);
+                                                                        setGutschriftRechnung(dok);
+                                                                    }}
+                                                                >
+                                                                    <HandCoins className="w-4 h-4" />
+                                                                    Gutschrift erstellen
+                                                                </button>
+                                                            </>
+                                                        )}
+
+                                                        {/* Stornieren - nur für gebuchte Rechnungstypen und Gutschriften, die nicht schon storniert sind */}
+                                                        {dok.gebucht && !dok.storniert && ['RECHNUNG', 'TEILRECHNUNG', 'ABSCHLAGSRECHNUNG', 'SCHLUSSRECHNUNG', 'GUTSCHRIFT'].includes(dok.typ) && (
                                                             <>
                                                                 <hr className="my-1 border-slate-100" />
                                                                 <button
                                                                     className="w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2"
                                                                     onClick={async () => {
                                                                         setActionMenuDokument(null);
+                                                                        const istGutschrift = dok.typ === 'GUTSCHRIFT';
                                                                         if (await confirmDialog({
-                                                                            title: 'Rechnung stornieren',
-                                                                            message: `Möchten Sie ${dok.dokumentNummer} wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt. Dieser Vorgang kann nicht rückgängig gemacht werden.`,
+                                                                            title: istGutschrift ? 'Gutschrift stornieren' : 'Rechnung stornieren',
+                                                                            message: istGutschrift
+                                                                                ? `Möchten Sie ${dok.dokumentNummer} wirklich stornieren? Es wird automatisch ein Stornobeleg erstellt, und der offene Betrag der Rechnung steigt wieder um die Gutschrift. Dieser Vorgang kann nicht rückgängig gemacht werden.`
+                                                                                : `Möchten Sie ${dok.dokumentNummer} wirklich stornieren? Es wird automatisch eine Stornorechnung erstellt. Dieser Vorgang kann nicht rückgängig gemacht werden.`,
                                                                             variant: 'danger',
                                                                             confirmLabel: 'Stornieren'
                                                                         })) {
@@ -2227,12 +2262,21 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                                                                 });
                                                                                 if (response.ok) {
                                                                                     const stornoDok = await response.json();
-                                                                                    toast.success(`Stornorechnung ${stornoDok.dokumentNummer} wurde erstellt`);
+                                                                                    toast.success(istGutschrift
+                                                                                        ? `Storno ${stornoDok.dokumentNummer} zur Gutschrift wurde erstellt`
+                                                                                        : `Stornorechnung ${stornoDok.dokumentNummer} wurde erstellt`);
                                                                                     zeigeStornoHinweise(toast, stornoHinweiseAus(stornoDok));
                                                                                     loadAusgangsDokumente();
                                                                                 } else {
-                                                                                    const errText = await response.text();
-                                                                                    toast.error('Stornierung fehlgeschlagen: ' + errText);
+                                                                                    // Gutschrift-Regeln antworten mit JSON { message },
+                                                                                    // ältere Fehler als reiner Text – beides lesen.
+                                                                                    const errText = (await response.text()).trim();
+                                                                                    let meldung = errText;
+                                                                                    try {
+                                                                                        const daten = JSON.parse(errText) as { message?: unknown };
+                                                                                        meldung = typeof daten?.message === 'string' ? daten.message : '';
+                                                                                    } catch { /* reiner Text */ }
+                                                                                    toast.error(meldung ? 'Stornierung fehlgeschlagen: ' + meldung : 'Stornierung fehlgeschlagen');
                                                                                 }
                                                                             } catch (e) {
                                                                                 console.error('Storno error:', e);
@@ -2609,18 +2653,21 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                         </div>
                                     </div>
 
-                                    {abrechnungsverlauf.restbetrag <= 0 && (
-                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-                                            Der Basisbetrag ist vollständig abgerechnet. Es kann keine weitere Rechnung erstellt werden.
+                                    {keineRechnungMehr && (
+                                        <div role="status" className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                                            {keineRechnungMehr}
                                         </div>
                                     )}
                                 </div>
                             )}
 
                             {/* Rechnungstyp-Auswahl */}
-                            {(!abrechnungsverlauf || abrechnungsverlauf.restbetrag > 0) && (
+                            {!keineRechnungMehr && (
                                 <div className="space-y-4">
-                                    <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Rechnungstyp wählen</h4>
+                                    <div className="flex items-center gap-1.5">
+                                        <h4 className="text-sm font-semibold text-slate-700 uppercase tracking-wide">Rechnungstyp wählen</h4>
+                                        <RechnungstypInfo mitEinfacherRechnung={canCreateEinfacheRechnung(abrechnungsverlauf)} />
+                                    </div>
                                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                                         {/* Teilrechnung – nur wenn mindestens 2 Leistungspositionen */}
                                         {(() => {
@@ -3011,7 +3058,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                         }}>
                             Abbrechen
                         </Button>
-                        {(!abrechnungsverlauf || abrechnungsverlauf.restbetrag > 0) && (
+                        {!keineRechnungMehr && (
                             <Button
                                 className="bg-rose-600 text-white hover:bg-rose-700"
                                 disabled={
@@ -3097,6 +3144,13 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <GutschriftErstellenDialog
+                rechnung={gutschriftRechnung}
+                projektId={projekt.id}
+                onClose={() => setGutschriftRechnung(null)}
+                onErstellt={() => loadAusgangsDokumente()}
+            />
 
             {/* GoBD-konformer Lösch-Dialog mit Dropdown + Freitext */}
             <DokumentLoeschenDialog
@@ -3243,7 +3297,9 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                     <DialogHeader>
                         <DialogTitle>Artikel aus Lager hinzufügen</DialogTitle>
                         <p className="text-sm text-slate-500">
-                            Suchen wie in der Materialverwaltung — Menge eintragen und festlegen, ob der Artikel aus dem Lager kommt oder bestellt werden muss.
+                            {BESTELLBEDARF_AKTIV
+                                ? 'Suchen wie in der Materialverwaltung — Menge eintragen und festlegen, ob der Artikel aus dem Lager kommt oder bestellt werden muss.'
+                                : 'Suchen wie in der Materialverwaltung — Artikel anhaken und Menge eintragen.'}
                         </p>
                     </DialogHeader>
 
@@ -3309,7 +3365,10 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                             Faelle, und ein aufklappendes Menue in jeder der
                                             15 Zeilen waere ein Klick mehr fuer dieselbe
                                             Entscheidung. Gleiche Bauart wie die
-                                            Oberflaechen-Schalter in der Suche darueber. */}
+                                            Oberflaechen-Schalter in der Suche darueber.
+                                            Solange das Bestellwesen gesperrt ist, kommt alles
+                                            aus dem Lager (Vorgabe 'lager'), der Schalter fehlt. */}
+                                        {BESTELLBEDARF_AKTIV && (
                                         <div className="flex rounded-lg border border-slate-300 overflow-hidden" role="group"
                                              aria-label={`Bezug für ${name}`}>
                                             {([
@@ -3334,6 +3393,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                                 </button>
                                             ))}
                                         </div>
+                                        )}
                                     </div>
                                 );
                             }}
@@ -3655,7 +3715,7 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                         <p className="text-sm text-slate-500 py-4">Keine Audit-Daten verfügbar.</p>
                     )}
                     {!auditLoading && auditDaten && (
-                        // Scrollt bei kleinen Bildschirmen, damit „Schließen“ im Dialog bleibt;
+                        // Scrollt bei kleinen Bildschirmen, damit „Schließen" im Dialog bleibt;
                         // -mx-1 px-1 lässt den Fokus-Ringen der Kopieren-Knöpfe Luft.
                         <div className="space-y-3 py-2 text-sm min-h-0 flex-1 overflow-y-auto -mx-1 px-1">
                             <AuditRow label="Dokument" value={`${auditDaten.dokumentArt} ${auditDaten.dokumentNummer}`} />
@@ -3792,7 +3852,7 @@ export default function ProjektEditor() {
         () => (selectedProjekt ? projektZumBearbeiten(selectedProjekt) : null),
         [selectedProjekt],
     );
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
     const [showCreateModal, setShowCreateModal] = useState(false);
@@ -3822,114 +3882,137 @@ export default function ProjektEditor() {
     // auf eine alte Filter-/Seiten-Kombination die aktuelle Liste überschreiben.
     const ladeVorgangRef = useRef(0);
 
-    // Fetch List
-    const loadProjekte = useCallback(async () => {
+    // Andere Seite, andere Filter oder zurück in der Liste: Ladeanzeige an, bevor der Effekt neu lädt.
+    const [geladeneAbfrage, setGeladeneAbfrage] = useState({ page, filters, viewMode });
+    if (geladeneAbfrage.page !== page || geladeneAbfrage.filters !== filters || geladeneAbfrage.viewMode !== viewMode) {
+        setGeladeneAbfrage({ page, filters, viewMode });
+        if (viewMode === 'list') setLoading(true);
+    }
+
+    // Fetch List (Promise-Kette: Zustand wird erst gesetzt, wenn die Antworten da sind)
+    const loadProjekte = useCallback(() => {
         const ladeVorgang = ++ladeVorgangRef.current;
         const istAktuell = () => ladeVorgangRef.current === ladeVorgang;
-        setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            params.set("page", String(page));
-            params.set("size", String(PAGE_SIZE));
-            if (filters.q) params.set("q", filters.q);
-            if (filters.kunde) params.set("kunde", filters.kunde);
-            if (filters.status === 'in-arbeit') params.set("abgeschlossen", "false");
-            if (filters.status === 'abgeschlossen') params.set("abgeschlossen", "true");
-            if (filters.jahr) params.set("jahr", filters.jahr);
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("size", String(PAGE_SIZE));
+        if (filters.q) params.set("q", filters.q);
+        if (filters.kunde) params.set("kunde", filters.kunde);
+        if (filters.status === 'in-arbeit') params.set("abgeschlossen", "false");
+        if (filters.status === 'abgeschlossen') params.set("abgeschlossen", "true");
+        if (filters.jahr) params.set("jahr", filters.jahr);
 
-            const [res, lastAccessed] = await Promise.all([
-                fetch(`/api/projekte?${params.toString()}`),
-                fetchProjektLastAccessed(),
-            ]);
-            if (!res.ok) throw new Error("Fehler beim Laden");
-            const data = await res.json();
-            if (!istAktuell()) return;
+        return Promise.all([
+            fetch(`/api/projekte?${params.toString()}`),
+            fetchProjektLastAccessed(),
+        ])
+            .then(async ([res, lastAccessed]) => {
+                if (!res.ok) throw new Error("Fehler beim Laden");
+                const data = await res.json();
+                if (!istAktuell()) return;
 
-            // Projekte sortieren: zuletzt aufgerufene zuerst (Stack), dann offene vor abgeschlossenen
-            const sortedProjekte = Array.isArray(data.projekte) ? data.projekte : [];
-            sortedProjekte.sort((a: Projekt, b: Projekt) => {
-                const ta = lastAccessed[String(a.id)] || 0;
-                const tb = lastAccessed[String(b.id)] || 0;
-                if (ta !== tb) return tb - ta;
-                if (a.abgeschlossen === b.abgeschlossen) return 0;
-                return a.abgeschlossen ? 1 : -1;
-            });
+                // Projekte sortieren: zuletzt aufgerufene zuerst (Stack), dann offene vor abgeschlossenen
+                const sortedProjekte = Array.isArray(data.projekte) ? data.projekte : [];
+                sortedProjekte.sort((a: Projekt, b: Projekt) => {
+                    const ta = lastAccessed[String(a.id)] || 0;
+                    const tb = lastAccessed[String(b.id)] || 0;
+                    if (ta !== tb) return tb - ta;
+                    if (a.abgeschlossen === b.abgeschlossen) return 0;
+                    return a.abgeschlossen ? 1 : -1;
+                });
 
-            setProjekte(sortedProjekte);
-            setTotal(typeof data.gesamt === "number" ? data.gesamt : 0);
+                setProjekte(sortedProjekte);
+                setTotal(typeof data.gesamt === "number" ? data.gesamt : 0);
 
-            // Freigabe-Status (Angebot/AB digital angenommen?) für die geladenen Projekte ziehen.
-            const ids = sortedProjekte
-                .map((p: Projekt) => p.id)
-                .filter((id: unknown): id is number => typeof id === 'number');
-            if (ids.length > 0) {
-                try {
-                    const statusRes = await fetch(`/api/projekte/freigabe-status?ids=${encodeURIComponent(ids.join(','))}`);
-                    if (!istAktuell()) return;
-                    if (statusRes.ok) {
-                        setFreigabeStatusByProjektId(await statusRes.json() || {});
-                    } else {
-                        setFreigabeStatusByProjektId({});
+                // Freigabe-Status (Angebot/AB digital angenommen?) für die geladenen Projekte ziehen.
+                const ids = sortedProjekte
+                    .map((p: Projekt) => p.id)
+                    .filter((id: unknown): id is number => typeof id === 'number');
+                if (ids.length > 0) {
+                    try {
+                        const statusRes = await fetch(`/api/projekte/freigabe-status?ids=${encodeURIComponent(ids.join(','))}`);
+                        if (!istAktuell()) return;
+                        if (statusRes.ok) {
+                            setFreigabeStatusByProjektId(await statusRes.json() || {});
+                        } else {
+                            setFreigabeStatusByProjektId({});
+                        }
+                    } catch {
+                        // Auch im Fehlerfall nur schreiben, wenn dieser Ladevorgang noch
+                        // der aktuelle ist – sonst löscht ein veralteter Request die
+                        // Status-Icons der inzwischen angezeigten Liste.
+                        if (istAktuell()) setFreigabeStatusByProjektId({});
                     }
-                } catch {
-                    // Auch im Fehlerfall nur schreiben, wenn dieser Ladevorgang noch
-                    // der aktuelle ist – sonst löscht ein veralteter Request die
-                    // Status-Icons der inzwischen angezeigten Liste.
-                    if (istAktuell()) setFreigabeStatusByProjektId({});
+                } else {
+                    setFreigabeStatusByProjektId({});
                 }
-            } else {
+            })
+            .catch((err) => {
+                console.error(err);
+                if (!istAktuell()) return;
+                setProjekte([]);
+                setTotal(0);
                 setFreigabeStatusByProjektId({});
-            }
-        } catch (err) {
-            console.error(err);
-            if (!istAktuell()) return;
-            setProjekte([]);
-            setTotal(0);
-            setFreigabeStatusByProjektId({});
-        } finally {
-            if (istAktuell()) setLoading(false);
-        }
+            })
+            .finally(() => {
+                if (istAktuell()) setLoading(false);
+            });
     }, [page, filters]);
+
+    const neuLaden = () => {
+        setLoading(true);
+        void loadProjekte();
+    };
 
     useEffect(() => {
         if (viewMode === 'list') {
-            loadProjekte();
+            void loadProjekte();
         }
     }, [loadProjekte, viewMode]);
 
     // Deep-link: auto-open project from URL param ?projektId=123&tab=notizen
+    // Die Adresse wird beim Rendern ausgewertet (Tab, zu ladende Projekt-ID, Ladeanzeige),
+    // geladen wird im Effekt darunter.
     const [deepLinkTab, setDeepLinkTab] = useState<ProjektDetailTab | undefined>(undefined);
-    const lastProcessedProjektId = useRef<string | null>(null);
-    useEffect(() => {
+    const [ausgewerteteParams, setAusgewerteteParams] = useState<URLSearchParams | null>(null);
+    const [deepLinkProjektId, setDeepLinkProjektId] = useState<string | null>(null);
+    if (ausgewerteteParams !== searchParams) {
+        setAusgewerteteParams(searchParams);
         const projektIdParam = searchParams.get('projektId');
         // Whitelist-Validierung statt unchecked `as`-Cast: unbekannte tab-Werte
         // ignorieren wir, sonst rendert die Detail-View ohne sichtbares Pane.
         const tabParam = parseProjektTab(searchParams.get('tab'));
-        if (!projektIdParam && !tabParam) return;
-        // Skip if we already processed this exact projektId
-        if (projektIdParam && lastProcessedProjektId.current === projektIdParam) return;
         const projektId = projektIdParam ? Number(projektIdParam) : null;
-        if (projektIdParam && (isNaN(projektId!) || !projektId)) return;
-        if (tabParam) setDeepLinkTab(tabParam);
-        if (projektIdParam) lastProcessedProjektId.current = projektIdParam;
-        if (projektId) {
-            (async () => {
-                try {
-                    setLoading(true);
-                    const res = await fetch(`/api/projekte/${projektId}`);
-                    if (!res.ok) throw new Error('Fehler beim Laden der Details');
-                    const data: ProjektDetail = await res.json();
-                    trackProjektAccess(data.id);
-                    setSelectedProjekt(data);
-                    setViewMode('detail');
-                } catch (err) {
-                    console.error('Deep-link load error', err);
-                } finally {
-                    setLoading(false);
-                }
-            })();
+        const istNeu = (projektIdParam || tabParam)
+            // Skip if we already processed this exact projektId
+            && !(projektIdParam && deepLinkProjektId === projektIdParam)
+            && !(projektIdParam && (isNaN(projektId!) || !projektId));
+        if (istNeu) {
+            if (tabParam) setDeepLinkTab(tabParam);
+            if (projektIdParam) {
+                setDeepLinkProjektId(projektIdParam);
+                setLoading(true);
+            }
         }
-    }, [searchParams]);
+    }
+    useEffect(() => {
+        if (!deepLinkProjektId) return;
+        const projektId = Number(deepLinkProjektId);
+        (async () => {
+            try {
+                const res = await fetch(`/api/projekte/${projektId}`);
+                if (!res.ok) throw new Error('Fehler beim Laden der Details');
+                const data: ProjektDetail = await res.json();
+                trackProjektAccess(data.id);
+                setSelectedProjekt(data);
+                setViewMode('detail');
+            } catch (err) {
+                console.error('Deep-link load error', err);
+            } finally {
+                setLoading(false);
+            }
+        })();
+    }, [deepLinkProjektId]);
 
     // Handlers
     // Jede Filter-Änderung springt zurück auf Seite 1: Sonst bliebe man z.B. auf
@@ -4005,11 +4088,9 @@ export default function ProjektEditor() {
     // Seite gelöscht wurde), springen wir auf die letzte gültige Seite zurück – sonst
     // stünde man vor einer leeren Liste. Erst nach dem Laden, denn währenddessen ist
     // `total` noch der alte Wert.
-    useEffect(() => {
-        if (loading) return;
-        const letzteSeite = totalPages - 1;
-        if (page > letzteSeite) setPage(letzteSeite);
-    }, [loading, totalPages, page]);
+    if (!loading && page > totalPages - 1) {
+        setPage(totalPages - 1);
+    }
 
     const statusText = useMemo(() => {
         if (loading) return 'Projekte werden geladen...';
@@ -4085,7 +4166,7 @@ export default function ProjektEditor() {
                         <Plus className="w-4 h-4 mr-2" />
                         Neues Projekt
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => loadProjekte()}>
+                    <Button variant="outline" size="sm" onClick={neuLaden}>
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
                         Aktualisieren
                     </Button>
@@ -4205,7 +4286,7 @@ export default function ProjektEditor() {
                 isOpen={showCreateModal}
                 onClose={() => setShowCreateModal(false)}
                 onSuccess={() => {
-                    loadProjekte();
+                    neuLaden();
                 }}
             />
 
@@ -4225,7 +4306,7 @@ export default function ProjektEditor() {
                         } catch (err) {
                             console.error('Projekt konnte nicht neu geladen werden:', err);
                         }
-                        loadProjekte();
+                        neuLaden();
                     }}
                     editProjekt={editVorbelegung}
                 />

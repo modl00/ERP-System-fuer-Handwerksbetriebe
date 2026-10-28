@@ -25,7 +25,7 @@ interface Props {
  */
 const nichtWeiterreichen = (e: SyntheticEvent) => e.stopPropagation();
 
-/** Chip „Projekt 2026-041 · Garagentor“ – ein echter Link, damit Strg/Cmd-Klick einen neuen Tab öffnet. */
+/** Chip „Projekt 2026-041 · Garagentor" – ein echter Link, damit Strg/Cmd-Klick einen neuen Tab öffnet. */
 export function EmailZuordnungLink({ zuordnung, variante, className }: Props) {
     if (!zuordnung) return null;
     const Icon = ICONS[zuordnung.art];

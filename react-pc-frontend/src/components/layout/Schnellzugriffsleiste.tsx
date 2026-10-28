@@ -11,11 +11,11 @@ interface Props {
     /** Alles, was dieser Benutzer sehen darf (Rechte und Module sind schon abgezogen). */
     navigation: FunktionsKategorie[];
     istAdmin: boolean;
-    /** Öffnet den Dialog „Alle Funktionen“ (für den festen Knopf rechts). */
+    /** Öffnet den Dialog „Alle Funktionen" (für den festen Knopf rechts). */
     onAlleFunktionen: () => void;
     /** Zahl neuer Einträge je Adresse (zum Beispiel neue Sprachnachrichten). */
     zaehler?: Record<string, number>;
-    /** Wie viele Funktionen im Menü ausgeblendet sind; steht am Knopf „Alle Funktionen“. */
+    /** Wie viele Funktionen im Menü ausgeblendet sind; steht am Knopf „Alle Funktionen". */
     anzahlAusgeblendet?: number;
 }
 
@@ -36,7 +36,7 @@ function SymbolKreis({ aktiv, children, zahl }: { aktiv?: boolean; children: Rea
 
 /**
  * Die Schnellzugriffsleiste unter dem Hauptmenü (#290, #326): Funktionen, die man selbst auswählt, in eigener Reihenfolge, mit denselben Symbolen wie sonst im Programm.
- * Sie ändert sich nicht, wenn man oben einen Hauptpunkt anklickt. Rechts steht fest „Alle Funktionen“. Die Firma kann eine Vorgabe machen; wer selbst etwas
+ * Sie ändert sich nicht, wenn man oben einen Hauptpunkt anklickt. Rechts steht fest „Alle Funktionen". Die Firma kann eine Vorgabe machen; wer selbst etwas
  * einstellt, sieht seine eigene Leiste. Was jemand nicht sehen darf (Rechte, Module), erscheint auch hier nicht.
  */
 export function Schnellzugriffsleiste({ navigation, istAdmin, onAlleFunktionen, zaehler = {}, anzahlAusgeblendet = 0 }: Props) {
@@ -50,7 +50,7 @@ export function Schnellzugriffsleiste({ navigation, istAdmin, onAlleFunktionen, 
         return karte;
     }, [navigation]);
 
-    // „Alle Funktionen“ steht immer rechts; ein alter Eintrag in der eigenen Leiste wird nicht doppelt gezeigt
+    // „Alle Funktionen" steht immer rechts; ein alter Eintrag in der eigenen Leiste wird nicht doppelt gezeigt
     const sichtbar = bekannt ? eintraege.flatMap((adresse) => {
         const e = adresse === ALLE_FUNKTIONEN ? undefined : jeAdresse.get(adresse);
         return e ? [e] : [];

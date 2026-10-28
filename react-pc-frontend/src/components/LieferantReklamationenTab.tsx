@@ -1,5 +1,5 @@
 /* eslint-disable react-refresh/only-export-components -- baueMailText ist reine Textlogik und wird separat getestet (siehe EmailComposeForm.tsx, gleiches Muster) */
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { AlertTriangle, Calendar, FileText, User, CheckCircle, Trash, Plus, Mail, Loader2 } from "lucide-react";
 import { Card } from "./ui/card";
 import { Button } from "./ui/button";
@@ -25,6 +25,20 @@ import { komprimiereBilderFuerEmail } from '../lib/bildKomprimierung';
  */
 export function lieferantDokumentUrl(lieferantId: number, dokumentId: number): string {
     return `/api/lieferanten/${lieferantId}/dokumente/${dokumentId}/download`;
+}
+
+/** Klartext für die Stati aus `ReklamationStatus` im Backend. */
+const REKLAMATION_STATUS_TEXT: Record<string, string> = {
+    OFFEN: 'Offen',
+    IN_BEARBEITUNG: 'In Bearbeitung',
+    ABGESCHLOSSEN: 'Abgeschlossen',
+    STORNIERT: 'Storniert',
+};
+
+/** Anzeigetext eines Reklamations-Status; ein unbekannter Wert erscheint unverändert. */
+export function reklamationStatusText(status: string | null | undefined): string {
+    if (!status) return '';
+    return REKLAMATION_STATUS_TEXT[status] ?? status;
 }
 
 /** Vorbereitete Reklamations-Mail, die im Compose-Formular geöffnet wird. */
@@ -132,24 +146,32 @@ export function LieferantReklamationenTab({ lieferantId, lieferantName, lieferan
     const [reklamationsMail, setReklamationsMail] = useState<ReklamationsMail | null>(null);
     const [mailWirdVorbereitetId, setMailWirdVorbereitetId] = useState<number | null>(null);
 
-    const loadData = async () => {
-        setLoading(true);
-        try {
-            const res = await fetch(`/api/reklamationen/lieferant/${lieferantId}`);
+    const ladeReklamationen = useCallback(() => fetch(`/api/reklamationen/lieferant/${lieferantId}`)
+        .then(async (res) => {
             if (res.ok) {
                 const data = await res.json();
                 setReklamationen(data);
             }
-        } catch (err) {
-            console.error(err);
-        }
-        setLoading(false);
+        })
+        .catch((err: unknown) => { console.error(err); })
+        .finally(() => setLoading(false)), [lieferantId]);
+
+    /** Lädt nach einer Änderung neu und zeigt dabei den Ladehinweis. */
+    const loadData = () => {
+        setLoading(true);
+        return ladeReklamationen();
     };
 
+    // Anderer Lieferant: sofort wieder „wird geladen" zeigen.
+    const [geladenFuer, setGeladenFuer] = useState(lieferantId);
+    if (geladenFuer !== lieferantId) {
+        setGeladenFuer(lieferantId);
+        setLoading(true);
+    }
+
     useEffect(() => {
-        loadData();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lieferantId]);
+        void ladeReklamationen();
+    }, [ladeReklamationen]);
 
     const handleImageClick = (rek: LieferantReklamation, clickedIndex: number) => {
         const images = rek.bilder.map(b => ({ url: b.url, name: b.originalDateiname }));
@@ -320,10 +342,10 @@ export function LieferantReklamationenTab({ lieferantId, lieferantName, lieferan
                                     <div>
                                         <div className="flex items-center gap-3 mb-1">
                                             <span className={`px-2.5 py-0.5 rounded-full text-xs font-semibold ${rek.status === 'OFFEN' ? 'bg-red-100 text-red-700' :
-                                                rek.status === 'ABGESCHLOSSEN' ? 'bg-slate-100 text-slate-600' :
-                                                    'bg-blue-100 text-blue-700'
+                                                rek.status === 'ABGESCHLOSSEN' || rek.status === 'STORNIERT' ? 'bg-slate-100 text-slate-600' :
+                                                    'bg-amber-100 text-amber-800'
                                                 }`}>
-                                                {rek.status}
+                                                {reklamationStatusText(rek.status)}
                                             </span>
                                             <span className="text-sm text-slate-500 flex items-center gap-1">
                                                 <Calendar className="w-3 h-3" />
@@ -448,10 +470,9 @@ export function LieferantReklamationenTab({ lieferantId, lieferantName, lieferan
                     initialSubject={reklamationsMail.betreff}
                     initialBody={reklamationsMail.text}
                     initialAttachments={reklamationsMail.anhaenge}
-                    onSuccess={() => {
-                        setReklamationsMail(null);
-                        toast.success(`Reklamation an ${lieferantName || 'den Lieferanten'} verschickt.`);
-                    }}
+                    // Die Erfolgsmeldung zeigt das Formular selbst – hier nur der passende Text.
+                    erfolgsMeldung={`Reklamation an ${lieferantName || 'den Lieferanten'} verschickt.`}
+                    onSuccess={() => setReklamationsMail(null)}
                 />
             )}
 

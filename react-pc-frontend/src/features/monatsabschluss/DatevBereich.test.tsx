@@ -28,7 +28,7 @@ beforeEach(() => {
  vi.stubGlobal('URL', Object.assign(URL, { createObjectURL: vi.fn(() => 'blob:datev-test'), revokeObjectURL: vi.fn() }));
  vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => {});
 });
-it('führt Admins über „DATEV einrichten“ in die Einstellungen statt ein Formular aufzuklappen', () => {
+it('führt Admins über „DATEV einrichten" in die Einstellungen statt ein Formular aufzuklappen', () => {
  render(view());
  const link = screen.getByRole('link', { name: 'DATEV einrichten' });
  expect(link).toHaveAttribute('href', '/einstellungen#zeiterfassung');
@@ -49,12 +49,12 @@ it('liest die Einstellungen nur noch und schreibt nie auf die alte Monatsabschlu
  exclusions = false; render(view()); await check();
  expect(requests.filter(r => r.url.endsWith('/datev/konfiguration')).map(r => r.method)).toEqual(['GET']);
  expect(requests.some(r => r.method === 'PUT')).toBe(false);
- expect(screen.getByText('Als „Arbeit“ gehen die Soll-Stunden (laut Arbeitszeitkonto) ans Steuerbüro.')).toBeVisible();
+ expect(screen.getByText('Als „Arbeit" gehen die Soll-Stunden (laut Arbeitszeitkonto) ans Steuerbüro.')).toBeVisible();
 });
 it('nennt abweichende Stunden einzelner Mitarbeiter im Export-Dialog', async () => {
  config = { ...config, stundenart: 'IST', personalnummern: [{ mitarbeiterId: 1, personalnummer: '00014', stundenart: 'SOLL' }] };
  render(view()); await openExport();
- expect(screen.getByText('Als „Arbeit“ gehen die Ist-Stunden (tatsächlich gearbeitet) ans Steuerbüro – bei einzelnen Mitarbeitern abweichend.')).toBeVisible();
+ expect(screen.getByText('Als „Arbeit" gehen die Ist-Stunden (tatsächlich gearbeitet) ans Steuerbüro – bei einzelnen Mitarbeitern abweichend.')).toBeVisible();
 });
 it('weist bei fehlender Berater- oder Mandantennummer auf die Einstellungen hin und sperrt die Vorprüfung', async () => {
  config = { ...config, beraterNr: '', mandantenNr: null };
@@ -79,7 +79,7 @@ it('lädt die Einstellungen bei jedem Öffnen neu und prüft gegen die aktuelle 
  expect(requests.filter(r => r.url.endsWith('/datev/konfiguration'))).toHaveLength(2);
  expect(requests.filter(r => r.url.endsWith('/vorpruefung')).map(r => (r.body as { konfigurationVersion: number }).konfigurationVersion)).toEqual([2, 5]);
 });
-it('erklärt per Info-Knopf, was „Für DATEV exportieren“ tut und dass nichts automatisch verschickt wird', () => {
+it('erklärt per Info-Knopf, was „Für DATEV exportieren" tut und dass nichts automatisch verschickt wird', () => {
  render(view(ids, false));
  fireEvent.click(screen.getByRole('button', { name: 'Mehr zu: Für DATEV exportieren' }));
  const info = screen.getByRole('dialog', { name: 'Für DATEV exportieren' });

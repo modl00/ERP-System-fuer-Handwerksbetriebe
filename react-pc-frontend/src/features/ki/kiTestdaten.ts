@@ -1,7 +1,7 @@
 import type { AuthUser } from '../../auth/AuthContext';
 
 /**
- * Dummy-Benutzer für Tests rund um „KI an/aus“ und die Ersteinrichtung.
+ * Dummy-Benutzer für Tests rund um „KI an/aus" und die Ersteinrichtung.
  * Nur erfundene Namen (DSGVO). Standard: angemeldet, kein Admin, KI an.
  */
 export function benutzer(teil: Partial<AuthUser> = {}): AuthUser {

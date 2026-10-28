@@ -90,7 +90,7 @@ function sozialeKnoepfe(d: SignaturDaten, s: Stil): string {
     return tabelle(`<tr>${zellen}</tr>`);
 }
 
-/** Soziale Netzwerke als schlichte Textlinks („Facebook · Instagram“). */
+/** Soziale Netzwerke als schlichte Textlinks („Facebook · Instagram"). */
 function sozialeTextLinks(d: SignaturDaten, s: Stil): string {
     const links = sozialeLinks(d);
     if (links.length === 0) return '';

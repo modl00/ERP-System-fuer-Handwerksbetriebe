@@ -1,8 +1,8 @@
 /**
  * Zeitpunkt einer Benachrichtigung in deutscher Schreibweise:
- * „heute, 02:00“, „gestern, 14:12“, „morgen, 09:00“, sonst „11.10.2026, 02:00“.
- * Liefert der Server nur ein Datum (z. B. Termine: „2026-10-11“), steht
- * keine Uhrzeit dabei („heute“, „11.10.2026“). Unlesbares ergibt einen leeren Text.
+ * „heute, 02:00", „gestern, 14:12", „morgen, 09:00", sonst „11.10.2026, 02:00".
+ * Liefert der Server nur ein Datum (z. B. Termine: „2026-10-11"), steht
+ * keine Uhrzeit dabei („heute", „11.10.2026"). Unlesbares ergibt einen leeren Text.
  *
  * Der Zeitpunkt wird als Ortszeit gelesen – `new Date(iso)` würde je nach
  * Browser UTC annehmen und um ein, zwei Stunden verrutschen.

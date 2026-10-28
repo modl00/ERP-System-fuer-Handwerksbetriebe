@@ -52,7 +52,7 @@ export function ObjektDialog({ open, onOpenChange, kundeId, objekt, onGespeicher
 
     const speichern = async () => {
         if (eingabe.bezeichnung.trim() === '') {
-            setFehler('Bitte eine Bezeichnung eintragen, zum Beispiel „Werk Nord“.');
+            setFehler('Bitte eine Bezeichnung eintragen, zum Beispiel „Werk Nord".');
             return;
         }
         setSpeichert(true);

@@ -137,7 +137,7 @@ export default function FremdleistungenPage() {
                 transportBetrag: form.transportArt === 'KEINE' ? null : werte(tBetrag), transportKm: form.transportArt === 'JE_KM' ? werte(tKm) : null,
                 transportFahrten: werte(fahrten) ?? 1, sonstigeBezeichnung: form.sonstigeName.trim() || null, sonstigeBetrag: werte(sonstige), gueltigAb: form.gueltigAb || heute(), aktiv: form.aktiv,
             });
-            toast.success('Die Fremdleistung ist gespeichert. Bestehende Kalkulationen zeigen den neuen Preis, sobald Sie dort „Preis übernehmen“ wählen.');
+            toast.success('Die Fremdleistung ist gespeichert. Bestehende Kalkulationen zeigen den neuen Preis, sobald Sie dort „Preis übernehmen" wählen.');
             setDialog(null);
             await laden();
         } catch (e) {
@@ -148,7 +148,7 @@ export default function FremdleistungenPage() {
     };
 
     const loesche = async (f: Fremdleistung) => {
-        if (!await bestaetige({ title: 'Fremdleistung löschen', message: `„${f.bezeichnung}“ bei ${f.lieferantName} wirklich löschen?`, variant: 'danger', confirmLabel: 'Löschen' })) return;
+        if (!await bestaetige({ title: 'Fremdleistung löschen', message: `„${f.bezeichnung}" bei ${f.lieferantName} wirklich löschen?`, variant: 'danger', confirmLabel: 'Löschen' })) return;
         try {
             await loescheFremdleistung(f.id);
             toast.success('Die Fremdleistung wurde gelöscht.');
@@ -185,7 +185,7 @@ export default function FremdleistungenPage() {
         >
             {fehler && <p role="alert" className="mb-3 rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{fehler}</p>}
             {liste && liste.length === 0 && (
-                <Card className="p-8 text-center text-slate-500 border-dashed"><Factory className="w-10 h-10 mx-auto mb-2 text-rose-200" />Noch keine Fremdleistung. Legen Sie zum Beispiel „Feuerverzinken“ bei Ihrer Verzinkerei an.</Card>
+                <Card className="p-8 text-center text-slate-500 border-dashed"><Factory className="w-10 h-10 mx-auto mb-2 text-rose-200" />Noch keine Fremdleistung. Legen Sie zum Beispiel „Feuerverzinken" bei Ihrer Verzinkerei an.</Card>
             )}
             <div className="space-y-4" data-testid="fremdleistungen">
                 {gruppen.map(([veredler, eintraege]) => (
@@ -278,7 +278,7 @@ export default function FremdleistungenPage() {
     );
 }
 
-/** Die Eingabe zu einer vorhandenen Fremdleistung (zum Umschalten von „eingeschaltet“, ohne etwas anderes zu ändern). */
+/** Die Eingabe zu einer vorhandenen Fremdleistung (zum Umschalten von „eingeschaltet", ohne etwas anderes zu ändern). */
 function ausEingabe(f: Fremdleistung) {
     return {
         lieferantId: f.lieferantId, bezeichnung: f.bezeichnung, einheit: f.einheit, preisJeEinheit: f.preisJeEinheit, mindestpreis: f.mindestpreis, einmalBetrag: f.einmalBetrag,

@@ -20,7 +20,7 @@ interface Props {
     onAuftrag: (a: Auftrag) => void;
     /** Aktionen für den ganzen Auftrag (Vorgang hinzufügen, Termine, Dauern, Termin erklären); ohne sie gibt es die Zeile nicht. */
     onAuftragAktion?: (aktion: AuftragAktion) => void;
-    /** Nur ansehen (Bearbeiten-Modus der Plantafel ist aus): Die Felder sind gesperrt, „Bearbeiten“ schaltet den Modus ein. */
+    /** Nur ansehen (Bearbeiten-Modus der Plantafel ist aus): Die Felder sind gesperrt, „Bearbeiten" schaltet den Modus ein. */
     nurAnsehen?: boolean;
     onBearbeiten?: () => void;
 }
@@ -177,7 +177,7 @@ function Inhalt({ auftrag, vorgang, typen, onSchliessen, onAuftrag, onAuftragAkt
     };
 
     const loeschen = async () => {
-        if (!vorgang || !await bestaetigen({ title: 'Vorgang löschen', message: `Soll „${vorgang.bezeichnung}“ aus der Plantafel entfernt werden? Die Termine der anderen Vorgänge werden neu gerechnet.`, variant: 'danger', confirmLabel: 'Löschen' })) return;
+        if (!vorgang || !await bestaetigen({ title: 'Vorgang löschen', message: `Soll „${vorgang.bezeichnung}" aus der Plantafel entfernt werden? Die Termine der anderen Vorgänge werden neu gerechnet.`, variant: 'danger', confirmLabel: 'Löschen' })) return;
         setSpeichert(true);
         try {
             onAuftrag(await loescheVorgang(vorgang.id));

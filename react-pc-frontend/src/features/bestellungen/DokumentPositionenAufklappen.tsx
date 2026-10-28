@@ -65,7 +65,7 @@ function euro(wert: number | null | undefined): string {
 interface PositionenKnopfProps {
     offen: boolean;
     onUmschalten: () => void;
-    /** z. B. „Lieferschein LS-1“ – ergibt „Positionen von Lieferschein LS-1 anzeigen“. */
+    /** z. B. „Lieferschein LS-1" – ergibt „Positionen von Lieferschein LS-1 anzeigen". */
     dokumentName: string;
     /** Id des aufgeklappten Bereichs (für aria-controls). */
     bereichId: string;

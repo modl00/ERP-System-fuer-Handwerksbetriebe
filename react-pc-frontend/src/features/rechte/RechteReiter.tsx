@@ -1,7 +1,7 @@
 import { NavLink } from 'react-router-dom';
 import { cn } from '../../lib/utils';
 
-/** Die Bereiche von „Wer darf was?“; jeder hat seine eigene Adresse, damit alte Lesezeichen weiter gehen. */
+/** Die Bereiche von „Wer darf was?"; jeder hat seine eigene Adresse, damit alte Lesezeichen weiter gehen. */
 const RECHTE_BEREICHE = [
     { href: '/rechte-uebersicht', label: 'Wer darf was?' },
     { href: '/abteilung-berechtigungen', label: 'Rechte der Abteilungen' },

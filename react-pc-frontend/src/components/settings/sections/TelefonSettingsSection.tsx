@@ -16,6 +16,7 @@ import {
 import { formatWann } from '../../../features/telefon/format';
 import type { AbholErgebnis, Anrufbeantworter, TelefonEinstellungen } from '../../../features/telefon/types';
 import { WaehlTelefonEinstellung } from '../../../features/telefon/WaehlTelefonEinstellung';
+import { TelefonbuchAbgleichEinstellung } from '../../../features/telefon/TelefonbuchAbgleichEinstellung';
 
 /**
  * Einstellungen der Telefon-Anbindung (FRITZ!Box) – nur für Administratoren.
@@ -89,19 +90,15 @@ export function TelefonSettingsSection({ onSaved }: { onSaved?: () => void }) {
         setMonateNachrichten(String(daten.aufbewahrungSprachnachrichtenMonate || STANDARD_MONATE));
     }, []);
 
-    const lade = useCallback(async () => {
-        setLaedt(true);
-        setLadefehler(null);
-        try {
-            uebernimm(await ladeEinstellungen());
-        } catch (e) {
+    // Ladeanzeige und Fehler setzt „Erneut laden" vorab zurück; beim ersten Laden stimmen die Startwerte.
+    const lade = useCallback(() => ladeEinstellungen()
+        .then(uebernimm)
+        .catch((e: unknown) => {
             const meldung = e instanceof Error ? e.message : 'Die Telefon-Einstellungen konnten nicht geladen werden.';
             setLadefehler(meldung);
             toast.error(meldung);
-        } finally {
-            setLaedt(false);
-        }
-    }, [toast, uebernimm]);
+        })
+        .finally(() => setLaedt(false)), [toast, uebernimm]);
 
     useEffect(() => {
         void lade();
@@ -142,7 +139,7 @@ export function TelefonSettingsSection({ onSaved }: { onSaved?: () => void }) {
         const anrufeMonate = ganzeZahl(monateAnrufe, 1, 120);
         const nachrichtenMonate = ganzeZahl(monateNachrichten, 1, 120);
         if (aktiv && !host.trim()) {
-            toast.error('Bitte die Adresse der FRITZ!Box eintragen (meist „fritz.box“).');
+            toast.error('Bitte die Adresse der FRITZ!Box eintragen (meist „fritz.box").');
             return;
         }
         if (anrufeMonate === null || nachrichtenMonate === null) {
@@ -208,7 +205,7 @@ export function TelefonSettingsSection({ onSaved }: { onSaved?: () => void }) {
         return (
             <div role="alert" className="flex flex-col items-start gap-3 rounded-lg border border-rose-200 bg-rose-50 p-4 text-rose-800 sm:flex-row sm:items-center">
                 <span className="flex-1">{ladefehler}</span>
-                <Button variant="outline" size="sm" onClick={() => void lade()}>Erneut laden</Button>
+                <Button variant="outline" size="sm" onClick={() => { setLaedt(true); setLadefehler(null); void lade(); }}>Erneut laden</Button>
             </div>
         );
     }
@@ -306,7 +303,7 @@ export function TelefonSettingsSection({ onSaved }: { onSaved?: () => void }) {
                         {abs.length > 0 && (
                             <fieldset>
                                 <legend className="text-sm font-semibold text-slate-900">Anrufbeantworter</legend>
-                                <p className="mb-2 text-xs text-slate-500">Angehakte Anrufbeantworter werden abgeholt. Den Namen sehen alle in der Liste, z. B. „AB Tag“.</p>
+                                <p className="mb-2 text-xs text-slate-500">Angehakte Anrufbeantworter werden abgeholt. Den Namen sehen alle in der Liste, z. B. „AB Tag".</p>
                                 <div className="space-y-2">
                                     {abs.map((ab) => (
                                         <div key={ab.index} className="flex flex-wrap items-center gap-3 rounded-lg border border-slate-200 px-3 py-2">
@@ -353,6 +350,8 @@ export function TelefonSettingsSection({ onSaved }: { onSaved?: () => void }) {
                 </SettingsCard>
 
                 <WaehlTelefonEinstellung />
+
+                <TelefonbuchAbgleichEinstellung telefonAnbindungAktiv={stand?.aktiv} />
 
                 <SettingsCard icon={<Activity className="h-5 w-5 text-rose-600" />} title="Stand">
                     <dl className="grid gap-3 text-sm sm:grid-cols-3">
@@ -415,7 +414,7 @@ export function TelefonSettingsSection({ onSaved }: { onSaved?: () => void }) {
                             <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-rose-100 text-xs font-bold text-rose-700">2</span>
                             <span>
                                 Unter <strong className="text-slate-900">Heimnetz → Netzwerk → Netzwerkeinstellungen</strong> den Punkt
-                                „Zugriff für Anwendungen zulassen“ einschalten.
+                                „Zugriff für Anwendungen zulassen" einschalten.
                             </span>
                         </li>
                         <li className="flex gap-3">

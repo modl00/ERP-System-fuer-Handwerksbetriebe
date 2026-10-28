@@ -13,7 +13,7 @@ export interface RechtstextRichtextHandle {
     haengeAbsatzAn: (html: string) => void;
     /**
      * Ersetzt den ganzen Inhalt. `alsAenderung` meldet das über `onChange`
-     * nach oben (z. B. „In den Editor übernehmen“), sonst nicht (Laden).
+     * nach oben (z. B. „In den Editor übernehmen"), sonst nicht (Laden).
      */
     setzeInhalt: (html: string, alsAenderung: boolean) => void;
 }

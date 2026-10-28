@@ -27,7 +27,7 @@ const SUMMARY: NotificationSummary = {
 };
 
 describe('GRUPPEN', () => {
-    it('„Sicherung & Updates“ steht ganz oben, danach die bisherige Reihenfolge', () => {
+    it('„Sicherung & Updates" steht ganz oben, danach die bisherige Reihenfolge', () => {
         expect(GRUPPEN.map(g => g.id)).toEqual([
             'betrieb', 'webseite', 'telefon', 'zeiterfassung', 'posteingaenge', 'geschaeft', 'finanzen', 'termine', 'personal', 'lieferanten',
         ]);
@@ -59,7 +59,7 @@ describe('GRUPPEN', () => {
 });
 
 describe('gruppiere', () => {
-    it('sortiert in Themen, leere Themen fallen weg, „Sicherung & Updates“ zuerst', () => {
+    it('sortiert in Themen, leere Themen fallen weg, „Sicherung & Updates" zuerst', () => {
         const gruppen = gruppiere(SUMMARY);
         expect(gruppen.map(g => g.gruppe.id)).toEqual(['betrieb', 'posteingaenge', 'finanzen', 'termine']);
         expect(gruppen[0].eintraege.map(e => e.id)).toEqual(['SICHERUNG:20261011-020017', 'UPDATE:20261011-030000']);
@@ -79,7 +79,7 @@ describe('gruppiere', () => {
         expect(post?.reste).toEqual([
             { kategorie: SUMMARY.categories[2], angezeigt: 1, weitere: 1233 },
         ]);
-        // Kategorie ganz ohne mitgeschickte Einträge: alles ist „Rest“.
+        // Kategorie ganz ohne mitgeschickte Einträge: alles ist „Rest".
         const finanzen = gruppen.find(g => g.gruppe.id === 'finanzen');
         expect(finanzen?.reste).toEqual([{ kategorie: SUMMARY.categories[5], angezeigt: 0, weitere: 1 }]);
         expect(gruppen.find(g => g.gruppe.id === 'betrieb')?.reste).toEqual([]);
@@ -92,7 +92,7 @@ describe('gruppiere', () => {
         expect(gruppen[0].reste).toEqual([]);
     });
 
-    it('stellt unbekannte Typen in „Weitere Meldungen“ ans Ende, statt sie zu verschlucken', () => {
+    it('stellt unbekannte Typen in „Weitere Meldungen" ans Ende, statt sie zu verschlucken', () => {
         const gruppen = gruppiere({
             totalCount: 3,
             categories: [

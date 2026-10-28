@@ -78,7 +78,7 @@ interface EmailComposeModalProps {
     gueltigkeitTage?: number;
     /** Optional callback after successful email send */
     onSuccess?: () => void;
-    /** Siehe EmailComposeForm: läuft nach Klick auf „Senden“, vor dem Versand (z. B. Buchen). */
+    /** Siehe EmailComposeForm: läuft nach Klick auf „Senden", vor dem Versand (z. B. Buchen). */
     vorDemSenden?: () => Promise<VorDemSendenErgebnis>;
     /** Siehe EmailComposeForm: Vorschau/Download der angehängten Datei sperren, Hinweis zeigen. */
     anhangVorschauGesperrt?: string;
@@ -88,6 +88,8 @@ interface EmailComposeModalProps {
     freigabenAbloesenFuerDokumentId?: number;
     /** Siehe EmailComposeForm: automatisch angehängte Dateien sind Pflicht. */
     pflichtanhangHinweis?: string;
+    /** Siehe EmailComposeForm: Text der Erfolgsmeldung nach dem Senden. */
+    erfolgsMeldung?: string;
 }
 
 export default function EmailComposeModal({
@@ -110,6 +112,7 @@ export default function EmailComposeModal({
     entwurfSpeichern,
     freigabenAbloesenFuerDokumentId,
     pflichtanhangHinweis,
+    erfolgsMeldung,
 }: EmailComposeModalProps) {
     if (!isOpen) return null;
 
@@ -140,6 +143,7 @@ export default function EmailComposeModal({
                     entwurfSpeichern={entwurfSpeichern}
                     freigabenAbloesenFuerDokumentId={freigabenAbloesenFuerDokumentId}
                     pflichtanhangHinweis={pflichtanhangHinweis}
+                    erfolgsMeldung={erfolgsMeldung}
                     variant="modal"
                 />
             </div>

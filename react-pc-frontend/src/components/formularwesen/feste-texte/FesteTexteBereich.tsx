@@ -9,9 +9,9 @@ import { beschreibeStand, ladeRechtstexte, type RechtstextDetail, type Rechtstex
 import { texteFuer } from './rechtstextTexte';
 
 /**
- * Bereich „Feste Texte“ im Formularwesen: eine Karte je Text aus
+ * Bereich „Feste Texte" im Formularwesen: eine Karte je Text aus
  * GET /api/formulare/rechtstexte (heute die Widerrufsbelehrung), Klick auf
- * „Bearbeiten“ öffnet den Bearbeiten-Dialog.
+ * „Bearbeiten" öffnet den Bearbeiten-Dialog.
  */
 export function FesteTexteBereich() {
     const toast = useToast();
@@ -19,7 +19,7 @@ export function FesteTexteBereich() {
     const [fehler, setFehler] = useState<string | null>(null);
     const [offen, setOffen] = useState<RechtstextUebersicht | null>(null);
 
-    // Jeder Klick auf „Erneut versuchen“ erhöht den Zähler und lädt neu.
+    // Jeder Klick auf „Erneut versuchen" erhöht den Zähler und lädt neu.
     const [versuch, setVersuch] = useState(0);
 
     useEffect(() => {

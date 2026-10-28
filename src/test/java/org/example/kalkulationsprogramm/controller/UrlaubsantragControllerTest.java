@@ -10,11 +10,11 @@ import org.example.kalkulationsprogramm.config.MobilePrincipal;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.web.server.ResponseStatusException;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -41,7 +41,7 @@ class UrlaubsantragControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private UrlaubsantragService service;
 
     /**
@@ -298,5 +298,44 @@ class UrlaubsantragControllerTest {
         mockMvc.perform(put("/api/urlaub/antraege/42/entscheidung-gesehen")).andExpect(status().isNoContent());
         verify(service).entscheidungGesehenImBuero(42L);
         verify(service, never()).eigeneEntscheidungGesehen(anyLong(), any());
+    }
+
+    // ==================== Vorschau für die Handy-App (Issue #270) ====================
+
+    @Test
+    void vorschau_liefertArbeitstageResturlaubUndReicht() throws Exception {
+        when(service.vorschau(1L, LocalDate.of(2027, 3, 3), LocalDate.of(2027, 3, 7)))
+                .thenReturn(new org.example.kalkulationsprogramm.service.UrlaubsantragService.UrlaubsVorschau(
+                        new BigDecimal("3"), new BigDecimal("12.5"), true));
+
+        mockMvc.perform(get("/api/urlaub/vorschau").param("mitarbeiterId", "1")
+                        .param("von", "2027-03-03").param("bis", "2027-03-07"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.arbeitstage").value(3))
+                .andExpect(jsonPath("$.verbleibend").value(12.5))
+                .andExpect(jsonPath("$.reicht").value(true));
+    }
+
+    @Test
+    void vorschau_geschaeftsfuehrerOhneKontingentUndFehler() throws Exception {
+        when(service.vorschau(1L, LocalDate.of(2027, 3, 5), LocalDate.of(2027, 3, 8)))
+                .thenReturn(new org.example.kalkulationsprogramm.service.UrlaubsantragService.UrlaubsVorschau(
+                        new BigDecimal("2"), null, true));
+        mockMvc.perform(get("/api/urlaub/vorschau").param("mitarbeiterId", "1")
+                        .param("von", "2027-03-05").param("bis", "2027-03-08"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.verbleibend").doesNotExist());
+
+        when(service.vorschau(1L, LocalDate.of(2027, 3, 8), LocalDate.of(2027, 3, 5)))
+                .thenThrow(new IllegalArgumentException("Das Ende darf nicht vor dem Beginn liegen."));
+        mockMvc.perform(get("/api/urlaub/vorschau").param("mitarbeiterId", "1")
+                        .param("von", "2027-03-08").param("bis", "2027-03-05"))
+                .andExpect(status().isBadRequest());
+
+        mockMvc.perform(get("/api/urlaub/vorschau").param("mitarbeiterId", "1")
+                        .param("von", "'; DROP TABLE urlaubsantrag; --").param("bis", "2027-03-05"))
+                .andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/urlaub/vorschau").param("mitarbeiterId", "1").param("von", "2027-03-05"))
+                .andExpect(status().isBadRequest());
     }
 }

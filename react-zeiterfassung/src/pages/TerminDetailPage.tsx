@@ -81,7 +81,7 @@ export default function TerminDetailPage({ token }: TerminDetailPageProps) {
                 ) : laedt ? (
                     <DetailSkeleton />
                 ) : fehler ? (
-                    // Fehler ≠ „nicht gefunden“: sichtbar bleiben und einen neuen Versuch anbieten.
+                    // Fehler ≠ „nicht gefunden": sichtbar bleiben und einen neuen Versuch anbieten.
                     <div className="flex items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
                         <AlertTriangle aria-hidden="true" className="h-5 w-5 shrink-0 text-rose-600" />
                         <p className="min-w-0 flex-1 text-sm text-rose-900">Termin konnte nicht geladen werden.</p>

@@ -1,6 +1,7 @@
+import { lazy } from 'react';
 import { createBrowserRouter, createRoutesFromElements, RouterProvider, Outlet, Navigate, Route } from 'react-router-dom';
 import { MainLayout } from './components/layout/MainLayout';
-import { ErrorBoundary } from './components/ErrorBoundary';
+import { Seite } from './components/layout/Seite';
 import { ToastProvider } from './components/ui/toast';
 import { ConfirmProvider } from './components/ui/confirm-dialog';
 import { AuthProvider } from './auth/AuthContext';
@@ -69,6 +70,51 @@ import TelefonPage from './pages/TelefonPage';
 import BenachrichtigungenPage from './pages/BenachrichtigungenPage';
 import { AnrufFensterHost } from './features/telefon/AnrufFensterHost';
 
+// Jede Seite ist eine eigene Datei und wird erst beim Öffnen geladen – der erste Aufruf
+// (von unterwegs über Tailscale) lädt so nur das Gerüst und die aktuelle Seite.
+const TextbausteinEditor = lazy(() => import('./pages/TextbausteinEditor'));
+const LeistungenUndKategorien = lazy(() => import('./pages/leistungen/LeistungenUndKategorien'));
+const Kundeneditor = lazy(() => import('./pages/Kundeneditor'));
+const LieferantenEditor = lazy(() => import('./pages/LieferantenEditor'));
+const ArtikelEditor = lazy(() => import('./pages/ArtikelEditor'));
+const ArtikelDetail = lazy(() => import('./pages/ArtikelDetail'));
+const ArbeitsgangEditor = lazy(() => import('./pages/ArbeitsgangEditor'));
+const ProjektEditor = lazy(() => import('./pages/ProjektEditor'));
+const AnfrageEditor = lazy(() => import('./pages/AnfrageEditor'));
+const BestellungenUebersicht = lazy(() => import('./pages/BestellungenUebersicht'));
+const ErfolgsanalyseEditor = lazy(() => import('./pages/ErfolgsanalyseEditor'));
+const KostenstellenControllingEditor = lazy(() => import('./pages/KostenstellenControllingEditor'));
+const FormularwesenEditor = lazy(() => import('./pages/FormularwesenEditor'));
+const OffenePostenEditor = lazy(() => import('./pages/OffenePostenEditor'));
+const EmailCenter = lazy(() => import('./pages/EmailCenter'));
+const EmailTextvorlagenEditor = lazy(() => import('./pages/EmailTextvorlagenEditor'));
+const EmailEinstellungenPage = lazy(() => import('./pages/EmailEinstellungenPage'));
+const MietabrechnungEditor = lazy(() => import('./pages/MietabrechnungEditor'));
+const BenutzerEditor = lazy(() => import('./pages/BenutzerEditor'));
+const MitarbeiterEditor = lazy(() => import('./pages/MitarbeiterEditor'));
+const ZeiterfassungKalender = lazy(() => import('./pages/ZeiterfassungKalender'));
+const Monatsabschluss = lazy(() => import('./pages/Monatsabschluss'));
+const ZeiterfassungAuswertung = lazy(() => import('./pages/ZeiterfassungAuswertung'));
+const ZeiterfassungZeitkonten = lazy(() => import('./pages/ZeiterfassungZeitkonten'));
+const ZeiterfassungFeiertage = lazy(() => import('./pages/ZeiterfassungFeiertage'));
+const ZeiterfassungSteuerberater = lazy(() => import('./pages/ZeiterfassungSteuerberater'));
+const Urlaubsantraege = lazy(() => import('./pages/Urlaubsantraege'));
+const Langzeitkrankmeldungen = lazy(() => import('./pages/Langzeitkrankmeldungen'));
+const TerminKalender = lazy(() => import('./pages/TerminKalender'));
+const RechnungsuebersichtEditor = lazy(() => import('./pages/RechnungsuebersichtEditor'));
+const BelegeKasseEditor = lazy(() => import('./pages/BelegeKasseEditor'));
+const DokumentUebersichtEditor = lazy(() => import('./pages/DokumentUebersichtEditor'));
+const FirmaEditor = lazy(() => import('./pages/FirmaEditor'));
+const BestellungEditor = lazy(() => import('./pages/BestellungEditor'));
+const DocumentEditorPage = lazy(() => import('./pages/DocumentEditorPage'));
+const ArbeitszeitartEditor = lazy(() => import('./pages/ArbeitszeitartEditor'));
+const EinstellungenEditor = lazy(() => import('./pages/EinstellungenEditor'));
+const LoginPage = lazy(() => import('./pages/LoginPage'));
+const FirstLoginSetupPage = lazy(() => import('./pages/FirstLoginSetupPage'));
+const WebsiteEditor = lazy(() => import('./pages/WebsiteEditor'));
+const TelefonPage = lazy(() => import('./pages/TelefonPage'));
+const BenachrichtigungenPage = lazy(() => import('./pages/BenachrichtigungenPage'));
+
 // Install the global fetch interceptor once at module load time so that
 // any HTTP 401 response from a non-auth endpoint triggers a session-expiry event.
 installSessionInterceptor();
@@ -78,11 +124,11 @@ const router = createBrowserRouter(createRoutesFromElements(
   <Route element={<><SessionGuard /><Outlet /></>}>
 
               {/* Public pages */}
-              <Route path="/login" element={<ErrorBoundary><LoginPage /></ErrorBoundary>} />
+              <Route path="/login" element={<Seite vollbild><LoginPage /></Seite>} />
 
               {/* Fullscreen pages outside MainLayout — still require authentication */}
-              <Route path="/dokument-editor" element={<RequireAuth><><ErrorBoundary><DocumentEditorPage /></ErrorBoundary><AnrufFensterHost akteInNeuemTab /></></RequireAuth>} />
-              <Route path="/onboarding" element={<RequireAdmin><ErrorBoundary><FirstLoginSetupPage /></ErrorBoundary></RequireAdmin>} />
+              <Route path="/dokument-editor" element={<RequireAuth><><Seite vollbild><DocumentEditorPage /></Seite><AnrufFensterHost akteInNeuemTab /></></RequireAuth>} />
+              <Route path="/onboarding" element={<RequireAdmin><Seite vollbild><FirstLoginSetupPage /></Seite></RequireAdmin>} />
 
               <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
                 <Route path="/" element={<ErrorBoundary><Startbildschirm /></ErrorBoundary>} />
@@ -124,14 +170,14 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/belege-kasse" element={<ErrorBoundary><BelegeKasseEditor /></ErrorBoundary>} />
                 <Route path="/dokumentuebersicht" element={<ErrorBoundary><DokumentUebersichtEditor /></ErrorBoundary>} />
                 <Route path="/emails" element={<Navigate to="/emails/inbox" replace />} />
-                <Route path="/emails/:folder" element={<ErrorBoundary><EmailCenter /></ErrorBoundary>} />
-                <Route path="/emails/:folder/:emailId" element={<ErrorBoundary><EmailCenter /></ErrorBoundary>} />
-                <Route path="/email-textvorlagen" element={<ErrorBoundary><EmailTextvorlagenEditor /></ErrorBoundary>} />
-                <Route path="/email-einstellungen" element={<ErrorBoundary><EmailEinstellungenPage /></ErrorBoundary>} />
+                <Route path="/emails/:folder" element={<Seite><EmailCenter /></Seite>} />
+                <Route path="/emails/:folder/:emailId" element={<Seite><EmailCenter /></Seite>} />
+                <Route path="/email-textvorlagen" element={<Seite><EmailTextvorlagenEditor /></Seite>} />
+                <Route path="/email-einstellungen" element={<Seite><EmailEinstellungenPage /></Seite>} />
                 <Route path="/telefon" element={<Navigate to="/telefon/anrufe" replace />} />
-                <Route path="/telefon/:reiter" element={<ErrorBoundary><TelefonPage /></ErrorBoundary>} />
+                <Route path="/telefon/:reiter" element={<Seite><TelefonPage /></Seite>} />
                 {/* Ziel der Glocke – für alle Angemeldeten; was jemand sieht, entscheidet der Server. */}
-                <Route path="/benachrichtigungen" element={<ErrorBoundary><BenachrichtigungenPage /></ErrorBoundary>} />
+                <Route path="/benachrichtigungen" element={<Seite><BenachrichtigungenPage /></Seite>} />
 
                 <Route path="/miete" element={<RequireModul modul="miete" titel="Mietabrechnung" ribbonCategory="Finanzen & Controlling" modulName="Das Mietabrechnungsmodul" erhalten="Die bisherigen Mietobjekte und Abrechnungen"><ErrorBoundary><MietabrechnungEditor /></ErrorBoundary></RequireModul>} />
                 <Route path="/benutzer" element={<RequireAdmin><ErrorBoundary><BenutzerEditor /></ErrorBoundary></RequireAdmin>} />

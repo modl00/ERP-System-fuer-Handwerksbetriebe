@@ -27,7 +27,6 @@ import org.example.kalkulationsprogramm.repository.ArbeitsgangRepository;
 import org.example.kalkulationsprogramm.repository.ArbeitsgangStundensatzRepository;
 import org.example.kalkulationsprogramm.repository.BelegKostenstellenAnteilRepository;
 import org.example.kalkulationsprogramm.repository.BelegRepository;
-import org.example.kalkulationsprogramm.repository.FeiertagRepository;
 import org.example.kalkulationsprogramm.repository.FirmeninformationRepository;
 import org.example.kalkulationsprogramm.repository.LangzeitkrankmeldungPhaseRepository;
 import org.example.kalkulationsprogramm.repository.LieferantDokumentProjektAnteilRepository;
@@ -54,7 +53,6 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.never;
@@ -77,7 +75,7 @@ class VerrechnungslohnServiceTest {
     private ZeitbuchungRepository zeitbuchungRepository;
     private ZeitkontoVersionRepository zeitkontoVersionRepository;
     private AbwesenheitRepository abwesenheitRepository;
-    private FeiertagRepository feiertagRepository;
+    private FeiertagService feiertagService;
     private SvSatzRepository svSatzRepository;
     private FirmeninformationRepository firmeninformationRepository;
     private LieferantDokumentProjektAnteilRepository anteilRepository;
@@ -98,7 +96,7 @@ class VerrechnungslohnServiceTest {
         zeitbuchungRepository = mock(ZeitbuchungRepository.class);
         zeitkontoVersionRepository = mock(ZeitkontoVersionRepository.class);
         abwesenheitRepository = mock(AbwesenheitRepository.class);
-        feiertagRepository = mock(FeiertagRepository.class);
+        feiertagService = mock(FeiertagService.class);
         svSatzRepository = mock(SvSatzRepository.class);
         firmeninformationRepository = mock(FirmeninformationRepository.class);
         anteilRepository = mock(LieferantDokumentProjektAnteilRepository.class);
@@ -119,7 +117,7 @@ class VerrechnungslohnServiceTest {
                 zeitbuchungRepository,
                 zeitkontoVersionRepository,
                 abwesenheitRepository,
-                feiertagRepository,
+                feiertagService,
                 svSatzRepository,
                 firmeninformationRepository,
                 anteilRepository,
@@ -136,7 +134,7 @@ class VerrechnungslohnServiceTest {
         when(anteilRepository.findAll()).thenReturn(Collections.emptyList());
         when(abteilungRepository.findAll()).thenReturn(Collections.emptyList());
         when(arbeitsgangRepository.findAll()).thenReturn(Collections.emptyList());
-        when(feiertagRepository.findByJahrAndBundesland(anyInt(), anyString())).thenReturn(Collections.emptyList());
+        when(feiertagService.getFeiertageForJahr(anyInt())).thenReturn(Collections.emptyList());
         when(firmeninformationRepository.findById(1L)).thenReturn(Optional.empty());
         when(svSatzRepository.findFirstBySatzTypAndGueltigAbLessThanEqualOrderByGueltigAbDesc(any(SvSatzTyp.class), any(LocalDate.class)))
                 .thenReturn(Optional.empty());

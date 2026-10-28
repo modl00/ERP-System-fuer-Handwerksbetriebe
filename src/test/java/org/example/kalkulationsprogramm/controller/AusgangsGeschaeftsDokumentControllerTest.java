@@ -1,6 +1,6 @@
 package org.example.kalkulationsprogramm.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.example.kalkulationsprogramm.config.ClientIpConfig;
 import org.example.kalkulationsprogramm.config.FrontendUserPrincipal;
 import org.example.kalkulationsprogramm.domain.AusgangsGeschaeftsDokument;
@@ -23,13 +23,13 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.math.BigDecimal;
@@ -61,22 +61,22 @@ class AusgangsGeschaeftsDokumentControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private AusgangsGeschaeftsDokumentService service;
 
-    @MockBean
+    @MockitoBean
     private DokumentFreigabeService dokumentFreigabeService;
 
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.FreigabeAbloesungService freigabeAbloesungService;
 
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.AusgangsGeschaeftsDokumentAuditService auditService;
 
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.AutoMahnVersandService autoMahnVersandService;
 
-    @MockBean
+    @MockitoBean
     private DatensatzLockService dokumentLockService;
 
     /**
@@ -1057,6 +1057,50 @@ class AusgangsGeschaeftsDokumentControllerTest {
             mockMvc.perform(get("/api/ausgangs-dokumente/abc/abzuloesende-freigaben"))
                     .andExpect(status().is4xxClientError());
             verify(freigabeAbloesungService, never()).findeAbzuloesendeFreigaben(any());
+        }
+    }
+
+    @Nested
+    @DisplayName("Kunden-Gutschrift (Issue #223)")
+    class KundenGutschrift {
+
+        @Test
+        void rahmenLiefertBetraege() throws Exception {
+            given(service.gutschriftRahmen(1L)).willReturn(new AusgangsGeschaeftsDokumentService.GutschriftRahmenDto(
+                    1L, "RE-2026/10/00001", new java.math.BigDecimal("1190.00"), new java.math.BigDecimal("1000.00"),
+                    new java.math.BigDecimal("119.00"), new java.math.BigDecimal("100.00"),
+                    new java.math.BigDecimal("900.00"), new java.math.BigDecimal("1071.00"), new java.math.BigDecimal("0.19")));
+
+            mockMvc.perform(get("/api/ausgangs-dokumente/1/gutschrift-rahmen"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.rechnungNummer").value("RE-2026/10/00001"))
+                    .andExpect(jsonPath("$.hoechstensNetto").value(900.00))
+                    .andExpect(jsonPath("$.bereitsGutgeschriebenBrutto").value(119.00));
+        }
+
+        @Test
+        void rahmenUngueltigeId404() throws Exception {
+            mockMvc.perform(get("/api/ausgangs-dokumente/0/gutschrift-rahmen")).andExpect(status().isNotFound());
+            mockMvc.perform(get("/api/ausgangs-dokumente/-1/gutschrift-rahmen")).andExpect(status().isNotFound());
+            given(service.gutschriftRahmen(Long.MAX_VALUE)).willThrow(new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.NOT_FOUND, "Die Rechnung wurde nicht gefunden."));
+            mockMvc.perform(get("/api/ausgangs-dokumente/" + Long.MAX_VALUE + "/gutschrift-rahmen"))
+                    .andExpect(status().isNotFound())
+                    .andExpect(jsonPath("$.message").value("Die Rechnung wurde nicht gefunden."));
+        }
+
+        @Test
+        void gutschriftRegelnKommenAlsJsonMeldung() throws Exception {
+            given(service.erstellen(any(), any(), any())).willThrow(new org.springframework.web.server.ResponseStatusException(
+                    org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Eine Gutschrift gehört immer zu einer Rechnung. Bitte die Gutschrift über die Rechnung anlegen."));
+
+            mockMvc.perform(post("/api/ausgangs-dokumente")
+                            .contentType(org.springframework.http.MediaType.APPLICATION_JSON)
+                            .content("{\"typ\":\"GUTSCHRIFT\",\"betreff\":\"<script>alert(1)</script>\"}"))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value(
+                            "Eine Gutschrift gehört immer zu einer Rechnung. Bitte die Gutschrift über die Rechnung anlegen."));
         }
     }
 }

@@ -11,6 +11,7 @@ import java.util.Optional;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.catchThrowable;
 import static org.junit.jupiter.api.Assumptions.assumeTrue;
+import tools.jackson.databind.json.JsonMapper;
 import org.example.kalkulationsprogramm.domain.LieferantDokument;
 import org.example.kalkulationsprogramm.domain.LieferantDokumentTyp;
 import org.example.kalkulationsprogramm.domain.LieferantGeschaeftsdokument;
@@ -24,6 +25,7 @@ import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Nested;
 import org.springframework.test.util.ReflectionTestUtils;
+import tools.jackson.core.exc.StreamReadException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -44,7 +46,7 @@ import org.example.kalkulationsprogramm.service.ki.KiTypen;
 import org.example.kalkulationsprogramm.testsupport.LogMitschnitt;
 import org.springframework.context.ApplicationEventPublisher;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 @ExtendWith(MockitoExtension.class)
 class GeminiDokumentAnalyseServiceTest {
@@ -77,10 +79,10 @@ class GeminiDokumentAnalyseServiceTest {
                 lieferantGeschaeftsdokumentRepository,
                 systemSettingsService,
                 eventPublisher,
-                new LieferantDokumentAbgleich(new ObjectMapper()),
+                new LieferantDokumentAbgleich(JsonMapper.builderWithJackson2Defaults().build()),
                 sperreRepository,
                 positionService,
-                new LieferantDokumentPositionLeser(new ObjectMapper()),
+                new LieferantDokumentPositionLeser(JsonMapper.builderWithJackson2Defaults().build()),
                 new org.springframework.transaction.support.TransactionTemplate(
                         mock(org.springframework.transaction.PlatformTransactionManager.class)),
                 new LieferantDokumentDateiService(ablage.toString(), ablage.toString(),
@@ -581,7 +583,7 @@ class GeminiDokumentAnalyseServiceTest {
                     }
                     """;
 
-            com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            tools.jackson.databind.ObjectMapper realMapper = JsonMapper.builderWithJackson2Defaults().build();
             when(objectMapper.readTree(json)).thenReturn(realMapper.readTree(json));
 
             var result = invokeParseJsonToAnalyzeResponse(json);
@@ -605,7 +607,7 @@ class GeminiDokumentAnalyseServiceTest {
                     }
                     """;
 
-            com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            tools.jackson.databind.ObjectMapper realMapper = JsonMapper.builderWithJackson2Defaults().build();
             when(objectMapper.readTree(json)).thenReturn(realMapper.readTree(json));
 
             LieferantGeschaeftsdokument result = invokeMapJsonToData(json);
@@ -636,7 +638,7 @@ class GeminiDokumentAnalyseServiceTest {
                     }
                     """;
 
-            com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            tools.jackson.databind.ObjectMapper realMapper = JsonMapper.builderWithJackson2Defaults().build();
             when(objectMapper.readTree(json)).thenReturn(realMapper.readTree(json));
 
             LieferantGeschaeftsdokument result = invokeMapJsonToData(json);
@@ -657,7 +659,7 @@ class GeminiDokumentAnalyseServiceTest {
                     }
                     """;
 
-            com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            tools.jackson.databind.ObjectMapper realMapper = JsonMapper.builderWithJackson2Defaults().build();
             when(objectMapper.readTree(json)).thenReturn(realMapper.readTree(json));
 
             LieferantGeschaeftsdokument result = invokeMapJsonToData(json);
@@ -680,7 +682,7 @@ class GeminiDokumentAnalyseServiceTest {
                     }
                     """;
 
-            com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            tools.jackson.databind.ObjectMapper realMapper = JsonMapper.builderWithJackson2Defaults().build();
             when(objectMapper.readTree(json)).thenReturn(realMapper.readTree(json));
 
             LieferantGeschaeftsdokument result = invokeMapJsonToData(json);
@@ -707,7 +709,7 @@ class GeminiDokumentAnalyseServiceTest {
                     }
                     """;
 
-            com.fasterxml.jackson.databind.ObjectMapper realMapper = new com.fasterxml.jackson.databind.ObjectMapper();
+            tools.jackson.databind.ObjectMapper realMapper = JsonMapper.builderWithJackson2Defaults().build();
             when(objectMapper.readTree(json)).thenReturn(realMapper.readTree(json));
 
             LieferantGeschaeftsdokument result = invokeMapJsonToData(json);
@@ -729,10 +731,10 @@ class GeminiDokumentAnalyseServiceTest {
         @Test
         void mapJsonToData_gibt_null_zurueck_bei_jackson_parse_fehler() throws Exception {
             String truncatedJson = "{\"dokumentTyp\": \"RECHNUNG\", \"confidence\": 0.}";
-            com.fasterxml.jackson.databind.ObjectMapper realMapper =
-                    new com.fasterxml.jackson.databind.ObjectMapper();
+            tools.jackson.databind.ObjectMapper realMapper =
+                    JsonMapper.builderWithJackson2Defaults().build();
             when(objectMapper.readTree(truncatedJson))
-                    .thenThrow(new com.fasterxml.jackson.core.JsonParseException(null,
+                    .thenThrow(new StreamReadException(null,
                             "Unexpected end-of-input within/between Object entries"));
 
             LieferantGeschaeftsdokument result = invokeMapJsonToData(truncatedJson);
@@ -768,7 +770,7 @@ class GeminiDokumentAnalyseServiceTest {
     @Nested
     class PreisuebernahmeAusKiAnalyse {
 
-        private final ObjectMapper echterMapper = new ObjectMapper();
+        private final ObjectMapper echterMapper = JsonMapper.builderWithJackson2Defaults().build();
 
         @Test
         void reichtStueckpreisPositionenUnveraendertWeiter() throws Exception {
@@ -978,7 +980,7 @@ class GeminiDokumentAnalyseServiceTest {
                 LieferantDokumentTyp typ, java.time.LocalDate dokumentDatum, String belegnummer)
                 throws Exception {
             Method method = GeminiDokumentAnalyseService.class.getDeclaredMethod(
-                    "verarbeiteArtikelPositionen", com.fasterxml.jackson.databind.JsonNode.class,
+                    "verarbeiteArtikelPositionen", tools.jackson.databind.JsonNode.class,
                     Lieferanten.class, LieferantDokumentTyp.class, java.time.LocalDate.class,
                     String.class);
             method.setAccessible(true);
@@ -1042,17 +1044,17 @@ class GeminiDokumentAnalyseServiceTest {
         private GeminiDokumentAnalyseService baueService(LieferantDokumentDateiService dateiService)
                 throws Exception {
             GeminiDokumentAnalyseService neu = new GeminiDokumentAnalyseService(
-                    new ObjectMapper(),
+                    JsonMapper.builderWithJackson2Defaults().build(),
                     lieferantenRepository,
                     dokumentRepository,
                     zugferdExtractorService,
                     lieferantGeschaeftsdokumentRepository,
                     systemSettingsService,
                     eventPublisher,
-                    new LieferantDokumentAbgleich(new ObjectMapper()),
+                    new LieferantDokumentAbgleich(JsonMapper.builderWithJackson2Defaults().build()),
                     sperreRepository,
                     positionService,
-                    new LieferantDokumentPositionLeser(new ObjectMapper()),
+                    new LieferantDokumentPositionLeser(JsonMapper.builderWithJackson2Defaults().build()),
                     new org.springframework.transaction.support.TransactionTemplate(
                             mock(org.springframework.transaction.PlatformTransactionManager.class)),
                     dateiService,
@@ -2390,9 +2392,9 @@ class GeminiDokumentAnalyseServiceTest {
 
         private boolean istKeinGeschaeftsdokument(String json) throws Exception {
             Method method = GeminiDokumentAnalyseService.class.getDeclaredMethod("istKeinGeschaeftsdokument",
-                    com.fasterxml.jackson.databind.JsonNode.class);
+                    tools.jackson.databind.JsonNode.class);
             method.setAccessible(true);
-            return (boolean) method.invoke(null, new ObjectMapper().readTree(json));
+            return (boolean) method.invoke(null, JsonMapper.builderWithJackson2Defaults().build().readTree(json));
         }
 
         @org.junit.jupiter.params.ParameterizedTest

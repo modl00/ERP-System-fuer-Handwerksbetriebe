@@ -169,7 +169,7 @@ describe('AnrufFenster', () => {
             expect(screen.queryByText('Am Headset oder im Telefon-Programm annehmen')).toBeNull();
         });
 
-        it('bietet nach einem verpassten Anruf „Zurückrufen“ als Hauptaktion an und schließt nach dem Start', async () => {
+        it('bietet nach einem verpassten Anruf „Zurückrufen" als Hauptaktion an und schließt nach dem Start', async () => {
             window.localStorage.setItem(WAEHL_TELEFON_SCHLUESSEL, 'LAN: PC Büro');
             const fetchMock = stubbeTelefon();
             const { onSchliessen, onFesthalten } = zeige(live({ status: 'BEENDET', verpasst: true }));
@@ -289,7 +289,7 @@ describe('AnrufFenster', () => {
     });
 
     describe('Steuerberater', () => {
-        it('zeigt die Kanzlei mit Ansprechpartnern, aber ohne „Akte öffnen“ und ohne Projekte', () => {
+        it('zeigt die Kanzlei mit Ansprechpartnern, aber ohne „Akte öffnen" und ohne Projekte', () => {
             zeige(live({ kontakt: KANZLEI_BEISPIEL }), 0, {
                 status: 'fertig',
                 daten: { ...UEBERBLICK_MAX, typ: 'STEUERBERATER', id: 30, name: 'Kanzlei Beispiel', nummer: null,

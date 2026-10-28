@@ -110,8 +110,10 @@ export function LieferantDokumentImportModal({
     const [showPdfPreview, setShowPdfPreview] = useState(false);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-    // Reset when opening
-    useEffect(() => {
+    // Beim Öffnen alles auf Anfang setzen.
+    const [warOffen, setWarOffen] = useState(false);
+    if (isOpen !== warOffen) {
+        setWarOffen(isOpen);
         if (isOpen) {
             setStep('upload');
             setFile(null);
@@ -120,11 +122,7 @@ export function LieferantDokumentImportModal({
             setAiConfidence(0);
             setAnalyseQuelle('');
             setShowPdfPreview(false);
-            // Clean up old PDF URL
-            if (pdfUrl) {
-                URL.revokeObjectURL(pdfUrl);
-                setPdfUrl(null);
-            }
+            setPdfUrl(null);
             setMetadata({
                 dokumentTyp: 'RECHNUNG',
                 dokumentNummer: '',
@@ -141,8 +139,13 @@ export function LieferantDokumentImportModal({
                 zahlungsart: '',
             });
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isOpen]);
+    }
+
+    // Vorschau-Adresse der PDF freigeben, sobald sie ersetzt oder verworfen wird.
+    useEffect(() => {
+        if (!pdfUrl) return;
+        return () => URL.revokeObjectURL(pdfUrl);
+    }, [pdfUrl]);
 
     const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
@@ -152,9 +155,6 @@ export function LieferantDokumentImportModal({
 
             // Create blob URL for PDF preview
             if (selectedFile.type === 'application/pdf' || selectedFile.name.endsWith('.pdf')) {
-                if (pdfUrl) {
-                    URL.revokeObjectURL(pdfUrl);
-                }
                 const url = URL.createObjectURL(selectedFile);
                 setPdfUrl(url);
             } else {
@@ -459,7 +459,7 @@ export function LieferantDokumentImportModal({
                                             <p className="font-medium text-slate-900 truncate">{file?.name}</p>
                                             <div className="flex items-center gap-2 text-xs text-slate-500">
                                                 <span>{(file!.size / 1024).toFixed(1)} KB</span>
-                                                {/* „KEINE“ heißt: nichts gelesen – das erklärt der Hinweis unten in Alltagssprache. */}
+                                                {/* „KEINE" heißt: nichts gelesen – das erklärt der Hinweis unten in Alltagssprache. */}
                                                 {analyseQuelle && analyseQuelle !== 'KEINE' && (
                                                     <span className="bg-slate-200 px-1.5 py-0.5 rounded">
                                                         Quelle: {analyseQuelle}

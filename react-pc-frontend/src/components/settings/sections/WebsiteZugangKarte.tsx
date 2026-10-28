@@ -23,7 +23,7 @@ const BASIS = '/api/settings/website-zugang';
 const json = { 'Content-Type': 'application/json' };
 
 /**
- * Zugang zur Website für „Neuigkeiten“: Adresse und Schlüssel der Beiträge-Schnittstelle, mit Verbindungstest. Der Schlüssel wird gespeichert, aber nie wieder
+ * Zugang zur Website für „Neuigkeiten": Adresse und Schlüssel der Beiträge-Schnittstelle, mit Verbindungstest. Der Schlüssel wird gespeichert, aber nie wieder
  * angezeigt. Ohne eigene Adresse gilt die Website aus den Firmendaten.
  */
 export function WebsiteZugangKarte() {
@@ -96,8 +96,8 @@ export function WebsiteZugangKarte() {
             title="Website für Neuigkeiten"
             description={
                 <p>
-                    Hier verbinden Sie die Firmen-Website, auf der die Seite „Neuigkeiten“ Beiträge pflegt. Wenn Sie keine passende Website haben, lassen Sie alles leer
-                    oder schalten Sie „Neuigkeiten“ unter „Module“ aus.
+                    Hier verbinden Sie die Firmen-Website, auf der die Seite „Neuigkeiten" Beiträge pflegt. Wenn Sie keine passende Website haben, lassen Sie alles leer
+                    oder schalten Sie „Neuigkeiten" unter „Module" aus.
                 </p>
             }
         >

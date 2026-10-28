@@ -14,7 +14,7 @@ export interface RechtstextSeitenspalteProps {
     fassungenFehler: string | null;
     /** Gerade angezeigte frühere Fassung (hervorgehoben). */
     gewaehlteFassung: number | null;
-    /** Fassung, die gerade gilt – bekommt den Vermerk „gilt jetzt“. */
+    /** Fassung, die gerade gilt – bekommt den Vermerk „gilt jetzt". */
     aktuelleFassung: number;
     onPlatzhalter: (token: string) => void;
     onVorschlag: (html: string) => void;

@@ -2,14 +2,14 @@ import { useEffect, useRef, useState } from 'react'
 import { Eraser } from 'lucide-react'
 
 interface Props {
-    /** Beschriftung, zum Beispiel „Unterschrift Kunde“ */
+    /** Beschriftung, zum Beispiel „Unterschrift Kunde" */
     label: string
     /** Wird bei jeder Änderung mit der PNG-Data-URL aufgerufen (leer = nichts gezeichnet). */
     onChange: (bild: string | null) => void
 }
 
 /**
- * Unterschriftsfeld für Finger oder Stift: Zeichnen mit Zeigerereignissen, „Löschen“ leert das Feld. Das Bild ist klein gehalten (Breite 600 px, nur
+ * Unterschriftsfeld für Finger oder Stift: Zeichnen mit Zeigerereignissen, „Löschen" leert das Feld. Das Bild ist klein gehalten (Breite 600 px, nur
  * Linien), damit es unter der Grenze des Servers bleibt.
  */
 export function UnterschriftFeld({ label, onChange }: Props) {

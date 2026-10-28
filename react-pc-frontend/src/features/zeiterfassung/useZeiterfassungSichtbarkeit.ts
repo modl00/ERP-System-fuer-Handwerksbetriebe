@@ -2,7 +2,7 @@ import { erzeugeBerechtigungsSpeicher } from '../../lib/berechtigungsSpeicher';
 import { ladeZeiterfassungSichtbarkeit } from './api';
 
 /**
- * Sieht der angemeldete Benutzer am PC den Menü-Bereich „Zeiterfassung“?
+ * Sieht der angemeldete Benutzer am PC den Menü-Bereich „Zeiterfassung"?
  *
  * <p>Rückgabe: `null` solange noch geprüft wird, danach `true`/`false`
  * (Fehler = `false`). Menü, Seitenschutz und Handy-Navigation teilen sich eine

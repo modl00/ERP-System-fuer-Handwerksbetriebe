@@ -1,10 +1,10 @@
 /**
- * Kennfarben für die Ziele im Modus „Nach Positionen“: jedes Projekt bzw. jede
+ * Kennfarben für die Ziele im Modus „Nach Positionen": jedes Projekt bzw. jede
  * Kostenstelle bekommt eine eigene, dezente Farbe, die in der Zielzeile und im
  * Etikett jeder zugeordneten Position wiederkehrt.
  *
  * Bewusst ohne rose (Markenfarbe, Ablage-Zustand), ohne amber (Warnfarbe für
- * „nicht zugeordnet“) und ohne blau/indigo/violett (Design-System). Klassen
+ * „nicht zugeordnet") und ohne blau/indigo/violett (Design-System). Klassen
  * stehen ausgeschrieben, damit Tailwind sie findet.
  */
 export interface ZielFarbe {

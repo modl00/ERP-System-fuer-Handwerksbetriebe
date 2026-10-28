@@ -30,7 +30,7 @@ function rendern() {
 }
 
 describe('Kundenstamm: neues Projekt im Reiter Projekte', { timeout: 30000 }, () => {
-    it('zeigt auch ohne Projekte den Knopf „Neues Projekt“', async () => {
+    it('zeigt auch ohne Projekte den Knopf „Neues Projekt"', async () => {
         const user = userEvent.setup();
         rendern();
 

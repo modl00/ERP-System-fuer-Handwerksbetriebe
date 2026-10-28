@@ -67,7 +67,7 @@ describe('DokumentSuchenDialog', () => {
         return mock;
     }
 
-    it('lädt alle Arten zur Kette, zeigt Art, Quote, Gründe und „passt zu“', async () => {
+    it('lädt alle Arten zur Kette, zeigt Art, Quote, Gründe und „passt zu"', async () => {
         antworte({ ok: true, body: [vorschlag(1, 'WERKSTOFFZEUGNIS', 'WZ-100', 85), vorschlag(2, 'RECHNUNG', 'RE-200', 45, { eindeutig: false, kettenDokumentTyp: 'AUFTRAGSBESTAETIGUNG', kettenDokumentNummer: 'AB-1' })] });
         zeige();
         expect(screen.getByRole('status', { name: 'Vorschläge werden geladen' })).toBeInTheDocument();
@@ -99,7 +99,7 @@ describe('DokumentSuchenDialog', () => {
         expect(await screen.findByText('Werkstoffzeugnis WZ-100 zur Kette hinzugefügt.')).toBeInTheDocument();
     });
 
-    it('heißt für ein Einzeldokument „Passende Bestellung suchen“', async () => {
+    it('heißt für ein Einzeldokument „Passende Bestellung suchen"', async () => {
         antworte({ ok: true, body: [vorschlag(1, 'LIEFERSCHEIN', 'LS-100', 85)] }, { ok: true, body: { success: true } });
         const onVerknuepft = vi.fn();
         render(
@@ -119,7 +119,7 @@ describe('DokumentSuchenDialog', () => {
         expect(await screen.findByText('Zugeordnet zu Lieferschein LS-100.')).toBeInTheDocument();
     });
 
-    it('startet mit Rechnungs-Filter als „Rechnung suchen“ und lädt beim Chip-Wechsel neu', async () => {
+    it('startet mit Rechnungs-Filter als „Rechnung suchen" und lädt beim Chip-Wechsel neu', async () => {
         antworte(
             { ok: true, body: [vorschlag(2, 'RECHNUNG', 'RE-200', 82)] },
             { ok: true, body: [vorschlag(3, 'WERKSTOFFZEUGNIS', 'WZ-300', 75)] },
@@ -184,7 +184,7 @@ describe('DokumentSuchenDialog', () => {
         expect(screen.getByText('Anderer Lieferant')).toBeInTheDocument();
     });
 
-    it('bietet ohne Rechnungs-Filter kein Hochladen an, aber „Alle Dokumentarten“', async () => {
+    it('bietet ohne Rechnungs-Filter kein Hochladen an, aber „Alle Dokumentarten"', async () => {
         antworte({ ok: true, body: [] }, { ok: true, body: [] });
         zeige('LIEFERSCHEIN');
         expect(await screen.findByText('Von Erika Musterfrau KG ist noch kein Lieferschein da, der passen könnte.')).toBeInTheDocument();

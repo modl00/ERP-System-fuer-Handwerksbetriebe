@@ -14,7 +14,13 @@ public class TelefonAnlageException extends RuntimeException {
         NICHT_EINGERICHTET("Telefon-Anbindung ist nicht eingerichtet"),
         WAEHLHILFE_AUS("Die FRITZ!Box konnte nicht wählen. Bitte prüfen, ob die Wählhilfe eingeschaltet ist "
                 + "(FRITZ!Box: Telefonie → Anrufe → Wählhilfe)."),
-        BESCHAEFTIGT("Es wird gerade schon ein Anruf aufgebaut. Bitte gleich noch einmal versuchen.");
+        BESCHAEFTIGT("Es wird gerade schon ein Anruf aufgebaut. Bitte gleich noch einmal versuchen."),
+        TELEFONBUCH_KEINE_RECHTE("Der FRITZ!Box-Benutzer des ERP darf das Telefonbuch nicht ändern. Bitte in der FRITZ!Box "
+                + "unter System › FRITZ!Box-Benutzer dem Benutzer das Recht „Sprachnachrichten, Faxnachrichten, "
+                + "FRITZ!App Fon und Anrufliste“ geben."),
+        TELEFONBUCH_BESTAETIGUNG("Die FRITZ!Box verlangt für Änderungen am Telefonbuch eine zusätzliche Bestätigung, "
+                + "die das ERP nicht geben kann. Bitte in der FRITZ!Box unter System › FRITZ!Box-Benutzer › "
+                + "Anmeldung im Heimnetz die zusätzliche Bestätigung für Anwendungen abschalten.");
 
         private final String text;
 
@@ -29,17 +35,46 @@ public class TelefonAnlageException extends RuntimeException {
 
     private final Grund grund;
 
+    private final String detail;
+
     public TelefonAnlageException(Grund grund) {
-        super(grund.text());
-        this.grund = grund;
+        this(grund, null, null);
     }
 
     public TelefonAnlageException(Grund grund, Throwable ursache) {
+        this(grund, null, ursache);
+    }
+
+    /**
+     * @param detail technischer Zusatz für die Fehlersuche, z.B. „SetPhonebookEntryUID: Fehlercode 402“ –
+     *               nur Schritt und Codes der Box, nie Namen oder Nummern; {@code null} = keiner
+     */
+    public TelefonAnlageException(Grund grund, String detail, Throwable ursache) {
         super(grund.text(), ursache);
         this.grund = grund;
+        this.detail = detail == null || detail.isBlank() ? null : detail;
     }
 
     public Grund getGrund() {
         return grund;
+    }
+
+    /** Technischer Zusatz (Schritt, Fehlercode der Box) oder {@code null}. */
+    public String getDetail() {
+        return detail;
+    }
+
+    /**
+     * Nachricht samt technischem Zusatz in Klammern – für Log und Einstellungsseite.
+     * Endet die Nachricht mit einem Punkt, kommt die Klammer davor: „… abschalten (AddPhonebook: Fehlercode 866).“
+     */
+    public String textMitDetail() {
+        String text = getMessage();
+        if (detail == null) {
+            return text;
+        }
+        return text.endsWith(".")
+                ? text.substring(0, text.length() - 1) + " (" + detail + ")."
+                : text + " (" + detail + ")";
     }
 }

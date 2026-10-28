@@ -54,7 +54,7 @@ export function LagerorteBereich({ orte, onGeaendert }: Props) {
         setAenderungLaeuft(ort.id);
         try {
             await setzeOrtAktiv(ort.id, !ort.aktiv);
-            toast.success(ort.aktiv ? `„${ort.name}“ ist stillgelegt.` : `„${ort.name}“ ist wieder aktiv.`);
+            toast.success(ort.aktiv ? `„${ort.name}" ist stillgelegt.` : `„${ort.name}" ist wieder aktiv.`);
             onGeaendert();
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Der Lagerort konnte nicht geändert werden.');

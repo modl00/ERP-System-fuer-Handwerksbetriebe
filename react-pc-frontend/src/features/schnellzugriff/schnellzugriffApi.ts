@@ -1,4 +1,4 @@
-/** Die besondere Adresse für den Knopf „Alle Funktionen“ in der Leiste. */
+/** Die besondere Adresse für den Knopf „Alle Funktionen" in der Leiste. */
 export const ALLE_FUNKTIONEN = '/alle-funktionen';
 
 export interface LeisteStand {

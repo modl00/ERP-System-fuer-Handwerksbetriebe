@@ -77,8 +77,8 @@ export function AnrufFenster({ anruf, weitere, onSchliessen, onKontaktOeffnen, u
     const laufzeit = formatLaufzeit(useLaufendeSekunden(anruf.status === 'IM_GESPRAECH' ? anruf.gespraechSeit : null));
 
     // Layout-Effekt: Escape wirkt ab dem Moment, in dem das Fenster im DOM steht. Mit
-    // useEffect gab es auf langsamen Rechnern eine Lücke zwischen „sichtbar“ und
-    // „Escape angemeldet“, in der ein Tastendruck verpuffte.
+    // useEffect gab es auf langsamen Rechnern eine Lücke zwischen „sichtbar" und
+    // „Escape angemeldet", in der ein Tastendruck verpuffte.
     useLayoutEffect(() => {
         const beiTaste = (ereignis: KeyboardEvent) => {
             if (ereignis.key !== 'Escape' || ereignis.defaultPrevented) return;

@@ -48,7 +48,7 @@ export interface EditorCanvasProps {
     seite: number;
     ausgewaehltId: string | null;
     zoom: number;
-    /** Scroll-Bereich um die Seite – daran misst der Zoom „Einpassen“. */
+    /** Scroll-Bereich um die Seite – daran misst der Zoom „Einpassen". */
     bereichRef: RefObject<HTMLDivElement | null>;
     briefpapier: string | null;
     daten: Record<string, string>;

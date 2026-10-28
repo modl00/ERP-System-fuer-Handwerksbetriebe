@@ -16,11 +16,11 @@ export const ptZuMm = (pt: number): number => pt / PT_JE_MM;
 
 /**
  * mm-Eingabe → pt auf zwei Nachkommastellen. So bleiben die gespeicherten
- * Zahlen kurz, und 20 mm werden beim Zurückrechnen wieder zu „20,0“.
+ * Zahlen kurz, und 20 mm werden beim Zurückrechnen wieder zu „20,0".
  */
 export const mmZuPtGerundet = (mm: number): number => Math.round(mmZuPt(mm) * 100) / 100;
 
-/** pt → mm-Anzeige mit einer Nachkommastelle und deutschem Komma, z. B. „45,0“. */
+/** pt → mm-Anzeige mit einer Nachkommastelle und deutschem Komma, z. B. „45,0". */
 export const formatiereMm = (pt: number): string =>
     ptZuMm(pt).toLocaleString('de-DE', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
 
@@ -162,7 +162,7 @@ export function anschriftInsFenster(form: Briefform): RechteckPt {
     return { x: links, y: oben, width: rechts - links, height: unten - oben };
 }
 
-/** Infoblock-Position in ganzen pt (für den Baustein „Nummer & Datum“). */
+/** Infoblock-Position in ganzen pt (für den Baustein „Nummer & Datum"). */
 export function infoblockPosition(form: Briefform): RechteckPt {
     const block = rechteckInPt(normMasse(form).infoblock);
     return { x: Math.ceil(block.x), y: Math.ceil(block.y), width: Math.floor(block.width), height: Math.floor(block.height) };

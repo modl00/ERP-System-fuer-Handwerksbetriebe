@@ -14,7 +14,7 @@ const DATEV_EINSTELLUNGEN_PFAD = '/einstellungen#zeiterfassung';
 const NUR_ADMIN_HINWEIS = 'DATEV richtet ein Admin unter Einstellungen → Zeiterfassung ein.';
 const linkKlasse = 'inline-flex shrink-0 items-center justify-center gap-2 rounded border border-rose-300 bg-white px-3 py-1.5 text-sm text-rose-700 transition-colors hover:bg-rose-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 focus-visible:ring-offset-1';
 const text = (error: unknown) => error instanceof Error ? error.message : 'Die Anfrage ist fehlgeschlagen. Bitte erneut versuchen.';
-/** Erklärt kurz, was „Für DATEV exportieren“ tut – und was nicht. */
+/** Erklärt kurz, was „Für DATEV exportieren" tut – und was nicht. */
 function DatevExportInfo() {
     return <InfoButton titel="Für DATEV exportieren">
         <InfoAbschnitt titel="Was passiert im Hintergrund?">
@@ -32,7 +32,7 @@ function DatevExportInfo() {
 const hinweisName = (kategorie: string) => kategorieName(kategorie) ?? (kategorie === 'KORREKTUR' ? 'Korrektur' : kategorie === 'ABWESENHEIT_UNGEGLIEDERT' ? 'Alte Abwesenheit' : kategorie === 'STAND' ? 'Monatsstand' : 'Einstellungen');
 
 /**
- * „DATEV für das Steuerbüro“ im Monatsabschluss: Vorprüfung und Download
+ * „DATEV für das Steuerbüro" im Monatsabschluss: Vorprüfung und Download
  * der LODAS-Datei für die bewusst ausgewählten Monatsstände.
  *
  * <p>Eingerichtet wird DATEV nicht mehr hier, sondern unter Einstellungen →
@@ -40,7 +40,7 @@ const hinweisName = (kategorie: string) => kategorieName(kategorie) ?? (kategori
  * Export-Dialogs jedes Mal frisch gelesen – sie liefert die Version, gegen die
  * der Server Vorprüfung und Export abgleicht.</p>
  *
- * @param darfEinrichten Admin? Dann führt „DATEV einrichten“ zu den Einstellungen, sonst steht dort ein Hinweis.
+ * @param darfEinrichten Admin? Dann führt „DATEV einrichten" zu den Einstellungen, sonst steht dort ein Hinweis.
  */
 export function DatevBereich({ auswahl, mitarbeiter, darfEinrichten }: { auswahl: AuswahlStand[]; mitarbeiter: { id: number; name: string }[]; darfEinrichten: boolean }) {
     const toast = useToast();
@@ -54,7 +54,10 @@ export function DatevBereich({ auswahl, mitarbeiter, darfEinrichten }: { auswahl
     const key = JSON.stringify({ auswahl, config });
     const exportAuswahl = auswahl.map(({ mitarbeiterId, jahr, monat, version }) => ({ mitarbeiterId, jahr, monat, version }));
     const aktuell = useRef(key);
-    useLayoutEffect(() => { aktuell.current = key; lauf.current++; setPruefung(null); setBestaetigt(false); }, [key]);
+    // Andere Auswahl oder Einstellungen: alte Vorprüfung und Bestätigung gelten nicht mehr.
+    const [letzterKey, setLetzterKey] = useState(key);
+    if (letzterKey !== key) { setLetzterKey(key); setPruefung(null); setBestaetigt(false); }
+    useLayoutEffect(() => { aktuell.current = key; lauf.current++; }, [key]);
     useLayoutEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
     const grund = !auswahl.length ? 'Bitte zuerst Mitarbeiter für den Export auswählen.' : auswahl.length > 500 ? 'Bitte höchstens 500 Mitarbeiter auswählen.' : new Set(auswahl.map(s => `${s.jahr}/${s.monat}`)).size !== 1 ? 'Bitte genau einen Monat auswählen.' : auswahl.some(s => s.festgeschrieben !== true || s.version === null) ? 'Bitte die ausgewählten Monate zuerst abschließen und aktualisieren.' : '';
     const zugangFehlt = config !== null && !zugangEingetragen(config);
@@ -110,7 +113,7 @@ export function DatevBereich({ auswahl, mitarbeiter, darfEinrichten }: { auswahl
         <Dialog aria-label="DATEV-Export prüfen" open={offen} onOpenChange={v => { setOffen(v); if (!v) { invalidieren(); setFehler(''); } }}><DialogContent className="max-w-2xl"><DialogHeader><DialogTitle>DATEV-Export prüfen</DialogTitle></DialogHeader><div className="overflow-y-auto space-y-4 pr-1">
             <p className="text-sm text-slate-600">Nur diese bewusst ausgewählten Monatsstände werden übergeben:</p>
             <ul className="max-h-40 overflow-auto rounded-md bg-slate-50 p-3 text-sm space-y-1">{auswahl.map(s => <li key={`${s.mitarbeiterId}/${s.jahr}/${s.monat}`}><span className="font-medium">{name(s.mitarbeiterId)}</span> · {String(s.monat).padStart(2, '0')}/{s.jahr} · {s.festgeschrieben ? `Abgeschlossen · Stand ${s.version}` : 'Noch offen'}</li>)}</ul>
-            {config && <p className="text-sm text-slate-600">Als „Arbeit“ gehen die {STUNDENART_TEXT[config.stundenart].lang} ans Steuerbüro{abweichend ? ' – bei einzelnen Mitarbeitern abweichend' : ''}.</p>}
+            {config && <p className="text-sm text-slate-600">Als „Arbeit" gehen die {STUNDENART_TEXT[config.stundenart].lang} ans Steuerbüro{abweichend ? ' – bei einzelnen Mitarbeitern abweichend' : ''}.</p>}
             {zugangFehlt && <div role="note" className="flex items-start gap-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                 <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0" />
                 <div className="space-y-2"><p>Beraternummer und Mandantennummer fehlen noch. Ohne sie nimmt DATEV keine Datei an.</p>

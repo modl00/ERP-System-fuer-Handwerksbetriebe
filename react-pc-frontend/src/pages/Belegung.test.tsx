@@ -21,7 +21,7 @@ const daten = (von: string, bis: string): Daten => ({
         { schluessel: 'A', gruppe: 'ALLGEMEIN', name: 'Ohne Zuweisung', eintraege: [eintrag('V9', 'Planung', von, von, { projektId: 9 })] },
         {
             schluessel: 'M4', gruppe: 'MITARBEITER', name: 'Max Mustermann', eintraege: [
-                eintrag('V2', 'Fertigung', von, von, { hinweis: 'Doppelt belegt mit „Tor“ (Tor (A-2))', fest: true, prioritaet: 'DRINGEND' }),
+                eintrag('V2', 'Fertigung', von, von, { hinweis: 'Doppelt belegt mit „Tor" (Tor (A-2))', fest: true, prioritaet: 'DRINGEND' }),
                 eintrag('T5', 'Aufmaß', von, von, { quelle: 'TERMIN', vonZeit: '08:30:00', bisZeit: '10:00:00', farbe: '#64748b', projektId: null, prioritaet: null, status: null }),
                 eintrag('A1', 'Urlaub', von, von, { quelle: 'ABWESENHEIT', untertitel: null, farbe: '#94a3b8', projektId: null, prioritaet: null, status: null }),
             ],
@@ -81,10 +81,10 @@ describe('Belegung', { timeout: 30000 }, () => {
         expect(screen.getByTestId('zeile-M4')).toBeInTheDocument();
     });
 
-    it('der Hinweis „doppelt belegt“ steht am Vorgang', async () => {
+    it('der Hinweis „doppelt belegt" steht am Vorgang', async () => {
         zeige(<Belegung aktualisierung={0} onVorgang={() => undefined} />);
 
-        const balken = await screen.findByRole('button', { name: /Achtung: Doppelt belegt mit „Tor“/ });
+        const balken = await screen.findByRole('button', { name: /Achtung: Doppelt belegt mit „Tor"/ });
         expect(balken).toBeInTheDocument();
     });
 
@@ -288,7 +288,7 @@ describe('Belegung – Termine', { timeout: 30000 }, () => {
         await waitFor(() => expect(kalender().some(([, i]) => i?.method === 'DELETE')).toBe(true));
     });
 
-    it('der Knopf „Termin“ legt einen Termin für heute ohne Mitarbeiter an', async () => {
+    it('der Knopf „Termin" legt einen Termin für heute ohne Mitarbeiter an', async () => {
         const user = userEvent.setup();
         zeige(<Belegung aktualisierung={0} onVorgang={() => undefined} />);
         await screen.findByTestId('belegung');
@@ -342,7 +342,7 @@ describe('Belegung – Ziehen', { timeout: 30000 }, () => {
         expect(onVorgang).not.toHaveBeenCalled();
     });
 
-    it('ein Fixtermin wird erst nach Rückfrage verschoben, bei „Abbrechen“ passiert nichts', async () => {
+    it('ein Fixtermin wird erst nach Rückfrage verschoben, bei „Abbrechen" passiert nichts', async () => {
         const user = userEvent.setup();
         zeige(<Belegung bearbeiten aktualisierung={0} onVorgang={() => undefined} />);
         const balken = await screen.findByRole('button', { name: /^Fertigung/ });

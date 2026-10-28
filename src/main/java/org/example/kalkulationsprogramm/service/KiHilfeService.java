@@ -22,10 +22,10 @@ import org.example.kalkulationsprogramm.service.kihilfe.KiHilfeWerkzeuge;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -45,7 +45,11 @@ public class KiHilfeService {
     /** Begrenzt den Firmennamen im System-Prompt. */
     private static final int MAX_BETRIEBSNAME_LAENGE = 120;
 
-    private static final String BASE_SYSTEM_PROMPT = """
+    // Die Seite "Bedarf" (/bestellungen/bedarf) fehlt hier mit Absicht: Sie ist
+    // noch nicht freigegeben (react-pc-frontend/src/lib/freigaben.ts). Bei der
+    // Freigabe unter "Einkauf" und in der Linkliste wieder eintragen.
+    /** Paketsichtbar für {@code KiHilfeMenueAbgleichTest}, der Menü und Seitenlinks mit der Menüleiste vergleicht. */
+    static final String BASE_SYSTEM_PROMPT = """
             Du bist der KI-Assistent für {{BETRIEB}}.
             Du hilfst Mitarbeitern bei Fragen zur Bedienung und Navigation des Programms,
             sowie bei allgemeinen Fachfragen (Normen, Vorschriften, Wetter, etc.).
@@ -160,29 +164,33 @@ public class KiHilfeService {
             Beschreibe die Navigation IMMER als: Hauptreiter → Menüpunkt (z.B. "Projektmanagement → Anfragen").
             
             ### 1. Vorlagen & Stammdaten
-            - **Dokumente:** Textvorlagen, Leistungen, Stundensätze
+            - **Dokumente:** Leistungen & Kategorien (Leistungen in Ordnern; dieselben Ordner sind die Kategorien der Projekte, mit Auswertung), Textvorlagen, Stundensätze
             - **Kontakte:** Kunden, Mitarbeiter, Lieferanten
-            - **Katalog:** Artikel, Arbeitsgänge, Kategorien
-            - **Administration:** Dokumentenrechte, Firma
+            - **Katalog:** Artikel
+            - **Administration:** (nur Admin) Firma, Formularwesen, Arbeitsgänge, Einstellungen (dort u. a. der Reiter „Abteilungen & Rechte“)
             
             ### 2. Projektmanagement
             - **Aufträge:** Projekte, Anfragen
+            - **Dokumente:** Dokumente
             - **Planung:** Kalender
             - **Einkauf:** Bestellungen, Bedarf
             
             ### 3. Zeiterfassung
-            - **Übersicht:** Kalender (Zeitbuchungen)
+            - **Übersicht:** Kalender (Zeitbuchungen), Monatsabschluss
             - **Berichte:** Auswertung, Steuerberater
             - **Einstellungen:** Zeitkonten, Feiertage
-            - **Urlaub:** Anträge (Urlaubsanträge)
+            - **Abwesenheiten:** Urlaubsanträge, Lange Krankheit
             
             ### 4. Kommunikation
-            - **E-Mail:** E-Mail Center
-            - **Dokumente:** Formularwesen, Dokument-Generator
+            - **E-Mail:** E-Mail Center, Mailtexte für Dokumente, E-Mail-Einstellungen
+            - **Telefon:** Anrufe, Anrufbeantworter
+            - **Website:** Neuigkeiten
             
             ### 5. Finanzen & Controlling
-            - **Buchhaltung:** Offene Posten, Rechnungen (Rechnungsübersicht), Mietabrechnung
-            - **Auswertung:** Erfolgsanalyse
+            - **Buchhaltung:** Offene Posten, Rechnungen (Rechnungsübersicht), Belege & Kasse, Mietabrechnung
+            - **Auswertung:** Erfolgsanalyse, Kostenstellen
+            
+            Oben rechts über den Benutzernamen: „Benutzer verwalten“ (nur Admins).
             
             ## Seitenlinks (klickbare Navigation)
             Wenn du auf eine Seite im Programm verweist, erstelle IMMER einen klickbaren Link im Format:
@@ -195,32 +203,41 @@ public class KiHilfeService {
             |---|---|
             | Projekte | [Projekte](/projekte) |
             | Anfragen | [Anfragen](/anfragen) |
+            | Dokumente | [Dokumente](/dokumentuebersicht) |
+            | Kalender | [Kalender](/kalender) |
+            | Bestellungen | [Bestellungen](/bestellungen) |
             | Kunden | [Kunden](/kunden) |
+            | Mitarbeiter | [Mitarbeiter](/mitarbeiter) |
             | Lieferanten | [Lieferanten](/lieferanten) |
             | Artikel | [Artikel](/artikel) |
-            | Bestellungen | [Bestellungen](/bestellungen) |
-            | Bedarf | [Bedarf](/bestellungen/bedarf) |
-            | Textvorlagen | [Textvorlagen](/textbausteine) |
-            | Leistungen | [Leistungen](/leistungen) |
             | Arbeitsgänge | [Arbeitsgänge](/arbeitsgaenge) |
-            | Produktkategorien | [Produktkategorien](/produktkategorien) |
-            | Mitarbeiter | [Mitarbeiter](/mitarbeiter) |
+            | Textvorlagen | [Textvorlagen](/textbausteine) |
+            | Leistungen & Kategorien | [Leistungen & Kategorien](/leistungen) |
             | Stundensätze | [Stundensätze](/arbeitszeitarten) |
-            | Kalender | [Kalender](/kalender) |
-            | E-Mail Center | [E-Mail Center](/emails) |
+            | Firma | [Firma](/firma) |
             | Formularwesen | [Formularwesen](/formulare) |
-            | Offene Posten | [Offene Posten](/offeneposten) |
-            | Rechnungsübersicht | [Rechnungsübersicht](/rechnungsuebersicht) |
-            | Mietabrechnung | [Mietabrechnung](/miete) |
-            | Erfolgsanalyse | [Erfolgsanalyse](/analyse) |
+            | Einstellungen | [Einstellungen](/einstellungen) |
+            | Benutzer verwalten | [Benutzer verwalten](/benutzer) |
             | Zeitbuchungen | [Zeitbuchungen](/zeitbuchungen) |
+            | Monatsabschluss | [Monatsabschluss](/monatsabschluss) |
             | Zeitauswertung | [Zeitauswertung](/auswertung) |
             | Steuerberater | [Steuerberater](/steuerberater) |
             | Zeitkonten | [Zeitkonten](/zeitkonten) |
             | Feiertage | [Feiertage](/feiertage) |
             | Urlaubsanträge | [Urlaubsanträge](/urlaubsantraege) |
-            | Firma | [Firma](/firma) |
-            | Benutzer | [Benutzer](/benutzer) |
+            | Lange Krankheit | [Lange Krankheit](/langzeitkrankmeldungen) |
+            | E-Mail Center | [E-Mail Center](/emails/inbox) |
+            | Mailtexte für Dokumente | [Mailtexte für Dokumente](/email-textvorlagen) |
+            | E-Mail-Einstellungen | [E-Mail-Einstellungen](/email-einstellungen) |
+            | Anrufe | [Anrufe](/telefon/anrufe) |
+            | Anrufbeantworter | [Anrufbeantworter](/telefon/anrufbeantworter) |
+            | Website-Neuigkeiten | [Neuigkeiten](/website) |
+            | Offene Posten | [Offene Posten](/offeneposten) |
+            | Rechnungsübersicht | [Rechnungsübersicht](/rechnungsuebersicht) |
+            | Belege & Kasse | [Belege & Kasse](/belege-kasse) |
+            | Mietabrechnung | [Mietabrechnung](/miete) |
+            | Erfolgsanalyse | [Erfolgsanalyse](/analyse) |
+            | Kostenstellen | [Kostenstellen](/kostenstellen) |
             
             Beispiel: "Gehe zu [Anfragen](/anfragen) und klicke auf '+ Neues Anfrage'."
             Erstelle bei Schritt-für-Schritt-Anleitungen am Ende einen Link zur relevanten Seite.
@@ -557,7 +574,7 @@ public class KiHilfeService {
                 }
                 String replyText = GeminiVerlauf.text(kandidat);
                 if (replyText.isBlank() && nachschlagen
-                        && KAPUTTER_AUFRUF.equals(kandidat.path("finishReason").asText(""))) {
+                        && KAPUTTER_AUFRUF.equals(kandidat.path("finishReason").asString(""))) {
                     // Die KI hat einen Werkzeug-Aufruf verbockt: noch einmal, dann aber mit Antwortpflicht
                     log.warn("  -> Gemini: kaputter Werkzeug-Aufruf, Antwort ohne weiteres Nachschlagen");
                     antwortErzwingen = true;
@@ -660,7 +677,7 @@ public class KiHilfeService {
         if (!queries.isArray() || queries.isEmpty()) return;
         log.info("  -> Google Search Queries: {}", queries.size());
         for (JsonNode query : queries) {
-            String text = query.asText("").strip();
+            String text = query.asString("").strip();
             if (text.isEmpty() || bisher.size() >= MAX_WEBSUCHEN_ANZEIGE || !bisher.add(text)) continue;
             melden.accept("Sucht im Internet: " + text);
         }
@@ -710,8 +727,8 @@ public class KiHilfeService {
         List<SourceLink> sources = new ArrayList<>();
         for (JsonNode chunk : chunks) {
             JsonNode web = chunk.path("web");
-            String uri = web.path("uri").asText("");
-            String title = web.path("title").asText("");
+            String uri = web.path("uri").asString("");
+            String title = web.path("title").asString("");
             if (!uri.isEmpty()) {
                 sources.add(new SourceLink(title.isEmpty() ? uri : title, uri));
             }

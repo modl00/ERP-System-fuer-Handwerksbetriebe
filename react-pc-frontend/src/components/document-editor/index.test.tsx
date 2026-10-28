@@ -1431,11 +1431,11 @@ describe('DocumentEditor – Rückgängig & Wiederholen', () => {
         await waitFor(() => expect(screen.getByDisplayValue('Dachrinne reinigen')).toBeInTheDocument(), { timeout: 3000 });
     }
 
-    /** Loeschen-Knopf einer Karte (traegt svg.lucide-trash2). */
+    /** Loeschen-Knopf einer Karte (traegt svg.lucide-trash-2). */
     function muelleimer(container: HTMLElement, blockId: string): HTMLButtonElement {
         const treffer = Array.from(
             container.querySelectorAll<HTMLButtonElement>(`[data-block-id="${blockId}"] button`)
-        ).find(b => b.querySelector('svg.lucide-trash2'));
+        ).find(b => b.querySelector('svg.lucide-trash-2'));
         if (!treffer) throw new Error(`Kein Löschen-Knopf für Block ${blockId} gefunden`);
         return treffer;
     }
@@ -1523,10 +1523,10 @@ describe('DocumentEditor – Rückgängig & Wiederholen', () => {
         const mengenfeld = container.querySelector<HTMLInputElement>('[data-block-id="s1"] [data-verlauf-feld="quantity"]')!;
         await user.clear(mengenfeld);
         await user.type(mengenfeld, '9');
-        await waitFor(() => expect(mengenfeld).toHaveValue(9));
+        await waitFor(() => expect(mengenfeld).toHaveValue('9'));
 
         strgZ();
-        await waitFor(() => expect(mengenfeld).toHaveValue(2));
+        await waitFor(() => expect(mengenfeld).toHaveValue('2'));
         expect(titelfeld).toHaveValue('Dachrinne reinigenX');
     });
 
@@ -1849,5 +1849,312 @@ describe('DocumentEditor – data-block-id-Vertrag (SortableBlock)', () => {
         // Der Titel der Position muss INNERHALB des markierten Wrappers liegen --
         // sonst waere data-block-id nur zufaellig irgendwo im Baum vorhanden.
         expect(within(wrapper as HTMLElement).getByDisplayValue('Dachrinne reinigen')).toBeInTheDocument();
+    });
+});
+
+describe('DocumentEditor – Als neue Leistung speichern', () => {
+    // DSGVO: Dummy-Daten. Position stammt aus Leistung 7, Kurztext wurde geaendert.
+    const URSPRUNG = {
+        id: 7, name: 'Geländer montieren', description: '<p>Montage inkl. Befestigung</p>', price: 120,
+        unit: { name: 'LAUFENDE_METER', anzeigename: 'Laufende Meter' }, folderId: 12,
+    };
+    const ORDNER: Record<string, unknown> = {
+        '/api/produktkategorien/haupt?light=true': [{ id: 1, bezeichnung: 'Geländer', parentId: null, leaf: false }],
+        '/api/produktkategorien/1/unterkategorien?light=true': [{ id: 12, bezeichnung: 'Edelstahl', parentId: 1, leaf: true }],
+        '/api/produktkategorien/12?light=true': { id: 12, bezeichnung: 'Edelstahl', parentId: 1 },
+        '/api/produktkategorien/1?light=true': { id: 1, bezeichnung: 'Geländer', parentId: null },
+    };
+    const geaendert = JSON.stringify({
+        blocks: [{
+            id: 'pos-1', type: 'SERVICE', title: 'Geländer montieren, V4A', description: '<p>Montage inkl. Befestigung</p>',
+            quantity: 3, unit: 'lfm', price: 120, fontSize: 10, leistungId: 7, kategorieId: 12,
+        }],
+        globalRabatt: 0,
+    });
+    let fetchMock: ReturnType<typeof vi.fn>;
+
+    beforeEach(() => {
+        const basis = mockFetch({ positionenJson: geaendert });
+        fetchMock = vi.fn((url: string, init?: RequestInit) => {
+            if (url === '/api/leistungen' && init?.method === 'POST') {
+                const body = JSON.parse(init.body as string);
+                return jsonAntwort({ ...URSPRUNG, ...body, id: 99, unit: { name: body.unit, anzeigename: 'Laufende Meter' } });
+            }
+            if (url === '/api/leistungen') return jsonAntwort([URSPRUNG]);
+            if (url in ORDNER) return jsonAntwort(ORDNER[url]);
+            return basis(url, init);
+        });
+        global.fetch = fetchMock as unknown as typeof fetch;
+        global.URL.createObjectURL = vi.fn(() => `blob:vorschau-${Math.random()}`);
+        global.URL.revokeObjectURL = vi.fn();
+        Element.prototype.scrollIntoView = vi.fn();
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    const knopf = () => screen.queryByRole('button', { name: 'Als neue Leistung speichern' });
+
+    it('verknuepft die Position nach dem Speichern mit der neuen Leistung; Rückgängig holt den Knopf zurück', async () => {
+        const user = userEvent.setup();
+        renderEditor();
+
+        await waitFor(() => expect(knopf()).toBeInTheDocument(), { timeout: 3000 });
+        await user.click(knopf()!);
+        const dialog = await screen.findByRole('dialog', { name: 'Als neue Leistung speichern' });
+        await waitFor(() => expect(within(dialog).getByTestId('speicherziel')).toHaveTextContent('Geländer › Edelstahl'));
+        await user.click(within(dialog).getByRole('button', { name: /^Speichern$/ }));
+
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Als neue Leistung speichern' })).not.toBeInTheDocument());
+        expect(knopf()).not.toBeInTheDocument();
+        expect(await screen.findByText(/Neue Leistung „Geländer montieren, V4A" im Ordner „Geländer › Edelstahl" gespeichert/)).toBeInTheDocument();
+
+        // Kein haengender "Dialog offen"-Zustand: Rückgängig ist bedienbar und
+        // nimmt genau die Verknuepfung zurueck.
+        const rueckgaengig = screen.getByRole('button', { name: 'Rückgängig' });
+        expect(rueckgaengig).toHaveAttribute('title', 'Rückgängig: Als neue Leistung gespeichert (Strg+Z)');
+        await user.click(rueckgaengig);
+        await waitFor(() => expect(knopf()).toBeInTheDocument());
+        // Der Dialog oeffnet sich dabei nicht von selbst wieder.
+        expect(screen.queryByRole('dialog', { name: 'Als neue Leistung speichern' })).not.toBeInTheDocument();
+    });
+
+    it('schliesst den Dialog bei Sperre und oeffnet ihn danach nicht von selbst wieder', async () => {
+        const user = userEvent.setup();
+        const { rerender } = renderEditor();
+
+        await waitFor(() => expect(knopf()).toBeInTheDocument(), { timeout: 3000 });
+        await user.click(knopf()!);
+        expect(await screen.findByRole('dialog', { name: 'Als neue Leistung speichern' })).toBeInTheDocument();
+
+        const mitProps = (readOnly: boolean) => (
+            <MemoryRouter initialEntries={['/dokumente/1']}>
+                <ConfirmProvider>
+                    <ToastProvider>
+                        <DocumentEditor dokumentId={1} onClose={() => { }} readOnly={readOnly} />
+                    </ToastProvider>
+                </ConfirmProvider>
+            </MemoryRouter>
+        );
+        rerender(mitProps(true));
+        await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Als neue Leistung speichern' })).not.toBeInTheDocument());
+        rerender(mitProps(false));
+        await waitFor(() => expect(knopf()).toBeInTheDocument());
+        expect(screen.queryByRole('dialog', { name: 'Als neue Leistung speichern' })).not.toBeInTheDocument();
+    });
+});
+
+describe('DocumentEditor – einfache Rechnung schliesst den Auftrag ab', () => {
+    // DSGVO: ausschliesslich Dummy-Daten. Die Rechnung erbt die Bloecke des
+    // Angebots samt IDs; "Rüstkosten" ist nicht angefallen und wird geloescht.
+    const ANGEBOT_ID = 10;
+    const BLOECKE = [
+        { id: 's1', type: 'SERVICE', title: 'Geländer montieren', quantity: 1, unit: 'Stk', price: 9000, fontSize: 10 },
+        { id: 's2', type: 'SERVICE', title: 'Anfahrt', quantity: 1, unit: 'psch', price: 600, fontSize: 10 },
+        { id: 's3', type: 'SERVICE', title: 'Rüstkosten', quantity: 1, unit: 'psch', price: 400, fontSize: 10 },
+    ];
+
+    function verlaufAntwort(weiterePositionen: unknown[] = []) {
+        return {
+            basisdokumentId: ANGEBOT_ID,
+            basisdokumentNummer: 'AN-2026-0010',
+            basisdokumentTyp: 'ANGEBOT',
+            basisdokumentBetragNetto: 10000,
+            positionen: [
+                { id: 1, dokumentNummer: 'RE-2026/08/00001', typ: 'RECHNUNG', datum: HEUTE_ISO, betragNetto: 10000, storniert: false },
+                ...weiterePositionen,
+            ],
+            bereitsAbgerechnet: 10000,
+            restbetrag: 0,
+            basisdokumentPositionenJson: JSON.stringify({ blocks: BLOECKE, globalRabatt: 0 }),
+        };
+    }
+
+    function mockFetchMitVerlauf(dokumentAbweichung: Record<string, unknown>, verlauf: unknown) {
+        const basis = mockFetch({
+            vorgaengerId: ANGEBOT_ID,
+            positionenJson: JSON.stringify({ blocks: BLOECKE, globalRabatt: 0 }),
+            ...dokumentAbweichung,
+        });
+        return vi.fn((url: string, init?: RequestInit) => {
+            if (url === `/api/ausgangs-dokumente/${ANGEBOT_ID}/abrechnungsverlauf`) return jsonAntwort(verlauf);
+            return basis(url, init);
+        });
+    }
+
+    /** Abrechnungsstand aus den Vorschau-Requests, juengster zuletzt. */
+    function vorschauVerlaeufe(fetchMock: ReturnType<typeof vi.fn>): Array<Record<string, unknown>> {
+        return fetchMock.mock.calls
+            .filter(call => call[0] === '/api/dokument-generator/preview')
+            .map(call => JSON.parse((call[1] as RequestInit).body as string).abrechnungsverlauf)
+            .filter(Boolean);
+    }
+
+    function muelleimer(container: HTMLElement, blockId: string): HTMLButtonElement {
+        const treffer = Array.from(
+            container.querySelectorAll<HTMLButtonElement>(`[data-block-id="${blockId}"] button`)
+        ).find(b => b.querySelector('svg.lucide-trash-2'));
+        if (!treffer) throw new Error(`Kein Löschen-Knopf für Block ${blockId} gefunden`);
+        return treffer;
+    }
+
+    beforeEach(() => {
+        global.URL.createObjectURL = vi.fn(() => `blob:vorschau-${Math.random()}`);
+        global.URL.revokeObjectURL = vi.fn();
+        window.HTMLElement.prototype.scrollIntoView = vi.fn();
+    });
+
+    afterEach(() => {
+        vi.restoreAllMocks();
+    });
+
+    it('meldet ohne andere Rechnung den Abschluss und nennt die entfallene Leistung', async () => {
+        const fetchMock = mockFetchMitVerlauf({}, verlaufAntwort());
+        global.fetch = fetchMock as unknown as typeof fetch;
+        const { container } = renderEditor();
+        await waitFor(() => expect(screen.getByDisplayValue('Rüstkosten')).toBeInTheDocument(), { timeout: 3000 });
+        await waitFor(() => expect(fetchMock.mock.calls.some(c => c[0] === `/api/ausgangs-dokumente/${ANGEBOT_ID}/abrechnungsverlauf`)).toBe(true));
+
+        fireEvent.click(muelleimer(container, 's3'));
+
+        await waitFor(() => {
+            const letzter = vorschauVerlaeufe(fetchMock).at(-1);
+            expect(letzter?.differenzHinweis).toBe('Rüstkosten');
+            expect(letzter?.schliesstAuftragAb).toBe(true);
+            expect(letzter?.positionen).toEqual([]);
+        }, { timeout: 5000 });
+    });
+
+    it('meldet keinen Abschluss, wenn am Angebot schon eine andere Rechnung haengt', async () => {
+        const fetchMock = mockFetchMitVerlauf({}, verlaufAntwort([
+            { id: 2, dokumentNummer: 'RE-2026/08/00002', typ: 'TEILRECHNUNG', datum: HEUTE_ISO, betragNetto: 2000, storniert: false },
+        ]));
+        global.fetch = fetchMock as unknown as typeof fetch;
+        renderEditor();
+
+        await waitFor(() => {
+            const letzter = vorschauVerlaeufe(fetchMock).at(-1);
+            expect(letzter?.schliesstAuftragAb).toBe(false);
+            expect(letzter?.differenzHinweis).toBeNull();
+        }, { timeout: 5000 });
+    });
+
+    it('laesst eine gebuchte Bestandsrechnung ohne gespeichertes Kennzeichen wie bisher', async () => {
+        const fetchMock = mockFetchMitVerlauf({
+            gebucht: true,
+            positionenJson: JSON.stringify({ blocks: BLOECKE.slice(0, 2), globalRabatt: 0 }),
+        }, verlaufAntwort());
+        global.fetch = fetchMock as unknown as typeof fetch;
+        renderEditor();
+
+        await waitFor(() => {
+            const letzter = vorschauVerlaeufe(fetchMock).at(-1);
+            expect(letzter?.schliesstAuftragAb).toBe(false);
+            expect(letzter?.differenzHinweis).toBeNull();
+        }, { timeout: 5000 });
+    });
+
+    it('druckt eine gebuchte Rechnung mit gespeichertem Kennzeichen weiter als abschliessend', async () => {
+        const fetchMock = mockFetchMitVerlauf({
+            gebucht: true,
+            positionenJson: JSON.stringify({ blocks: BLOECKE.slice(0, 2), globalRabatt: 0, schliesstAuftragAb: true }),
+        }, verlaufAntwort());
+        global.fetch = fetchMock as unknown as typeof fetch;
+        renderEditor();
+
+        await waitFor(() => {
+            const letzter = vorschauVerlaeufe(fetchMock).at(-1);
+            expect(letzter?.schliesstAuftragAb).toBe(true);
+        }, { timeout: 5000 });
+    });
+
+    it('schickt bei gebuchter abschliessender Rechnung keine spaeter angelegten Rechnungen als Vorrechnungen', async () => {
+        const fetchMock = mockFetchMitVerlauf({
+            gebucht: true,
+            positionenJson: JSON.stringify({ blocks: BLOECKE.slice(0, 2), globalRabatt: 0, schliesstAuftragAb: true }),
+        }, verlaufAntwort([
+            { id: 2, dokumentNummer: 'RE-2026/09/00002', typ: 'RECHNUNG', datum: HEUTE_ISO, betragNetto: 500, storniert: false },
+        ]));
+        global.fetch = fetchMock as unknown as typeof fetch;
+        renderEditor();
+
+        await waitFor(() => {
+            const letzter = vorschauVerlaeufe(fetchMock).at(-1);
+            expect(letzter?.schliesstAuftragAb).toBe(true);
+            expect(letzter?.positionen).toEqual([]);
+        }, { timeout: 5000 });
+    });
+
+    it('schreibt das Kennzeichen beim Speichern ins positionenJson', async () => {
+        const fetchMock = mockFetchMitVerlauf({}, verlaufAntwort());
+        global.fetch = fetchMock as unknown as typeof fetch;
+        const user = userEvent.setup();
+        const { container } = renderEditor();
+        await waitFor(() => expect(screen.getByDisplayValue('Rüstkosten')).toBeInTheDocument(), { timeout: 3000 });
+        await waitFor(() => expect(fetchMock.mock.calls.some(c => c[0] === `/api/ausgangs-dokumente/${ANGEBOT_ID}/abrechnungsverlauf`)).toBe(true));
+
+        fireEvent.click(muelleimer(container, 's3'));
+        await user.click(screen.getByRole('button', { name: /Speichern/i }));
+
+        await waitFor(() => expect(speicherAufrufe(fetchMock as unknown as ReturnType<typeof mockFetch>).length).toBeGreaterThan(0));
+        const gespeichert = JSON.parse(speicherAufrufe(fetchMock as unknown as ReturnType<typeof mockFetch>).at(-1)!.positionenJson as string);
+        expect(gespeichert.schliesstAuftragAb).toBe(true);
+    });
+
+    it('schreibt kein Kennzeichen, wenn am Angebot schon eine andere Rechnung haengt', async () => {
+        const fetchMock = mockFetchMitVerlauf({}, verlaufAntwort([
+            { id: 2, dokumentNummer: 'RE-2026/08/00002', typ: 'TEILRECHNUNG', datum: HEUTE_ISO, betragNetto: 2000, storniert: false },
+        ]));
+        global.fetch = fetchMock as unknown as typeof fetch;
+        const user = userEvent.setup();
+        const { container } = renderEditor();
+        await waitFor(() => expect(screen.getByDisplayValue('Rüstkosten')).toBeInTheDocument(), { timeout: 3000 });
+        await waitFor(() => expect(fetchMock.mock.calls.some(c => c[0] === `/api/ausgangs-dokumente/${ANGEBOT_ID}/abrechnungsverlauf`)).toBe(true));
+
+        fireEvent.click(muelleimer(container, 's3'));
+        await user.click(screen.getByRole('button', { name: /Speichern/i }));
+
+        await waitFor(() => expect(speicherAufrufe(fetchMock as unknown as ReturnType<typeof mockFetch>).length).toBeGreaterThan(0));
+        const gespeichert = JSON.parse(speicherAufrufe(fetchMock as unknown as ReturnType<typeof mockFetch>).at(-1)!.positionenJson as string);
+        expect(gespeichert).not.toHaveProperty('schliesstAuftragAb');
+    });
+});
+
+describe('DocumentEditor – Timer nach dem Schließen', () => {
+    // Regression (CI-Lauf zu PR #317): Nach erfolgreichem Speichern zeigt der
+    // Knopf 2 s lang „Gespeichert". Der Timer dafür wurde beim Schließen des
+    // Editors nicht abgeräumt und feuerte nach Testende, als jsdom schon
+    // abgebaut war („window is not defined") – der ganze Testlauf brach ab.
+    let fetchMock: ReturnType<typeof mockFetch>;
+
+    beforeEach(() => {
+        fetchMock = mockFetch();
+        global.fetch = fetchMock as unknown as typeof fetch;
+        global.URL.createObjectURL = vi.fn(() => `blob:vorschau-${Math.random()}`);
+        global.URL.revokeObjectURL = vi.fn();
+    });
+
+    afterEach(() => {
+        vi.useRealTimers();
+        vi.restoreAllMocks();
+    });
+
+    it('lässt nach dem Schließen keinen „Gespeichert"-Timer zurück', async () => {
+        vi.useFakeTimers();
+        const { unmount } = renderEditor();
+        await warteMitFakeTimern(() => expect(zahlungszielFeld()).toHaveValue('14'));
+
+        zahlungszielEingeben('5');
+        // Auto-Save prueft alle 10 s.
+        await act(async () => { await vi.advanceTimersByTimeAsync(10_000); });
+        await warteMitFakeTimern(() => expect(screen.getByRole('button', { name: /Gespeichert/ })).toBeInTheDocument());
+
+        // Schließen, bevor die 2 s um sind.
+        unmount();
+
+        expect(vi.getTimerCount()).toBe(0);
+        // Auch ein Vorspulen darf nichts mehr auslösen.
+        expect(() => vi.advanceTimersByTime(2_000)).not.toThrow();
     });
 });

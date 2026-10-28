@@ -539,12 +539,17 @@ class DateiSpeicherServiceTest {
         MockMultipartFile file = new MockMultipartFile(
                 "datei", "mappe.xlsx", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
                 "data".getBytes());
+        // Server unter Linux (Docker): \\server\share ist dort kein Netzwerkpfad
+        service.istWindows = false;
+        Path falscherOrdner = Path.of(networkUrl).toAbsolutePath().normalize();
 
         service.speichereDatei(file, 1L, DokumentGruppe.DIVERSE_DOKUMENTE);
 
         assertNotNull(saved[0]);
         assertTrue(Files.exists(hicadRoot.resolve(saved[0].getGespeicherterDateiname())));
         assertFalse(Files.exists(docRoot.resolve(saved[0].getGespeicherterDateiname())));
+        // Keine zweite Kopie in einem Ordner, der wie die Freigabe heisst
+        assertFalse(Files.exists(falscherOrdner.resolve(saved[0].getGespeicherterDateiname())));
     }
 
     @Test
@@ -907,6 +912,54 @@ class DateiSpeicherServiceTest {
         setup.service.setzeGeschaeftsdokumentBezahlt(101L, false);
 
         verify(setup.preisAutomatik).setzeOffenenPostenBezahlt(rechnung, false);
+    }
+
+    @Test
+    void stornierteRechnungLaesstSichNichtWiederOeffnen() throws IOException {
+        ServiceSetup setup = createMahnungService();
+
+        ProjektGeschaeftsdokument rechnung = new ProjektGeschaeftsdokument();
+        rechnung.setId(102L);
+        rechnung.setDokumentid("RE-2026-0042");
+        rechnung.setBezahlt(true);
+
+        when(setup.dokumentRepository.findById(102L)).thenReturn(Optional.of(rechnung));
+        when(setup.dokumentRepository.istStorniert("RE-2026-0042")).thenReturn(true);
+
+        ResponseStatusException fehler = assertThrows(ResponseStatusException.class,
+                () -> setup.service.setzeGeschaeftsdokumentBezahlt(102L, false));
+        assertEquals(HttpStatus.BAD_REQUEST, fehler.getStatusCode());
+        assertEquals("Diese Rechnung wurde storniert und bleibt deshalb erledigt.", fehler.getReason());
+        verify(setup.preisAutomatik, never()).setzeOffenenPostenBezahlt(any(), anyBoolean());
+    }
+
+    @Test
+    void stornierteRechnungDarfWeiterAlsBezahltMarkiertWerden() throws IOException {
+        ServiceSetup setup = createMahnungService();
+
+        ProjektGeschaeftsdokument rechnung = new ProjektGeschaeftsdokument();
+        rechnung.setId(103L);
+        rechnung.setDokumentid("RE-2026-0043");
+
+        when(setup.dokumentRepository.findById(103L)).thenReturn(Optional.of(rechnung));
+
+        setup.service.setzeGeschaeftsdokumentBezahlt(103L, true);
+
+        verify(setup.preisAutomatik).setzeOffenenPostenBezahlt(rechnung, true);
+        verify(setup.dokumentRepository, never()).istStorniert(any());
+    }
+
+    @Test
+    void bezahlteRechnungenDerLetztenZwoelfMonate() throws IOException {
+        ServiceSetup setup = createMahnungService();
+        ProjektGeschaeftsdokument rechnung = new ProjektGeschaeftsdokument();
+        when(setup.dokumentRepository.findBezahlteRechnungenSeit(any())).thenReturn(List.of(rechnung));
+
+        assertEquals(List.of(rechnung), setup.service.holeBezahlteRechnungen());
+
+        org.mockito.ArgumentCaptor<java.time.LocalDate> seit = org.mockito.ArgumentCaptor.forClass(java.time.LocalDate.class);
+        verify(setup.dokumentRepository).findBezahlteRechnungenSeit(seit.capture());
+        assertEquals(java.time.LocalDate.now().minusMonths(12), seit.getValue());
     }
 
     @Test

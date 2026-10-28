@@ -5,6 +5,66 @@ Dieses Paket ermöglicht die einfache Installation des OpenFile Launchers auf Cl
 CAD-Zeichnung oder Excel-Datei, öffnet er sie direkt aus der Netzwerkfreigabe im passenden
 Programm (z. B. TENADO, HiCAD, Excel) statt eine Kopie herunterzuladen.
 
+## ⭐ Einfachster Weg: Einrichtung aus dem ERP (Windows und Mac)
+
+Im ERP unter **Einstellungen → Dateien → „Dateien direkt am PC öffnen“** gibt es die fertige
+Einrichtung:
+
+- **Windows:** `ERP-Dateien-oeffnen-Windows.bat` herunterladen und doppelt anklicken. Richtet den
+  Launcher für den angemeldeten Benutzer ein (`%LOCALAPPDATA%\OpenFileLauncher`, `openfile://`
+  unter `HKCU`), ohne Administrator-Rechte. Hat Vorrang vor einer alten Installation für alle.
+- **Mac:** „Befehl für Mac erstellen“ liefert einen Terminal-Befehl
+  (`/bin/bash -c "$(curl -fSsL '<ERP>/openfile-launcher/mac/<Einmal-Link>')"`). Der Einmal-Link
+  gilt 10 Minuten und lässt sich nur einmal abholen (ohne Anmeldung, `EinmalLinks`); den Befehl
+  gibt es nur über https, weil das Skript ungesehen im Terminal läuft. Ist der Link abgelaufen
+  oder verbraucht, meldet `curl` „error: 404“ und es läuft nichts. Grund für den Befehl: Eine
+  heruntergeladene `.command`-Datei ohne Apple-Unterschrift
+  sperrt macOS (Gatekeeper); was `curl` lädt, bekommt keine Quarantäne-Markierung. Das Skript
+  (`src/main/resources/openfile-launcher/einrichten-mac.command`) legt
+  `~/Applications/ERP-Dateien-oeffnen.app` an, die `openfile://` annimmt, den Ordner per smb
+  verbindet und die Datei mit dem Standardprogramm öffnet.
+
+Die erlaubten Ordner, die ERP-Adresse und der Prüfschlüssel stecken schon in der Einrichtung – eine
+`config.json` von Hand braucht es nicht. Danach **aktualisiert sich der Launcher selbst**: Nach
+jedem Öffnen fragt er `GET /openfile-launcher/aktuell`, aber nur über **https** und er
+installiert nur Fassungen, die das ERP mit seinem eigenen Schlüssel unterschrieben hat
+(RSA-3072/SHA-256, privater Teil in `system_setting`). Die kanonischen Skripte liegen unter
+`src/main/resources/openfile-launcher/`; `launcher.ps1` in diesem Ordner ist eine Kopie
+(ein Test hält beide gleich).
+
+**Empfohlen: Ordner-Freigabe aus dem Docker-Paket.** Der Dienst `dateifreigabe` gibt den Ordner
+über Tailscale frei – ohne Windows-Freigabe, im Büro und unterwegs unter demselben Namen
+(`\\erp-dateien.<tailnet>.ts.net\CADdrawings`). Einrichtung:
+[docker-server/README.md, Ordner-Freigabe ohne Windows](../docker-server/README.md#ordner-freigabe-ohne-windows).
+Zeigt die Netzwerk-Adresse auf diese Freigabe, legt die Einrichtung den Zugang gleich mit ab:
+unter Windows per `cmdkey` in den Anmeldeinformationen, am Mac im Schlüsselbund. Der Mac-Launcher
+verbindet dann selbst (`mount volume` über `osascript`, Passwort nur über stdin), ohne
+Anmeldedialog. Im Update steht der Zugang nie. Die Windows-Einrichtungsdatei löscht sich nach
+dem Lauf selbst, weil sie das Passwort enthalten kann (für jeden PC neu herunterladen). Was dabei
+bewusst in Kauf genommen ist, steht im docker-server/README.md unter „Gut zu wissen“. Für eine Adresse im Tailscale-Netz (`*.ts.net`)
+gibt es keinen Ausweich-Namen.
+
+**Neue Adresse:** Stellt der Admin die Netzwerk-Adresse um, kennt der Launcher sie erst nach
+dem nächsten Update. Liegt eine Datei außerhalb der bekannten Ordner, holt er das Update
+deshalb sofort und prüft dann noch einmal – der erste Klick klappt also schon.
+
+**Unterwegs mit Windows-Freigabe (Tailscale):** Kennt der PC den Büro-Rechnernamen nicht,
+weicht der Launcher auf den Rechnernamen des ERP aus (z. B. `\\erp-rechner.tailnet.ts.net\Freigabe`).
+Dafür auf dem Rechner mit dem Ordner einmal `Freigabe-Tailscale.ps1` als Administrator
+ausführen (Firewall-Regel: Port 445 nur aus dem Tailscale-Netz).
+
+**Gut zu wissen:**
+- Der Launcher öffnet nur Tabellen und Zeichnungen (`.xlsx`, `.xls`, `.xlsm`, `.xlsb`, `.xlt*`,
+  `.csv`, `.ods`, `.sza`, `.tcd`) – nie Programme oder Skripte aus der Freigabe.
+- Ein Update darf die ERP-Adresse nicht ändern und nicht auf eine ältere Fassung zurückgehen
+  (fortlaufender, unterschriebener `stand`).
+- Geht der Schlüssel verloren (z. B. Datenbank neu aufgesetzt), lehnen die PCs Updates ab
+  (Eintrag im `launcher.log`). Dann die Einrichtung auf jedem PC einmal neu herunterladen.
+  Dasselbe hilft, wenn die Uhr des ERP-Rechners einmal zurückgestellt wurde (z. B. Umzug auf
+  einen neuen PC): Der `stand` kommt aus der Server-Uhr, ältere Stände nimmt kein PC an.
+- Liegt die Freigabe nicht auf dem ERP-Rechner, sondern z. B. auf einem NAS, hilft der
+  Ausweich-Name unterwegs nicht – dann den NAS über Tailscale freigeben oder im Büro öffnen.
+
 ## 📦 Inhalt
 
 | Datei | Zweck |
@@ -13,6 +73,7 @@ Programm (z. B. TENADO, HiCAD, Excel) statt eine Kopie herunterzuladen.
 | `INSTALL.bat` | Startet `install-openfile-launcher.ps1` per Doppelklick (als Administrator) |
 | `install-openfile-launcher.ps1` | Installations-Skript: kopiert `launcher.ps1` nach `C:\Program Files\OpenFileLauncher` und registriert `openfile://` |
 | `uninstall-openfile-launcher.ps1` | Deinstallations-Skript |
+| `Freigabe-Tailscale.ps1` | Für den Rechner mit dem Ordner: Freigabe auch aus dem Tailscale-Netz erlauben (unterwegs) |
 | `Setup-Freigabe.ps1` | Für den ERP-Rechner: Netzwerkfreigabe und erlaubte Pfade einrichten (siehe unten) |
 | `OpenFileLauncher-Setup.ps1`, `OpenFileLauncher-Install.bat` | Setup-Paket, das das ERP zum Herunterladen anbietet (siehe unten) |
 | `SETUP-ERSTELLEN.md` und die `BUILD-*`-/`*.iss`-/`*.sed`-Dateien | Eine einzelne Setup-Datei bauen, siehe [SETUP-ERSTELLEN.md](SETUP-ERSTELLEN.md) |

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AlertCircle, Inbox, MailCheck, RefreshCw } from 'lucide-react';
 import { Button } from '../../../ui/button';
 import { useToast } from '../../../ui/toast';
@@ -33,14 +33,20 @@ function ohne<T>(eintraege: Record<number, T>, id: number): Record<number, T> {
 const reiterLink = 'font-medium text-rose-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded';
 
 /**
- * Einstellungen → Berechtigungen: Wer sieht welches E-Mail-Postfach?
+ * Einstellungen → Abteilungen & Rechte: Wer sieht welches E-Mail-Postfach?
  *
- * <p>Pro Postfach eine Zeile mit „Alle im Betrieb“ / „Nur bestimmte“ und
+ * <p>Pro Postfach eine Zeile mit „Alle im Betrieb" / „Nur bestimmte" und
  * eigenem Speichern-Knopf (`PUT /api/postfaecher/{id}/sichtbarkeit`). Die
  * Häkchen-Listen für Abteilungen und Benutzer werden nur einmal geladen –
- * und erst, wenn ein Postfach auf „Nur bestimmte“ steht.</p>
+ * und erst, wenn ein Postfach auf „Nur bestimmte" steht.</p>
+ *
+ * <p>`abteilungenStand` zählt der Reiter hoch, sobald eine Abteilung angelegt,
+ * umbenannt oder gelöscht wurde. Dann holt die Karte Postfächer und
+ * Abteilungsliste ohne Ladeanzeige neu – sonst fehlte eine neue Abteilung,
+ * stünde ein alter Name da oder ginge eine gelöschte Abteilung beim Speichern
+ * mit. Noch nicht gespeicherte Auswahlen werden dabei verworfen.</p>
  */
-export function PostfachSichtbarkeitKarte() {
+export function PostfachSichtbarkeitKarte({ abteilungenStand = 0 }: { abteilungenStand?: number } = {}) {
     const toast = useToast();
     const [postfaecher, setPostfaecher] = useState<PostfachDto[]>([]);
     const [laedt, setLaedt] = useState(true);
@@ -49,22 +55,20 @@ export function PostfachSichtbarkeitKarte() {
     const [speichertId, setSpeichertId] = useState<number | null>(null);
     const [zeilenFehler, setZeilenFehler] = useState<Record<number, string>>({});
 
-    const laden = useCallback(async () => {
-        try {
-            const res = await fetch('/api/postfaecher');
+    const laden = useCallback(() => fetch('/api/postfaecher')
+        .then(async (res) => {
             if (!res.ok) throw new Error(await parseErrorMessage(res, LADEFEHLER));
             setPostfaecher(parsePostfaecher(await res.json()));
             setEntwuerfe({});
             setZeilenFehler({});
             setLadeFehler(null);
-        } catch (err) {
+        })
+        .catch((err: unknown) => {
             const text = err instanceof Error && err.message ? err.message : LADEFEHLER;
             setLadeFehler(text);
             toast.error(text);
-        } finally {
-            setLaedt(false);
-        }
-    }, [toast]);
+        })
+        .finally(() => setLaedt(false)), [toast]);
 
     useEffect(() => { void laden(); }, [laden]);
 
@@ -75,6 +79,16 @@ export function PostfachSichtbarkeitKarte() {
         parseSichtbarkeitsAbteilungen, 'Abteilungen konnten nicht geladen werden.');
     const benutzer = useNachladeListe('/api/frontend-users', brauchtListen,
         parseSichtbarkeitsBenutzer, 'Benutzer konnten nicht geladen werden.');
+
+    // Nach Änderungen an den Abteilungen (nicht beim ersten Anzeigen) leise neu laden.
+    const bekannterStand = useRef(abteilungenStand);
+    const abteilungenNeuLaden = abteilungen.neuLaden;
+    useEffect(() => {
+        if (bekannterStand.current === abteilungenStand) return;
+        bekannterStand.current = abteilungenStand;
+        abteilungenNeuLaden();
+        void laden();
+    }, [abteilungenStand, abteilungenNeuLaden, laden]);
 
     const aendere = (postfach: PostfachDto, wert: SichtbarkeitsAuswahl) => {
         setEntwuerfe(vorher => ({ ...vorher, [postfach.id]: wert }));
@@ -120,7 +134,7 @@ export function PostfachSichtbarkeitKarte() {
             title="E-Mail-Postfächer – wer sieht welches Postfach?"
             description={
                 <p>
-                    Hier legst du fest, wer im E-Mail-Center die Mails eines Postfachs sieht. Das Hauptpostfach
+                    Hier legen Sie fest, wer im E-Mail-Center die Mails eines Postfachs sieht. Das Hauptpostfach
                     sieht jeder. Der Inhaber eines Postfachs und Admins sehen es immer. Mails, die einem Projekt,
                     einer Anfrage oder einem Lieferanten zugeordnet sind, sieht jeder in diesen Reitern.
                 </p>
@@ -144,9 +158,9 @@ export function PostfachSichtbarkeitKarte() {
                     <Inbox className="h-8 w-8 text-slate-400" aria-hidden="true" />
                     <p className="font-medium text-slate-700">Noch kein Postfach eingerichtet.</p>
                     <p className="max-w-md text-sm text-slate-500">
-                        Postfächer legst du unter{' '}
+                        Postfächer legen Sie unter{' '}
                         <a href="#email" className={reiterLink}>Einstellungen → E-Mail</a>{' '}
-                        an. Danach stellst du hier ein, wer sie sehen darf.
+                        an. Danach stellen Sie hier ein, wer sie sehen darf.
                     </p>
                 </div>
             ) : (

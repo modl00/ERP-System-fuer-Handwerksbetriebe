@@ -31,7 +31,7 @@ const alsText = (p: number | null) => (p == null ? '' : formatDecimalInput(p));
 
 /** Was für die Artikel einer Kategorie gilt, in einem Satz. */
 function wirkung(z: KategorieZeile): string {
-    if (z.wirksamQuelle === 'KATEGORIE') return z.prozent != null ? `${alsText(z.wirksamProzent)} %` : `${alsText(z.wirksamProzent)} % (von „${z.wirksamVon}“)`;
+    if (z.wirksamQuelle === 'KATEGORIE') return z.prozent != null ? `${alsText(z.wirksamProzent)} %` : `${alsText(z.wirksamProzent)} % (von „${z.wirksamVon}")`;
     if (z.wirksamQuelle === 'ALLGEMEIN') return `${alsText(z.wirksamProzent)} % (allgemein)`;
     return 'kein Aufschlag';
 }

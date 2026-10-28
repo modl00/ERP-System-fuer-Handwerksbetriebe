@@ -115,7 +115,7 @@ function Inhalt({ typen, onSchliessen, onGeaendert }: Props) {
         <>
             <DialogHeader>
                 <DialogTitle id="arten-titel">Vorgangsarten</DialogTitle>
-                <DialogDescription>Zum Beispiel Planung, Materialbeschaffung, Fertigung, Veredelung, Montage. Der Schätzwert gilt, solange keine genauere Dauer bekannt ist. Mit „Arbeitszeit aus“ (Abteilung) holt das Programm den Aufwand in Stunden aus dem Angebot. Ein Wartevorgang (Material, Fremdleistung) braucht keine Mitarbeiter, nur Zeit in Arbeitstagen; alle anderen Vorgänge rechnet das Programm aus Aufwand, Mitarbeitern und freier Zeit. Eine Art, die schon Vorgänge hat, lässt sich ausblenden („in Gebrauch“ abhaken).</DialogDescription>
+                <DialogDescription>Zum Beispiel Planung, Materialbeschaffung, Fertigung, Veredelung, Montage. Der Schätzwert gilt, solange keine genauere Dauer bekannt ist. Mit „Arbeitszeit aus" (Abteilung) holt das Programm den Aufwand in Stunden aus dem Angebot. Ein Wartevorgang (Material, Fremdleistung) braucht keine Mitarbeiter, nur Zeit in Arbeitstagen; alle anderen Vorgänge rechnet das Programm aus Aufwand, Mitarbeitern und freier Zeit. Eine Art, die schon Vorgänge hat, lässt sich ausblenden („in Gebrauch" abhaken).</DialogDescription>
             </DialogHeader>
             <div className="min-h-0 flex-1 space-y-3 overflow-y-auto py-1">
                 {fehler && <p role="alert" className="rounded-lg bg-rose-50 p-3 text-sm text-rose-800">{fehler}</p>}

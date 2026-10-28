@@ -58,7 +58,7 @@ describe('AuftragPlanenDialog', { timeout: 30000 }, () => {
         expect(screen.getByText(/Der Aufwand je Abteilung kommt aus der Kalkulation/)).toBeInTheDocument();
     });
 
-    it('ohne erkannte Fremdleistung steht „Keine Fremdleistung erkannt“', async () => {
+    it('ohne erkannte Fremdleistung steht „Keine Fremdleistung erkannt"', async () => {
         aufnahme = aufnahmeDaten({ fremdleistungen: [], hatArbeitszeit: false });
         zeige();
 
@@ -66,7 +66,7 @@ describe('AuftragPlanenDialog', { timeout: 30000 }, () => {
         expect(screen.getByText(/keine berechnete Arbeitszeit/)).toBeInTheDocument();
     });
 
-    it('„Übernehmen“ schickt Wichtigkeit, Fremdleistung, Montage und Wunschpersonen', async () => {
+    it('„Übernehmen" schickt Wichtigkeit, Fremdleistung, Montage und Wunschpersonen', async () => {
         const user = userEvent.setup();
         const geplant = vi.fn();
         zeige({ onGeplant: geplant });
@@ -96,7 +96,7 @@ describe('AuftragPlanenDialog', { timeout: 30000 }, () => {
         expect((gesendet as unknown as { fremdleistungen: unknown[] }).fremdleistungen).toEqual([]);
     });
 
-    it('„Später“ überspringt alles', async () => {
+    it('„Später" überspringt alles', async () => {
         const user = userEvent.setup();
         zeige();
         await user.click(await screen.findByRole('button', { name: 'Später' }));

@@ -61,8 +61,8 @@ describe('EingangsrechnungenTab – Genehmigen ohne Recht', () => {
     });
 
     it('nennt das Abteilungsrecht statt einer fest eingebauten Abteilung', async () => {
-        // Wer genehmigen darf, steuert das Recht „Rechnungen genehmigen“ je
-        // Abteilung (Einstellungen → Berechtigungen) – nicht der Name „Büro“.
+        // Wer genehmigen darf, steuert das Recht „Rechnungen genehmigen" je
+        // Abteilung (Einstellungen → Abteilungen & Rechte) – nicht der Name „Büro".
         const user = userEvent.setup();
         renderTab();
 
@@ -71,7 +71,7 @@ describe('EingangsrechnungenTab – Genehmigen ohne Recht', () => {
 
         const meldung = await screen.findByRole('alert');
         await waitFor(() => expect(meldung).toHaveTextContent('Rechnungen genehmigen'));
-        expect(meldung).toHaveTextContent('Berechtigungen');
+        expect(meldung).toHaveTextContent('Einstellungen → Abteilungen & Rechte');
         expect(meldung).not.toHaveTextContent(/Abteilung Büro/);
     });
 });
@@ -141,7 +141,7 @@ describe('EingangsrechnungenTab – Fehler beim Speichern und Laden', () => {
         expect(screen.getByRole('checkbox', { name: 'Offen' })).toBeEnabled();
     });
 
-    it('zeigt einen Ladefehler als Fehler und nicht als „alles bezahlt“', async () => {
+    it('zeigt einen Ladefehler als Fehler und nicht als „alles bezahlt"', async () => {
         const user = userEvent.setup();
         let listeKlappt = false;
         const fetchMock = stubFetch(
@@ -151,7 +151,7 @@ describe('EingangsrechnungenTab – Fehler beim Speichern und Laden', () => {
         renderTab();
 
         expect(await screen.findByText(
-            'Die Eingangsrechnungen konnten nicht geladen werden. Bitte auf „Aktualisieren“ klicken.'
+            'Die Eingangsrechnungen konnten nicht geladen werden. Bitte auf „Aktualisieren" klicken.'
         )).toBeInTheDocument();
         expect(screen.getByText('Die Eingangsrechnungen konnten nicht geladen werden.')).toBeInTheDocument();
         expect(screen.queryByText('Keine offenen Eingangsrechnungen')).not.toBeInTheDocument();

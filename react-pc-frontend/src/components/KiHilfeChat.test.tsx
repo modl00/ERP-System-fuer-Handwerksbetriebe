@@ -75,7 +75,7 @@ async function erwarteFehler(meldung: string) {
 
 describe('KiHilfeChat', () => {
     beforeEach(() => {
-        // Der Chat merkt sich „offen“ je Benutzer im localStorage.
+        // Der Chat merkt sich „offen" je Benutzer im localStorage.
         localStorage.setItem('frontendUserSelection', JSON.stringify({ id: 1 }));
         localStorage.setItem('ki-hilfe-open-1', 'true');
         Element.prototype.scrollIntoView = vi.fn();
@@ -92,7 +92,7 @@ describe('KiHilfeChat', () => {
 
         frage('Wie storniere ich eine Rechnung?');
 
-        // Vor dem ersten Schritt: „Denkt nach …“ in der Live-Liste.
+        // Vor dem ersten Schritt: „Denkt nach …" in der Live-Liste.
         expect(within(liveListe()!).getByText('Denkt nach …')).toBeInTheDocument();
         expect(liveListe()).toHaveAttribute('aria-live', 'polite');
         // Nichts doppelt ansagen: die Schritte liegen nicht in der Log-Region der Unterhaltung.
@@ -259,7 +259,7 @@ describe('KiHilfeChat', () => {
         expect(JSON.parse(localStorage.getItem('ki-hilfe-messages-1')!)).toEqual([]);
     });
 
-    it('„Abbrechen“ nimmt die offene Frage zurück ins Eingabefeld, ohne Fehler und ohne Toast', async () => {
+    it('„Abbrechen" nimmt die offene Frage zurück ins Eingabefeld, ohne Fehler und ohne Toast', async () => {
         localStorage.setItem('ki-hilfe-messages-1', JSON.stringify([
             { role: 'user', text: 'Wo finde ich die Zeiterfassung?' },
             { role: 'assistant', text: 'Oben im Menü unter Zeiterfassung.' },
@@ -329,7 +329,7 @@ describe('KiHilfeChat', () => {
             + 'sucht, siehst du, wo sie gerade nachschaut. Sie liest und erklärt nur und ändert nichts im Programm. '
             + 'Antworten können trotzdem einmal falsch sein, bei wichtigen Dingen lieber kurz nachprüfen.',
         );
-        // Die Überschrift bleibt „KI-Hilfe“ – der Info-Knopf steht daneben, nicht darin.
+        // Die Überschrift bleibt „KI-Hilfe" – der Info-Knopf steht daneben, nicht darin.
         expect(screen.getByRole('heading', { name: 'KI-Hilfe' })).toBeInTheDocument();
         // Das Chatfenster schwebt über der Seite, ohne sie zu sperren.
         expect(screen.getByRole('dialog', { name: 'KI-Hilfe' })).toHaveAttribute('aria-modal', 'false');

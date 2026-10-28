@@ -21,7 +21,7 @@ export const DATEV_KATEGORIEN = [
     ['WIEDEREINGLIEDERUNG', 'Wiedereingliederung'],
 ] as const;
 
-/** Lesbarer Name einer Kategorie, z. B. „Feiertage“ für `FEIERTAG`. */
+/** Lesbarer Name einer Kategorie, z. B. „Feiertage" für `FEIERTAG`. */
 export function kategorieName(kategorie: string): string | undefined {
     return DATEV_KATEGORIEN.find(([schluessel]) => schluessel === kategorie)?.[1];
 }
@@ -69,7 +69,7 @@ export function normalisiereKonfiguration(c: Konfiguration): Konfiguration {
 
 /**
  * Trägt eine Personalnummer ein. Wird sie geleert, fällt die Stunden-Auswahl
- * des Mitarbeiters auf „wie Betrieb“ zurück – ohne Personalnummer speichert
+ * des Mitarbeiters auf „wie Betrieb" zurück – ohne Personalnummer speichert
  * der Server keine eigene Stundenart.
  */
 export function mitPersonalnummer(c: Konfiguration, mitarbeiterId: number, personalnummer: string): Konfiguration {

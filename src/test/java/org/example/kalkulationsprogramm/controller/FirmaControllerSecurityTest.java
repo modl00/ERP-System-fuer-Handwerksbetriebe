@@ -22,14 +22,14 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.security.test.web.servlet.request.SecurityMockMvcRequestPostProcessors;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -64,19 +64,22 @@ class FirmaControllerSecurityTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private FirmeninformationService firmeninformationService;
 
-    @MockBean
+    @MockitoBean
     private KostenstelleService kostenstelleService;
 
-    @MockBean
+    @MockitoBean
     private SteuerberaterKontaktService steuerberaterKontaktService;
 
-    @MockBean
+    @MockitoBean
+    private org.example.kalkulationsprogramm.service.FeiertageVorschauService feiertageVorschauService;
+
+    @MockitoBean
     private EmailAbsenderService emailAbsenderService;
 
-    @MockBean
+    @MockitoBean
     private FrontendUserDetailsService frontendUserDetailsService;
 
     @Test
@@ -189,5 +192,51 @@ class FirmaControllerSecurityTest {
 
     private static RequestPostProcessor csrf() {
         return SecurityMockMvcRequestPostProcessors.csrf();
+    }
+
+    // ==================== Feiertage-Vorschau (Issue #222) ====================
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Admin bekommt den Bundesland-Vorschlag aus der Postleitzahl")
+    void adminBekommtFeiertageVorschau() throws Exception {
+        BDDMockito.given(feiertageVorschauService.vorschau("97259", null, 2026)).willReturn(
+                new org.example.kalkulationsprogramm.dto.Feiertag.FeiertageVorschauDto("BY", "BY", "Bayern", 2026,
+                        List.of(), List.of("Hinweis")));
+
+        mockMvc.perform(get("/api/firma/feiertage-vorschau").param("plz", "97259").param("jahr", "2026"))
+                .andExpect(status().isOk())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.vorgeschlagenesBundesland").value("BY"))
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.bundeslandName").value("Bayern"));
+    }
+
+    @Test
+    @WithMockUser(roles = "USER")
+    @DisplayName("Normaler Benutzer bekommt keine Feiertage-Vorschau (nur Firmendaten-Pflege)")
+    void normalerBenutzerBekommtKeineFeiertageVorschau() throws Exception {
+        mockMvc.perform(get("/api/firma/feiertage-vorschau").param("plz", "97259"))
+                .andExpect(status().isForbidden());
+        verifyNoInteractions(feiertageVorschauService);
+    }
+
+    @Test
+    @WithMockUser(roles = "ADMIN")
+    @DisplayName("Ungültige Eingaben in der Vorschau werden als 400 mit Meldung beantwortet")
+    void feiertageVorschauUngueltigGibt400() throws Exception {
+        BDDMockito.given(feiertageVorschauService.vorschau(null, "'; DROP TABLE x; --", null)).willThrow(
+                new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                        "Bitte ein gültiges Bundesland wählen."));
+
+        mockMvc.perform(get("/api/firma/feiertage-vorschau").param("bundesland", "'; DROP TABLE x; --"))
+                .andExpect(status().isBadRequest())
+                .andExpect(org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath("$.message")
+                        .value("Bitte ein gültiges Bundesland wählen."));
+    }
+
+    @Test
+    @DisplayName("Ohne Anmeldung keine Feiertage-Vorschau")
+    void anonymBekommtKeineFeiertageVorschau() throws Exception {
+        mockMvc.perform(get("/api/firma/feiertage-vorschau"))
+                .andExpect(status().isUnauthorized());
     }
 }

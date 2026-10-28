@@ -1,10 +1,20 @@
-import { render, screen, fireEvent, waitFor, within } from '@testing-library/react';
+import { act, render, screen, fireEvent, waitFor, within } from '@testing-library/react';
 import { beforeEach, expect, it, vi } from 'vitest';
 import { BerechtigungenSection } from './BerechtigungenSection';
 const { toast } = vi.hoisted(() => ({ toast: { error: vi.fn(), success: vi.fn() } }));
 vi.mock('../../ui/toast', () => ({ useToast: () => toast }));
 // Die Postfach-Karte lädt eigenständig und hat eigene Tests (berechtigungen/PostfachSichtbarkeitKarte.test.tsx).
-vi.mock('./berechtigungen/PostfachSichtbarkeitKarte', () => ({ PostfachSichtbarkeitKarte: () => <div data-testid="postfach-karte" /> }));
+vi.mock('./berechtigungen/PostfachSichtbarkeitKarte', () => ({
+    PostfachSichtbarkeitKarte: ({ abteilungenStand }: { abteilungenStand?: number }) => <div data-testid="postfach-karte" data-stand={abteilungenStand} />,
+}));
+// Ebenso die Karte „Abteilungen" (berechtigungen/AbteilungenVerwaltenKarte.test.tsx) – hier zählt nur, dass sie oben steht und nach Änderungen nachlädt.
+const { abteilungGeaendert } = vi.hoisted(() => ({ abteilungGeaendert: { aufruf: () => {} } }));
+vi.mock('./berechtigungen/AbteilungenVerwaltenKarte', () => ({
+    AbteilungenVerwaltenKarte: ({ onGeaendert }: { onGeaendert: () => void }) => {
+        abteilungGeaendert.aufruf = onGeaendert;
+        return <div data-testid="abteilungen-karte" />;
+    },
+}));
 const fetchMock = vi.fn();
 beforeEach(() => { vi.clearAllMocks(); vi.stubGlobal('fetch', fetchMock); });
 const abteilung = { abteilungId: 1, abteilungName: 'Testabteilung', berechtigungen: [], darfMonatAbschliessen: false };
@@ -104,7 +114,66 @@ it('erklärt "Zeiterfassung im Menü sehen" im Info-Popover, ohne den Haken zu v
     expect(within(info).getByText(/Administratoren und die Geschäftsführung sehen ihn immer\. Gehört ein Mitarbeiter zu mehreren Abteilungen, reicht ein Haken/)).toBeInTheDocument();
     expect(within(info).getByText(/Lange Krankheit und den übrigen Seiten/)).toBeInTheDocument();
     expect(within(info).getByText(/Urlaubsanträge anderer Mitarbeiter an diesen Zugang auch nicht mehr heraus/)).toBeInTheDocument();
-    expect(within(info).getByText(/kranke Kollegen nur als „Abwesend“/)).toBeInTheDocument();
+    expect(within(info).getByText(/kranke Kollegen nur als „Abwesend"/)).toBeInTheDocument();
     expect(within(info).getByText(/Das Stempeln und Urlaub-Beantragen in der Handy-App bleibt davon unberührt\. Ein PC-Zugang ohne verknüpften Mitarbeiter sieht den Bereich nur als Administrator/)).toBeInTheDocument();
     expect(haken).toBeChecked();
+});
+it('lädt das Recht "Aufschläge ändern", erklärt es im Info-Popover und speichert es mit', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => [{ ...abteilung, darfAufschlaegeAendern: undefined }] });
+    render(<BerechtigungenSection />);
+    const checkbox = await screen.findByRole('checkbox', { name: /Aufschläge ändern/ });
+    expect(checkbox).not.toBeChecked();
+    expect(screen.getByText(/den allgemeinen Aufschlag und den Aufschlag je Kategorie einstellen/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: /Mehr zu: Aufschläge ändern/ }));
+    expect(await screen.findByText(/Der Aufschlag direkt am Artikel kann weiterhin jeder Benutzer/)).toBeVisible();
+    expect(checkbox).not.toBeChecked();
+
+    fireEvent.click(checkbox);
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls.find(c => c[1]?.method === 'PUT')![1].body)).toMatchObject({ darfAufschlaegeAendern: true, darfMonatAbschliessen: false });
+});
+it('ein schon gesetztes Recht "Aufschläge ändern" bleibt beim Speichern erhalten', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => [{ ...abteilung, darfAufschlaegeAendern: true }] });
+    render(<BerechtigungenSection />);
+    expect(await screen.findByRole('checkbox', { name: /Aufschläge ändern/ })).toBeChecked();
+    fireEvent.click(screen.getByRole('button', { name: 'Speichern' }));
+    await waitFor(() => expect(toast.success).toHaveBeenCalled());
+    expect(JSON.parse(fetchMock.mock.calls.find(c => c[1]?.method === 'PUT')![1].body)).toMatchObject({ darfAufschlaegeAendern: true });
+});
+it('zeigt die Karte „Abteilungen" ganz oben, vor der Postfach-Karte', async () => {
+    fetchMock.mockReturnValue(new Promise(() => {}));
+    render(<BerechtigungenSection />);
+    const abteilungen = screen.getByTestId('abteilungen-karte');
+    expect(abteilungen.compareDocumentPosition(screen.getByTestId('postfach-karte')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+});
+it('verweist bei leerer Liste auf die Karte „Abteilungen" statt auf die Arbeitsgänge', async () => {
+    fetchMock.mockResolvedValue({ ok: true, json: async () => [] });
+    render(<BerechtigungenSection />);
+    expect(await screen.findByText(/Noch keine Abteilungen angelegt\. Legen Sie oben in der Karte „Abteilungen" die erste an/)).toBeInTheDocument();
+    expect(screen.queryByText(/Arbeitsgänge/)).not.toBeInTheDocument();
+});
+it('lädt nach einer Änderung an den Abteilungen leise nach: neue Karte erscheint, ungespeicherte Häkchen bleiben', async () => {
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [abteilung] });
+    render(<BerechtigungenSection />);
+    const haken = await screen.findByRole('checkbox', { name: /Monate abschließen und wieder öffnen/ });
+    fireEvent.click(haken);
+    expect(haken).toBeChecked();
+
+    fetchMock.mockResolvedValueOnce({ ok: true, json: async () => [
+        { ...abteilung, abteilungName: 'Werkstatt' },
+        { ...abteilung, abteilungId: 2, abteilungName: 'Montage' },
+    ] });
+    expect(screen.getByTestId('postfach-karte')).toHaveAttribute('data-stand', '0');
+    act(() => abteilungGeaendert.aufruf());
+
+    expect(await screen.findByRole('heading', { name: 'Montage' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Werkstatt' })).toBeInTheDocument();
+    expect(screen.queryByText(/Lade Einstellungen/)).not.toBeInTheDocument();
+    const [werkstattHaken] = screen.getAllByRole('checkbox', { name: /Monate abschließen und wieder öffnen/ });
+    expect(werkstattHaken).toBeChecked();
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/abteilungen/berechtigungen');
+    // Auch die Postfach-Karte lädt nach einer Änderung an den Abteilungen neu.
+    expect(screen.getByTestId('postfach-karte')).toHaveAttribute('data-stand', '1');
 });

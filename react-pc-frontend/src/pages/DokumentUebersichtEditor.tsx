@@ -48,7 +48,7 @@ interface EingangsDokumentDto {
     bezahlt: boolean;
     originalDateiname: string | null;
     pdfUrl: string | null;
-    /** Getroffene Position bei der Suche, z. B. „Flachstahl 50x5 · S235JR · Charge 123456“. */
+    /** Getroffene Position bei der Suche, z. B. „Flachstahl 50x5 · S235JR · Charge 123456". */
     positionsTreffer?: string | null;
     /** Wie viele Positionen außerdem passen. */
     weitereTreffer?: number;

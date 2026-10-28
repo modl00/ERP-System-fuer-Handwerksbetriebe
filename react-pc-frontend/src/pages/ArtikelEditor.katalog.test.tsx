@@ -30,14 +30,14 @@ const zeige = () => render(<MemoryRouter><ToastProvider><ConfirmProvider><Artike
 const aufrufe = (teil: string) => fetcher.mock.calls.filter(([u]) => String(u).startsWith(teil));
 
 describe('Artikelübersicht: Aufschläge und Werkstoffe neben den Kategorien', { timeout: 30000 }, () => {
-    it('hat neben „Kategorien anlegen“ die Knöpfe „Aufschläge“ und „Werkstoffe“', async () => {
+    it('hat neben „Kategorien anlegen" die Knöpfe „Aufschläge" und „Werkstoffe"', async () => {
         zeige();
         expect(await screen.findByRole('button', { name: 'Kategorien anlegen' })).toBeVisible();
         expect(screen.getByRole('button', { name: 'Aufschläge' })).toBeVisible();
         expect(screen.getByRole('button', { name: 'Werkstoffe' })).toBeVisible();
     });
 
-    it('„Aufschläge“ öffnet die Pflege der Aufschläge in einem Fenster, ohne die Seite zu verlassen', async () => {
+    it('„Aufschläge" öffnet die Pflege der Aufschläge in einem Fenster, ohne die Seite zu verlassen', async () => {
         const user = userEvent.setup();
         zeige();
         expect(aufrufe('/api/aufschlaege')).toHaveLength(0);
@@ -50,7 +50,7 @@ describe('Artikelübersicht: Aufschläge und Werkstoffe neben den Kategorien', {
         expect(within(fenster).queryByRole('heading', { level: 1 })).toBeNull();
     });
 
-    it('„Werkstoffe“ öffnet die Liste der Werkstoffe mit „Neuer Werkstoff“ im Fenster', async () => {
+    it('„Werkstoffe" öffnet die Liste der Werkstoffe mit „Neuer Werkstoff" im Fenster', async () => {
         const user = userEvent.setup();
         zeige();
         await user.click(await screen.findByRole('button', { name: 'Werkstoffe' }));

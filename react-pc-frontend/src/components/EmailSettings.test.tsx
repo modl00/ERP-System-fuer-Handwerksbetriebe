@@ -236,7 +236,7 @@ describe('EmailSettings – Abwesenheitsnotiz pro Postfach', () => {
         expect(await screen.findByText('Abwesenheitsnotiz konnte nicht gelöscht werden.')).toBeInTheDocument();
     });
 
-    it('keine wählbaren Postfächer: Hinweis und „Neue Abwesenheit“ gesperrt', async () => {
+    it('keine wählbaren Postfächer: Hinweis und „Neue Abwesenheit" gesperrt', async () => {
         stubbe({ waehlbar: [] });
         await zeigeAbwesenheiten();
         expect(await screen.findByText('Für Sie ist kein Postfach eingerichtet. Bitte den Admin fragen.')).toBeInTheDocument();
@@ -245,14 +245,14 @@ describe('EmailSettings – Abwesenheitsnotiz pro Postfach', () => {
         expect(knopf.parentElement).toHaveAttribute('title', 'Für Sie ist kein Postfach eingerichtet. Bitte den Admin fragen.');
     });
 
-    it('keine Notizen und keine wählbaren Postfächer: auch „Erste Abwesenheit planen“ gesperrt', async () => {
+    it('keine Notizen und keine wählbaren Postfächer: auch „Erste Abwesenheit planen" gesperrt', async () => {
         stubbe({ waehlbar: [], notizen: [] });
         await zeigeAbwesenheiten();
         await screen.findByText('Für Sie ist kein Postfach eingerichtet. Bitte den Admin fragen.');
         expect(screen.getByRole('button', { name: /Erste Abwesenheit planen/ })).toBeDisabled();
     });
 
-    it('Postfächer laden fehlgeschlagen: Meldung und „Neue Abwesenheit“ gesperrt', async () => {
+    it('Postfächer laden fehlgeschlagen: Meldung und „Neue Abwesenheit" gesperrt', async () => {
         stubbe({ waehlbar: { status: 500, body: {} } });
         await zeigeAbwesenheiten();
         expect(await screen.findByText('Postfächer für die Abwesenheitsnotiz konnten nicht geladen werden.')).toBeInTheDocument();

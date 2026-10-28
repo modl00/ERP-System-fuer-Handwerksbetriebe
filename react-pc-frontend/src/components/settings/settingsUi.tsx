@@ -38,7 +38,7 @@ export function SettingsCard({ icon, title, description, info, children, classNa
     );
     return (
         <Card className={cn('p-6', className)}>
-            {/* Der Info-Knopf steht neben, nicht in der Überschrift – sonst hieße die Überschrift für Screenreader „… Mehr zu: …“. */}
+            {/* Der Info-Knopf steht neben, nicht in der Überschrift – sonst hieße die Überschrift für Screenreader „… Mehr zu: …". */}
             {info ? <div className="mb-2 flex items-center gap-1.5">{ueberschrift}{info}</div> : ueberschrift}
             {description && <div className="text-sm text-slate-500 mb-5 space-y-2">{description}</div>}
             {children}

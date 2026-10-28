@@ -54,7 +54,7 @@ const TABS: TabDefinition[] = [
     { id: 'planung', label: 'Planung', icon: <CalendarRange className="w-4 h-4" /> },
     { id: 'plantafel', label: 'Plantafel', icon: <CalendarDays className="w-4 h-4" /> },
     { id: 'import', label: 'Datenübernahme', icon: <DatabaseZap className="w-4 h-4" /> },
-    { id: 'berechtigungen', label: 'Berechtigungen', icon: <Shield className="w-4 h-4" /> },
+    { id: 'berechtigungen', label: 'Abteilungen & Rechte', icon: <Shield className="w-4 h-4" /> },
 ];
 
 /** Welche Bereiche sind fertig eingerichtet — für die Häkchen an den Reitern. */
@@ -78,7 +78,7 @@ function useTabInHash(): [TabId, (tab: TabId) => void] {
         return istGueltigerTab(raw) ? raw : 'email';
     });
 
-    // Links wie „Einstellungen → Berechtigungen“ (`href="#berechtigungen"`) wechseln den Reiter über die Adresse.
+    // Links wie „Einstellungen → Abteilungen & Rechte" (`href="#berechtigungen"`) wechseln den Reiter über die Adresse.
     useEffect(() => {
         const beiHashWechsel = () => {
             const raw = window.location.hash.replace(/^#/, '');

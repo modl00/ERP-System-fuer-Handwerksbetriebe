@@ -6,10 +6,10 @@ import org.example.kalkulationsprogramm.repository.AbteilungRepository;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -29,10 +29,10 @@ class AbteilungBerechtigungControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private AbteilungRepository abteilungRepository;
 
-    @MockBean
+    @MockitoBean
     private AbteilungDokumentBerechtigungRepository berechtigungRepository;
 
     private Abteilung abteilung(boolean webseitenPush, boolean freigabePush) {
@@ -128,6 +128,40 @@ class AbteilungBerechtigungControllerTest {
                 .content("{\"berechtigungen\":[]}"))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.darfZeiterfassungSehen").value(false));
+    }
+
+    @Test
+    @DisplayName("Aufschläge-Häkchen: Liste liefert es, Speichern übernimmt es, fehlend bleibt unverändert")
+    void aufschlaegeHaekchen() throws Exception {
+        Abteilung buero = abteilung(false, false);
+        buero.setDarfAufschlaegeAendern(true);
+        when(abteilungRepository.findAll()).thenReturn(List.of(buero));
+        when(abteilungRepository.findById(3L)).thenReturn(Optional.of(buero));
+        when(abteilungRepository.save(any(Abteilung.class))).thenAnswer(aufruf -> aufruf.getArgument(0));
+        when(berechtigungRepository.findByAbteilungId(3L)).thenReturn(List.of());
+
+        mockMvc.perform(get("/api/abteilungen/berechtigungen"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$[0].darfAufschlaegeAendern").value(true));
+
+        mockMvc.perform(put("/api/abteilungen/3/berechtigungen")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"berechtigungen\":[],\"darfAufschlaegeAendern\":false}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.darfAufschlaegeAendern").value(false));
+
+        buero.setDarfAufschlaegeAendern(true);
+        mockMvc.perform(put("/api/abteilungen/3/berechtigungen")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"berechtigungen\":[]}"))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.darfAufschlaegeAendern").value(true));
+    }
+
+    @Test
+    @DisplayName("Neue Abteilung darf die Aufschläge zunächst nicht ändern")
+    void neueAbteilungDarfAufschlaegeNichtAendern() {
+        org.assertj.core.api.Assertions.assertThat(new Abteilung().getDarfAufschlaegeAendern()).isFalse();
     }
 
     @Test

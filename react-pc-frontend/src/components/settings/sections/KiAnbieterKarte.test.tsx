@@ -97,7 +97,7 @@ describe('KiAnbieterKarte', () => {
         expect(await screen.findByText('Der Modellname für Claude ist ungültig.')).toBeVisible();
     });
 
-    it('lädt die Modelle des Anbieters als Vorschläge für das Feld „Modell“', async () => {
+    it('lädt die Modelle des Anbieters als Vorschläge für das Feld „Modell"', async () => {
         const user = userEvent.setup();
         zeige();
         await waehleAnbieter(user, /Mistral/);
@@ -105,14 +105,14 @@ describe('KiAnbieterKarte', () => {
 
         await user.click(screen.getByRole('button', { name: 'Verfügbare Modelle von Mistral laden' }));
 
-        expect(await screen.findByText('2 Modelle zur Auswahl im Feld „Modell“.')).toBeVisible();
+        expect(await screen.findByText('2 Modelle zur Auswahl im Feld „Modell".')).toBeVisible();
         expect(aufrufe('GET', '/ki-anbieter/MISTRAL/modelle')).toHaveLength(1);
         const liste = document.getElementById('ki-MISTRAL-modelle')!;
         expect([...liste.querySelectorAll('option')].map(o => o.getAttribute('value'))).toEqual(['mistral-large-latest', 'mistral-small-latest']);
         expect(screen.getByLabelText('Modell', { selector: '#ki-MISTRAL-modell' })).toHaveAttribute('list', 'ki-MISTRAL-modelle');
     });
 
-    it('ohne gespeicherten Schlüssel ist „Modelle laden“ gesperrt und fragt den Anbieter nicht', async () => {
+    it('ohne gespeicherten Schlüssel ist „Modelle laden" gesperrt und fragt den Anbieter nicht', async () => {
         const user = userEvent.setup();
         zeige();
         await waehleAnbieter(user, /Claude/);

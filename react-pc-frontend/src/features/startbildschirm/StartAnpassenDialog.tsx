@@ -10,7 +10,7 @@ import { bausteineAus, setzeStartStand, useStart } from './useStart';
 
 interface Props { offen: boolean; onSchliessen: () => void; istAdmin: boolean }
 
-/** „Startbildschirm anpassen“: Bausteine mit Haken wählen und ordnen. Der Admin kann den Aufbau als Vorgabe für alle speichern. */
+/** „Startbildschirm anpassen": Bausteine mit Haken wählen und ordnen. Der Admin kann den Aufbau als Vorgabe für alle speichern. */
 export function StartAnpassenDialog({ offen, onSchliessen, istAdmin }: Props) {
     const titelId = useId();
     return (

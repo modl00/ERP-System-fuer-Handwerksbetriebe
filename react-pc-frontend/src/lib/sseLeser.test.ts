@@ -44,7 +44,7 @@ describe('leseSseEreignisse', () => {
 
     it('setzt UTF-8-Zeichen zusammen, die über zwei Blöcke verteilt sind', async () => {
         const bytes = kodierer.encode('data:Prüfung für Würth\n\n');
-        // „ü“ ist zwei Bytes lang – der Schnitt liegt genau dazwischen.
+        // „ü" ist zwei Bytes lang – der Schnitt liegt genau dazwischen.
         const schnitt = bytes.indexOf(0xc3) + 1;
         const ereignisse = await alle(antwortAus([bytes.slice(0, schnitt), bytes.slice(schnitt)]));
         expect(ereignisse).toEqual([{ event: 'message', data: 'Prüfung für Würth' }]);
@@ -76,7 +76,7 @@ describe('leseSseEreignisse', () => {
         expect(ereignisse).toEqual([{ event: 'antwort', data: 'Zeile 1\n\nZeile 3' }]);
     });
 
-    it('nennt ein Ereignis ohne event-Zeile „message“ und vergisst den Namen danach wieder', async () => {
+    it('nennt ein Ereignis ohne event-Zeile „message" und vergisst den Namen danach wieder', async () => {
         const ereignisse = await alle(antwortAus(['event:schritt\ndata:a\n\ndata:b\n\n']));
         expect(ereignisse).toEqual([
             { event: 'schritt', data: 'a' },
@@ -86,7 +86,7 @@ describe('leseSseEreignisse', () => {
 
     it('gibt Ereignisse ohne data-Zeile nicht weiter und ignoriert id, retry und unbekannte Felder', async () => {
         const ereignisse = await alle(antwortAus(['event:leer\n\nid:7\nretry:1000\nunbekannt\ndata\n\n']));
-        // „data“ ohne Doppelpunkt ist eine data-Zeile mit leerem Wert.
+        // „data" ohne Doppelpunkt ist eine data-Zeile mit leerem Wert.
         expect(ereignisse).toEqual([{ event: 'message', data: '' }]);
     });
 

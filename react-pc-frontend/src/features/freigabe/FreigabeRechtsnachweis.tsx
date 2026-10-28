@@ -86,7 +86,7 @@ export function FreigabeRechtsnachweis({ daten }: { daten: FreigabeRechtsnachwei
             )}
             {(daten.knopfText || daten.bestaetigungText) && (
                 <Zeile label="Ausgelöst mit">
-                    {daten.knopfText && <span className="font-medium">„{daten.knopfText}“</span>}
+                    {daten.knopfText && <span className="font-medium">„{daten.knopfText}"</span>}
                     {daten.bestaetigungText && (
                         <span className="block text-xs text-slate-600 mt-0.5">Häkchen: {daten.bestaetigungText}</span>
                     )}

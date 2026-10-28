@@ -60,7 +60,7 @@ function zahlOderNull(entwurf: string): number | null {
 const euro = (n: number | null) => (n == null ? '–' : formatCurrency(n));
 
 /**
- * Kostenrechnung (Konzept #166). Heute der Bereich „Maschinen“: Was kostet eine Maschinenstunde? Der Rechner erklärt den Satz Schritt für Schritt, er lässt sich auch von Hand
+ * Kostenrechnung (Konzept #166). Heute der Bereich „Maschinen": Was kostet eine Maschinenstunde? Der Rechner erklärt den Satz Schritt für Schritt, er lässt sich auch von Hand
  * festlegen; die Arbeitsgänge, die die Maschine nutzen, rechnen in der Kalkulation damit. Personal, Gemeinkosten und Verrechnungssätze folgen.
  */
 export default function KostenrechnungPage() {
@@ -117,7 +117,7 @@ export default function KostenrechnungPage() {
     };
 
     const speichere = async () => {
-        if (!form.name.trim()) { setMeldung('Bitte einen Namen eintragen, zum Beispiel „Kappsäge“.'); return; }
+        if (!form.name.trim()) { setMeldung('Bitte einen Namen eintragen, zum Beispiel „Kappsäge".'); return; }
         const zahl = (t: string, label: string, max: number, min = 0) => validateDecimalInput(t, { label, required: false, min, max });
         const pruefungen = [
             zahl(form.anschaffung, 'Der Anschaffungswert', 100000000), zahl(form.rest, 'Der Restwert', 100000000), zahl(form.jahre, 'Die Nutzungsdauer', 100),
@@ -143,7 +143,7 @@ export default function KostenrechnungPage() {
                 versicherungJeJahr: versicherung, leistungKw: kw, strompreisJeKwh: strom, auslastungProzent: auslastung, laufstundenJeJahr: stunden, satzVonHand: hand,
                 aktiv: form.aktiv, bemerkung: form.bemerkung.trim() || null, arbeitsgangIds: form.arbeitsgangIds,
             });
-            toast.success('Die Maschine ist gespeichert. Leistungen zeigen den neuen Satz, sobald Sie dort „Preis übernehmen“ wählen.');
+            toast.success('Die Maschine ist gespeichert. Leistungen zeigen den neuen Satz, sobald Sie dort „Preis übernehmen" wählen.');
             setDialog(null);
             await laden();
         } catch (e) {
@@ -154,7 +154,7 @@ export default function KostenrechnungPage() {
     };
 
     const loesche = async (m: Maschine) => {
-        if (!await bestaetige({ title: 'Maschine löschen', message: `„${m.name}“ wirklich löschen?`, variant: 'danger', confirmLabel: 'Löschen' })) return;
+        if (!await bestaetige({ title: 'Maschine löschen', message: `„${m.name}" wirklich löschen?`, variant: 'danger', confirmLabel: 'Löschen' })) return;
         try {
             await loescheMaschine(m.id);
             toast.success('Die Maschine wurde gelöscht.');
@@ -298,7 +298,7 @@ export default function KostenrechnungPage() {
                                             <label className="flex items-center gap-2 text-sm text-slate-800">
                                                 <input type="checkbox" checked={form.arbeitsgangIds.includes(a.id)} onChange={e => umschalten(a.id, e.target.checked)} className="h-4 w-4 rounded border-slate-300 text-rose-600" />
                                                 {a.beschreibung}
-                                                {andere && <span className="text-xs text-slate-500">nutzt bisher „{andere}“, wird umgehängt</span>}
+                                                {andere && <span className="text-xs text-slate-500">nutzt bisher „{andere}", wird umgehängt</span>}
                                             </label>
                                         </li>
                                     );

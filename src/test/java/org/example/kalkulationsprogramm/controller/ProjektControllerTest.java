@@ -36,15 +36,15 @@ import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -65,59 +65,59 @@ class ProjektControllerTest {
         @Autowired
         private MockMvc mockMvc;
 
-        @MockBean
+        @MockitoBean
         private DateiSpeicherService dateiSpeicherService;
 
-        @MockBean
+        @MockitoBean
         private ProjektManagementService projektManagementService;
 
-        @MockBean
+        @MockitoBean
         private ProjektListenPdfService projektListenPdfService;
 
-        @MockBean
+        @MockitoBean
         private ZugferdExtractorService zugferdExtractorService;
 
-        @MockBean
+        @MockitoBean
         private ZugferdErstellService zugferdErstellService;
 
-        @MockBean
+        @MockitoBean
         private ProduktkategorieMapper produktkategorieMapper;
 
-        @MockBean
+        @MockitoBean
         private StuecklistePdfService stuecklistePdfService;
 
-        @MockBean
+        @MockitoBean
         private PdfAiExtractorService pdfAiExtractorService;
 
-        @MockBean
+        @MockitoBean
         private AngemeldeterMitarbeiterService angemeldeterMitarbeiter;
 
 
-        @MockBean
+        @MockitoBean
         private LieferantenRepository lieferantenRepository;
 
-        @MockBean
+        @MockitoBean
         private LieferantDokumentProjektAnteilRepository lieferantDokumentProjektAnteilRepository;
 
-        @MockBean
+        @MockitoBean
         private LieferantGeschaeftsdokumentRepository lieferantGeschaeftsdokumentRepository;
 
-        @MockBean
+        @MockitoBean
         private ProjektNotizRepository projektNotizRepository;
 
-        @MockBean
+        @MockitoBean
         private ProjektNotizBildRepository projektNotizBildRepository;
 
-        @MockBean
+        @MockitoBean
         private ProjektRepository projektRepository;
 
-        @MockBean
+        @MockitoBean
         private ZeitbuchungRepository zeitbuchungRepository;
 
-        @MockBean
+        @MockitoBean
         private DokumentFreigabeService dokumentFreigabeService;
 
-        @MockBean
+        @MockitoBean
         private LieferantDokumentZugriffService lieferantDokumentZugriffService;
 
         @BeforeEach
@@ -323,6 +323,36 @@ class ProjektControllerTest {
                                 .andExpect(status().isConflict())
                                 .andExpect(jsonPath("$.message").value(
                                                 "Zusammenführen nicht möglich, da im Projekt bereits Ausgangsgeschäftsdokumente vorhanden sind."));
+        }
+
+        // --- Tests: GET /api/projekte/offene-posten/bezahlt (Issue #263) ---
+
+        @Test
+        void bezahlteRechnungenLiefertDieBezahltenAusDemService() throws Exception {
+                org.example.kalkulationsprogramm.domain.ProjektGeschaeftsdokument rechnung =
+                                new org.example.kalkulationsprogramm.domain.ProjektGeschaeftsdokument();
+                rechnung.setId(77L);
+                rechnung.setDokumentid("RE-2026-0042");
+                rechnung.setBezahlt(true);
+                rechnung.setGespeicherterDateiname("rechnung-77.pdf");
+                when(dateiSpeicherService.holeBezahlteRechnungen()).thenReturn(java.util.List.of(rechnung));
+
+                mockMvc.perform(get("/api/projekte/offene-posten/bezahlt"))
+                                .andExpect(status().isOk())
+                                .andExpect(jsonPath("$.length()").value(1))
+                                .andExpect(jsonPath("$[0].id").value(77))
+                                .andExpect(jsonPath("$[0].bezahlt").value(true));
+        }
+
+        @Test
+        void stornierteRechnungZuruecknehmenGibt400MitMeldung() throws Exception {
+                doThrow(new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                                "Diese Rechnung wurde storniert und bleibt deshalb erledigt."))
+                                .when(dateiSpeicherService).setzeGeschaeftsdokumentBezahlt(43L, false);
+
+                mockMvc.perform(patch("/api/projekte/dokumente/43/bezahlt").param("bezahlt", "false"))
+                                .andExpect(status().isBadRequest())
+                                .andExpect(jsonPath("$.message").value("Diese Rechnung wurde storniert und bleibt deshalb erledigt."));
         }
 
         // --- Tests: PATCH /api/projekte/dokumente/{id}/bezahlt ---

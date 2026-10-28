@@ -57,6 +57,17 @@ class OeffentlichePfadeTest {
     }
 
     @Test
+    @DisplayName("Launcher-Update und Mac-Einmal-Link sind ohne Login erreichbar, die Einrichtung erzeugen nicht")
+    void openFileLauncherNurUpdateUndEinmalLinkOffen() {
+        assertThat(ohneLoginErreichbar("/openfile-launcher/aktuell")).isTrue();
+        assertThat(ohneLoginErreichbar("/openfile-launcher/mac/AbCdEfGhIjKlMnOpQrStUvWxYz0123456789_-abcd")).isTrue();
+        assertThat(ohneLoginErreichbar("/openfile-launcher/anderes")).isFalse();
+        assertThat(ohneLoginErreichbar("/openfile-launcher/windows/abc")).isFalse();
+        assertThat(ohneLoginErreichbar("/api/openfile-launcher/einrichtung/windows")).isFalse();
+        assertThat(ohneLoginErreichbar("/api/openfile-launcher/einrichtung/mac/befehl")).isFalse();
+    }
+
+    @Test
     @DisplayName("Actuator gibt nur den Health-Endpoint frei, ohne Details")
     void actuatorKonfigurationIstEng() throws Exception {
         // Direkt aus src/main lesen: src/test/resources bringt eine eigene

@@ -103,7 +103,7 @@ function Inhalt({ terminId, vorgabe, onSchliessen, onGeaendert }: Props) {
 
     const loeschen = async () => {
         if (terminId == null) return;
-        if (!(await bestaetigen({ title: 'Termin löschen?', message: `„${titel}“ wird gelöscht.`, confirmLabel: 'Termin löschen', variant: 'danger' }))) return;
+        if (!(await bestaetigen({ title: 'Termin löschen?', message: `„${titel}" wird gelöscht.`, confirmLabel: 'Termin löschen', variant: 'danger' }))) return;
         setSpeichert(true);
         try {
             await loescheTermin(terminId);

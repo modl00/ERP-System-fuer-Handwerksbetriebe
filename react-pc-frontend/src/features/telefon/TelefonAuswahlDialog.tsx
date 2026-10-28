@@ -131,7 +131,7 @@ function TelefonListe({ liste, gewaehlt, onWaehlen, onNeuLaden }: TelefonListePr
         return (
             <p className="rounded-lg border border-dashed border-slate-300 p-4 text-sm text-slate-600">
                 In der FRITZ!Box ist noch kein Telefon eingerichtet, das hier klingeln kann. Wie das geht, steht in den
-                Einstellungen unter Telefon › „So telefonieren Sie am PC mit Headset“.
+                Einstellungen unter Telefon › „So telefonieren Sie am PC mit Headset".
             </p>
         );
     }

@@ -71,7 +71,7 @@ interface NormSchalterProps {
     onForm: (form: Briefform) => void;
 }
 
-/** „Norm-Hilfslinien“ an/aus + Form A/B + Erklärung – im Editor und in der Vorschau gleich. */
+/** „Norm-Hilfslinien" an/aus + Form A/B + Erklärung – im Editor und in der Vorschau gleich. */
 export function NormSchalter({ an, onAn, form, onForm }: NormSchalterProps) {
     return (
         <div className="flex items-center gap-2">

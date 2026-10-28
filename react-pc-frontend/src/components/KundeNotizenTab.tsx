@@ -5,6 +5,7 @@ import { Input } from './ui/input';
 import { Card } from './ui/card';
 import type { KundeNotiz } from '../types';
 import { useConfirm } from './ui/confirm-dialog';
+import { useToast } from './ui/toast';
 
 interface KundeNotizenTabProps {
     kundeId: number;
@@ -14,29 +15,32 @@ interface KundeNotizenTabProps {
 
 export function KundeNotizenTab({ kundeId, notizen: initialNotizen, onNotizenChange }: KundeNotizenTabProps) {
     const confirmDialog = useConfirm();
+    const toast = useToast();
     const [notizen, setNotizen] = useState<KundeNotiz[]>(initialNotizen || []);
     const [searchQuery, setSearchQuery] = useState('');
     const [isAdding, setIsAdding] = useState(false);
     const [newText, setNewText] = useState('');
     const [saving, setSaving] = useState(false);
 
-    useEffect(() => {
+    // Kommen neue Notizen von außen (z. B. nach dem Neuladen der Seite), die Liste damit ersetzen.
+    const [notizenVonAussen, setNotizenVonAussen] = useState(initialNotizen);
+    if (notizenVonAussen !== initialNotizen) {
+        setNotizenVonAussen(initialNotizen);
         setNotizen(initialNotizen || []);
-    }, [initialNotizen]);
+    }
 
     const loadNotizen = useCallback(async (query?: string) => {
         try {
             const params = new URLSearchParams();
             if (query) params.set('q', query);
             const res = await fetch(`/api/kunden/${kundeId}/notizen?${params.toString()}`);
-            if (res.ok) {
-                const data = await res.json();
-                setNotizen(data);
-            }
-        } catch (err) {
-            console.error('Fehler beim Laden der Notizen:', err);
+            if (!res.ok) throw new Error();
+            const data = await res.json();
+            setNotizen(data);
+        } catch {
+            toast.error('Die Notizen konnten nicht geladen werden.');
         }
-    }, [kundeId]);
+    }, [kundeId, toast]);
 
     // Gesucht wird live beim Tippen. Die kurze Pause bündelt schnelle Eingaben,
     // damit nicht jeder Tastenanschlag einen Request auslöst. Der erste Durchlauf
@@ -66,16 +70,16 @@ export function KundeNotizenTab({ kundeId, notizen: initialNotizen, onNotizenCha
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ text: newText.trim() })
             });
-            if (res.ok) {
-                const created = await res.json();
-                const updated = [created, ...notizen];
-                setNotizen(updated);
-                onNotizenChange?.(updated);
-                setNewText('');
-                setIsAdding(false);
-            }
-        } catch (err) {
-            console.error('Fehler beim Erstellen der Notiz:', err);
+            if (!res.ok) throw new Error();
+            const created = await res.json();
+            const updated = [created, ...notizen];
+            setNotizen(updated);
+            onNotizenChange?.(updated);
+            setNewText('');
+            setIsAdding(false);
+        } catch {
+            // Der eingegebene Text bleibt stehen, damit man es gleich nochmal versuchen kann.
+            toast.error('Die Notiz konnte nicht gespeichert werden.');
         } finally {
             setSaving(false);
         }
@@ -87,13 +91,12 @@ export function KundeNotizenTab({ kundeId, notizen: initialNotizen, onNotizenCha
             const res = await fetch(`/api/kunden/${kundeId}/notizen/${notizId}`, {
                 method: 'DELETE'
             });
-            if (res.ok) {
-                const updated = notizen.filter(n => n.id !== notizId);
-                setNotizen(updated);
-                onNotizenChange?.(updated);
-            }
-        } catch (err) {
-            console.error('Fehler beim Löschen der Notiz:', err);
+            if (!res.ok) throw new Error();
+            const updated = notizen.filter(n => n.id !== notizId);
+            setNotizen(updated);
+            onNotizenChange?.(updated);
+        } catch {
+            toast.error('Die Notiz konnte nicht gelöscht werden.');
         }
     };
 

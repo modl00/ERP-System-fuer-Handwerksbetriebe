@@ -15,10 +15,10 @@ interface Props {
     istAdmin: boolean;
 }
 
-/** „Alle Funktionen“ steht fest in der Leiste und wird nicht mehr gewählt; ein alter Eintrag fällt beim Speichern weg. */
+/** „Alle Funktionen" steht fest in der Leiste und wird nicht mehr gewählt; ein alter Eintrag fällt beim Speichern weg. */
 const ohneAlle = (eintraege: string[]) => eintraege.filter((a) => a !== ALLE_FUNKTIONEN);
 
-/** „Schnellzugriff anpassen“: Funktionen mit Haken auf die Leiste legen, Reihenfolge ändern. Die Firma kann eine Vorgabe für alle speichern. */
+/** „Schnellzugriff anpassen": Funktionen mit Haken auf die Leiste legen, Reihenfolge ändern. Die Firma kann eine Vorgabe für alle speichern. */
 export function SchnellzugriffDialog({ offen, onSchliessen, ...rest }: Props) {
     const titelId = useId();
     return (

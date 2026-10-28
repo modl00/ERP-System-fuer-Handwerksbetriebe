@@ -13,7 +13,7 @@ import { quadsAreClose, type Point } from './scannerOverlay'
 export type AusloeserPhase = 'suchen' | 'halten' | 'ausloesen' | 'gesperrt'
 
 export interface AusloeserZustand {
-    /** Viereck des vorigen Bildes – Vergleich für „liegt ruhig“. */
+    /** Viereck des vorigen Bildes – Vergleich für „liegt ruhig". */
     letzterQuad: Point[] | null
     /** Wie viele Bilder in Folge das Viereck ruhig lag. */
     ruhigeBilder: number
@@ -37,7 +37,7 @@ export interface AusloeserOptionen {
 export interface AusloeserSchritt {
     zustand: AusloeserZustand
     phase: AusloeserPhase
-    /** Noch fehlende ruhige Bilder bis zur Aufnahme (nur in Phase „halten“ sinnvoll). */
+    /** Noch fehlende ruhige Bilder bis zur Aufnahme (nur in Phase „halten" sinnvoll). */
     verbleibend: number
 }
 

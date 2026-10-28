@@ -278,7 +278,7 @@ function SmbHilfe({ adresse, onAdresse, benutzer, onBenutzer, version, onVersion
                         <li>Bei <strong>Additional paths</strong> die Datei <span className="font-mono">docker-compose.netzwerk.yml</span> hinzufügen.</li>
                         <li>Unter <strong>Environment variables</strong> die vier Zeilen eintragen und bei <span className="font-mono">ERP_SMB_PASSWORT</span> Ihr Passwort einsetzen.</li>
                         <li><strong>Update the stack</strong> wählen und warten, bis das Programm neu gestartet ist.</li>
-                        <li>Hier oben auf <strong>„Ordner prüfen“</strong> klicken: Das Programm legt eine Testdatei an. Klappt es nicht, steht dort der Grund (zum Beispiel falsches Passwort oder Adresse nicht erreichbar).</li>
+                        <li>Hier oben auf <strong>„Ordner prüfen"</strong> klicken: Das Programm legt eine Testdatei an. Klappt es nicht, steht dort der Grund (zum Beispiel falsches Passwort oder Adresse nicht erreichbar).</li>
                     </ol>
                 </div>
             )}

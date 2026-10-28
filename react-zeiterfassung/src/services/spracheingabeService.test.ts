@@ -375,7 +375,7 @@ describe('spracheingabeService', () => {
             expect(bekannteSpracheingabeVerfuegbarkeit('token')).toBeUndefined()
         })
 
-        it('nach Zeitueberschreitung gilt ein schon bekanntes „aus“ weiter', async () => {
+        it('nach Zeitueberschreitung gilt ein schon bekanntes „aus" weiter', async () => {
             vi.useFakeTimers()
             vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(macheAntwort(200, { verfuegbar: false })))
             await pruefeSpracheingabeVerfuegbar('token')

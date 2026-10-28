@@ -35,7 +35,7 @@ export interface KettenVerbindung {
     zuId: number;
 }
 
-/** Ausgeschriebene Namen für die Kette (in der Zeile ist Platz für „Auftragsbestätigung“). */
+/** Ausgeschriebene Namen für die Kette (in der Zeile ist Platz für „Auftragsbestätigung"). */
 export const KETTEN_LABELS: Record<KettenDokumentTyp, string> = {
     ANGEBOT: 'Angebot',
     AUFTRAGSBESTAETIGUNG: 'Auftragsbestätigung',
@@ -48,7 +48,7 @@ export const KETTEN_LABELS: Record<KettenDokumentTyp, string> = {
 
 const BEKANNTE_TYPEN = new Set(Object.keys(KETTEN_LABELS));
 
-/** Unbekannte Typen aus dem Backend (z. B. künftige Arten) laufen als „Sonstiges“ mit. */
+/** Unbekannte Typen aus dem Backend (z. B. künftige Arten) laufen als „Sonstiges" mit. */
 export function alsKettenTyp(typ: string | null | undefined): KettenDokumentTyp {
     return typ && BEKANNTE_TYPEN.has(typ) ? (typ as KettenDokumentTyp) : 'SONSTIG';
 }

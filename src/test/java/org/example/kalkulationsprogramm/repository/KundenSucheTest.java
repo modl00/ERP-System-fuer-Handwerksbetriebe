@@ -14,7 +14,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.data.domain.PageRequest;
 
 import jakarta.persistence.EntityManager;
@@ -77,6 +77,14 @@ class KundenSucheTest {
     void alleFilter() {
         assertThat(suche("MUSTERMANN", null, null, null, null, null)).containsExactly("Max Mustermann");
         assertThat(suche("muster", "max", "k-1", "WÜRZBURG", "rechnung@", "KUNDE")).containsExactly("Max Mustermann");
+    }
+
+    @Test
+    @DisplayName("Freitext findet auch E-Mail-Adressen, ohne doppelte Zeilen")
+    void freitextFindetEmail() {
+        assertThat(suche("RECHNUNG@example", null, null, null, null, null)).containsExactly("Max Mustermann");
+        assertThat(suche("@example.com", null, null, null, null, null))
+                .containsExactly("Erika Musterfrau", "Max Mustermann");
     }
 
     private static Kunde kunde(String name, String nummer, String ort, String... emails) {

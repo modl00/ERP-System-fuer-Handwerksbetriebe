@@ -14,7 +14,7 @@ export interface HakenAnfrage {
 }
 
 /**
- * Speichert einen Haken in einer Liste („Bezahlt“, „Genehmigt“ …):
+ * Speichert einen Haken in einer Liste („Bezahlt", „Genehmigt" …):
  * - sperrt die Zeile, solange die Anfrage läuft: ein zweiter Aufruf für dieselbe Zeile
  *   wird ignoriert, und `inArbeit` sagt dem Aufrufer, welche Haken er deaktivieren soll,
  * - zeigt jeden Fehler als Toast – mit der Meldung vom Server oder dem Ersatztext,

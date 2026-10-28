@@ -77,7 +77,7 @@ export function KiAnbieterKarte({ geminiZugang = null, lokalZugang = null }: { g
             uebernehmen(await res.json() as Uebersicht);
             setTests({});
             toast.success('Die KI-Anbieter wurden gespeichert.');
-            // Anmeldedaten neu holen, damit „kiAktiv“ app-weit sofort stimmt (KI-Hilfe in
+            // Anmeldedaten neu holen, damit „kiAktiv" app-weit sofort stimmt (KI-Hilfe in
             // der Menüleiste, KI-Knöpfe) – auch wenn Claude/Mistral statt Gemini aktiv wird.
             await auth?.refreshMe();
         } catch (e) {
@@ -99,7 +99,7 @@ export function KiAnbieterKarte({ geminiZugang = null, lokalZugang = null }: { g
         }
     };
 
-    /** Fragt den Anbieter nach seinen Modellen; sie erscheinen als Vorschläge im Feld „Modell“. */
+    /** Fragt den Anbieter nach seinen Modellen; sie erscheinen als Vorschläge im Feld „Modell". */
     const ladeModelle = async (typ: Anbieter) => {
         setLaedt(l => ({ ...l, [typ]: true }));
         try {
@@ -171,7 +171,7 @@ export function KiAnbieterKarte({ geminiZugang = null, lokalZugang = null }: { g
                                                 title={s?.schluesselGesetzt ? undefined : 'Zuerst einen Schlüssel eintragen und speichern'} aria-label={`Verfügbare Modelle von ${name} laden`}>
                                                 {laedt[typ] ? <Loader2 className="w-3.5 h-3.5 animate-spin motion-reduce:animate-none" /> : <Download className="w-3.5 h-3.5" />} Modelle laden
                                             </Button>
-                                            {listen[typ] && <span className="text-xs text-slate-500">{listen[typ].length} Modelle zur Auswahl im Feld „Modell“.</span>}
+                                            {listen[typ] && <span className="text-xs text-slate-500">{listen[typ].length} Modelle zur Auswahl im Feld „Modell".</span>}
                                             <Button variant="outline" size="sm" onClick={() => void teste(typ)} disabled={geaendert || !s?.eingerichtet || test === 'laeuft'}
                                                 title={geaendert ? 'Zuerst speichern, getestet wird der gespeicherte Stand' : !s?.eingerichtet ? 'Zuerst einen Schlüssel eintragen und speichern' : undefined}
                                                 aria-label={`${name} testen`}>

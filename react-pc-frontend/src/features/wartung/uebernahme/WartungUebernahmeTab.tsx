@@ -77,7 +77,7 @@ export function WartungUebernahmeTab() {
             <Card className="space-y-3 p-4">
                 <h2 className="text-lg font-semibold text-slate-900">Übernahme aus HandwerkPro</h2>
                 <p className="flex items-start gap-2 text-sm text-slate-600"><Info className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
-                    Die <b className="mx-1">Vorschau</b> ändert nichts; sie zeigt nur, was die Übernahme tun würde. Erst der Knopf „Protokolle übernehmen“ legt Daten an. Die Exportdatei erzeugen Sie mit <code>tools/wartung-export-handwerkpro.mjs</code>;
+                    Die <b className="mx-1">Vorschau</b> ändert nichts; sie zeigt nur, was die Übernahme tun würde. Erst der Knopf „Protokolle übernehmen" legt Daten an. Die Exportdatei erzeugen Sie mit <code>tools/wartung-export-handwerkpro.mjs</code>;
                     sie enthält Kundendaten und gehört nicht ins Repository.</p>
                 <div className="flex flex-wrap items-center gap-3">
                     <input type="file" accept=".json,application/json" aria-label="Exportdatei wählen" onChange={(e) => { setDatei(e.target.files?.[0] ?? null); setVorschau(null); setFehler(''); }}

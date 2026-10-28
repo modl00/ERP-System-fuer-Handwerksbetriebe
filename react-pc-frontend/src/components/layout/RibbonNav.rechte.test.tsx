@@ -27,7 +27,7 @@ describe('Menüleiste – Wer darf was?', () => {
     beforeEach(() => { setzeFeaturesZurueck(); setzeTelefonBerechtigungZurueck(); });
     afterEach(() => vi.unstubAllGlobals());
 
-    it('hat einen Punkt „Wer darf was?“; „Dokumentenrechte“ ist ein Reiter darin und kein eigener Punkt mehr', async () => {
+    it('hat einen Punkt „Wer darf was?"; „Dokumentenrechte" ist ein Reiter darin und kein eigener Punkt mehr', async () => {
         zeige('/rechte-uebersicht');
 
         fireEvent.click(await screen.findByRole('button', { name: 'Vorlagen & Stammdaten' }));
@@ -36,7 +36,7 @@ describe('Menüleiste – Wer darf was?', () => {
         expect(screen.queryByRole('menuitem', { name: /Dokumentenrechte/ })).toBeNull();
     });
 
-    it('auf der Seite der Abteilungsrechte ist „Vorlagen & Stammdaten“ der hervorgehobene Hauptpunkt', async () => {
+    it('auf der Seite der Abteilungsrechte ist „Vorlagen & Stammdaten" der hervorgehobene Hauptpunkt', async () => {
         zeige('/abteilung-berechtigungen');
 
         const hauptpunkt = await screen.findByRole('button', { name: 'Vorlagen & Stammdaten' });

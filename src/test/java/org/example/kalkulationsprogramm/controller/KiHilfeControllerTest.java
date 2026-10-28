@@ -1,6 +1,6 @@
 package org.example.kalkulationsprogramm.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.example.kalkulationsprogramm.service.KiHilfeService;
 import org.example.kalkulationsprogramm.service.KiHilfeService.ChatMessage;
 import org.example.kalkulationsprogramm.service.KiHilfeService.ChatResult;
@@ -9,12 +9,13 @@ import org.example.kalkulationsprogramm.service.KiHilfeService.SourceLink;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.MockMvcPrint;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.mock.web.MockAsyncContext;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -41,7 +42,6 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.request;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -52,7 +52,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * aus TESTING_SECURITY.md. Der Dienst ist gemockt; die Anmeldung pruefen die Filterketten.
  */
 @WebMvcTest(KiHilfeController.class)
-@AutoConfigureMockMvc(addFilters = false)
+// print = NONE: Der Standard-Ausgabehandler geht im Test-Thread alle Response-Header durch, während der
+// Hintergrund-Thread des Streams beim ersten Senden schon Header setzt - das gab ab und zu eine
+// ConcurrentModificationException (etwa 1 von 1500 Läufen).
+@AutoConfigureMockMvc(addFilters = false, print = MockMvcPrint.NONE)
 class KiHilfeControllerTest {
 
     private static final String URL = "/api/ki-hilfe/chat";
@@ -66,7 +69,7 @@ class KiHilfeControllerTest {
     @Autowired
     private KiHilfeController controller;
 
-    @MockBean
+    @MockitoBean
     private KiHilfeService kiHilfeService;
 
     private String anfrage(List<Map<String, String>> nachrichten, Map<String, Object> kontext) throws Exception {
@@ -83,9 +86,12 @@ class KiHilfeControllerTest {
     private String streamLesen(String body) throws Exception {
         MvcResult result = mockMvc.perform(post(URL).contentType(MediaType.APPLICATION_JSON).content(body))
                 .andExpect(request().asyncStarted())
-                .andExpect(header().string("X-Accel-Buffering", "no"))
                 .andReturn();
         result.getAsyncResult(5_000);
+        // Header erst lesen, wenn der Hintergrund-Thread fertig ist - vorher schreibt er evtl. noch
+        // andere Header (Content-Type) in dieselbe Map.
+        assertThat(result.getResponse().getHeader("X-Accel-Buffering")).isEqualTo("no");
+        assertThat(result.getResponse().getHeader("Cache-Control")).isEqualTo("no-cache");
         assertThat(result.getResponse().getContentType()).startsWith(MediaType.TEXT_EVENT_STREAM_VALUE);
         return result.getResponse().getContentAsString(StandardCharsets.UTF_8);
     }

@@ -16,7 +16,7 @@ interface Props {
 }
 
 /**
- * Eine Änderung, die die KI vorschlägt. Sie geschieht erst, wenn der Benutzer „Ja, ausführen“ klickt: Vorher steht hier genau, was passieren würde.
+ * Eine Änderung, die die KI vorschlägt. Sie geschieht erst, wenn der Benutzer „Ja, ausführen" klickt: Vorher steht hier genau, was passieren würde.
  */
 export function KiAssistentVorschlag({ vorschlag, status, onBestaetigen, onVerwerfen }: Props) {
     const offen = status.art === 'offen' || status.art === 'laeuft';

@@ -3,19 +3,23 @@ package org.example.kalkulationsprogramm.controller;
 import org.example.kalkulationsprogramm.service.DateiOrdnerService;
 import org.example.kalkulationsprogramm.service.SystemSettingsService;
 import org.example.kalkulationsprogramm.service.SystemSettingsService.TestResult;
+import org.example.kalkulationsprogramm.service.openfile.ContainerFreigabe;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
+import static org.hamcrest.Matchers.not;
+import static org.hamcrest.Matchers.containsString;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -26,12 +30,14 @@ class SystemSettingsControllerDateiOrdnerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private SystemSettingsService settingsService;
-    @MockBean
+    @MockitoBean
     private DateiOrdnerService dateiOrdnerService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.PostfachUmzugService postfachUmzugService;
+    @MockitoBean
+    private ContainerFreigabe containerFreigabe;
 
     @Test
     void getDateiOrdner_liefertPfadUndFlag() throws Exception {
@@ -43,7 +49,26 @@ class SystemSettingsControllerDateiOrdnerTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.pfad").value("C:\\Zeichnungen"))
                 .andExpect(jsonPath("$.networkUrl").value("\\\\server\\zeichnungen"))
-                .andExpect(jsonPath("$.konfiguriert").value(true));
+                .andExpect(jsonPath("$.konfiguriert").value(true))
+                // Ohne Ordner-Freigabe aus dem Docker-Paket
+                .andExpect(jsonPath("$.containerFreigabe").doesNotExist())
+                .andExpect(jsonPath("$.containerFreigabePfad").doesNotExist());
+    }
+
+    @Test
+    void getDateiOrdner_nenntDieAdresseDerContainerFreigabeAberNieDasPasswort() throws Exception {
+        when(settingsService.getDateiOrdnerNetworkUrl()).thenReturn("\\\\BUERO_PC\\CADdrawings");
+        when(containerFreigabe.ordnerAufDemServer()).thenReturn(java.util.Optional.of("/app/uploads/CADdrawings"));
+        when(containerFreigabe.adresse()).thenReturn(java.util.Optional.of("\\\\erp-dateien.tail1234.ts.net\\CADdrawings"));
+        when(containerFreigabe.zugang()).thenReturn(java.util.Optional.of(new ContainerFreigabe.Zugang(
+                "\\\\erp-dateien.tail1234.ts.net\\CADdrawings", "erp-dateien.tail1234.ts.net", "erp-dateien",
+                "MusterPasswort2345abcdefgh")));
+
+        mockMvc.perform(get("/api/settings/datei-ordner"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.containerFreigabe").value("\\\\erp-dateien.tail1234.ts.net\\CADdrawings"))
+                .andExpect(jsonPath("$.containerFreigabePfad").value("/app/uploads/CADdrawings"))
+                .andExpect(content().string(not(containsString("MusterPasswort"))));
     }
 
     @Test

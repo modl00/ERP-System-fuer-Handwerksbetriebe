@@ -95,7 +95,7 @@ describe('SignaturStudio – neue Signatur', () => {
         expect(aufrufe(mock, '/api/frontend-users')).toHaveLength(0);
     });
 
-    it('„Speichern & als meine Standard-Signatur“ schickt alsStandard: true', async () => {
+    it('„Speichern & als meine Standard-Signatur" schickt alsStandard: true', async () => {
         const { mock, user } = zeige();
         await studioDa();
         await waitFor(() => expect(feld('Ihr Name').value).toBe('Max Mustermann'));
@@ -111,7 +111,7 @@ describe('SignaturStudio – neue Signatur', () => {
         await waitFor(() => expect(feld('Ihr Name').value).toBe('Max Mustermann'));
         await user.clear(feld('Name der Signatur'));
         await user.click(screen.getByRole('button', { name: 'Speichern' }));
-        expect(await screen.findByText('Bitte der Signatur einen Namen geben, z. B. „Standard“.')).toBeInTheDocument();
+        expect(await screen.findByText('Bitte der Signatur einen Namen geben, z. B. „Standard".')).toBeInTheDocument();
         expect(aufrufe(mock, '/api/email/signatures', 'POST')).toHaveLength(0);
     });
 
@@ -205,7 +205,7 @@ describe('SignaturStudio – neue Signatur', () => {
 describe('SignaturStudio – Admin', () => {
     afterEach(() => vi.unstubAllGlobals());
 
-    it('neue Signatur: „Gehört zu“ mit eigenem Benutzer vorausgewählt, besitzerId wird mitgeschickt', async () => {
+    it('neue Signatur: „Gehört zu" mit eigenem Benutzer vorausgewählt, besitzerId wird mitgeschickt', async () => {
         const { mock, user } = zeige({ admin: true });
         await studioDa();
         const auswahl = await screen.findByRole('combobox', { name: /Gehört zu/ });
@@ -217,7 +217,7 @@ describe('SignaturStudio – Admin', () => {
         expect(gesendeterBody(mock).besitzerFestlegen).toBe(true);
     });
 
-    it('„Niemand – nur Admins“ schickt besitzerId: null; inaktive Benutzer werden nicht angeboten', async () => {
+    it('„Niemand – nur Admins" schickt besitzerId: null; inaktive Benutzer werden nicht angeboten', async () => {
         const { mock, user } = zeige({ admin: true });
         await studioDa();
         const auswahl = await screen.findByRole('combobox', { name: /Gehört zu/ });
@@ -267,7 +267,7 @@ describe('SignaturStudio – HTML-Modus', () => {
         expect(gesendeterBody(mock)).toMatchObject({ id: 5, html: '<p>Alte Signatur</p><p>Neu</p>', vorlageDaten: null });
     });
 
-    it('„Mit Vorlage neu gestalten“ wechselt nach Rückfrage ins Formular', async () => {
+    it('„Mit Vorlage neu gestalten" wechselt nach Rückfrage ins Formular', async () => {
         const { mock, user } = zeige({ sig: signatur({ html: '<p>Alte Signatur</p>' }) });
         await studioDa();
         await user.click(screen.getByRole('button', { name: /Mit Vorlage neu gestalten/ }));
@@ -282,7 +282,7 @@ describe('SignaturStudio – HTML-Modus', () => {
         expect(body.html).not.toContain('Alte Signatur');
     });
 
-    it('Umschalter „HTML direkt bearbeiten“: Code bearbeiten, zurück nur nach Rückfrage', async () => {
+    it('Umschalter „HTML direkt bearbeiten": Code bearbeiten, zurück nur nach Rückfrage', async () => {
         const daten = { ...leereSignaturDaten(), name: 'Max Mustermann' };
         const { mock, user } = zeige({ sig: signatur({ vorlageDaten: JSON.stringify(daten) }) });
         await studioDa();
@@ -306,7 +306,7 @@ describe('SignaturStudio – HTML-Modus', () => {
     });
 });
 
-/** Firmen-Vorlage „Hauptsitz“: legt Aussehen und Firmenangaben fest. Persönliches der Vorlage darf nicht übernommen werden. */
+/** Firmen-Vorlage „Hauptsitz": legt Aussehen und Firmenangaben fest. Persönliches der Vorlage darf nicht übernommen werden. */
 const VORLAGEN_DATEN = {
     ...leereSignaturDaten(),
     vorlage: 'kompakt' as const,
@@ -341,7 +341,7 @@ describe('SignaturStudio – Mitarbeiter mit Firmen-Vorlage', () => {
         const { mock, user, onGespeichert } = zeige({ vorlagen: [HAUPTSITZ] });
         await studioDa();
         expect(screen.getByRole('heading', { name: 'Firmen-Vorlage' })).toBeInTheDocument();
-        expect(screen.getByText('„Hauptsitz“')).toBeInTheDocument();
+        expect(screen.getByText('„Hauptsitz"')).toBeInTheDocument();
         // Keine freie Gestaltung: weder Vorlagen-Auswahl noch HTML-Modus
         expect(screen.queryByRole('radio', { name: /Schlicht/ })).toBeNull();
         expect(screen.queryByRole('switch', { name: 'HTML direkt bearbeiten' })).toBeNull();
@@ -425,7 +425,7 @@ describe('SignaturStudio – Mitarbeiter mit Firmen-Vorlage', () => {
         expect(JSON.parse(String(gesendeterBody(mock).vorlageDaten))).toMatchObject({ vorlage: 'kompakt', firma: 'Mustermann Metallbau GmbH – Hauptsitz' });
     });
 
-    it('alte frei gestaltete Signatur bleibt frei; „Mit Firmen-Vorlage neu gestalten“ ist nur ein Angebot', async () => {
+    it('alte frei gestaltete Signatur bleibt frei; „Mit Firmen-Vorlage neu gestalten" ist nur ein Angebot', async () => {
         const daten = { ...leereSignaturDaten(), name: 'Max Mustermann', position: 'Monteur', firma: 'Eigene Firma', vorlage: 'schlicht' as const };
         const sig = signatur({ id: 31, vorlageDaten: JSON.stringify(daten) });
         const { mock, user } = zeige({ sig, vorlagen: [HAUPTSITZ] });

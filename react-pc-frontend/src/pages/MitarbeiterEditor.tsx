@@ -14,7 +14,7 @@ import { DatePicker } from '../components/ui/datepicker';
 import { DetailLayout } from '../components/DetailLayout';
 import {
     Plus, User, Trash2, ArrowLeft,
-    FileText, Upload, Calendar, Euro, File, Building2, QrCode, RefreshCw, Download, Loader2, Eye, Phone, GraduationCap, Home, StickyNote, Receipt
+    FileText, Upload, Calendar, Euro, File, Building2, QrCode, RefreshCw, Download, Loader2, Copy, Check, Eye, Phone, GraduationCap, Home, StickyNote, Receipt
 } from 'lucide-react';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { Select } from '../components/ui/select-custom';
@@ -115,6 +115,15 @@ const mitarbeiterEntwurf = (m: Partial<Mitarbeiter>): MitarbeiterEntwurf => ({ .
     geldwertVorteilMonat: m.geldwertVorteilMonat == null ? '' : formatDecimalInput(m.geldwertVorteilMonat),
 });
 
+const antwortFehler = async (res: Response, fallback: string) => {
+    try {
+        const body = await res.json();
+        return body.message || body.error || fallback;
+    } catch {
+        return fallback;
+    }
+};
+
 export default function MitarbeiterEditor() {
     const confirmDialog = useConfirm();
     const toast = useToast();
@@ -151,6 +160,7 @@ export default function MitarbeiterEditor() {
     // QR-Code States
     const [isQrModalOpen, setIsQrModalOpen] = useState(false);
     const [regenerating, setRegenerating] = useState(false);
+    const [codeKopiert, setCodeKopiert] = useState(false);
 
     // Dokument Preview States
     const [previewDoc, setPreviewDoc] = useState<MitarbeiterDokument | null>(null);
@@ -168,68 +178,53 @@ export default function MitarbeiterEditor() {
     const [lohnFilterJahr, setLohnFilterJahr] = useState('alle');
     const [lohnFilterMonat, setLohnFilterMonat] = useState('alle');
 
-    const loadMitarbeiter = useCallback(async () => {
-        try {
-            const res = await fetch(BASE_API);
+    // Die Ladefunktionen sind Promise-Ketten: Zustand wird erst gesetzt, wenn die Antwort da ist.
+    const loadMitarbeiter = useCallback(() => fetch(BASE_API)
+        .then(async (res) => {
             if (!res.ok) throw new Error('Mitarbeiter konnten nicht geladen werden.');
-            if (res.ok) {
-                const data = await res.json();
-                setMitarbeiter(data);
-            }
-        } catch (error) {
+            setMitarbeiter(await res.json());
+        })
+        .catch((error) => {
             console.error("Error loading employees", error);
             showError('Mitarbeiter konnten nicht geladen werden.');
-        }
-    }, [showError]);
+        }), [showError]);
 
-    const loadAbteilungen = useCallback(async () => {
-        try {
-            const res = await fetch('/api/abteilungen');
+    const loadAbteilungen = useCallback(() => fetch('/api/abteilungen')
+        .then(async (res) => {
             if (!res.ok) throw new Error('Abteilungen konnten nicht geladen werden.');
-            if (res.ok) {
-                const data = await res.json();
-                setAbteilungen(data);
-            }
-        } catch (error) {
+            setAbteilungen(await res.json());
+        })
+        .catch((error) => {
             console.error("Error loading departments", error);
             showError('Abteilungen konnten nicht geladen werden.');
-        }
-    }, [showError]);
+        }), [showError]);
 
     useEffect(() => {
         void loadMitarbeiter();
         void loadAbteilungen();
     }, [loadMitarbeiter, loadAbteilungen]);
 
-    const antwortFehler = async (res: Response, fallback: string) => {
-        try {
-            const body = await res.json();
-            return body.message || body.error || fallback;
-        } catch {
-            return fallback;
-        }
-    };
-
-    const loadZeitkonto = async (mitarbeiterId: number) => {
-        setLoadingZeitkonto(true);
-        try {
-            const [statusRes, modelleRes] = await Promise.all([
-                fetch(`${ZEITKONTO_API}/${mitarbeiterId}`),
-                fetch('/api/zeitverwaltung/zeitkontenmodelle'),
-            ]);
+    // Promise-Kette: Zustand wird erst gesetzt, wenn die Antworten da sind.
+    // Die Ladeanzeige schaltet die Render-Anpassung weiter unten ein.
+    const loadZeitkonto = useCallback((mitarbeiterId: number) => Promise.all([
+        fetch(`${ZEITKONTO_API}/${mitarbeiterId}`),
+        fetch('/api/zeitverwaltung/zeitkontenmodelle'),
+    ])
+        .then(async ([statusRes, modelleRes]) => {
             if (!statusRes.ok) throw new Error(await antwortFehler(statusRes, 'Arbeitszeit konnte nicht geladen werden.'));
             if (!modelleRes.ok) throw new Error(await antwortFehler(modelleRes, 'Arbeitszeit-Vorlagen konnten nicht geladen werden.'));
             const [status, modelle] = await Promise.all([statusRes.json(), modelleRes.json()]);
             setZeitkontoStatus(status);
             setZeitkontenmodelle(modelle);
-        } catch (error) {
+        })
+        .catch((error) => {
             const message = error instanceof Error ? error.message : 'Arbeitszeit konnte nicht geladen werden.';
             setZeitkontoStatus(null);
             toast.error(message);
-        } finally {
+        })
+        .finally(() => {
             setLoadingZeitkonto(false);
-        }
-    };
+        }), [toast]);
 
     const uebernehmeZeitkontoStatus = (status: ZeitkontoStatus) => {
         setZeitkontoStatus(status);
@@ -240,9 +235,10 @@ export default function MitarbeiterEditor() {
             ? { ...m, fuehrtZeitkonto: status.fuehrtZeitkonto } : m));
     };
 
+    // Der Beginn (buchungStartZeit) ist nicht mehr sichtbar (Issue #270) und zählt
+    // deshalb nicht als Abweichung von der Vorlage.
     const arbeitszeitenGleich = (links: Arbeitszeit, rechts: Arbeitszeit) => WOCHENTAGE.every(tag => links[tag.key] === rechts[tag.key])
-        && links.buchungStartZeit === rechts.buchungStartZeit
-        && links.buchungEndeZeit === rechts.buchungEndeZeit;
+        && (links.buchungEndeZeit?.slice(0, 5) ?? null) === (rechts.buchungEndeZeit?.slice(0, 5) ?? null);
 
     const invalidiereVorschau = () => {
         vorschauRequestId.current += 1;
@@ -251,17 +247,27 @@ export default function MitarbeiterEditor() {
         setLoadingWechsel(false);
     };
 
-    useEffect(() => {
+    // Dialog geöffnet/geschlossen oder anderer Mitarbeiter: Ladeanzeige an bzw.
+    // Arbeitszeit-Daten verwerfen, bevor der Effekt unten neu lädt.
+    const [zeitkontoAnlass, setZeitkontoAnlass] = useState({ isDialogOpen, zeitkontoDialogOpen, id: formData.id, darfZeiterfassung });
+    if (zeitkontoAnlass.isDialogOpen !== isDialogOpen
+        || zeitkontoAnlass.zeitkontoDialogOpen !== zeitkontoDialogOpen
+        || zeitkontoAnlass.id !== formData.id
+        || zeitkontoAnlass.darfZeiterfassung !== darfZeiterfassung) {
+        setZeitkontoAnlass({ isDialogOpen, zeitkontoDialogOpen, id: formData.id, darfZeiterfassung });
         if (isDialogOpen && formData.id) {
-            if (darfZeiterfassung === true) void loadZeitkonto(formData.id);
+            if (darfZeiterfassung === true) setLoadingZeitkonto(true);
         } else if (!isDialogOpen && !zeitkontoDialogOpen) {
             setZeitkontoStatus(null);
             setWechselVorschau(null);
             setWechselFehler(null);
         }
+    }
+
     // Der Dialog soll nur bei einem anderen Mitarbeiter oder beim Oeffnen erneut laden.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [isDialogOpen, zeitkontoDialogOpen, formData.id, darfZeiterfassung]);
+    useEffect(() => {
+        if (isDialogOpen && formData.id && darfZeiterfassung === true) void loadZeitkonto(formData.id);
+    }, [isDialogOpen, zeitkontoDialogOpen, formData.id, darfZeiterfassung, loadZeitkonto]);
 
     const oeffneArbeitszeitDialog = () => {
         const aktuelleVersion = zeitkontoStatus?.aktuell;
@@ -377,7 +383,7 @@ export default function MitarbeiterEditor() {
         const vorlage = zeitkontenmodelle.find(modell => modell.id === version.vorlageId);
         if (!vorlage) return 'Arbeitszeit-Vorlage';
         const gleich = arbeitszeitenGleich(version.arbeitszeit, vorlage.arbeitszeit);
-        return gleich ? `Vorlage „${vorlage.bezeichnung}“` : `weicht von „${vorlage.bezeichnung}“ ab`;
+        return gleich ? `Vorlage „${vorlage.bezeichnung}"` : `weicht von „${vorlage.bezeichnung}" ab`;
     };
 
     const loadDokumente = async (id: number) => {
@@ -408,27 +414,31 @@ export default function MitarbeiterEditor() {
         }
     };
 
-    const loadLohnabrechnungen = useCallback(async (id: number) => {
-        setLoadingLohnabrechnungen(true);
-        try {
-            const res = await fetch(`/api/lohnabrechnungen/mitarbeiter/${id}`);
+    // Promise-Kette: Zustand wird erst gesetzt, wenn die Antwort da ist.
+    const loadLohnabrechnungen = useCallback((id: number) => fetch(`/api/lohnabrechnungen/mitarbeiter/${id}`)
+        .then(async (res) => {
             if (!res.ok) throw new Error('Lohnabrechnungen konnten nicht geladen werden.');
-            if (res.ok) {
-                const data = await res.json();
-                setLohnabrechnungen(data);
-            }
-        } catch (error) {
+            setLohnabrechnungen(await res.json());
+        })
+        .catch((error) => {
             console.error("Error loading payrolls", error);
             showError('Lohnabrechnungen konnten nicht geladen werden.');
-        } finally {
+        })
+        .finally(() => {
             setLoadingLohnabrechnungen(false);
-        }
-    }, [showError]);
+        }), [showError]);
+
+    // Reiter „Lohnabrechnungen" geöffnet oder anderer Mitarbeiter: Ladeanzeige an, bevor der Effekt lädt.
+    const [lohnAnlass, setLohnAnlass] = useState({ activeTab, selectedMitarbeiter });
+    if (lohnAnlass.activeTab !== activeTab || lohnAnlass.selectedMitarbeiter !== selectedMitarbeiter) {
+        setLohnAnlass({ activeTab, selectedMitarbeiter });
+        if (activeTab === 'lohnabrechnungen' && selectedMitarbeiter) setLoadingLohnabrechnungen(true);
+    }
 
     // Load lohnabrechnungen when tab is activated
     useEffect(() => {
         if (activeTab === 'lohnabrechnungen' && selectedMitarbeiter) {
-            loadLohnabrechnungen(selectedMitarbeiter.id);
+            void loadLohnabrechnungen(selectedMitarbeiter.id);
         }
     }, [activeTab, selectedMitarbeiter, loadLohnabrechnungen]);
 
@@ -565,6 +575,7 @@ export default function MitarbeiterEditor() {
             if (!res.ok) throw new Error('Zugangscode konnte nicht erneuert werden.');
             if (res.ok) {
                 const newToken = await res.text();
+                setCodeKopiert(false);
                 setSelectedMitarbeiter({ ...selectedMitarbeiter, loginToken: newToken });
                 // Update in list too
                 setMitarbeiter(prev => prev.map(m =>
@@ -579,13 +590,38 @@ export default function MitarbeiterEditor() {
         }
     };
 
+    // Ersetzt einen bestehenden Code: Das alte Handy meldet sich danach nicht mehr an.
+    const handleNeuenQrCodeErstellen = async () => {
+        if (!selectedMitarbeiter) return;
+        const name = selectedMitarbeiter.vorname?.trim() || 'Der Mitarbeiter';
+        if (!await confirmDialog({
+            title: 'Neuen QR-Code erstellen?',
+            message: `Der bisherige QR-Code funktioniert danach nicht mehr. ${name} muss die Handy-App mit dem neuen Code neu einrichten.`,
+            variant: 'warning',
+            confirmLabel: 'Neuen Code erstellen',
+        })) return;
+        await handleRegenerateToken();
+    };
+
+    // Fallback, wenn die Handy-Kamera den QR-Code nicht lesen kann: Code abtippen oder weiterschicken.
+    const handleCodeKopieren = async (code: string) => {
+        try {
+            await navigator.clipboard.writeText(code);
+            setCodeKopiert(true);
+            setTimeout(() => setCodeKopiert(false), 2000);
+        } catch {
+            toast.error('Code konnte nicht kopiert werden. Bitte von Hand markieren und kopieren.');
+        }
+    };
+
     const handleDownloadQr = () => {
         if (!selectedMitarbeiter) return;
         window.open(`${BASE_API}/${selectedMitarbeiter.id}/qr-code?width=600&height=600`, '_blank');
     };
 
-    // Sub-components
-    const DetailHeader = () => (
+    // Teilbereiche als Render-Funktionen (nicht als Komponenten): sonst baut React sie bei
+    // jedem Neuzeichnen neu auf – Eingaben verlören den Fokus, Unterbausteine lüden neu.
+    const renderDetailHeader = () => (
         <div className="flex flex-col md:flex-row justify-between gap-4 md:items-end mb-8">
             {/* min-w-0 + break-words (Task 12, zweiter Mechanismus): dieses div
                 ist ab md: Flex-Item der Reihe daneben (Knopfblock) und behaelt
@@ -640,7 +676,7 @@ export default function MitarbeiterEditor() {
         </div>
     );
 
-    const DokumenteList = () => (
+    const renderDokumenteList = () => (
         <div className="space-y-4">
             <div className="flex justify-between items-center border-b pb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -848,7 +884,7 @@ export default function MitarbeiterEditor() {
         </div>
     );
 
-    const NotizenList = () => (
+    const renderNotizenList = () => (
         <div className="space-y-4">
             <div className="flex justify-between items-center border-b pb-4">
                 <h3 className="text-lg font-semibold flex items-center gap-2">
@@ -893,7 +929,7 @@ export default function MitarbeiterEditor() {
     const formatEuro = (betrag: number) =>
         new Intl.NumberFormat('de-DE', { style: 'currency', currency: 'EUR' }).format(betrag);
 
-    const LohnabrechnungenList = () => {
+    const renderLohnabrechnungenList = () => {
         // Filter nach Jahr/Monat
         const gefiltert = lohnabrechnungen.filter(la =>
             (lohnFilterJahr === 'alle' || la.jahr === Number(lohnFilterJahr)) &&
@@ -1026,7 +1062,7 @@ export default function MitarbeiterEditor() {
         );
     };
 
-    const MainContent = () => (
+    const renderMainContent = () => (
         <>
             {/* Tab Navigation */}
             {/*
@@ -1080,9 +1116,9 @@ export default function MitarbeiterEditor() {
                 </button>
             </div>
 
-            {activeTab === 'dokumente' && <DokumenteList />}
-            {activeTab === 'notizen' && <NotizenList />}
-            {activeTab === 'lohnabrechnungen' && <LohnabrechnungenList />}
+            {activeTab === 'dokumente' && renderDokumenteList()}
+            {activeTab === 'notizen' && renderNotizenList()}
+            {activeTab === 'lohnabrechnungen' && renderLohnabrechnungenList()}
             {activeTab === 'stundenlohn' && selectedMitarbeiter && (
                 <StundenlohnHistorieList
                     mitarbeiterId={selectedMitarbeiter.id}
@@ -1628,13 +1664,40 @@ export default function MitarbeiterEditor() {
                             {selectedMitarbeiter?.vorname} {selectedMitarbeiter?.nachname}
                         </p>
                         {selectedMitarbeiter?.loginToken ? (
-                            <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
-                                <img
-                                    src={`${BASE_API}/${selectedMitarbeiter.id}/qr-code?width=250&height=250`}
-                                    alt="QR-Code für Zeiterfassung"
-                                    className="w-[250px] h-[250px]"
-                                />
-                            </div>
+                            <>
+                                <div className="bg-white p-4 rounded-lg border border-slate-200 shadow-sm">
+                                    <img
+                                        src={`${BASE_API}/${selectedMitarbeiter.id}/qr-code?width=250&height=250`}
+                                        alt="QR-Code für Zeiterfassung"
+                                        className="w-[250px] h-[250px]"
+                                    />
+                                </div>
+                                <div className="mt-5 w-full max-w-sm">
+                                    <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1.5">
+                                        Code zum Abtippen
+                                    </p>
+                                    <div className="flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 px-3 py-2">
+                                        <code className="flex-1 select-all break-all font-mono text-sm text-slate-900">
+                                            {selectedMitarbeiter.loginToken}
+                                        </code>
+                                        <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={() => void handleCodeKopieren(selectedMitarbeiter.loginToken!)}
+                                            aria-label="Code kopieren"
+                                            title="Code kopieren"
+                                            className="shrink-0"
+                                        >
+                                            {codeKopiert
+                                                ? <Check className="w-4 h-4" />
+                                                : <Copy className="w-4 h-4" />}
+                                        </Button>
+                                    </div>
+                                    <p className="text-xs text-slate-500 mt-1.5">
+                                        Klappt das Scannen nicht? In der App auf „Token manuell eingeben" tippen und diesen Code eingeben.
+                                    </p>
+                                </div>
+                            </>
                         ) : (
                             <div className="text-center text-slate-500 py-8">
                                 <QrCode className="w-16 h-16 mx-auto mb-3 text-slate-300" />
@@ -1648,7 +1711,7 @@ export default function MitarbeiterEditor() {
                     <DialogFooter className="flex-col sm:flex-row gap-2">
                         <Button
                             variant="outline"
-                            onClick={handleRegenerateToken}
+                            onClick={() => void handleNeuenQrCodeErstellen()}
                             disabled={regenerating}
                             className="w-full sm:w-auto"
                         >
@@ -1832,8 +1895,8 @@ export default function MitarbeiterEditor() {
                 </div>
             ) : (
                 <DetailLayout
-                    header={<DetailHeader />}
-                    mainContent={<MainContent />}
+                    header={renderDetailHeader()}
+                    mainContent={renderMainContent()}
                     // Als Aufruf statt als Komponente: sonst baut React die Seitenleiste bei jedem
                     // Neuzeichnen neu auf, und der Resturlaub darin lädt jedes Mal neu.
                     sideContent={renderSideInfo()}

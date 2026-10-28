@@ -48,7 +48,7 @@ describe('Wartungen: Protokollart mehrerer auf einmal ändern', { timeout: 30000
         expect(screen.getByRole('button', { name: 'Protokollart ändern' })).toBeDisabled();
     });
 
-    it('„Alle auf dieser Seite“ wählt und hebt auf; „Auswahl aufheben“ leert', async () => {
+    it('„Alle auf dieser Seite" wählt und hebt auf; „Auswahl aufheben" leert', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByLabelText('Wartung WA-2026-1001 auswählen');
@@ -75,13 +75,13 @@ describe('Wartungen: Protokollart mehrerer auf einmal ändern', { timeout: 30000
 
         await waitFor(() => expect(aufrufe()).toHaveLength(1));
         expect(JSON.parse((aufrufe()[0][1] as RequestInit).body as string)).toEqual({ ids: [1, 2], protokollTyp: 'Instandhaltungsprotokoll' });
-        expect(await screen.findByText('2 Wartungen sind jetzt als „Instandhaltungsprotokoll“ eingetragen.')).toBeInTheDocument();
+        expect(await screen.findByText('2 Wartungen sind jetzt als „Instandhaltungsprotokoll" eingetragen.')).toBeInTheDocument();
         await waitFor(() => expect(fetcher.mock.calls.filter(([u]) => String(u).startsWith('/api/wartung/protokolle?')).length).toBeGreaterThan(geladenVorher));
         expect(screen.queryByText(/ausgewählt/)).not.toBeInTheDocument();
     });
 
     it('nicht geänderte (zum Beispiel abgeschlossene) werden mit Nummer und Grund genannt', async () => {
-        ergebnis = { geaendert: 1, uebersprungen: [{ id: 3, nummer: 'WA-2026-1003', grund: 'Ist „abgeschlossen“ und lässt sich nicht ändern. Bitte zuerst wieder öffnen.' }] };
+        ergebnis = { geaendert: 1, uebersprungen: [{ id: 3, nummer: 'WA-2026-1003', grund: 'Ist „abgeschlossen" und lässt sich nicht ändern. Bitte zuerst wieder öffnen.' }] };
         const user = userEvent.setup();
         zeige();
         await user.click(await screen.findByLabelText('Wartung WA-2026-1001 auswählen'));
@@ -91,8 +91,8 @@ describe('Wartungen: Protokollart mehrerer auf einmal ändern', { timeout: 30000
         await user.click(await screen.findByRole('option', { name: 'Prüfprotokoll' }));
         await user.click(screen.getByRole('button', { name: 'Protokollart ändern' }));
 
-        expect(await screen.findByText('1 Wartung ist jetzt als „Prüfprotokoll“ eingetragen.')).toBeInTheDocument();
-        expect(await screen.findByText(/Nicht geändert: WA-2026-1003 \(Ist „abgeschlossen“ und lässt sich nicht ändern/)).toBeInTheDocument();
+        expect(await screen.findByText('1 Wartung ist jetzt als „Prüfprotokoll" eingetragen.')).toBeInTheDocument();
+        expect(await screen.findByText(/Nicht geändert: WA-2026-1003 \(Ist „abgeschlossen" und lässt sich nicht ändern/)).toBeInTheDocument();
     });
 
     it('Serverfehler: Meldung, die Auswahl bleibt erhalten', async () => {

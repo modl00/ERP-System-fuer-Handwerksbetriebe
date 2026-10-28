@@ -28,11 +28,11 @@ import {
 interface DokumentSuchenDialogProps {
     /** Die Kette – aus der Bestellübersicht oder ein einzelnes Lieferanten-Dokument. */
     kette: SuchKette;
-    /** Vorgewählte Dokumentart, z. B. RECHNUNG vom „Suchen“ am offenen Ende. Ohne: alle Arten. */
+    /** Vorgewählte Dokumentart, z. B. RECHNUNG vom „Suchen" am offenen Ende. Ohne: alle Arten. */
     startTyp?: VorschlagsTyp | null;
     /**
      * Ein einzelnes Dokument sucht seine Bestellung (Lieferanten → Dokumente, „Zu Kette
-     * zuordnen“). Dann heißt das Fenster „Passende Bestellung suchen“ – aus Sicht des
+     * zuordnen"). Dann heißt das Fenster „Passende Bestellung suchen" – aus Sicht des
      * Nutzers hängt er *dieses* Dokument an, nicht etwas an eine Kette.
      */
     einzeldokument?: boolean;
@@ -105,7 +105,7 @@ function leerText(typ: VorschlagsTyp | null, lieferant: string | null, alleLiefe
     return {
         titel,
         hilfe: alleLieferanten
-            ? 'Vielleicht ist es noch nicht im System. Importiere es beim Lieferanten unter „Dokumente“.'
+            ? 'Vielleicht ist es noch nicht im System. Importiere es beim Lieferanten unter „Dokumente".'
             : 'Vielleicht kam es unter einem anderen Lieferantennamen. Such bei den anderen Lieferanten.',
     };
 }
@@ -265,8 +265,8 @@ export function DokumentSuchenDialog({ kette, startTyp = null, einzeldokument = 
                     </DialogTitle>
                     <DialogDescription>
                         {einzeldokument
-                            ? 'Links dieses Dokument, rechts der gewählte Vorschlag. Passt er, genügt ein Klick auf „Gehört dazu“.'
-                            : 'Links die Kette, rechts das gewählte Dokument. Passt es, genügt ein Klick auf „Gehört dazu“.'}
+                            ? 'Links dieses Dokument, rechts der gewählte Vorschlag. Passt er, genügt ein Klick auf „Gehört dazu".'
+                            : 'Links die Kette, rechts das gewählte Dokument. Passt es, genügt ein Klick auf „Gehört dazu".'}
                     </DialogDescription>
                 </div>
             </div>
@@ -381,7 +381,7 @@ export function DokumentSuchenDialog({ kette, startTyp = null, einzeldokument = 
                         )}
                         {vorschlaege && vorschlaege.length > 0 && sichtbar.length === 0 && (
                             <div className="p-6 text-center text-sm text-slate-500">
-                                Kein Vorschlag passt zu „{suche}“.
+                                Kein Vorschlag passt zu „{suche}".
                             </div>
                         )}
                         {sichtbar.length > 0 && (

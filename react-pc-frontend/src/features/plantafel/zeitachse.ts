@@ -23,7 +23,7 @@ export function tageZwischen(a: Date, b: Date): number {
     return Math.round((b.getTime() - a.getTime()) / MS_TAG);
 }
 
-/** Arbeitstage als ISO-Zahlen (1 = Montag bis 7 = Sonntag), wie die Einstellungen „Planung“ sie liefern. */
+/** Arbeitstage als ISO-Zahlen (1 = Montag bis 7 = Sonntag), wie die Einstellungen „Planung" sie liefern. */
 export const STANDARD_ARBEITSTAGE = [1, 2, 3, 4, 5];
 
 /** Ein arbeitsfreier Tag nach der Arbeitswoche (ohne Angabe: Samstag und Sonntag). Feiertage kennt die Ansicht nicht. */

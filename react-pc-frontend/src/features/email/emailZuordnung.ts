@@ -6,7 +6,7 @@ export type EmailZuordnungArt = 'Projekt' | 'Anfrage' | 'Lieferant' | 'Steuerber
 /** Wohin eine E-Mail gehört – fertig aufbereitet für die Anzeige. */
 export interface EmailZuordnung {
     art: EmailZuordnungArt;
-    /** Kurzer Anzeigetext, z. B. „Projekt 2026-041 · Garagentor“. */
+    /** Kurzer Anzeigetext, z. B. „Projekt 2026-041 · Garagentor". */
     label: string;
     /** Ziel in der App; `null`, wenn es keine eigene Seite dafür gibt. */
     pfad: string | null;
@@ -31,8 +31,8 @@ function gueltigeId(id: number | null | undefined): number | null {
 }
 
 /**
- * „Projekt 2026-041 · Garagentor“, ohne Name „Projekt 2026-041“,
- * ohne Name und Nummer „Projekt #12“.
+ * „Projekt 2026-041 · Garagentor", ohne Name „Projekt 2026-041",
+ * ohne Name und Nummer „Projekt #12".
  */
 function beschrifte(art: EmailZuordnungArt, nummer: string | null, name: string | null, id: number | null): string {
     const kopf = nummer ? `${art} ${nummer}` : art;

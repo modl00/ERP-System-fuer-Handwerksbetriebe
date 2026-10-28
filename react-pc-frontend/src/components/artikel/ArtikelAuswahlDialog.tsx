@@ -259,7 +259,7 @@ export function ArtikelAuswahlDialog({ offen, onSchliessen, onUebernehmen }: Art
                     <span
                         className="text-amber-700 bg-amber-50 rounded px-1.5 py-0.5 text-[10px]"
                         title={ersatztext
-                            ? `Beim Übernehmen wird daraus: „${stripHtmlTags(ersatztext)}“`
+                            ? `Beim Übernehmen wird daraus: „${stripHtmlTags(ersatztext)}"`
                             : 'Lässt sich aus den Stammdaten nicht erzeugen — bitte im Editor selbst schreiben.'}
                     >
                         kein Kundentext

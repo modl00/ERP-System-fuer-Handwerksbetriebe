@@ -53,7 +53,7 @@ describe('KI-Obergrenze: Wie weit darf die KI gehen?', { timeout: 30000 }, () =>
         expect(screen.getByRole('button', { name: /^Speichern$/ })).toBeDisabled();
     });
 
-    it('„Nur allgemeine Anfragen“ erklärt sich selbst und wird mit den übrigen Angaben gespeichert', async () => {
+    it('„Nur allgemeine Anfragen" erklärt sich selbst und wird mit den übrigen Angaben gespeichert', async () => {
         const user = userEvent.setup();
         stub();
         rendern();
@@ -68,7 +68,7 @@ describe('KI-Obergrenze: Wie weit darf die KI gehen?', { timeout: 30000 }, () =>
         expect(await screen.findByText('Gespeichert. Die Änderung steht im KI-Protokoll.')).toBeVisible();
     });
 
-    it('„Anbieter mit Vertrag“ zeigt die Cloud-Anbieter zum Ankreuzen, nicht die lokale KI, mit dem Hinweis, dass die Prüfung beim Betrieb bleibt', async () => {
+    it('„Anbieter mit Vertrag" zeigt die Cloud-Anbieter zum Ankreuzen, nicht die lokale KI, mit dem Hinweis, dass die Prüfung beim Betrieb bleibt', async () => {
         const user = userEvent.setup();
         stub();
         rendern();
@@ -87,7 +87,7 @@ describe('KI-Obergrenze: Wie weit darf die KI gehen?', { timeout: 30000 }, () =>
         await waitFor(() => expect(puts[0]).toMatchObject({ datenschutz: 'MIT_VERTRAG', vertrag: { CLAUDE: true, MISTRAL: true } }));
     });
 
-    it('„Erweitert“ zeigt nur freischaltbare Werkzeuge mit Warnung; angehakte gehen als „ohne Rückfrage“ mit', async () => {
+    it('„Erweitert" zeigt nur freischaltbare Werkzeuge mit Warnung; angehakte gehen als „ohne Rückfrage" mit', async () => {
         const user = userEvent.setup();
         stub();
         rendern();
@@ -107,7 +107,7 @@ describe('KI-Obergrenze: Wie weit darf die KI gehen?', { timeout: 30000 }, () =>
         expect([...(puts[0].ohneRueckfrage as string[])].sort()).toEqual(['lager_buchen', 'zeit_buchen']);
     });
 
-    it('wird „Erweitert“ verlassen, werden keine Werkzeuge ohne Rückfrage mitgeschickt', async () => {
+    it('wird „Erweitert" verlassen, werden keine Werkzeuge ohne Rückfrage mitgeschickt', async () => {
         const user = userEvent.setup();
         stub();
         rendern();

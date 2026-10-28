@@ -115,7 +115,22 @@ ziel_zustand() {
         echo bereit
     fi
 }
+# Laeuft auf diesem Rechner der Docker-Waechter (Windows, docker-waechter.ps1)?
+# Er frischt bei jedem Lauf (alle 5 Minuten) diese Datei auf und bindet
+# abgerissene Sicherungsziele vor der naechsten Sicherung selbst wieder ein.
+waechter_aktiv() {
+    [[ -n "$(find "$LOG_DIR/docker-waechter-lebt.txt" -mmin -30 2>/dev/null)" ]]
+}
 NICHT_EINGEBUNDEN_HINWEIS="ist in der .env eingetragen, aber noch nicht eingebunden. Bitte im ERP-Ordner einmal ausführen: docker compose up -d updater"
+# Nach einem Umzug der Uploads (dateifreigabe.sh --umziehen) haengt bis zum
+# naechsten "docker compose up -d" noch der alte Ordner im Updater. Aus dem
+# spiegelte die Sicherung sonst weiter - und neue Dateien fehlten darin.
+uploads_eingebunden() {
+    # Ein Updater von vor dieser Pruefung kennt die Variable nicht: nichts zu vergleichen
+    [[ -z "${UPLOADS_ORDNER_EINGEBUNDEN+x}" ]] && return 0
+    [[ "$(env_wert UPLOADS_ORDNER)" == "$UPLOADS_ORDNER_EINGEBUNDEN" ]]
+}
+UPLOADS_UMGEZOGEN_HINWEIS="Die hochgeladenen Dateien sind umgezogen, der Updater sichert aber noch den alten Ordner. Bitte im ERP-Ordner einmal ausführen: docker compose up -d"
 
 # -----------------------------------------------------------------------------
 # Ziele einrichten
@@ -132,8 +147,9 @@ if [[ "$MODUS" == "ziele-einrichten" ]]; then
                 log "$(ziel_name "$ziel") $NICHT_EINGEBUNDEN_HINWEIS"
                 continue ;;
         esac
-        if [[ ! -d "$ziel" ]]; then
-            log "$(ziel_name "$ziel"): $ziel fehlt im Updater - docker compose up -d updater."
+        # Auch eine tote Einbindung (siehe ziel_sichern) ist hier "kein Ordner"
+        if [[ ! -d "$ziel" ]] || ! ls -A "$ziel/" >/dev/null 2>&1; then
+            log "$(ziel_name "$ziel"): $ziel ist im Updater nicht lesbar - Docker Desktop (bzw. den Rechner) neu starten, danach erneut versuchen."
             continue
         fi
         printf '%s\r\n' \
@@ -162,9 +178,29 @@ ziel_sichern() {
         echo "$name $NICHT_EINGEBUNDEN_HINWEIS"
         return 1
     fi
+    # Tote Einbindung: Das Ziel war schon eingebunden und ist zwischendurch
+    # kurz verschwunden (Windows schaltet eine USB-Platte beim Energiesparen
+    # ab, OneDrive startet neu ...). Unter Windows ist es danach wieder da,
+    # Docker haelt aber an der alten Verbindung fest: Jeder Zugriff endet mit
+    # "No such device". Anders als ein leerer Platzhalter laesst sich der
+    # Ordner gar nicht mehr lesen.
+    if ! ls -A "$ziel/" >/dev/null 2>&1; then
+        if waechter_aktiv; then
+            echo "$name: Die Verbindung ist abgerissen (z. B. hat Windows die Platte beim Energiesparen kurz abgeschaltet). Der Docker-Wächter stellt sie vor der nächsten Sicherung von selbst wieder her. Sofort beheben: Docker Desktop neu starten."
+        else
+            echo "$name: Die Verbindung ist abgerissen (z. B. kurz abgezogen oder beim Energiesparen abgeschaltet). Bitte den Rechner neu starten."
+        fi
+        # shellcheck disable=SC2012  # nur die Fehlermeldung von ls zaehlt
+        log "(Docker kommt nicht mehr an $ziel: $(ls -A "$ziel/" 2>&1 >/dev/null | head -n 1 || true))" >&2
+        return 1
+    fi
     if [[ ! -f "$ziel/$MARKIERUNG" ]]; then
         if [[ "$ziel" == "$ZIEL_PLATTE" ]]; then
-            echo "Externe Festplatte nicht gefunden. Bitte anschließen und den Rechner neu starten."
+            if waechter_aktiv; then
+                echo "Externe Festplatte nicht gefunden. Bitte anschließen – der Docker-Wächter bindet sie vor der nächsten Sicherung von selbst ein."
+            else
+                echo "Externe Festplatte nicht gefunden. Bitte anschließen und den Rechner neu starten."
+            fi
         else
             echo "Cloud-Ordner nicht gefunden. Gibt es den Ordner noch? Danach den Rechner neu starten."
         fi
@@ -184,6 +220,10 @@ ziel_sichern() {
     fi
     log "$name: Datenbank-Sicherung kopiert ($dateiname)." >&2
 
+    if ! uploads_eingebunden; then
+        echo "$name: $UPLOADS_UMGEZOGEN_HINWEIS"
+        return 1
+    fi
     if [[ -d "$UPLOADS" ]]; then
         # -rt: Ordner und Zeitstempel, keine Rechte/Besitzer (FAT32, OneDrive).
         # --modify-window=2: FAT speichert Zeiten nur auf 2 Sekunden genau -

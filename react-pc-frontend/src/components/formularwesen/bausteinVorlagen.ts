@@ -25,7 +25,7 @@ export const BAUSTEINE: BausteinVorlage[] = [
     { art: 'anschrift', titel: 'Anschrift', beschreibung: 'Kundenadresse, sitzt gleich im Fenster', Icon: MapPin },
     { art: 'infoblock', titel: 'Nummer & Datum', beschreibung: 'Dokumentnummer, Datum, Kundennummer', Icon: Hash },
     { art: 'tabelle', titel: 'Positionen', beschreibung: 'Bereich für die Leistungstabelle', Icon: Table2 },
-    { art: 'seitenzahl', titel: 'Seitenzahl', beschreibung: '„Seite 1 / 2“', Icon: FileDigit },
+    { art: 'seitenzahl', titel: 'Seitenzahl', beschreibung: '„Seite 1 / 2"', Icon: FileDigit },
     { art: 'logo', titel: 'Logo / Bild', beschreibung: 'Firmenlogo einfügen', Icon: Image },
 ];
 

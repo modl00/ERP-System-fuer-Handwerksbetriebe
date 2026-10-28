@@ -44,7 +44,7 @@ describe('Beleg im KI-Chat', { timeout: 30000 }, () => {
         expect(aufrufe.filter(a => a.url.includes('/import'))).toHaveLength(0);
     });
 
-    it('legt nach „Ja, ablegen“ über den Import des Lieferanten ab, mit den geprüften Angaben', async () => {
+    it('legt nach „Ja, ablegen" über den Import des Lieferanten ab, mit den geprüften Angaben', async () => {
         const user = userEvent.setup();
         antworten['/beleg/pruefen'] = () => json(EINDEUTIG);
         antworten['/api/lieferanten/1/dokumente/import'] = () => json({ ok: true });
@@ -66,7 +66,7 @@ describe('Beleg im KI-Chat', { timeout: 30000 }, () => {
         expect(await screen.findByRole('status')).toHaveTextContent('Abgelegt bei Muster Stahlhandel GmbH: Lieferschein R-101.');
     });
 
-    it('ohne eindeutigen Lieferanten bleibt „Ja, ablegen“ gesperrt, bis einer gewählt ist; Hinweise stehen da', async () => {
+    it('ohne eindeutigen Lieferanten bleibt „Ja, ablegen" gesperrt, bis einer gewählt ist; Hinweise stehen da', async () => {
         const user = userEvent.setup();
         antworten['/beleg/pruefen'] = () => json({ beleg: BELEG, lieferantId: null, lieferantName: null,
             kandidaten: [{ id: 1, name: 'Muster Stahlhandel GmbH', aehnlichkeit: 0.8 }, { id: 2, name: 'Muster Schrauben KG', aehnlichkeit: 0.5 }], hinweise: ['Der Lieferant ist nicht eindeutig. Bitte einen der Vorschläge wählen.'] });
@@ -82,7 +82,7 @@ describe('Beleg im KI-Chat', { timeout: 30000 }, () => {
 
     it('bei unbekanntem Lieferanten gibt es keinen Knopf zum Anlegen, nur den Hinweis', async () => {
         const user = userEvent.setup();
-        antworten['/beleg/pruefen'] = () => json({ beleg: BELEG, lieferantId: null, lieferantName: null, kandidaten: [], hinweise: ['Den Lieferanten „X“ gibt es noch nicht.'] });
+        antworten['/beleg/pruefen'] = () => json({ beleg: BELEG, lieferantId: null, lieferantName: null, kandidaten: [], hinweise: ['Den Lieferanten „X" gibt es noch nicht.'] });
         render(<KiBelegKarte />);
         await auswaehlen(user);
 
@@ -92,7 +92,7 @@ describe('Beleg im KI-Chat', { timeout: 30000 }, () => {
 
     it('Serverfehler beim Auswerten und beim Ablegen stehen im Klartext da; Verwerfen setzt zurück', async () => {
         const user = userEvent.setup();
-        antworten['/beleg/pruefen'] = () => json({ message: 'Nach der Einstellung „Wie weit darf die KI gehen?“ darf ein Beleg nicht an einen Cloud-Anbieter gehen.' }, 403);
+        antworten['/beleg/pruefen'] = () => json({ message: 'Nach der Einstellung „Wie weit darf die KI gehen?" darf ein Beleg nicht an einen Cloud-Anbieter gehen.' }, 403);
         const { unmount } = render(<KiBelegKarte />);
         await auswaehlen(user);
         expect(await screen.findByRole('alert')).toHaveTextContent('Cloud-Anbieter');

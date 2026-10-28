@@ -1,5 +1,6 @@
 package org.example.kalkulationsprogramm.controller;
 
+import tools.jackson.databind.json.JsonMapper;
 import org.example.kalkulationsprogramm.domain.EmailDraft;
 import org.example.kalkulationsprogramm.repository.EmailDraftRepository;
 import org.junit.jupiter.api.BeforeEach;
@@ -24,13 +25,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 class EmailDraftControllerTest {
     private final EmailDraftRepository repository = mock(EmailDraftRepository.class);
     private final org.example.kalkulationsprogramm.repository.EmailDraftAttachmentRepository attachments = mock(org.example.kalkulationsprogramm.repository.EmailDraftAttachmentRepository.class);
+    private final org.example.kalkulationsprogramm.repository.FrontendUserProfileRepository benutzer =
+            mock(org.example.kalkulationsprogramm.repository.FrontendUserProfileRepository.class);
     private final org.example.kalkulationsprogramm.service.PostfachSichtbarkeitService sichtbarkeit =
             mock(org.example.kalkulationsprogramm.service.PostfachSichtbarkeitService.class);
     private MockMvc mvc;
 
     @BeforeEach
     void setup() {
-        mvc = MockMvcBuilders.standaloneSetup(new EmailDraftController(new org.example.kalkulationsprogramm.service.EmailDraftService(repository, attachments), sichtbarkeit)).build();
+        mvc = MockMvcBuilders.standaloneSetup(new EmailDraftController(new org.example.kalkulationsprogramm.service.EmailDraftService(repository, attachments, benutzer), sichtbarkeit)).build();
         when(repository.save(any())).thenAnswer(invocation -> {
             EmailDraft draft = invocation.getArgument(0);
             draft.setId(42L);
@@ -180,7 +183,7 @@ class EmailDraftControllerTest {
     void preservesLocalSignatureImagesAndMetadataWhileRemovingActiveContent() throws Exception {
         String body = "<div class='email-signature' data-signature-id='3'><img src='/api/email/signatures/3/images/8' onerror='alert(1)'><img src='/api/emails/12/attachments/4'></div>";
         mvc.perform(post("/api/emails/drafts").contentType(MediaType.APPLICATION_JSON)
-                .content(new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(java.util.Map.of("body", body))))
+                .content(JsonMapper.builderWithJackson2Defaults().build().writeValueAsString(java.util.Map.of("body", body))))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.body").value(org.hamcrest.Matchers.containsString("src=\"/api/email/signatures/3/images/8\"")))
                 .andExpect(jsonPath("$.body").value(org.hamcrest.Matchers.containsString("src=\"/api/emails/12/attachments/4\"")))

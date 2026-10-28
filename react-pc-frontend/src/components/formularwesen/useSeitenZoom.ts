@@ -17,7 +17,7 @@ export function einpassZoom(bereich: { breite: number; hoehe: number }, inhalt: 
 
 export interface SeitenZoom {
     zoom: number;
-    /** Folgt der Zoom gerade der Fenstergröße („Seite einpassen“)? */
+    /** Folgt der Zoom gerade der Fenstergröße („Seite einpassen")? */
     eingepasst: boolean;
     vergroessern: () => void;
     verkleinern: () => void;

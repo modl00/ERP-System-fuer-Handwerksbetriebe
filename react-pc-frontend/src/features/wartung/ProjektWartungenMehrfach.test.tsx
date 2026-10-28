@@ -142,7 +142,7 @@ describe('Projekt, Reiter Wartung: mehrere Wartungen zuordnen und entfernen', { 
 });
 
 describe('Projekt, Reiter Wartung: Wartung starten und neue Anlage', () => {
-    it('„Wartung starten“ öffnet die neue Wartung mit Kunde, Objekt und Anlage; läuft schon ein Feldeinsatz, gibt es den Knopf nicht', async () => {
+    it('„Wartung starten" öffnet die neue Wartung mit Kunde, Objekt und Anlage; läuft schon ein Feldeinsatz, gibt es den Knopf nicht', async () => {
         const user = userEvent.setup();
         stub([wartung(3, 'Heizung'), wartung(4, 'Lüftung', { offenerFeldeinsatzId: 60, offenerFeldeinsatzNummer: 'WA-1' })], [objekt([tuer(3, 'Heizung'), tuer(4, 'Lüftung')])]);
         zeige();
@@ -154,7 +154,7 @@ describe('Projekt, Reiter Wartung: Wartung starten und neue Anlage', () => {
         expect(await screen.findByRole('heading', { name: 'Neue Wartung' })).toBeVisible();
     });
 
-    it('„Neue Anlage“ öffnet die Auswahl des Objekts; mit genau einem Objekt ist es schon gewählt, „Neues Objekt“ öffnet die Objekt-Maske', async () => {
+    it('„Neue Anlage" öffnet die Auswahl des Objekts; mit genau einem Objekt ist es schon gewählt, „Neues Objekt" öffnet die Objekt-Maske', async () => {
         const user = userEvent.setup();
         stub([], [objekt([])]);
         zeige();
@@ -169,7 +169,7 @@ describe('Projekt, Reiter Wartung: Wartung starten und neue Anlage', () => {
         expect(await screen.findByRole('heading', { name: 'Objekt anlegen' })).toBeVisible();
     });
 
-    it('„Neue Anlage“ ohne Objekt: erst ein Objekt anlegen, der Knopf ist bis dahin gesperrt', async () => {
+    it('„Neue Anlage" ohne Objekt: erst ein Objekt anlegen, der Knopf ist bis dahin gesperrt', async () => {
         const user = userEvent.setup();
         stub([], []);
         zeige();

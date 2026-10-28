@@ -10,7 +10,7 @@ interface AiButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 /**
- * Knopf für KI-Aktionen mitten in Formularen (z. B. „KI-Optimierung“ beim
+ * Knopf für KI-Aktionen mitten in Formularen (z. B. „KI-Optimierung" beim
  * E-Mail-Schreiben).
  *
  * <p>Ist kein KI-Schlüssel hinterlegt, sperrt er sich selbst und erklärt

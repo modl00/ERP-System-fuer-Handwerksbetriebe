@@ -93,9 +93,9 @@ export async function loadEmailDraft(id: number): Promise<EmailDraftSnapshot> {
     const draft = await response.json() as StoredDraft;
     const files = await Promise.all((draft.attachments ?? []).map(async attachment => {
         const download = await fetch(`/api/emails/drafts/${id}/attachments/${attachment.id}`);
-        if (!download.ok) throw new Error(`Anhang „${attachment.filename}“ konnte nicht geladen werden. Bitte erneut versuchen.`);
+        if (!download.ok) throw new Error(`Anhang „${attachment.filename}" konnte nicht geladen werden. Bitte erneut versuchen.`);
         const bytes = await download.arrayBuffer();
-        if (bytes.byteLength !== attachment.size) throw new Error(`Anhang „${attachment.filename}“ ist unvollständig. Bitte erneut laden.`);
+        if (bytes.byteLength !== attachment.size) throw new Error(`Anhang „${attachment.filename}" ist unvollständig. Bitte erneut laden.`);
         return new File([new Uint8Array(bytes)], attachment.filename, { type: attachment.contentType });
     }));
     return { content: draft, files };

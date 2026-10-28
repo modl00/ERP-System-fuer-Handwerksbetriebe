@@ -8,7 +8,7 @@ interface PostfachSchildProps {
 
 /**
  * Kleines, dezentes Schild an jeder Mail: in welchem Postfach sie liegt
- * („info@“). Liegt eine Mail in mehreren Postfächern (z. B. an info@ und max@
+ * („info@"). Liegt eine Mail in mehreren Postfächern (z. B. an info@ und max@
  * gleichzeitig adressiert), stehen alle da. Die volle Adresse steht im Tooltip.
  */
 export function PostfachSchild({ postfaecher, className }: PostfachSchildProps) {

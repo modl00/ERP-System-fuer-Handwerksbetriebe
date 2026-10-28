@@ -93,7 +93,7 @@ export default function KostenstellenControllingEditor() {
     const [suche, setSuche] = useState<string>('');
 
     const [kostenstellen, setKostenstellen] = useState<KostenstelleAuswertung[]>([]);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     const [selected, setSelected] = useState<KostenstelleAuswertung | null>(null);
@@ -106,26 +106,41 @@ export default function KostenstellenControllingEditor() {
         return jahre.map(y => ({ value: String(y), label: String(y) }));
     }, [currentYear]);
 
-    const loadData = useCallback(async () => {
+    // Neuer Zeitraum: Ladeanzeige an, bevor der Effekt neu lädt.
+    const zeitraumSchluessel = `${jahr}-${monat}`;
+    const [geladenerZeitraum, setGeladenerZeitraum] = useState(zeitraumSchluessel);
+    if (geladenerZeitraum !== zeitraumSchluessel) {
+        setGeladenerZeitraum(zeitraumSchluessel);
         setLoading(true);
-        try {
-            const params = new URLSearchParams({ jahr: String(jahr) });
-            if (monat) params.append('monat', monat);
-            const res = await fetch(`/api/bestellungen-uebersicht/kostenstellen/auswertung?${params.toString()}`);
-            if (res.ok) {
-                setKostenstellen(await res.json());
-            } else {
-                setKostenstellen([]);
-            }
-        } catch (e) {
-            console.error('Fehler beim Laden der Kostenstellen', e);
-        } finally {
-            setLoading(false);
-        }
+    }
+
+    // Promise-Kette: Zustand wird erst gesetzt, wenn die Antwort da ist.
+    const loadData = useCallback(() => {
+        const params = new URLSearchParams({ jahr: String(jahr) });
+        if (monat) params.append('monat', monat);
+        return fetch(`/api/bestellungen-uebersicht/kostenstellen/auswertung?${params.toString()}`)
+            .then(async (res) => {
+                if (res.ok) {
+                    setKostenstellen(await res.json());
+                } else {
+                    setKostenstellen([]);
+                }
+            })
+            .catch((e) => {
+                console.error('Fehler beim Laden der Kostenstellen', e);
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, [jahr, monat]);
 
+    const neuLaden = () => {
+        setLoading(true);
+        return loadData();
+    };
+
     useEffect(() => {
-        loadData();
+        void loadData();
     }, [loadData]);
 
     const gefiltert = useMemo(() => {
@@ -178,7 +193,7 @@ export default function KostenstellenControllingEditor() {
             if (res.ok) {
                 setShowModal(false);
                 setEditing(null);
-                await loadData();
+                await neuLaden();
             } else {
                 let meldung = 'Fehler beim Speichern';
                 try {
@@ -205,7 +220,7 @@ export default function KostenstellenControllingEditor() {
         try {
             const res = await fetch(`/api/firma/kostenstellen/${id}`, { method: 'DELETE' });
             if (res.ok) {
-                await loadData();
+                await neuLaden();
             } else {
                 toast.error('Löschen fehlgeschlagen');
             }
@@ -219,7 +234,7 @@ export default function KostenstellenControllingEditor() {
         try {
             const res = await fetch('/api/firma/kostenstellen/init', { method: 'POST' });
             if (res.ok) {
-                await loadData();
+                await neuLaden();
             }
         } catch (e) {
             console.error('Fehler beim Initialisieren', e);
@@ -297,7 +312,7 @@ export default function KostenstellenControllingEditor() {
                                     />
                                 </div>
                             </div>
-                            <Button onClick={loadData} variant="outline" size="sm" disabled={loading} className="border-rose-300 text-rose-700 hover:bg-rose-50">
+                            <Button onClick={neuLaden} variant="outline" size="sm" disabled={loading} className="border-rose-300 text-rose-700 hover:bg-rose-50">
                                 {loading ? <RefreshCw className="w-4 h-4 mr-1 animate-spin" /> : <Filter className="w-4 h-4 mr-1" />}
                                 Aktualisieren
                             </Button>

@@ -73,7 +73,7 @@ describe('Arbeitsgang ausblenden statt löschen', { timeout: 30000 }, () => {
 
     it('ein benutzter Arbeitsgang lässt sich nicht löschen: Der Grund steht da und das Ausblenden wird angeboten', async () => {
         const user = userEvent.setup();
-        loeschenAntwort = () => antwort({ message: 'Der Arbeitsgang „Sägen“ wird noch benutzt (3 Zeitbuchungen und 2 Zeilen in Leistungen).' }, false, 409);
+        loeschenAntwort = () => antwort({ message: 'Der Arbeitsgang „Sägen" wird noch benutzt (3 Zeitbuchungen und 2 Zeilen in Leistungen).' }, false, 409);
         zeige();
         await user.click(await screen.findByText('Werkstatt'));
         await user.click(await screen.findByRole('button', { name: 'Sägen löschen' }));
@@ -86,7 +86,7 @@ describe('Arbeitsgang ausblenden statt löschen', { timeout: 30000 }, () => {
 
     it('wer das Ausblenden ablehnt, behält den Arbeitsgang unverändert', async () => {
         const user = userEvent.setup();
-        loeschenAntwort = () => antwort({ message: 'Der Arbeitsgang „Sägen“ wird noch benutzt (1 Zeitbuchung).' }, false, 409);
+        loeschenAntwort = () => antwort({ message: 'Der Arbeitsgang „Sägen" wird noch benutzt (1 Zeitbuchung).' }, false, 409);
         zeige();
         await user.click(await screen.findByText('Werkstatt'));
         await user.click(await screen.findByRole('button', { name: 'Sägen löschen' }));

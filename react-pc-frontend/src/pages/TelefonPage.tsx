@@ -76,7 +76,7 @@ export default function TelefonPage() {
                     </div>
                     <h2 className="text-lg font-semibold text-slate-900">Anrufe sind für Sie nicht freigeschaltet</h2>
                     <p className="text-slate-500">
-                        Anrufliste und Anrufbeantworter sieht nur, wer das Recht „Anrufe &amp; Anrufbeantworter“ hat.
+                        Anrufliste und Anrufbeantworter sieht nur, wer das Recht „Anrufe &amp; Anrufbeantworter" hat.
                         Bitte wenden Sie sich an den Administrator.
                     </p>
                 </Card>
@@ -97,14 +97,15 @@ function TelefonInhalt({ reiter }: { reiter: Reiter }) {
     const [aktualisierung, setAktualisierung] = useState(0);
     const ergebnisTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-    const ladeStand = useCallback(async () => {
-        try {
-            setStatus(await ladeStatus());
+    // Promise-Kette: Zustand wird erst gesetzt, wenn die Antwort da ist.
+    const ladeStand = useCallback(() => ladeStatus()
+        .then((neu) => {
+            setStatus(neu);
             setStatusFehler(null);
-        } catch (e) {
+        })
+        .catch((e) => {
             setStatusFehler(e instanceof Error ? e.message : 'Der Telefon-Stand konnte nicht geladen werden.');
-        }
-    }, []);
+        }), []);
 
     useEffect(() => {
         void ladeStand();
@@ -187,7 +188,7 @@ function TelefonInhalt({ reiter }: { reiter: Reiter }) {
                 <>
                     {/* Stand der letzten Abholung */}
                     <div className="flex flex-col gap-2 text-sm">
-                        {/* Links der Stand, rechts dezent das Telefon für „Zurückrufen“ – auch für Nicht-Administratoren änderbar. */}
+                        {/* Links der Stand, rechts dezent das Telefon für „Zurückrufen" – auch für Nicht-Administratoren änderbar. */}
                         <div className="flex flex-wrap items-center justify-between gap-x-6 gap-y-2">
                             <p className="flex items-center gap-2 text-slate-500">
                                 <Clock aria-hidden="true" className="h-4 w-4 shrink-0" />

@@ -40,7 +40,7 @@ describe('Aufschläge einstellen', { timeout: 30000 }, () => {
 
         expect(await screen.findByLabelText('Aufschlag in Prozent')).toHaveValue('20');
         expect(within(screen.getByTestId('aufschlag-kategorie-1')).getByText('25 %')).toBeVisible();
-        expect(within(screen.getByTestId('aufschlag-kategorie-2')).getByText('25 % (von „Stahl“)')).toBeVisible();
+        expect(within(screen.getByTestId('aufschlag-kategorie-2')).getByText('25 % (von „Stahl")')).toBeVisible();
         expect(within(screen.getByTestId('aufschlag-kategorie-3')).getByText('20 % (allgemein)')).toBeVisible();
         expect(screen.getByLabelText('Aufschlag für Stahl › Rohre')).toHaveValue('');
     });

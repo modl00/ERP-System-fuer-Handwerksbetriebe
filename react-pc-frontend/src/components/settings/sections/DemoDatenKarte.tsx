@@ -6,7 +6,7 @@ import { useToast } from '../../ui/toast';
 import { useConfirm } from '../../ui/confirm-dialog';
 import { entferneDemoDaten, ladeDemoStatus, type DemoEntfernt } from '../../../features/demo/demoApi';
 
-/** „3 Mitarbeiter, 1 Kunde …“: nur nennen, was entfernt wurde. */
+/** „3 Mitarbeiter, 1 Kunde …": nur nennen, was entfernt wurde. */
 export function entferntText(e: DemoEntfernt): string {
     const teile: string[] = [];
     const nenne = (n: number, eins: string, viele: string) => { if (n > 0) teile.push(`${n} ${n === 1 ? eins : viele}`); };
@@ -43,7 +43,7 @@ export function DemoDatenKarte() {
     const entfernen = async () => {
         const ja = await confirm({
             title: 'Demo-Daten entfernen?',
-            message: 'Das entfernt die erfundenen Demo-Daten (Mitarbeiter mit „@demo.invalid“, Kunden „DEMO-K…“, Aufträge „DEMO-…“, Leistungen „(Demo)“, die Demo-Lieferanten und Demo-Termine) mit allem, was daran hängt, zum Beispiel ihrem Plan. Echte Daten bleiben. Das lässt sich nicht rückgängig machen.',
+            message: 'Das entfernt die erfundenen Demo-Daten (Mitarbeiter mit „@demo.invalid", Kunden „DEMO-K…", Aufträge „DEMO-…", Leistungen „(Demo)", die Demo-Lieferanten und Demo-Termine) mit allem, was daran hängt, zum Beispiel ihrem Plan. Echte Daten bleiben. Das lässt sich nicht rückgängig machen.',
             confirmLabel: 'Demo-Daten entfernen',
             variant: 'danger',
         });

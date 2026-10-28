@@ -75,7 +75,7 @@ describe('AuftragDialog', { timeout: 30000 }, () => {
         const user = userEvent.setup();
         const p = zeige();
         await user.click(await screen.findByRole('button', { name: /Aus der Plantafel entfernen/ }));
-        expect(await screen.findByText(/Sollen alle 2 Vorgänge von „Geländer Musterstraße“ aus der Plantafel entfernt werden\?/)).toBeInTheDocument();
+        expect(await screen.findByText(/Sollen alle 2 Vorgänge von „Geländer Musterstraße" aus der Plantafel entfernt werden\?/)).toBeInTheDocument();
         expect(aufrufe.some(a => a.methode === 'DELETE')).toBe(false);
         await user.click(screen.getByRole('button', { name: 'Entfernen' }));
 
@@ -83,7 +83,7 @@ describe('AuftragDialog', { timeout: 30000 }, () => {
         expect(aufrufe.some(a => a.methode === 'DELETE' && a.url.endsWith('/api/plantafel/auftraege/7'))).toBe(true);
     });
 
-    it('bei „Abbrechen“ bleibt der Auftrag in der Plantafel', async () => {
+    it('bei „Abbrechen" bleibt der Auftrag in der Plantafel', async () => {
         const user = userEvent.setup();
         const p = zeige();
         await user.click(await screen.findByRole('button', { name: /Aus der Plantafel entfernen/ }));

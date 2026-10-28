@@ -124,8 +124,8 @@ export default function LayoutEinstellungenDialog({ offen, einstellungen, liefer
                 <DialogHeader>
                     <DialogTitle>Seiten-Einstellungen</DialogTitle>
                     <DialogDescription>
-                        Hier legen Sie fest, wo Adresse, Infoblock und Betreffzeilen stehen und wie die Positionen aussehen. „Layout neu aufbauen“ setzt
-                        die Blöcke danach neu; eigene Verschiebungen und zusätzliche Blöcke gehen dabei verloren. Gespeichert wird erst mit „Speichern“.
+                        Hier legen Sie fest, wo Adresse, Infoblock und Betreffzeilen stehen und wie die Positionen aussehen. „Layout neu aufbauen" setzt
+                        die Blöcke danach neu; eigene Verschiebungen und zusätzliche Blöcke gehen dabei verloren. Gespeichert wird erst mit „Speichern".
                     </DialogDescription>
                 </DialogHeader>
 
@@ -186,7 +186,7 @@ export default function LayoutEinstellungenDialog({ offen, einstellungen, liefer
                             </div>
                             <Zahl id="le-b2-gr" label="Schriftgröße" einheit="pt" min={6} max={28} wert={werte.betreff2Schriftgroesse} onChange={v => setze('betreff2Schriftgroesse', v)} />
                             <div>
-                                <Label htmlFor="le-b2-text">Eigener Titel (leer = „Rechnung Nr. …“ je nach Dokumentart)</Label>
+                                <Label htmlFor="le-b2-text">Eigener Titel (leer = „Rechnung Nr. …" je nach Dokumentart)</Label>
                                 <Input id="le-b2-text" value={werte.betreff2Text} maxLength={200} onChange={e => setze('betreff2Text', e.target.value)} placeholder="{{DOKUMENTTYP}} Nr. {{DOKUMENTNUMMER}}" />
                             </div>
                         </Gruppe>

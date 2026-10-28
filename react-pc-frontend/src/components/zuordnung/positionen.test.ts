@@ -41,7 +41,7 @@ const position = (id: number, art: DokumentPosition['positionsArt'], ziel: Parti
     ...ziel,
 });
 
-describe('positionen – Modus „Nach Positionen“', () => {
+describe('positionen – Modus „Nach Positionen"', () => {
     const uebersicht = (dokumentTyp: string | null, auslesbar: boolean, positionen: DokumentPosition[]) => ({ dokumentTyp, auslesbar, positionen });
 
     it('ist möglich, wenn Positionen da oder auslesbar sind', () => {
@@ -214,7 +214,7 @@ describe('positionen – Zuschläge, die zu bestimmten Positionen gehören', () 
         expect(bezuegeAusPositionen([position(1, 'NEBENKOSTEN', { bezugPositionIds: null })])).toEqual({ 1: [] });
     });
 
-    it('zeigt „Gilt für“ als „alle Positionen“ oder sortierte Positionsnummern', () => {
+    it('zeigt „Gilt für" als „alle Positionen" oder sortierte Positionsnummern', () => {
         expect(gueltigFuerText([], positionen)).toBe('alle Positionen');
         expect(gueltigFuerText(undefined, positionen)).toBe('alle Positionen');
         expect(gueltigFuerText([5, 3], positionen)).toBe('Pos. 3, 5');

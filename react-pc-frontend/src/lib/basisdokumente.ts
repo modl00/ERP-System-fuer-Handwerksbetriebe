@@ -2,7 +2,7 @@ import type { AusgangsGeschaeftsDokument } from '../types';
 
 /**
  * Regeln für Basisdokumente (Dokumente ohne Vorgänger = eigene Vorgänge) im
- * Dialog „Dokument erstellen“. Spiegelt die Prüfung im Backend
+ * Dialog „Dokument erstellen". Spiegelt die Prüfung im Backend
  * (`AusgangsGeschaeftsDokumentService.validiereBasisdokument`).
  *
  * Stornierte Dokumente zählen nicht: Wurde eine direkt angelegte Rechnung

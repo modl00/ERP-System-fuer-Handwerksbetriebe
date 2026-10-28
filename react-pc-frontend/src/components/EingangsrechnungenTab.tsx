@@ -28,7 +28,7 @@ interface Eingangsrechnung {
     pdfUrl: string;
     ueberfaellig: boolean;
     genehmigt: boolean;
-    darfGenehmigen: boolean; // Vom Backend: true, wenn die Abteilung des Users das Recht „Rechnungen genehmigen“ hat
+    darfGenehmigen: boolean; // Vom Backend: true, wenn die Abteilung des Users das Recht „Rechnungen genehmigen" hat
     // Skonto-Felder
     skontoTage: number | null;
     skontoProzent: number | null;
@@ -65,7 +65,7 @@ const authHeaders = (): Record<string, string> => {
 };
 
 const KEIN_GENEHMIGUNGSRECHT =
-    'Keine Berechtigung zum Genehmigen. Das Recht „Rechnungen genehmigen“ wird je Abteilung unter Einstellungen → Berechtigungen vergeben.';
+    'Keine Berechtigung zum Genehmigen. Das Recht „Rechnungen genehmigen" wird je Abteilung unter Einstellungen → Abteilungen & Rechte vergeben.';
 
 
 // Format date to German locale
@@ -125,28 +125,36 @@ export default function EingangsrechnungenTab({ onOpenPdf }: EingangsrechnungenT
         return items.some(item => item.darfGenehmigen);
     }, [items]);
 
-    const loadData = useCallback(async () => {
-        setLoading(true);
-        try {
-            const endpoint = showBezahlt ? '/api/offene-posten/eingang/alle' : '/api/offene-posten/eingang';
-            const res = await fetch(endpoint, { headers: authHeaders() });
-            if (!res.ok) throw new Error(`Status ${res.status}`);
-            setItems(await res.json());
-            setLadeFehler(false);
-        } catch {
-            // Bereits geladene Zeilen bleiben stehen; ohne Daten zeigt die Seite eine Fehlerkarte.
-            setLadeFehler(true);
-            toast.error('Die Eingangsrechnungen konnten nicht geladen werden. Bitte auf „Aktualisieren“ klicken.');
-        } finally {
-            setLoading(false);
-        }
+    // Lädt die Liste; den Ladezustand zu Beginn setzt der Aufrufer.
+    const ladeListe = useCallback(() => {
+        const endpoint = showBezahlt ? '/api/offene-posten/eingang/alle' : '/api/offene-posten/eingang';
+        return fetch(endpoint, { headers: authHeaders() })
+            .then(async res => {
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                setItems(await res.json());
+                setLadeFehler(false);
+            })
+            .catch(() => {
+                // Bereits geladene Zeilen bleiben stehen; ohne Daten zeigt die Seite eine Fehlerkarte.
+                setLadeFehler(true);
+                toast.error('Die Eingangsrechnungen konnten nicht geladen werden. Bitte auf „Aktualisieren" klicken.');
+            })
+            .finally(() => {
+                setLoading(false);
+            });
     }, [showBezahlt, toast]);
 
-    useEffect(() => {
-        loadData();
-    }, [loadData]);
+    // Neu laden mit Ladeanzeige (Knöpfe, nach dem Speichern).
+    const loadData = useCallback(() => {
+        setLoading(true);
+        return ladeListe();
+    }, [ladeListe]);
 
-    // Haken „Bezahlt“ und „Genehmigt“: Zeile während des Speicherns gesperrt, Fehler als Toast.
+    useEffect(() => {
+        void ladeListe();
+    }, [ladeListe]);
+
+    // Haken „Bezahlt" und „Genehmigt": Zeile während des Speicherns gesperrt, Fehler als Toast.
     const { inArbeit, speichern } = useHakenSpeichern(loadData);
 
     const toggleBezahlt = (id: number, currentValue: boolean) => speichern({
@@ -211,8 +219,8 @@ export default function EingangsrechnungenTab({ onOpenPdf }: EingangsrechnungenT
     };
 
     // Backend filtert bereits nach den Abteilungsrechten:
-    // - „Rechnungen genehmigen“ sieht alle
-    // - „Genehmigte Rechnungen sehen“ sieht nur genehmigte
+    // - „Rechnungen genehmigen" sieht alle
+    // - „Genehmigte Rechnungen sehen" sieht nur genehmigte
     const visibleItems = items;
 
     const totalSum = useMemo(() => {
@@ -420,7 +428,7 @@ export default function EingangsrechnungenTab({ onOpenPdf }: EingangsrechnungenT
                                 : inArbeit.has(item.id) ? 'cursor-wait opacity-60'
                                     : 'cursor-pointer hover:bg-slate-100'
                         )}
-                        title={!canApprove ? 'Nur mit dem Abteilungsrecht „Rechnungen genehmigen“'
+                        title={!canApprove ? 'Nur mit dem Abteilungsrecht „Rechnungen genehmigen"'
                             : inArbeit.has(item.id) ? 'Wird gespeichert …' : 'Status ändern'}
                     >
                         <input
@@ -520,7 +528,10 @@ export default function EingangsrechnungenTab({ onOpenPdf }: EingangsrechnungenT
                     <input
                         type="checkbox"
                         checked={showBezahlt}
-                        onChange={(e) => setShowBezahlt(e.target.checked)}
+                        onChange={(e) => {
+                            setShowBezahlt(e.target.checked);
+                            setLoading(true);
+                        }}
                         className="h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500"
                     />
                     Bezahlte anzeigen

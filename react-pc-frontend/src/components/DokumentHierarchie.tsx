@@ -8,6 +8,7 @@ import {
     Edit2,
     FileText,
     GitBranch,
+    HandCoins,
     Lock,
     Mail,
     Plus,
@@ -16,14 +17,16 @@ import {
     X,
 } from 'lucide-react';
 import { DokumentLoeschenDialog } from './dokument/DokumentLoeschenDialog';
+import { GutschriftErstellenDialog } from './GutschriftErstellenDialog';
 import { DokumentVerlaufDrawer } from './dokument/DokumentVerlaufDrawer';
 import { Button } from './ui/button';
 import { cn } from '../lib/utils';
-import { istRechnungAmVorgaengerGesperrt } from '../lib/abrechnungsverlauf';
+import { istRechnungAmVorgaengerGesperrt, keineWeitereRechnungHinweis } from '../lib/abrechnungsverlauf';
 import { hatAktivesBasisdokument } from '../lib/basisdokumente';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from './ui/dialog';
 import { Input } from './ui/input';
 import { Label } from './ui/label';
+import { RechnungstypInfo } from './RechnungstypInfo';
 import type {
     AusgangsGeschaeftsDokument,
     AusgangsGeschaeftsDokumentTyp,
@@ -90,6 +93,8 @@ export function DokumentHierarchie({
     // Payload-Felder für die Dokumenterstellung
     const createPayloadIds = projektId ? { projektId } : { anfrageId };
     const [actionMenuId, setActionMenuId] = useState<number | null>(null);
+    /** Rechnung, zu der gerade eine Gutschrift angelegt wird (Dialog offen). */
+    const [gutschriftRechnung, setGutschriftRechnung] = useState<AusgangsGeschaeftsDokument | null>(null);
     const [collapsedIds, setCollapsedIds] = useState<Set<number>>(new Set());
 
     // Lösch-Dialog mit GoBD-konformer Begründung
@@ -104,6 +109,7 @@ export function DokumentHierarchie({
     const [showRechnungDialog, setShowRechnungDialog] = useState(false);
     const [rechnungBasisDok, setRechnungBasisDok] = useState<AusgangsGeschaeftsDokument | null>(null);
     const [abrechnungsverlauf, setAbrechnungsverlauf] = useState<AbrechnungsverlaufDto | null>(null);
+    const keineRechnungMehr = keineWeitereRechnungHinweis(abrechnungsverlauf);
     const [rechnungTyp, setRechnungTyp] = useState<AusgangsGeschaeftsDokumentTyp>('ABSCHLAGSRECHNUNG');
     const [abschlagsBetrag, setAbschlagsBetrag] = useState('');
     const [rechnungLoading, setRechnungLoading] = useState(false);
@@ -132,20 +138,27 @@ export function DokumentHierarchie({
     };
     const [freigabeStatus, setFreigabeStatus] = useState<Record<number, FreigabeStatusKurz>>({});
 
+    const freigabeIdsParam = ausgangsDokumente
+        .map(d => d.id)
+        .filter((id): id is number => typeof id === 'number')
+        .join(',');
+
+    // Keine Dokumente mehr: Freigabe-Status beim Rendern leeren.
+    const [freigabeIdsVorher, setFreigabeIdsVorher] = useState(freigabeIdsParam);
+    if (freigabeIdsParam !== freigabeIdsVorher) {
+        setFreigabeIdsVorher(freigabeIdsParam);
+        if (!freigabeIdsParam) setFreigabeStatus({});
+    }
+
+    // Auch bei gleichen Ids neu laden, wenn die Dokumentliste neu geladen wurde
+    // (der Freigabe-Status kann sich inzwischen geändert haben).
     useEffect(() => {
-        const ids = ausgangsDokumente
-            .map(d => d.id)
-            .filter((id): id is number => typeof id === 'number');
-        if (ids.length === 0) {
-            setFreigabeStatus({});
-            return;
-        }
-        const idsParam = ids.join(',');
-        fetch(`/api/ausgangs-dokumente/freigabe-status?ids=${encodeURIComponent(idsParam)}`)
+        if (!freigabeIdsParam) return;
+        fetch(`/api/ausgangs-dokumente/freigabe-status?ids=${encodeURIComponent(freigabeIdsParam)}`)
             .then(res => (res.ok ? res.json() : {}))
             .then(data => setFreigabeStatus(data || {}))
             .catch(() => setFreigabeStatus({}));
-    }, [ausgangsDokumente]);
+    }, [freigabeIdsParam, ausgangsDokumente]);
 
     // Prüfen ob bereits ein aktives Basisdokument (Root ohne Vorgänger, nicht storniert) existiert
     const hasBasisdokument = useMemo(
@@ -548,6 +561,24 @@ export function DokumentHierarchie({
                                 </>
                             )}
 
+                            {/* Gutschrift — nur zu gebuchten, nicht stornierten Rechnungen */}
+                            {dok.gebucht && !dok.storniert
+                                && ['RECHNUNG', 'TEILRECHNUNG', 'ABSCHLAGSRECHNUNG', 'SCHLUSSRECHNUNG'].includes(dok.typ) && (
+                                <>
+                                    <hr className="my-1 border-slate-100" />
+                                    <button
+                                        className="w-full text-left px-4 py-2 text-sm text-slate-700 hover:bg-rose-50 hover:text-rose-700 flex items-center gap-2"
+                                        onClick={() => {
+                                            setActionMenuId(null);
+                                            setGutschriftRechnung(dok);
+                                        }}
+                                    >
+                                        <HandCoins className="w-4 h-4" />
+                                        Gutschrift erstellen
+                                    </button>
+                                </>
+                            )}
+
                             {/* Verlauf — immer verfügbar (Steuerprüfung) */}
                             <hr className="my-1 border-slate-100" />
                             <button
@@ -783,9 +814,21 @@ export function DokumentHierarchie({
                             </div>
                         )}
 
+                        {/* Auftrag abgeschlossen bzw. Restbetrag aufgebraucht: Hinweis statt Auswahl. */}
+                        {keineRechnungMehr && (
+                            <div role="status" className="p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
+                                {keineRechnungMehr}
+                            </div>
+                        )}
+
+                        {!keineRechnungMehr && (<>
                         {/* Rechnungstyp-Auswahl */}
                         <div className="space-y-2">
-                            <Label className="text-sm font-semibold text-slate-700">Rechnungstyp</Label>
+                            <div className="flex items-center gap-1.5">
+                                <Label className="text-sm font-semibold text-slate-700">Rechnungstyp</Label>
+                                {/* Hier gibt es keine einfache Rechnung zur Auswahl, siehe Optionen unten. */}
+                                <RechnungstypInfo mitEinfacherRechnung={false} />
+                            </div>
                             <div className="grid grid-cols-3 gap-2">
                                 {([
                                     { value: 'ABSCHLAGSRECHNUNG' as const, label: 'Abschlagsrechnung', desc: 'Pauschaler Abschlag' },
@@ -1026,6 +1069,7 @@ export function DokumentHierarchie({
                                 )}
                             </div>
                         )}
+                        </>)}
                     </div>
 
                     <DialogFooter>
@@ -1037,6 +1081,7 @@ export function DokumentHierarchie({
                             onClick={handleCreateRechnung}
                             disabled={
                                 rechnungLoading ||
+                                !!keineRechnungMehr ||
                                 (rechnungTyp === 'ABSCHLAGSRECHNUNG' && berechneterAbschlagNetto <= 0) ||
                                 (rechnungTyp === 'ABSCHLAGSRECHNUNG' && !!abrechnungsverlauf && berechneterAbschlagNetto > abrechnungsverlauf.restbetrag) ||
                                 (rechnungTyp === 'SCHLUSSRECHNUNG' && abrechnungsverlauf != null && abrechnungsverlauf.restbetrag <= 0) ||
@@ -1048,6 +1093,14 @@ export function DokumentHierarchie({
                     </DialogFooter>
                 </DialogContent>
             </Dialog>
+
+            <GutschriftErstellenDialog
+                rechnung={gutschriftRechnung}
+                projektId={projektId}
+                anfrageId={anfrageId}
+                onClose={() => setGutschriftRechnung(null)}
+                onErstellt={() => onRefresh()}
+            />
 
             {/* GoBD-konformer Lösch-Dialog (Dropdown + Pflicht-Begründung) */}
             <DokumentLoeschenDialog

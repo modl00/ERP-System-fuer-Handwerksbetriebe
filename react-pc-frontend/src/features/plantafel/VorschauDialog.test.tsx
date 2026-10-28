@@ -32,7 +32,7 @@ function Probe({ onErgebnis }: { onErgebnis: (ja: boolean) => void }) {
     const { frage, dialog } = useVorschauFrage();
     return (
         <>
-            <button type="button" onClick={() => void frage(2, { aufwandStunden: 32 }, '„Fertigung“: Aufwand von 24 auf 32 Stunden.').then(onErgebnis)}>Fragen</button>
+            <button type="button" onClick={() => void frage(2, { aufwandStunden: 32 }, '„Fertigung": Aufwand von 24 auf 32 Stunden.').then(onErgebnis)}>Fragen</button>
             {dialog}
         </>
     );
@@ -46,7 +46,7 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('useVorschauFrage', () => {
-    it('zeigt, was sich ändert, und gibt „ja“ zurück, wenn der Anwender übernimmt', async () => {
+    it('zeigt, was sich ändert, und gibt „ja" zurück, wenn der Anwender übernimmt', async () => {
         const user = userEvent.setup();
         const ergebnis = vi.fn();
         render(<Probe onErgebnis={ergebnis} />);
@@ -60,7 +60,7 @@ describe('useVorschauFrage', () => {
         await waitFor(() => expect(ergebnis).toHaveBeenCalledWith(true));
     });
 
-    it('gibt „nein“ zurück bei Abbrechen', async () => {
+    it('gibt „nein" zurück bei Abbrechen', async () => {
         const user = userEvent.setup();
         const ergebnis = vi.fn();
         render(<Probe onErgebnis={ergebnis} />);

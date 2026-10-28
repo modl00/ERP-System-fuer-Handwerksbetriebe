@@ -25,8 +25,8 @@ type DialogZustand = { offen: false } | { offen: true; postfach: PostfachDto | n
  * Einstellungen → E-Mail → Postfächer: alle Mail-Konten des Betriebs in einer
  * Liste, mit Abruf-Status und den Benutzern, denen sie gehören.
  *
- * <p>Ersetzt die früheren Kästen „Ihr Postfach“ und „Postfach für Rechnungen
- * und Mahnungen“ – beides sind jetzt normale Postfächer mit einem Haken.</p>
+ * <p>Ersetzt die früheren Kästen „Ihr Postfach" und „Postfach für Rechnungen
+ * und Mahnungen" – beides sind jetzt normale Postfächer mit einem Haken.</p>
  */
 export function PostfachSettings({ onSaved }: { onSaved?: () => void }) {
     const toast = useToast();
@@ -37,24 +37,28 @@ export function PostfachSettings({ onSaved }: { onSaved?: () => void }) {
     const [dialog, setDialog] = useState<DialogZustand>({ offen: false });
     const [loeschtId, setLoeschtId] = useState<number | null>(null);
 
-    const laden = useCallback(async (mitSpinner = true) => {
-        if (mitSpinner) setLaedt(true);
-        try {
-            const res = await fetch('/api/postfaecher');
+    const ladePostfaecher = useCallback(() => fetch('/api/postfaecher')
+        .then(async (res) => {
             if (!res.ok) throw new Error(await parseErrorMessage(res, 'Postfächer konnten nicht geladen werden.'));
             const daten = await res.json();
             setPostfaecher(parsePostfaecher(daten));
             setLadeFehler(null);
-        } catch (err) {
+        })
+        .catch((err: unknown) => {
             const text = err instanceof Error && err.message ? err.message : 'Postfächer konnten nicht geladen werden.';
             setLadeFehler(text);
             toast.error(text);
-        } finally {
-            setLaedt(false);
-        }
-    }, [toast]);
+        })
+        .finally(() => setLaedt(false)), [toast]);
 
-    useEffect(() => { void laden(); }, [laden]);
+    /** Lädt neu; `mitSpinner` zeigt dabei die Ladeanzeige. */
+    const laden = (mitSpinner = true) => {
+        if (mitSpinner) setLaedt(true);
+        return ladePostfaecher();
+    };
+
+    // Beim ersten Laden steht die Ladeanzeige schon (Startwert).
+    useEffect(() => { void ladePostfaecher(); }, [ladePostfaecher]);
 
     const hauptpostfach = postfaecher.find(p => p.hauptpostfach);
 
@@ -191,7 +195,7 @@ export function PostfachSettings({ onSaved }: { onSaved?: () => void }) {
                                                 <>
                                                     {' · '}
                                                     <a href="#berechtigungen"
-                                                        aria-label={`Sichtbarkeit von ${postfach.emailAdresse} unter Berechtigungen ändern`}
+                                                        aria-label={`Sichtbarkeit von ${postfach.emailAdresse} unter Abteilungen & Rechte ändern`}
                                                         className="font-medium text-rose-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
                                                         ändern
                                                     </a>

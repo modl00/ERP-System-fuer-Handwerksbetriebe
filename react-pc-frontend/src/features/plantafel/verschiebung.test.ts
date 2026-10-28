@@ -50,12 +50,12 @@ describe('neueZuweisung', () => {
         expect(neueZuweisung('R8', 'R9', { mitarbeiterIds: [], ressourceId: 8 })).toEqual({ mitarbeiterIds: [], ressourceId: 9 });
     });
 
-    it('aus „Ohne Zuweisung“ in eine Person oder Ressource: dazu', () => {
+    it('aus „Ohne Zuweisung" in eine Person oder Ressource: dazu', () => {
         expect(neueZuweisung('A', 'M5', { mitarbeiterIds: [], ressourceId: null })).toEqual({ mitarbeiterIds: [5], ressourceId: null });
         expect(neueZuweisung('A', 'R8', { mitarbeiterIds: [], ressourceId: null })).toEqual({ mitarbeiterIds: [], ressourceId: 8 });
     });
 
-    it('nach „Ohne Zuweisung“: die Zuweisung der Quellzeile fällt weg, die andere bleibt', () => {
+    it('nach „Ohne Zuweisung": die Zuweisung der Quellzeile fällt weg, die andere bleibt', () => {
         expect(neueZuweisung('M4', 'A', { mitarbeiterIds: [4, 5], ressourceId: 8 })).toEqual({ mitarbeiterIds: [5], ressourceId: 8 });
         expect(neueZuweisung('R8', 'A', { mitarbeiterIds: [4], ressourceId: 8 })).toEqual({ mitarbeiterIds: [4], ressourceId: null });
     });

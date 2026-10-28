@@ -1,13 +1,14 @@
 package org.example.kalkulationsprogramm.service;
 
-import com.lowagie.text.*;
-import com.lowagie.text.Font;
-import com.lowagie.text.Image;
-import com.lowagie.text.Rectangle;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
+import org.example.kalkulationsprogramm.util.PdfWriterFabrik;
+import org.openpdf.text.*;
+import org.openpdf.text.Font;
+import org.openpdf.text.Image;
+import org.openpdf.text.Rectangle;
+import org.openpdf.text.pdf.PdfPCell;
+import org.openpdf.text.pdf.PdfPTable;
 import lombok.RequiredArgsConstructor;
+import org.example.kalkulationsprogramm.domain.Mitarbeiter;
 import org.example.kalkulationsprogramm.domain.Produktkategorie;
 import org.example.kalkulationsprogramm.domain.Zeitbuchung;
 import org.example.kalkulationsprogramm.repository.ZeitbuchungRepository;
@@ -64,8 +65,21 @@ public class ProjektAuswertungPdfService {
      */
     public Path generatePdf(Long projektId, LocalDate von, LocalDate bis,
                             String sortField, String sortDir, String groupBy) {
+        return generatePdf(projektId, von, bis, null, sortField, sortDir, groupBy);
+    }
+
+    /**
+     * Wie {@link #generatePdf(Long, LocalDate, LocalDate, String, String, String)}, auf Wunsch nur
+     * mit den Buchungen eines Mitarbeiters.
+     *
+     * @param mitarbeiterId nur Buchungen dieses Mitarbeiters; {@code null} = alle
+     */
+    public Path generatePdf(Long projektId, LocalDate von, LocalDate bis, Long mitarbeiterId,
+                            String sortField, String sortDir, String groupBy) {
 
         List<Zeitbuchung> alleBuchungen = zeitbuchungRepository.findByProjektId(projektId).stream()
+                .filter(b -> mitarbeiterId == null
+                        || (b.getMitarbeiter() != null && mitarbeiterId.equals(b.getMitarbeiter().getId())))
                 .filter(b -> {
                     if (von == null && bis == null) return true;
                     LocalDate d = b.getStartZeit() != null ? b.getStartZeit().toLocalDate() : null;
@@ -102,7 +116,7 @@ public class ProjektAuswertungPdfService {
             Files.createDirectories(dir);
             Path temp = Files.createTempFile(dir, "regiebericht-", ".pdf");
             Document doc = new Document(PageSize.A4.rotate());
-            PdfWriter.getInstance(doc, Files.newOutputStream(temp));
+            PdfWriterFabrik.writer(doc, Files.newOutputStream(temp));
             doc.open();
 
             Font titleFont = FontFactory.getFont(FontFactory.HELVETICA_BOLD, 18, new Color(50, 50, 50));
@@ -148,6 +162,15 @@ public class ProjektAuswertungPdfService {
                         + " – "
                         + (bis != null ? bis.format(DateTimeFormatter.ofPattern("dd.MM.yyyy")) : "Ende");
                 doc.add(new Paragraph(zeitraum, subTitleFont));
+                doc.add(new Paragraph(" "));
+            }
+
+            Mitarbeiter gefiltert = mitarbeiterId == null ? null
+                    : alleBuchungen.stream().map(Zeitbuchung::getMitarbeiter).filter(java.util.Objects::nonNull)
+                            .findFirst().orElse(null);
+            if (gefiltert != null) {
+                doc.add(new Paragraph("Mitarbeiter: " + gefiltert.getVorname() + " " + gefiltert.getNachname(),
+                        subTitleFont));
                 doc.add(new Paragraph(" "));
             }
 

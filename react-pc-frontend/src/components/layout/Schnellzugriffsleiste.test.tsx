@@ -46,8 +46,8 @@ describe('Schnellzugriffsleiste', { timeout: 30000 }, () => {
         expect(screen.queryByRole('link', { name: 'Kunden' })).toBeNull();
     });
 
-    it('die eigene Leiste hat Vorrang; „Alle Funktionen“ öffnet den Dialog und unbekannte Adressen fehlen', async () => {
-        stand = { vorgabe: ['/projekte'], eigene: ['/kunden', '/alle-funktionen', '/gibt-es-nicht'] }; // ein alter Eintrag „Alle Funktionen“ wird nicht doppelt gezeigt
+    it('die eigene Leiste hat Vorrang; „Alle Funktionen" öffnet den Dialog und unbekannte Adressen fehlen', async () => {
+        stand = { vorgabe: ['/projekte'], eigene: ['/kunden', '/alle-funktionen', '/gibt-es-nicht'] }; // ein alter Eintrag „Alle Funktionen" wird nicht doppelt gezeigt
         const user = userEvent.setup();
         zeige();
         const leiste = await screen.findByTestId('schnellzugriff');

@@ -26,16 +26,16 @@ async function frisch() {
 describe('browserFehler', () => {
     it('merkt einen fehlgeschlagenen Aufruf mit Methode, Adresse ohne Parameter, Status und Meldung des Servers', async () => {
         const m = await frisch();
-        echt.mockResolvedValue(antwort(400, { message: 'Der Mitarbeiter gehört schon zum Benutzer „Anna“.' }));
+        echt.mockResolvedValue(antwort(400, { message: 'Der Mitarbeiter gehört schon zum Benutzer „Anna".' }));
 
         const res = await window.fetch('/api/frontend-users?name=Max', { method: 'POST', body: '{"passwort":"geheim"}' });
         await warte();
 
         expect(res.status).toBe(400);
-        expect(await res.json()).toEqual({ message: 'Der Mitarbeiter gehört schon zum Benutzer „Anna“.' });
+        expect(await res.json()).toEqual({ message: 'Der Mitarbeiter gehört schon zum Benutzer „Anna".' });
         const f = m.holeBrowserFehler();
         expect(f).toHaveLength(1);
-        expect(f[0]).toMatchObject({ methode: 'POST', pfad: '/api/frontend-users', status: 400, meldung: 'Der Mitarbeiter gehört schon zum Benutzer „Anna“.' });
+        expect(f[0]).toMatchObject({ methode: 'POST', pfad: '/api/frontend-users', status: 400, meldung: 'Der Mitarbeiter gehört schon zum Benutzer „Anna".' });
         expect(JSON.stringify(f)).not.toContain('geheim');
         expect(JSON.stringify(f)).not.toContain('Max');
     });

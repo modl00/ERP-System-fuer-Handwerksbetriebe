@@ -201,7 +201,7 @@ export default function WartungAnlage() {
                                             onChange={(e) => setWerteUebernehmen(e.target.checked)} />
                                         <span>
                                             <span className="font-medium">Bisherige Ergebnisse, Bemerkungen und Werte übernehmen</span>
-                                            <span className="block text-slate-500">Ohne Haken beginnt die Prüfliste leer, die letzten Ergebnisse stehen nur als Hinweis „Letztes Mal“ dabei.</span>
+                                            <span className="block text-slate-500">Ohne Haken beginnt die Prüfliste leer, die letzten Ergebnisse stehen nur als Hinweis „Letztes Mal" dabei.</span>
                                         </span>
                                     </label>
                                     <div className="flex flex-wrap gap-2">
@@ -221,7 +221,7 @@ export default function WartungAnlage() {
                                         {startet ? <Loader2 className="h-4 w-4 motion-safe:animate-spin" aria-hidden="true" /> : <Play className="h-4 w-4" aria-hidden="true" />}
                                         Feldeinsatz starten
                                     </Button>
-                                    {anlage.module.length === 0 && <p className="text-sm text-amber-700">Bitte zuerst unter „Bearbeiten“ ein Modul wählen.</p>}
+                                    {anlage.module.length === 0 && <p className="text-sm text-amber-700">Bitte zuerst unter „Bearbeiten" ein Modul wählen.</p>}
                                 </>
                             )}
                         </div>

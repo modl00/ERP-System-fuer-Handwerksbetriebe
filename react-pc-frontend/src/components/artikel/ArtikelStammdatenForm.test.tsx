@@ -141,7 +141,50 @@ describe('ArtikelStammdatenForm', () => {
         expect(puts()).toHaveLength(0);
     });
 
-    it('Verzinken und Pulvern: Standard ist „vom Werkstoff übernehmen“ (mit dessen Wert), und gesendet wird dann nichts Eigenes', async () => {
+    it('erklärt die Einheit in einem Info-Button, ohne dass etwas gespeichert wird', async () => {
+        const user = userEvent.setup();
+        zeige();
+        await user.click(await screen.findByRole('button', { name: /Mehr zu: Verrechnungseinheit/ }));
+        expect(await screen.findByText('Was passiert im Hintergrund?')).toBeVisible();
+        expect(screen.getByText('Was bewirkt das?')).toBeVisible();
+        expect(puts()).toHaveLength(0);
+    });
+
+    it('speichert Sonderzeichen als Text, ohne sie zu verändern', async () => {
+        const user = userEvent.setup();
+        const { onGespeichert } = zeige();
+        const name = await screen.findByLabelText('Produktname *');
+        await user.clear(name);
+        await user.click(name);
+        await user.paste('<img src=x onerror=alert(1)> \'; DROP TABLE artikel; --');
+        await user.click(screen.getByRole('button', { name: /^Speichern/ }));
+
+        await waitFor(() => expect(onGespeichert).toHaveBeenCalled());
+        expect(sendeBody().produktname).toBe('<img src=x onerror=alert(1)> \'; DROP TABLE artikel; --');
+    });
+
+    it('meldet per Toast, wenn die Werkstoffliste nicht geladen werden konnte, und behält den bisherigen Werkstoff', async () => {
+        const user = userEvent.setup();
+        fetcher.mockImplementation(async (url: string, init?: RequestInit) => {
+            if (url.endsWith('/werkstoffe/details')) return antwort({ message: 'kaputt' }, false, 500);
+            if (url.endsWith('/filteroptionen')) return antwort({ profilform: [], herstellverfahren: [], fertigungszustand: [] });
+            if (init?.method === 'PUT') return antwort({ id: 7 });
+            return antwort({});
+        });
+        zeige();
+
+        expect(await screen.findByText(/Liste der Werkstoffe konnte nicht geladen werden/)).toBeVisible();
+        await user.click(screen.getByRole('button', { name: /^Speichern/ }));
+        await waitFor(() => expect(puts()).toHaveLength(1));
+        expect(sendeBody().werkstoffId).toBe(4);
+    });
+
+    it('begrenzt die interne Beschreibung auf 255 Zeichen wie die Datenbank', async () => {
+        zeige();
+        expect(await screen.findByLabelText('Beschreibung (intern)')).toHaveAttribute('maxlength', '255');
+    });
+
+    it('Verzinken und Pulvern: Standard ist „vom Werkstoff übernehmen" (mit dessen Wert), und gesendet wird dann nichts Eigenes', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByLabelText('Produktname *');

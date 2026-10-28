@@ -1,5 +1,5 @@
 import { Routes, Route, Navigate, useSearchParams } from 'react-router-dom'
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { LOGIN_RETRY_KEY, readLoginRetryAt, TokenLoginError, tokenRetryError, validateLoginToken } from './auth/mobileTransport'
 import { useToast } from './components/ui/toast'
 import SetupPage from './pages/SetupPage'
@@ -98,9 +98,12 @@ import TerminDetailPage from './pages/TerminDetailPage'
 import WartungAnlagenPage from './pages/WartungAnlagenPage'
 import FeldeinsatzPage from './pages/FeldeinsatzPage'
 import AnlageBearbeitenPage from './pages/AnlageBearbeitenPage'
-import { OfflineService } from './services/OfflineService'
+import { ABGLEICH_ANSTOSSEN_EVENT, OfflineService, speicherDauerhaftAnfordern, type SyncResult } from './services/OfflineService'
+import { BUCHUNGEN_UEBERTRAGEN_NACHRICHT } from './services/buchungsWarteschlange'
 import { starteBenachrichtigungenFallsErlaubt, stoppeBenachrichtigungsIntervall } from './services/notificationBootstrap'
 import { NotificationService } from './services/NotificationService'
+
+type SyncStatus = 'syncing' | 'done' | 'error'
 
 function App() {
   const toast = useToast()
@@ -108,75 +111,56 @@ function App() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [mitarbeiter, setMitarbeiter] = useState<{ id: number; name: string; vorname?: string; nachname?: string } | null>(null)
   const [loading, setLoading] = useState(true)
-  const [syncStatus, setSyncStatus] = useState<'syncing' | 'done' | 'error'>('syncing')
+  const [syncStatus, setSyncStatusState] = useState<SyncStatus>('syncing')
+  // Zählt erfolgreiche Abgleiche. Seiten laden bei jeder Änderung neu – anders als
+  // ein Wechsel 'done' → 'done' geht so kein Abgleich verloren.
+  const [abgleichNummer, setAbgleichNummer] = useState(0)
   const [error, setError] = useState<string | null>(null)
   const [retryAt, setRetryAt] = useState(readLoginRetryAt)
   const loginPending = useRef(false)
   const initialized = useRef(false)
   // Genau ein geplanter Abgleich nach einer Wartezeit (429), beim Abmelden verworfen.
   const abgleichNachWartezeit = useRef<number | null>(null)
+  // Letzter Status als Ref, damit Heartbeat & Co. nie einen veralteten Wert sehen.
+  const letzterSyncStatus = useRef<SyncStatus>('syncing')
+  // Gemeinsamer laufender Abgleich: gleichzeitige Auslöser zählen nur einmal.
+  const laufenderAbgleich = useRef<Promise<SyncResult> | null>(null)
+  // Nachfassen nach dem online-Event (das oft kommt, bevor der Server erreichbar ist).
+  const nachfassTimer = useRef<number[]>([])
 
-  useEffect(() => {
-    if (initialized.current) return
-    initialized.current = true
-    initializeApp()
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+  const setSyncStatus = useCallback((status: SyncStatus) => {
+    letzterSyncStatus.current = status
+    setSyncStatusState(status)
   }, [])
 
-  // === GLOBAL SYNC HANDLERS ===
-  // Diese Handler sind auf App-Ebene, damit Sync auf ALLEN Seiten funktioniert
-  useEffect(() => {
-    const handleOnline = async () => {
-      console.log('🌐 App ist online -> Sync pending entries');
-      setSyncStatus('syncing');
-      const result = await OfflineService.syncAll();
+  const nachfassenAbbrechen = useCallback(() => {
+    nachfassTimer.current.forEach(id => window.clearTimeout(id))
+    nachfassTimer.current = []
+  }, [])
+
+  /**
+   * Die eine Stelle, die abgleicht: online-Event, App wieder sichtbar, Heartbeat,
+   * Anstoß nach einer eingereihten Buchung, Sync-Knopf und Anmeldung.
+   */
+  const abgleichen = useCallback((): Promise<SyncResult> => {
+    if (laufenderAbgleich.current) return laufenderAbgleich.current
+    const lauf = (async () => {
+      setSyncStatus('syncing')
+      const result = await OfflineService.syncAll()
       // If a 'start' entry was just synced, set a cooldown so loadActiveSession
       // won't kill the local session before the server confirms it via GET
       if (result.startSynced) {
-        localStorage.setItem('zeiterfassung_start_synced_at', Date.now().toString());
+        localStorage.setItem('zeiterfassung_start_synced_at', Date.now().toString())
       }
-      setSyncStatus(result.success ? 'done' : 'error');
-    };
-
-    const handleVisibilityChange = async () => {
-      // PWA: Wenn App aus dem Hintergrund kommt -> Sync
-      if (document.visibilityState === 'visible') {
-        console.log('👁️ App wurde wieder sichtbar -> Sync check');
-        const pendingCount = await OfflineService.getPendingCount();
-        if (pendingCount > 0) {
-          setSyncStatus('syncing');
-          const result = await OfflineService.syncAll();
-          if (result.startSynced) {
-            localStorage.setItem('zeiterfassung_start_synced_at', Date.now().toString());
-          }
-          setSyncStatus(result.success ? 'done' : 'error');
-        }
-      }
-    };
-
-    window.addEventListener('online', handleOnline);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Heartbeat alle 30 Sekunden für "stille" Reconnects
-    const heartbeat = setInterval(async () => {
-      const pendingCount = await OfflineService.getPendingCount();
-      if (pendingCount > 0) {
-        console.log(`❤️ Heartbeat: ${pendingCount} pending entries -> Sync`);
-        const result = await OfflineService.syncAll();
-        if (result.startSynced) {
-          localStorage.setItem('zeiterfassung_start_synced_at', Date.now().toString());
-        }
-        setSyncStatus(result.success ? 'done' : 'error');
-      }
-    }, 30000); // 30 Sekunden
-
-    return () => {
-      window.removeEventListener('online', handleOnline);
-      document.removeEventListener('visibilitychange', handleVisibilityChange);
-      clearInterval(heartbeat);
-    };
-  }, [])
-
+      setSyncStatus(result.success ? 'done' : 'error')
+      if (result.success) setAbgleichNummer(n => n + 1)
+      return result
+    })().finally(() => {
+      laufenderAbgleich.current = null
+    })
+    laufenderAbgleich.current = lauf
+    return lauf
+  }, [setSyncStatus])
 
   const initializeApp = async () => {
     // Check URL for token (from QR code scan)
@@ -193,6 +177,8 @@ function App() {
         try {
           setMitarbeiter(auth.mitarbeiter as { id: number; name: string; vorname?: string; nachname?: string })
           setIsAuthenticated(true)
+          // Wartende Buchungen vor dem Aufräumen durch Android schützen
+          void speicherDauerhaftAnfordern()
           // Sync all data on app start
           syncData()
           // Nur einrichten, wenn die Erlaubnis bereits vorliegt. Gefragt wird
@@ -252,8 +238,7 @@ function App() {
       }
     }
 
-    const result = await OfflineService.syncAll()
-    setSyncStatus(result.success ? 'done' : 'error')
+    const result = await abgleichen()
 
     // Check for appointment notifications after sync
     if (result.success && token) {
@@ -267,6 +252,7 @@ function App() {
     cleanUrl.searchParams.delete('token')
     window.history.replaceState(window.history.state, '', cleanUrl.pathname + cleanUrl.search + cleanUrl.hash)
     if (loginPending.current) return
+    // eslint-disable-next-line react-hooks/purity -- läuft nur beim Anmelden (Effekt/QR-Scan), nicht beim Rendern
     if (Math.max(retryAt, readLoginRetryAt()) > Date.now()) {
       showLoginError(new TokenLoginError('Zu viele Anmeldeversuche. Bitte warte kurz.'))
       return
@@ -282,8 +268,8 @@ function App() {
       setRetryAt(0)
       setMitarbeiter(mitarbeiterData)
       setIsAuthenticated(true)
-      const result = await OfflineService.syncAll()
-      setSyncStatus(result.success ? 'done' : 'error')
+      void speicherDauerhaftAnfordern()
+      await abgleichen()
       starteBenachrichtigungenFallsErlaubt(token)
     } catch (err) {
       showLoginError(err)
@@ -308,11 +294,87 @@ function App() {
       window.clearTimeout(abgleichNachWartezeit.current)
       abgleichNachWartezeit.current = null
     }
+    nachfassenAbbrechen()
     stoppeBenachrichtigungsIntervall()
     clearAuth()
     setIsAuthenticated(false)
     setMitarbeiter(null)
   }
+
+  useEffect(() => {
+    if (initialized.current) return
+    initialized.current = true
+    initializeApp()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  // === GLOBAL SYNC HANDLERS ===
+  // Diese Handler sind auf App-Ebene, damit Sync auf ALLEN Seiten funktioniert
+  useEffect(() => {
+    const angemeldet = () => !!localStorage.getItem('zeiterfassung_token')
+
+    const handleOnline = async () => {
+      if (!angemeldet()) return
+      console.log('🌐 App ist online -> Sync pending entries')
+      nachfassenAbbrechen()
+      const result = await abgleichen()
+      if (result.success) return
+      // Das online-Event kommt oft, bevor der Server wirklich erreichbar ist.
+      for (const wartezeit of [3000, 10000]) {
+        const id = window.setTimeout(() => {
+          nachfassTimer.current = nachfassTimer.current.filter(t => t !== id)
+          if (angemeldet() && letzterSyncStatus.current === 'error') void abgleichen()
+        }, wartezeit)
+        nachfassTimer.current.push(id)
+      }
+    }
+
+    const handleVisibilityChange = async () => {
+      // PWA: Wenn App aus dem Hintergrund kommt -> Sync
+      if (document.visibilityState !== 'visible' || !angemeldet()) return
+      console.log('👁️ App wurde wieder sichtbar -> Sync check')
+      const pendingCount = await OfflineService.getPendingCount()
+      if (pendingCount > 0 || letzterSyncStatus.current === 'error') void abgleichen()
+    }
+
+    const handleAnstoss = async () => {
+      if (!angemeldet()) return
+      // Läuft gerade ein Abgleich, hat er die neue Buchung womöglich schon verpasst:
+      // abwarten und danach noch einmal abgleichen.
+      if (laufenderAbgleich.current) await laufenderAbgleich.current.catch(() => undefined)
+      void abgleichen()
+    }
+
+    // Der Service Worker hat Buchungen im Hintergrund gesendet (Android): Anzeige auffrischen.
+    const handleWorkerNachricht = (event: MessageEvent) => {
+      if ((event.data as { type?: string } | null)?.type === BUCHUNGEN_UEBERTRAGEN_NACHRICHT) void handleAnstoss()
+    }
+
+    window.addEventListener('online', handleOnline)
+    document.addEventListener('visibilitychange', handleVisibilityChange)
+    window.addEventListener(ABGLEICH_ANSTOSSEN_EVENT, handleAnstoss)
+    navigator.serviceWorker?.addEventListener('message', handleWorkerNachricht)
+
+    // Heartbeat alle 30 Sekunden für "stille" Reconnects – solange Buchungen
+    // warten oder der letzte Abgleich gescheitert ist.
+    const heartbeat = setInterval(async () => {
+      if (!angemeldet()) return
+      const pendingCount = await OfflineService.getPendingCount()
+      if (pendingCount > 0 || letzterSyncStatus.current === 'error') {
+        console.log(`❤️ Heartbeat: ${pendingCount} pending entries -> Sync`)
+        void abgleichen()
+      }
+    }, 30000)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      document.removeEventListener('visibilitychange', handleVisibilityChange)
+      window.removeEventListener(ABGLEICH_ANSTOSSEN_EVENT, handleAnstoss)
+      navigator.serviceWorker?.removeEventListener('message', handleWorkerNachricht)
+      clearInterval(heartbeat)
+      nachfassenAbbrechen()
+    }
+  }, [abgleichen, nachfassenAbbrechen])
 
   // Show loading while checking token
   if (loading) {
@@ -332,7 +394,7 @@ function App() {
   return (
     <div className="h-full w-full bg-slate-50 flex flex-col">
       <Routes>
-        <Route path="/" element={<DashboardPage mitarbeiter={mitarbeiter} onLogout={handleLogout} syncStatus={syncStatus} onSync={syncData} />} />
+        <Route path="/" element={<DashboardPage mitarbeiter={mitarbeiter} onLogout={handleLogout} syncStatus={syncStatus} abgleichNummer={abgleichNummer} onSync={syncData} />} />
         <Route path="/zeiterfassung" element={<ZeiterfassungPage mitarbeiter={mitarbeiter} />} />
         <Route path="/projekte" element={<ProjektePage mitarbeiter={mitarbeiter} syncStatus={syncStatus} onSync={syncData} />} />
         <Route path="/projekte/:projektId/notizen" element={<ProjektNotizenPage />} />

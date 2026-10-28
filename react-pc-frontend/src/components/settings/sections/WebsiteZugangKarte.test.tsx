@@ -32,7 +32,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 const zeige = () => render(<ToastProvider><WebsiteZugangKarte /></ToastProvider>);
 
 describe('WebsiteZugangKarte', () => {
-    it('zeigt ohne Einrichtung „Noch keine Website verbunden“ und sperrt den Test', async () => {
+    it('zeigt ohne Einrichtung „Noch keine Website verbunden" und sperrt den Test', async () => {
         zeige();
         expect(await screen.findByText('Noch keine Website verbunden.')).toBeVisible();
         expect(screen.getByRole('button', { name: /Verbindung testen/ })).toBeDisabled();

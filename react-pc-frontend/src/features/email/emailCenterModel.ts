@@ -80,6 +80,22 @@ export interface DraftItem {
     projektId?: number;
     anfrageId?: number;
     updatedAt?: string;
+    /** Anzeigename des Benutzers, der den Entwurf angelegt hat; `null` bei älteren Entwürfen ohne Besitzer. */
+    erstelltVon?: string | null;
+}
+
+/**
+ * Name des fremden Besitzers eines Entwurfs – nur wenn er nicht der eigene ist.
+ * Normale Benutzer sehen ohnehin nur ihre Entwürfe; Admins sehen alle und
+ * erkennen so, wem ein Entwurf gehört. Ohne Besitzer (ältere Entwürfe) oder
+ * ohne bekannten eigenen Namen: `null`.
+ */
+export function fremderEntwurfVon(draft: Pick<DraftItem, 'erstelltVon'>, eigenerName: string | null | undefined): string | null {
+    const besitzer = draft.erstelltVon?.trim();
+    if (!besitzer) return null;
+    const ich = eigenerName?.trim();
+    if (!ich) return null;
+    return besitzer.toLocaleLowerCase('de-DE') === ich.toLocaleLowerCase('de-DE') ? null : besitzer;
 }
 
 /**
@@ -310,4 +326,23 @@ export function buildReplySubject(subject?: string): string {
 export function buildForwardSubject(subject?: string): string {
     const clean = (subject || '').trim();
     return FORWARD_PREFIX.test(clean) ? clean : `Fwd: ${clean}`;
+}
+
+/**
+ * Fehlermeldung nach dem Löschen: eine einzelne Mail mit Server-Begründung (wenn vorhanden),
+ * mehrere als „n von m", damit klar ist, dass ein Teil durchging.
+ */
+export function loeschFehlerMeldung(fehlgeschlagen: number, gesamt: number, serverMeldung?: string | null): string {
+    const grund = serverMeldung?.trim() || '';
+    if (gesamt <= 1) return grund || 'Die E-Mail konnte nicht gelöscht werden.';
+    const zahl = `${fehlgeschlagen} von ${gesamt} E-Mails konnten nicht gelöscht werden.`;
+    return grund ? `${zahl} ${grund}` : zahl;
+}
+
+/**
+ * Anhänge der Original-Mail, die beim Weiterleiten mitgehen können. Eingebettete Bilder
+ * (z. B. das Logo in der Signatur) stehen im Text der Mail und werden nicht angeboten.
+ */
+export function weiterleitbareAnhaenge(anhaenge: EmailAttachment[] | null | undefined): EmailAttachment[] {
+    return (anhaenge ?? []).filter(anhang => anhang.inline !== true);
 }

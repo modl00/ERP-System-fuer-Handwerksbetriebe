@@ -22,6 +22,7 @@ import org.example.kalkulationsprogramm.repository.LieferantNotizRepository;
 import org.example.kalkulationsprogramm.domain.LieferantDokument;
 import org.example.kalkulationsprogramm.service.LieferantenDetailService;
 import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.ArgumentCaptor;
@@ -32,11 +33,11 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.nio.file.Files;
@@ -66,55 +67,55 @@ class LieferantenControllerTest {
   @Autowired
   private MockMvc mockMvc;
 
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.mail.SentMailArchiver sentMailArchiver;
-  @MockBean
+  @MockitoBean
   private LieferantenRepository lieferantenRepository;
-  @MockBean
+  @MockitoBean
   private LieferantMapper lieferantMapper;
-  @MockBean
+  @MockitoBean
   private LieferantEmailResolver lieferantEmailResolver;
-  @MockBean
+  @MockitoBean
   private LieferantenDetailService lieferantenDetailService;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.repository.EmailRepository emailRepository;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.FrontendUserProfileService frontendUserProfileService;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.EmailSignatureService emailSignatureService;
-  @MockBean
+  @MockitoBean
   private LieferantDokumentService lieferantDokumentService;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.LieferantDokumentZugriffService lieferantDokumentZugriffService;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.BelegZuordnungService belegZuordnungService;
-  @MockBean
+  @MockitoBean
   private MitarbeiterRepository mitarbeiterRepository;
-  @MockBean
+  @MockitoBean
   private LieferantArtikelpreisService lieferantArtikelpreisService;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.repository.LieferantDokumentRepository lieferantDokumentRepository;
-  @MockBean
+  @MockitoBean
   private LieferantGeschaeftsdokumentRepository lieferantGeschaeftsdokumentRepository;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.GeminiDokumentAnalyseService geminiDokumentAnalyseService;
-  @MockBean
+  @MockitoBean
   private org.springframework.context.ApplicationEventPublisher applicationEventPublisher;
-  @MockBean
+  @MockitoBean
   private LieferantNotizRepository lieferantNotizRepository;
-  @MockBean
+  @MockitoBean
   private LieferantBildRepository lieferantBildRepository;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.repository.KostenstelleRepository kostenstelleRepository;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.LieferantStandardKostenstelleAutoAssigner standardKostenstelleAutoAssigner;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.SystemSettingsService systemSettingsService;
-  @MockBean
+  @MockitoBean
   private org.example.kalkulationsprogramm.service.LieferantDokumentSucheService dokumentSucheService;
-  @MockBean
+  @MockitoBean
   private LieferantDokumentDateiService dokumentDateiService;
-  @MockBean
+  @MockitoBean
   private LieferantDateiablage dateiablage;
 
   /** Echte Dateisuche hinter dem Mock; die Ordner liegen unter {@code uploadDir} wie im Standard-Setup. */
@@ -139,6 +140,23 @@ class LieferantenControllerTest {
         .andExpect(status().is4xxClientError());
 
     verify(lieferantenRepository, org.mockito.Mockito.never()).findById(any());
+  }
+
+  @Test
+  @DisplayName("Filter nach Rolle (Issue #266): gültige Rolle 200, unbekannte 400 ohne Datenbankabfrage")
+  void sucheLieferantenNachRolle() throws Exception {
+    Page<Lieferanten> emptyPage = new PageImpl<>(List.of(), PageRequest.of(0, 12), 0);
+    when(lieferantenRepository.findAll(any(Specification.class), any(Pageable.class))).thenReturn(emptyPage);
+
+    mockMvc.perform(get("/api/lieferanten").param("rolle", "beschichtung_verzinken"))
+        .andExpect(status().isOk());
+    for (String falsch : List.of("GIBTSNICHT", "'; DROP TABLE lieferanten; --", "<script>alert(1)</script>")) {
+      mockMvc.perform(get("/api/lieferanten").param("rolle", falsch))
+          .andExpect(status().isBadRequest())
+          .andExpect(jsonPath("$.message").value("Diese Rolle gibt es nicht."));
+    }
+    org.mockito.Mockito.verify(lieferantenRepository, org.mockito.Mockito.times(1))
+        .findAll(any(Specification.class), any(Pageable.class));
   }
 
   @Test
@@ -719,7 +737,7 @@ class LieferantenControllerTest {
     verifyNoInteractions(dateiablage);
   }
 
-  @org.junit.jupiter.api.Nested
+  @Nested
   @DisplayName("Positionssuche in den Dokumenten eines Lieferanten")
   class Positionssuche {
 

@@ -2,7 +2,6 @@ package org.example.kalkulationsprogramm.service;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 
 import java.util.List;
@@ -31,11 +30,12 @@ class EmailDraftServiceLueckenTest {
 
     @Mock EmailDraftRepository repository;
     @Mock EmailDraftAttachmentRepository attachmentRepository;
+    @Mock org.example.kalkulationsprogramm.repository.FrontendUserProfileRepository benutzerRepository;
     EmailDraftService service;
 
     @BeforeEach
     void setUp() {
-        service = new EmailDraftService(repository, attachmentRepository);
+        service = new EmailDraftService(repository, attachmentRepository, benutzerRepository);
     }
 
     private static EmailDraftDto dto(String recipient, String subject, String body, Long reply, Long projekt,

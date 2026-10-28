@@ -27,7 +27,7 @@ function vorschauDokument(html: string, mitRand = true): string {
 
 interface SignaturVorschauProps {
     html: string;
-    /** Name für Screenreader („Vorschau der Signatur …“). */
+    /** Name für Screenreader („Vorschau der Signatur …"). */
     titel: string;
     className?: string;
     /** Mindesthöhe in Pixeln, bevor der Inhalt gemessen ist. */

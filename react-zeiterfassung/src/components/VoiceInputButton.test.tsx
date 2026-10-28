@@ -32,7 +32,7 @@ const transkribiereMock = vi.mocked(transkribiere)
 const bekanntMock = vi.mocked(bekannteSpracheingabeVerfuegbarkeit)
 const pruefeMock = vi.mocked(pruefeSpracheingabeVerfuegbar)
 
-/** Ein Versprechen, das der Test selbst einlöst – so lässt sich „Antwort noch offen“ prüfen. */
+/** Ein Versprechen, das der Test selbst einlöst – so lässt sich „Antwort noch offen" prüfen. */
 function offeneAntwort<T>() {
     let einloesen!: (wert: T) => void
     const versprechen = new Promise<T>(resolve => { einloesen = resolve })
@@ -261,7 +261,7 @@ describe('VoiceInputButton', () => {
         expect(onErgebnis).not.toHaveBeenCalled()
     })
 
-    it('meldet „Spracheingabe ist aus“ vom Server als Toast', async () => {
+    it('meldet „Spracheingabe ist aus" vom Server als Toast', async () => {
         transkribiereMock.mockRejectedValue(new Error('Die Spracheingabe ist aus, weil kein KI-Schlüssel hinterlegt ist.'))
         const user = userEvent.setup()
         const { onErgebnis } = zeige({ wert: 'Alter Text' })
@@ -308,7 +308,7 @@ describe('VoiceInputButton – ohne KI-Schlüssel', () => {
         expect(screen.getByRole('button', { name: 'Eintrag diktieren' })).toBeEnabled()
     })
 
-    it('blendet einen gemerkten „aus“-Zustand sofort aus, ohne Aufblitzen', () => {
+    it('blendet einen gemerkten „aus"-Zustand sofort aus, ohne Aufblitzen', () => {
         bekanntMock.mockReturnValue(false)
         pruefeMock.mockResolvedValue(false)
         zeige()

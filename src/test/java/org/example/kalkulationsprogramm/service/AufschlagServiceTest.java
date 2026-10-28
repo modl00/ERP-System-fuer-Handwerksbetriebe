@@ -16,7 +16,6 @@ import java.util.Optional;
 
 import org.example.kalkulationsprogramm.domain.Artikel;
 import org.example.kalkulationsprogramm.domain.Kategorie;
-import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.example.kalkulationsprogramm.repository.KategorieRepository;
 import org.example.kalkulationsprogramm.service.AufschlagService.Quelle;
 import org.junit.jupiter.api.BeforeEach;
@@ -27,7 +26,6 @@ class AufschlagServiceTest {
 
     private final SystemSettingsService einstellungen = mock(SystemSettingsService.class);
     private final KategorieRepository kategorien = mock(KategorieRepository.class);
-    private final ArtikelRepository artikel = mock(ArtikelRepository.class);
     private final Map<String, String> gespeichert = new HashMap<>();
     private AufschlagService service;
 
@@ -52,7 +50,7 @@ class AufschlagServiceTest {
         when(einstellungen.get(anyString(), any())).thenAnswer(a -> gespeichert.getOrDefault(a.<String>getArgument(0), a.getArgument(1)));
         org.mockito.Mockito.doAnswer(a -> { gespeichert.put(a.getArgument(0), a.getArgument(1)); return null; }).when(einstellungen).save(anyString(), any(), any());
         when(kategorien.save(any(Kategorie.class))).thenAnswer(a -> a.getArgument(0));
-        service = new AufschlagService(einstellungen, kategorien, artikel);
+        service = new AufschlagService(einstellungen, kategorien);
     }
 
     @Test
@@ -134,9 +132,24 @@ class AufschlagServiceTest {
         assertThat(rohre.getVerkaufsaufschlagProzent()).isNull();
         verify(kategorien).save(rohre);
 
-        assertThatThrownBy(() -> service.setzeAllgemein(new BigDecimal("-1"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 1000");
-        assertThatThrownBy(() -> service.setzeKategorie(2, new BigDecimal("1000.01"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 1000");
+        assertThatThrownBy(() -> service.setzeAllgemein(new BigDecimal("-1"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 999,99");
+        assertThatThrownBy(() -> service.setzeKategorie(2, new BigDecimal("1000"))).isInstanceOf(ResponseStatusException.class).hasMessageContaining("0 und 999,99");
         assertThatThrownBy(() -> service.setzeKategorie(99, BigDecimal.ONE)).isInstanceOf(ResponseStatusException.class).hasMessageContaining("Kategorie");
         assertThat(rohre.getVerkaufsaufschlagProzent()).as("ein abgelehnter Wert ändert nichts").isNull();
+    }
+
+    @Test
+    void dieGrenzenGeltenWieBeimAufschlagAmArtikel() {
+        service.setzeAllgemein(new BigDecimal("999.99"));
+        service.setzeAllgemein(BigDecimal.ZERO);
+        assertThat(service.allgemein()).isEqualByComparingTo("0");
+        assertThatThrownBy(() -> service.setzeAllgemein(new BigDecimal("999.991"))).isInstanceOf(ResponseStatusException.class);
+    }
+
+    @Test
+    void dasSpeichernWirdBeiAbgelehnterKategorieNichtAusgefuehrt() {
+        assertThatThrownBy(() -> service.setzeKategorie(0, new BigDecimal("-5"))).isInstanceOf(ResponseStatusException.class);
+        assertThatThrownBy(() -> service.setzeKategorie(Integer.MAX_VALUE, BigDecimal.TEN)).isInstanceOf(ResponseStatusException.class);
+        org.mockito.Mockito.verify(kategorien, org.mockito.Mockito.never()).save(any());
     }
 }

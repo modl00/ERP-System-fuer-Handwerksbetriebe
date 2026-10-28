@@ -42,11 +42,11 @@ function UrlaubsanspruchInfo() {
                 <ul className="list-disc pl-4 space-y-1">
                     <li>Gesetzlich stehen jedem mindestens 24 Werktage bei einer 6-Tage-Woche zu – das sind 20 Tage bei 5 Arbeitstagen und 16 bei 4. Die Arbeitstage nimmt das Programm aus der Arbeitszeit des Mitarbeiters. Liegt der Jahresurlaub darunter, gilt das gesetzliche Minimum.</li>
                     <li>Wer bis einschließlich 1. Juli anfängt, hat die Wartezeit von sechs Monaten noch im selben Jahr erfüllt und bekommt den vollen Jahresurlaub. Wer später anfängt, bekommt ein Zwölftel je vollem Monat (halbe Tage und mehr werden aufgerundet).</li>
-                    <li>Sehen Arbeits- oder Tarifvertrag auch bei Eintritt bis 1. Juli Zwölftel vor, stellen Sie das unter Einstellungen → Zeiterfassung → „Urlaub im Eintrittsjahr“ ein. Dann gibt es mindestens den gesetzlichen Mindesturlaub.</li>
+                    <li>Sehen Arbeits- oder Tarifvertrag auch bei Eintritt bis 1. Juli Zwölftel vor, stellen Sie das unter Einstellungen → Zeiterfassung → „Urlaub im Eintrittsjahr" ein. Dann gibt es mindestens den gesetzlichen Mindesturlaub.</li>
                 </ul>
             </InfoAbschnitt>
             <InfoAbschnitt titel="Was bewirkt das?">
-                <p>Der Anspruch zählt für Urlaubsanträge, Resturlaub und den Übertrag ins nächste Jahr. Hat ein früherer Arbeitgeber im selben Jahr schon Urlaub gewährt oder scheidet jemand im Jahr aus, ziehen Sie das bitte als Urlaubskorrektur ab – das rechnet das Programm nicht selbst. Stimmt der Hinweis „Eintritt am …“ nicht, prüfen Sie das Eintrittsdatum des Mitarbeiters.</p>
+                <p>Der Anspruch zählt für Urlaubsanträge, Resturlaub und den Übertrag ins nächste Jahr. Hat ein früherer Arbeitgeber im selben Jahr schon Urlaub gewährt oder scheidet jemand im Jahr aus, ziehen Sie das bitte als Urlaubskorrektur ab – das rechnet das Programm nicht selbst. Stimmt der Hinweis „Eintritt am …" nicht, prüfen Sie das Eintrittsdatum des Mitarbeiters.</p>
             </InfoAbschnitt>
         </InfoButton>
     );
@@ -57,7 +57,7 @@ function UrlaubsanspruchInfo() {
  *
  * <p>Das Programm rechnet ihn selbst aus den gebuchten Urlaubstagen. Weicht er
  * ab (z. B. weil früher auf Papier geplant wurde), legt das Büro den Wert hier
- * fest; „Wieder ausrechnen lassen“ nimmt den Handwert zurück.</p>
+ * fest; „Wieder ausrechnen lassen" nimmt den Handwert zurück.</p>
  */
 export function ResturlaubUebertrag({ mitarbeiterId }: { mitarbeiterId: number }) {
     const toast = useToast();
@@ -69,24 +69,34 @@ export function ResturlaubUebertrag({ mitarbeiterId }: { mitarbeiterId: number }
     const [entwurf, setEntwurf] = useState('');
     const [speichert, setSpeichert] = useState(false);
 
-    const laden = useCallback(async () => {
+    /** Setzt Ladeanzeige und Fehler zurück, bevor neu geladen wird. */
+    const ladenStarten = () => {
         setLaedt(true);
         setLadeFehler('');
-        try {
-            const res = await fetch(`/api/urlaub/uebertrag?mitarbeiterId=${encodeURIComponent(String(mitarbeiterId))}&jahr=${encodeURIComponent(String(jahr))}`);
+    };
+
+    // Anderer Mitarbeiter oder anderes Jahr: sofort wieder „wird geladen" zeigen.
+    const geladenFuer = `${mitarbeiterId}|${jahr}`;
+    const [zuletztGeladenFuer, setZuletztGeladenFuer] = useState(geladenFuer);
+    if (zuletztGeladenFuer !== geladenFuer) {
+        setZuletztGeladenFuer(geladenFuer);
+        ladenStarten();
+    }
+
+    const laden = useCallback(() => fetch(`/api/urlaub/uebertrag?mitarbeiterId=${encodeURIComponent(String(mitarbeiterId))}&jahr=${encodeURIComponent(String(jahr))}`)
+        .then(async (res) => {
             if (!res.ok) throw new Error(await leseFehlermeldung(res, LADEFEHLER));
             const daten: unknown = await res.json();
             if (!istStand(daten)) throw new Error(LADEFEHLER);
             setStand(daten);
             setEntwurf(formatDecimalInput(daten.tage));
-        } catch (err) {
+        })
+        .catch((err: unknown) => {
             const text = err instanceof Error && err.message ? err.message : LADEFEHLER;
             setLadeFehler(text);
             toast.error(text);
-        } finally {
-            setLaedt(false);
-        }
-    }, [mitarbeiterId, jahr, toast]);
+        })
+        .finally(() => setLaedt(false)), [mitarbeiterId, jahr, toast]);
 
     useEffect(() => { void laden(); }, [laden]);
 
@@ -153,7 +163,7 @@ export function ResturlaubUebertrag({ mitarbeiterId }: { mitarbeiterId: number }
             ) : ladeFehler || !stand ? (
                 <div role="alert" className="flex flex-wrap items-center gap-2 text-sm text-rose-800">
                     {ladeFehler || LADEFEHLER}
-                    <Button variant="outline" size="sm" onClick={() => void laden()}>Erneut laden</Button>
+                    <Button variant="outline" size="sm" onClick={() => { ladenStarten(); void laden(); }}>Erneut laden</Button>
                 </div>
             ) : (
                 <>

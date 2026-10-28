@@ -6,14 +6,14 @@ import { BENACHRICHTIGUNGEN_PFAD, entferneAlteMerker, summaryUrl, type Notificat
 
 /**
  * Die Glocke oben rechts: zeigt nur noch, wie viele Meldungen offen sind, und
- * führt per Klick auf die Seite „Benachrichtigungen“. Dort stehen alle
+ * führt per Klick auf die Seite „Benachrichtigungen". Dort stehen alle
  * Meldungen nach Themen sortiert – das frühere breite Aufklapp-Fenster mit
  * vielen Spalten gibt es nicht mehr.
  *
  * Die Zahl kommt alle 60 Sekunden frisch vom Server, sofort beim Zurückkehren
  * in den Browser-Tab und immer dann, wenn eine andere Stelle das Ereignis
- * `notifications:refresh` auslöst (z. B. die Seite nach „Erledigt“ oder das
- * E-Mail-Center nach „gelesen“). Steigt die Zahl, wackelt die Glocke kurz.
+ * `notifications:refresh` auslöst (z. B. die Seite nach „Erledigt" oder das
+ * E-Mail-Center nach „gelesen"). Steigt die Zahl, wackelt die Glocke kurz.
  */
 export function NotificationBell() {
     const [total, setTotal] = useState(0);

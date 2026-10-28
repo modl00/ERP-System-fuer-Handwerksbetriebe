@@ -42,7 +42,7 @@ describe('AssignModal: Neu anlegen und verknüpfen', () => {
         expect(onClose).toHaveBeenCalled();
     });
 
-    it('Neue Anfrage: nach der Wahl „Anfrage“ legt der Knopf eine Anfrage an und verknüpft sie', async () => {
+    it('Neue Anfrage: nach der Wahl „Anfrage" legt der Knopf eine Anfrage an und verknüpft sie', async () => {
         const u = userEvent.setup();
         const { onAssign } = zeige();
 

@@ -74,7 +74,7 @@ describe('Menüleiste – ausgeblendete Punkte', { timeout: 30000 }, () => {
         expect(screen.getByRole('menuitem', { name: /Kunden/ })).not.toHaveTextContent('ausgeblendet');
     });
 
-    it('zählt am Knopf „Alle Funktionen“, wie viele ausgeblendet sind', async () => {
+    it('zählt am Knopf „Alle Funktionen", wie viele ausgeblendet sind', async () => {
         stubbe({ vorgabe: null, eigene: ['/werkstoffe', '/aufschlaege'] });
         zeige();
         expect(await screen.findByLabelText('2 ausgeblendet')).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe('Menüleiste – ausgeblendete Punkte', { timeout: 30000 }, () => {
         expect(await screen.findByText('Keine Funktion gefunden.')).toBeInTheDocument();
     });
 
-    it('„Wie die Vorgabe“ setzt die eigene Auswahl zurück, geht aber nur, wenn es eine gibt', async () => {
+    it('„Wie die Vorgabe" setzt die eigene Auswahl zurück, geht aber nur, wenn es eine gibt', async () => {
         const fetchMock = stubbe({ vorgabe: ['/lager'], eigene: ['/werkstoffe'] });
         const user = userEvent.setup();
         zeige();
@@ -164,7 +164,7 @@ describe('Menüleiste – ausgeblendete Punkte', { timeout: 30000 }, () => {
         expect(screen.getByRole('searchbox', { name: 'Funktion suchen' })).toBeInTheDocument();
     });
 
-    it('den doppelten Knopf „Funktionen“ oben rechts gibt es nicht mehr', async () => {
+    it('den doppelten Knopf „Funktionen" oben rechts gibt es nicht mehr', async () => {
         stubbe({ vorgabe: null, eigene: ['/werkstoffe'] });
         zeige();
         await screen.findByRole('button', { name: /Alle Funktionen/ });
@@ -232,7 +232,7 @@ describe('Menüleiste – Startbildschirm und Schnellzugriffsleiste (#326)', { t
         expect(screen.queryByRole('menu')).toBeNull();
     });
 
-    it('„Alle Funktionen“ gibt es nur einmal: fest in der Leiste', async () => {
+    it('„Alle Funktionen" gibt es nur einmal: fest in der Leiste', async () => {
         stubbe({ vorgabe: null, eigene: null });
         zeige();
         await screen.findByTestId('schnellzugriff');

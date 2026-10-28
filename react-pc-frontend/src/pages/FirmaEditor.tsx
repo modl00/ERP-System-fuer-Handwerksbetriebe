@@ -10,6 +10,7 @@ import { ColorInput } from '../components/ui/color-input';
 import { formatDecimalInput, validateDecimalInput } from '../lib/numberInput';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select-custom';
+import { BundeslandAuswahl } from '../components/firma/BundeslandAuswahl';
 import { PageLayout } from '../components/layout/PageLayout';
 import { cn } from '../lib/utils';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '../components/ui/dialog';
@@ -52,6 +53,8 @@ interface Firmeninformation {
     tageBisErsteMahnung: number;
     tageBisZweiteMahnung: number;
     mahnverfahrenNeuesZahlungszielTage: number;
+    /** Kürzel des Bundeslands (z. B. "BY"); bestimmt die gesetzlichen Feiertage. */
+    bundesland?: string;
     gewerkId?: number | null;
     gewerkName?: string | null;
     bgName?: string | null;
@@ -193,7 +196,7 @@ export default function FirmaEditor() {
     const showError = toast.error;
     const [activeTab, setActiveTab] = useState<ActiveTab>('firma');
     const [sbSubTab, setSbSubTab] = useState<SteuerberaterSubTab>('kontakte');
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     // Firmeninformation State
@@ -216,118 +219,99 @@ export default function FirmaEditor() {
     // Gewerke (fuer Firma-Auswahl)
     const [gewerke, setGewerke] = useState<GewerkOption[]>([]);
 
+    // Die Ladefunktionen sind Promise-Ketten: Zustand wird erst gesetzt, wenn die Antwort da ist.
     // Load Firmeninformation
-    const loadFirma = useCallback(async () => {
-        try {
-            const res = await fetch('/api/firma');
+    const loadFirma = useCallback(() => fetch('/api/firma')
+        .then(async (res) => {
             if (!res.ok) throw new Error('Firmendaten konnten nicht geladen werden.');
-            if (res.ok) {
-                setFirma(firmenEntwurf(await res.json()));
-            }
-        } catch (e) {
+            setFirma(firmenEntwurf(await res.json()));
+        })
+        .catch((e) => {
             console.error('Fehler beim Laden der Firmendaten', e);
             showError('Firmendaten konnten nicht geladen werden.');
-        }
-    }, [showError]);
+        }), [showError]);
 
     // Load Gewerke (fuer Auswahl im Firma-Tab)
-    const loadGewerke = useCallback(async () => {
-        try {
-            const res = await fetch('/api/lohn-stammdaten/gewerke?nurAktive=true');
+    const loadGewerke = useCallback(() => fetch('/api/lohn-stammdaten/gewerke?nurAktive=true')
+        .then(async (res) => {
             if (!res.ok) throw new Error('Gewerke konnten nicht geladen werden.');
-            if (res.ok) {
-                setGewerke(await res.json());
-            }
-        } catch (e) {
+            setGewerke(await res.json());
+        })
+        .catch((e) => {
             console.error('Fehler beim Laden der Gewerke', e);
             showError('Gewerke konnten nicht geladen werden.');
-        }
-    }, [showError]);
+        }), [showError]);
 
     // Load Steuerberater
-    const loadSteuerberater = useCallback(async () => {
-        try {
-            const res = await fetch('/api/firma/steuerberater');
+    const loadSteuerberater = useCallback(() => fetch('/api/firma/steuerberater')
+        .then(async (res) => {
             if (!res.ok) throw new Error('Steuerberater konnten nicht geladen werden.');
-            if (res.ok) {
-                setSteuerberater(await res.json());
-            }
-        } catch (e) {
+            setSteuerberater(await res.json());
+        })
+        .catch((e) => {
             console.error('Fehler beim Laden der Steuerberater', e);
             showError('Steuerberater konnten nicht geladen werden.');
-        }
-    }, [showError]);
+        }), [showError]);
 
     // Load Meta (Years)
-    const loadMeta = useCallback(async () => {
-        try {
-            const [lohnJahreRes, bwaJahreRes] = await Promise.all([
-                fetch('/api/lohnabrechnungen/jahre'),
-                fetch('/api/bwa/jahre')
-            ]);
-            
+    const loadMeta = useCallback(() => Promise.all([
+        fetch('/api/lohnabrechnungen/jahre'),
+        fetch('/api/bwa/jahre')
+    ])
+        .then(async ([lohnJahreRes, bwaJahreRes]) => {
             if (!lohnJahreRes.ok || !bwaJahreRes.ok) throw new Error('Abrechnungsjahre konnten nicht geladen werden.');
             const jahreSet = new Set<number>();
             jahreSet.add(new Date().getFullYear());
 
-            if (lohnJahreRes.ok) {
-                const j = await lohnJahreRes.json();
-                if (Array.isArray(j)) j.forEach((y: number) => jahreSet.add(y));
-            }
-            if (bwaJahreRes.ok) {
-                const j = await bwaJahreRes.json();
-                if (Array.isArray(j)) j.forEach((y: number) => jahreSet.add(y));
-            }
-            
+            const lohnJahre = await lohnJahreRes.json();
+            if (Array.isArray(lohnJahre)) lohnJahre.forEach((y: number) => jahreSet.add(y));
+            const bwaJahre = await bwaJahreRes.json();
+            if (Array.isArray(bwaJahre)) bwaJahre.forEach((y: number) => jahreSet.add(y));
+
             setVerfuegbareJahre(Array.from(jahreSet).sort((a, b) => b - a));
-        } catch (e) {
+        })
+        .catch((e) => {
             console.error('Fehler beim Laden der Jahre', e);
             showError('Abrechnungsjahre konnten nicht geladen werden.');
-        }
-    }, [showError]);
+        }), [showError]);
 
     // Load Lohnabrechnungen List
-    const loadLohnabrechnungen = useCallback(async () => {
-        try {
-            let url = `/api/lohnabrechnungen/jahr/${selectedJahr}`;
-            if (selectedSbFilter !== 'ALL') {
-                url = `/api/lohnabrechnungen/steuerberater/${selectedSbFilter}/jahr/${selectedJahr}`;
-            }
-            const res = await fetch(url);
-            if (!res.ok) throw new Error('Lohnabrechnungen konnten nicht geladen werden.');
-            if (res.ok) {
+    const loadLohnabrechnungen = useCallback(() => {
+        const url = selectedSbFilter !== 'ALL'
+            ? `/api/lohnabrechnungen/steuerberater/${selectedSbFilter}/jahr/${selectedJahr}`
+            : `/api/lohnabrechnungen/jahr/${selectedJahr}`;
+        return fetch(url)
+            .then(async (res) => {
+                if (!res.ok) throw new Error('Lohnabrechnungen konnten nicht geladen werden.');
                 setLohnabrechnungen(await res.json());
-            }
-        } catch (e) {
-            console.error('Fehler beim Laden der Lohnabrechnungen', e);
-            showError('Lohnabrechnungen konnten nicht geladen werden.');
-        }
+            })
+            .catch((e) => {
+                console.error('Fehler beim Laden der Lohnabrechnungen', e);
+                showError('Lohnabrechnungen konnten nicht geladen werden.');
+            });
     }, [selectedJahr, selectedSbFilter, showError]);
 
     // Load BWA List
-    const loadBwaListe = useCallback(async () => {
-        try {
-            const res = await fetch(`/api/bwa/jahr/${selectedJahr}`);
+    const loadBwaListe = useCallback(() => fetch(`/api/bwa/jahr/${selectedJahr}`)
+        .then(async (res) => {
             if (!res.ok) throw new Error('Auswertungen konnten nicht geladen werden.');
-            if (res.ok) {
-                setBwaListe(await res.json());
-            }
-        } catch (e) {
+            setBwaListe(await res.json());
+        })
+        .catch((e) => {
             console.error('Fehler beim Laden der BWA-Liste', e);
             showError('Auswertungen konnten nicht geladen werden.');
-        }
-    }, [selectedJahr, showError]);
+        }), [selectedJahr, showError]);
 
     useEffect(() => {
         if (activeTab === 'steuerberater') {
-            if (sbSubTab === 'lohnabrechnungen') loadLohnabrechnungen();
-            if (sbSubTab === 'bwa') loadBwaListe();
+            if (sbSubTab === 'lohnabrechnungen') void loadLohnabrechnungen();
+            if (sbSubTab === 'bwa') void loadBwaListe();
         }
     }, [activeTab, sbSubTab, loadLohnabrechnungen, loadBwaListe]);
 
+    // Der Ladezustand startet mit true; er endet, wenn alle Grunddaten da sind.
     useEffect(() => {
-        setLoading(true);
-        Promise.all([loadFirma(), loadSteuerberater(), loadMeta(), loadGewerke()])
+        void Promise.all([loadFirma(), loadSteuerberater(), loadMeta(), loadGewerke()])
             .finally(() => setLoading(false));
     }, [loadFirma, loadSteuerberater, loadMeta, loadGewerke]);
 
@@ -678,6 +662,11 @@ export default function FirmaEditor() {
                                             />
                                         </div>
                                     </div>
+                                    <BundeslandAuswahl
+                                        value={firma.bundesland}
+                                        plz={firma.plz}
+                                        onChange={bundesland => setFirma({ ...firma, bundesland })}
+                                    />
                                 </div>
 
                                 {/* Kontakt */}
@@ -741,7 +730,7 @@ export default function FirmaEditor() {
                                                 aria-label="Firmenfarbe wählen"
                                                 value={/^#[0-9a-fA-F]{6}$/.test(firma.firmenfarbe || '') ? firma.firmenfarbe : '#500010'}
                                                 onChange={value => setFirma({ ...firma, firmenfarbe: value })}
-                                                className="h-9 w-12 rounded border border-slate-200 bg-white p-1 cursor-pointer"
+                                                className="shrink-0"
                                             />
                                             <Input
                                                 aria-label="Firmenfarbe als Hex-Wert"

@@ -41,10 +41,23 @@ interface AuthContextValue {
     logout: () => Promise<void>;
     register: (displayName: string, username: string, password: string) => Promise<RegisterResult>;
     refreshMe: () => Promise<AuthUser | null>;
+    /**
+     * Der Server hat bei der letzten Anmeldeprüfung nicht geantwortet (Funkloch, Zeitüberschreitung).
+     * Dann zeigen die Routen „Server antwortet nicht" statt auf die Anmeldeseite zu springen.
+     */
+    verbindungsProblem: boolean;
+    /** Anmeldung erneut prüfen – für „Erneut versuchen". */
+    erneutPruefen: () => Promise<void>;
     hasRole: (role: string) => boolean;
 }
 
 const FRONTEND_USER_STORAGE_KEY = 'frontendUserSelection';
+
+/**
+ * Länger wartet die Anmeldeprüfung nicht auf den Server. Die Antwort ist winzig – kommt sie
+ * so lange nicht, hängt die Verbindung, und ein endlos drehender Kreisel hilft niemandem.
+ */
+export const ANMELDUNG_TIMEOUT_MS = 20_000;
 
 const AuthContext = createContext<AuthContextValue | null>(null);
 
@@ -82,35 +95,73 @@ async function parseResponseMessage(res: Response, fallback: string): Promise<st
     return fallback;
 }
 
+interface Anmeldestand {
+    user: AuthUser | null;
+    /** Keine Antwort vom Server (Funkloch oder Zeitüberschreitung). */
+    verbindungsProblem: boolean;
+}
+
+/** Fragt beim Server nach, wer angemeldet ist – ohne Zustand zu ändern. */
+async function frageAnmeldungAb(): Promise<Anmeldestand> {
+    const abbruch = new AbortController();
+    const timer = setTimeout(() => abbruch.abort(), ANMELDUNG_TIMEOUT_MS);
+    let res: Response;
+    try {
+        res = await fetch('/api/auth/me', {
+            credentials: 'same-origin',
+            signal: abbruch.signal,
+        });
+    } catch {
+        // Keine Antwort (Funkloch oder Zeitüberschreitung): Ob die Sitzung noch gilt, wissen wir nicht.
+        clearTimeout(timer);
+        return { user: null, verbindungsProblem: true };
+    }
+
+    try {
+        if (!res.ok) {
+            return { user: null, verbindungsProblem: false };
+        }
+        const data: AuthUser = await res.json();
+        return { user: data, verbindungsProblem: false };
+    } catch {
+        // Der Server hat geantwortet, aber unbrauchbar (z. B. Fehlerseite statt JSON): wie abgemeldet.
+        return { user: null, verbindungsProblem: false };
+    } finally {
+        clearTimeout(timer);
+    }
+}
+
 export function AuthProvider({ children }: { children: React.ReactNode }) {
     const [user, setUser] = useState<AuthUser | null>(null);
     const [loading, setLoading] = useState(true);
+    const [verbindungsProblem, setVerbindungsProblem] = useState(false);
 
-    const refreshMe = useCallback(async (): Promise<AuthUser | null> => {
-        try {
-            const res = await fetch('/api/auth/me', {
-                credentials: 'same-origin',
-            });
-
-            if (!res.ok) {
-                setUser(null);
-                syncFrontendUserSelection(null);
-                return null;
-            }
-
-            const data = await res.json();
-            setUser(data);
-            syncFrontendUserSelection(data);
-            return data;
-        } catch {
-            setUser(null);
-            syncFrontendUserSelection(null);
-            return null;
-        }
+    /** Übernimmt das Ergebnis der Anmeldeprüfung in den Zustand. */
+    const uebernehmeAnmeldung = useCallback((ergebnis: Anmeldestand): AuthUser | null => {
+        setVerbindungsProblem(ergebnis.verbindungsProblem);
+        setUser(ergebnis.user);
+        syncFrontendUserSelection(ergebnis.user);
+        return ergebnis.user;
     }, []);
 
+    const refreshMe = useCallback(
+        async (): Promise<AuthUser | null> => uebernehmeAnmeldung(await frageAnmeldungAb()),
+        [uebernehmeAnmeldung],
+    );
+
     useEffect(() => {
-        refreshMe().finally(() => setLoading(false));
+        frageAnmeldungAb()
+            .then(uebernehmeAnmeldung)
+            .finally(() => setLoading(false));
+    }, [uebernehmeAnmeldung]);
+
+    const erneutPruefen = useCallback(async () => {
+        setLoading(true);
+        try {
+            await refreshMe();
+        } finally {
+            setLoading(false);
+        }
     }, [refreshMe]);
 
     const login = useCallback(async (username: string, password: string): Promise<LoginResult> => {
@@ -196,8 +247,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         logout,
         register,
         refreshMe,
+        verbindungsProblem,
+        erneutPruefen,
         hasRole,
-    }), [user, loading, hasRole, login, logout, register, refreshMe]);
+    }), [user, loading, hasRole, login, logout, register, refreshMe, verbindungsProblem, erneutPruefen]);
 
     return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

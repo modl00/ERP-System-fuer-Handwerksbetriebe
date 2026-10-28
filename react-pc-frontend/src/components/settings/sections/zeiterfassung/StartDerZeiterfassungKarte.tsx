@@ -18,7 +18,7 @@ const meldung = (err: unknown, fallback: string) => (err instanceof Error && err
 const tagText = (iso: string) => parseIsoDatum(iso)?.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit', year: 'numeric' }) ?? iso;
 const monatText = (iso: string) => parseIsoDatum(iso)?.toLocaleDateString('de-DE', { month: 'long', year: 'numeric' }) ?? iso;
 
-/** Prüft den Entwurf vor dem Speichern – leer heißt „keine Grenze“ und ist erlaubt. */
+/** Prüft den Entwurf vor dem Speichern – leer heißt „keine Grenze" und ist erlaubt. */
 function pruefe(entwurf: string): string {
     if (!entwurf) return '';
     if (!parseIsoDatum(entwurf)) return 'Bitte ein gültiges Datum wählen.';
@@ -29,8 +29,8 @@ function pruefe(entwurf: string): string {
 /**
  * Einstellungen → Zeiterfassung: Ab wann erfasst der Betrieb Zeiten?
  *
- * <p>Ohne dieses Datum verlangt die Glocke („Zeiten prüfen“) auch Monate wie
- * „05/2014 abschließen“, obwohl es damals noch gar keine Zeiterfassung gab.
+ * <p>Ohne dieses Datum verlangt die Glocke („Zeiten prüfen") auch Monate wie
+ * „05/2014 abschließen", obwohl es damals noch gar keine Zeiterfassung gab.
  * Monate vor dem Datum müssen nicht mehr abgeschlossen werden. Leer heißt:
  * keine Grenze.</p>
  */
@@ -44,23 +44,20 @@ export function StartDerZeiterfassungKarte({ onSaved }: { onSaved?: () => void }
     const [speichert, setSpeichert] = useState(false);
     const [fehler, setFehler] = useState('');
 
-    const laden = useCallback(async () => {
-        setLaedt(true);
-        setLadeFehler('');
-        try {
-            const stand = await zeiterfassungApi.ladeStart();
+    // Ladeanzeige und Fehler setzt „Erneut laden" vorab zurück; beim ersten Laden stimmen die Startwerte.
+    const laden = useCallback(() => zeiterfassungApi.ladeStart()
+        .then((stand) => {
             const wert = stand.eingefuehrtAm ?? '';
             setGespeichert(wert);
             setEntwurf(wert);
             setFehler('');
-        } catch (err) {
+        })
+        .catch((err: unknown) => {
             const text = meldung(err, 'Der Start der Zeiterfassung konnte nicht geladen werden.');
             setLadeFehler(text);
             toast.error(text);
-        } finally {
-            setLaedt(false);
-        }
-    }, [toast]);
+        })
+        .finally(() => setLaedt(false)), [toast]);
 
     useEffect(() => { void laden(); }, [laden]);
 
@@ -109,7 +106,7 @@ export function StartDerZeiterfassungKarte({ onSaved }: { onSaved?: () => void }
             description={
                 <p>
                     Ab welchem Tag erfasst Ihr Betrieb Arbeitszeiten mit diesem Programm? Monate davor
-                    müssen nicht abgeschlossen werden und tauchen unter „Zeiten prüfen“ nicht mehr auf.
+                    müssen nicht abgeschlossen werden und tauchen unter „Zeiten prüfen" nicht mehr auf.
                 </p>
             }
         >
@@ -118,7 +115,7 @@ export function StartDerZeiterfassungKarte({ onSaved }: { onSaved?: () => void }
             ) : ladeFehler ? (
                 <div role="alert" className="flex flex-wrap items-center gap-3 rounded-lg border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800">
                     {ladeFehler}
-                    <Button variant="outline" size="sm" onClick={() => void laden()}>Erneut laden</Button>
+                    <Button variant="outline" size="sm" onClick={() => { setLaedt(true); setLadeFehler(''); void laden(); }}>Erneut laden</Button>
                 </div>
             ) : (
                 <>

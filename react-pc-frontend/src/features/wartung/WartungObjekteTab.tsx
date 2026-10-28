@@ -70,7 +70,7 @@ function VerschiebenDialog({ tuer, objekte, open, onOpenChange, onVerschoben }: 
                 <DialogHeader>
                     <DialogTitle>Tür verschieben</DialogTitle>
                     <DialogDescription>
-                        „{tuer?.bezeichnung}“ wird mit allen bisherigen Protokollen an ein anderes Objekt desselben Kunden gehängt.
+                        „{tuer?.bezeichnung}" wird mit allen bisherigen Protokollen an ein anderes Objekt desselben Kunden gehängt.
                     </DialogDescription>
                 </DialogHeader>
                 <div className="py-2">
@@ -150,7 +150,7 @@ export function WartungObjekteTab() {
         if (tuer.aktiv) {
             const ja = await confirm({
                 title: 'Tür deaktivieren?',
-                message: `„${tuer.bezeichnung}“ erscheint dann nicht mehr bei neuen Wartungen. Die bisherigen Protokolle bleiben erhalten.`,
+                message: `„${tuer.bezeichnung}" erscheint dann nicht mehr bei neuen Wartungen. Die bisherigen Protokolle bleiben erhalten.`,
                 confirmLabel: 'Deaktivieren',
                 variant: 'warning',
             });
@@ -164,7 +164,7 @@ export function WartungObjekteTab() {
         if (objekt.aktiv) {
             const ja = await confirm({
                 title: 'Objekt deaktivieren?',
-                message: `„${objekt.bezeichnung}“ erscheint dann nicht mehr bei neuen Wartungen. Die bisherigen Protokolle bleiben erhalten.`,
+                message: `„${objekt.bezeichnung}" erscheint dann nicht mehr bei neuen Wartungen. Die bisherigen Protokolle bleiben erhalten.`,
                 confirmLabel: 'Deaktivieren',
                 variant: 'warning',
             });

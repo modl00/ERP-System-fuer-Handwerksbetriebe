@@ -19,12 +19,12 @@ const DATEN: RechteUebersicht = {
             felder: { EINSTELLUNGEN: feld('ALLES', 'Ja', 'Als Administrator.'), FUNKTION_LAGER: feld('ALLES', 'Alles', 'Als Administrator am PC nicht eingeschränkt.'), BELEGE: feld('ALLES', 'Sehen und scannen', 'Als Administrator.') } },
         { profilId: 2, anzeigename: 'Erika Musterfrau', benutzername: 'erika', administrator: false, mitarbeiterId: 11, mitarbeiterName: 'Erika Musterfrau', abteilungen: ['Montage'],
             felder: { EINSTELLUNGEN: feld('NICHTS', 'Nein', 'Nur Administratoren dürfen Einstellungen, Benutzer und Rechte ändern.'), FUNKTION_LAGER: feld('TEILWEISE', 'Sehen', 'Über die Abteilung Montage.'),
-                BELEGE: feld('NICHTS', 'Nein', 'Keine seiner Abteilungen hat das Dokumentenrecht „Belege und Kasse“.') } },
+                BELEGE: feld('NICHTS', 'Nein', 'Keine seiner Abteilungen hat das Dokumentenrecht „Belege und Kasse".') } },
         { profilId: 3, anzeigename: 'Hans Beispiel', benutzername: 'hans', administrator: false, mitarbeiterId: null, mitarbeiterName: null, abteilungen: [],
             felder: { EINSTELLUNGEN: feld('NICHTS', 'Nein', 'x'), FUNKTION_LAGER: feld('ALLES', 'Alles', 'Kein Mitarbeiter verknüpft. Dann ist alles erlaubt.'), BELEGE: feld('NICHTS', 'Nein', 'Kein Mitarbeiter mit diesem Benutzer verknüpft.') } },
     ],
     warnungen: [{ art: 'OHNE_MITARBEITER', text: 'Hans Beispiel ist mit keinem Mitarbeiter verknüpft.', ziel: '/benutzer', profilId: 3 },
-        { art: 'NIEMAND', text: 'Niemand darf „Monate abschließen“.', ziel: '/abteilung-berechtigungen', profilId: null }],
+        { art: 'NIEMAND', text: 'Niemand darf „Monate abschließen".', ziel: '/abteilung-berechtigungen', profilId: null }],
 };
 
 const antwort = (daten: unknown, status = 200) => ({ ok: status < 300, status, json: async () => daten });

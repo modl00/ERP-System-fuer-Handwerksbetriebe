@@ -25,6 +25,7 @@ export const NAVIGATION: NavCategory[] = [
             {
                 label: 'Dokumente',
                 items: [
+                    { name: 'Leistungen & Kategorien', href: '/leistungen', icon: Layers },
                     { name: 'Textvorlagen', href: '/textbausteine', icon: FileText },
                     { name: 'Stundensätze', href: '/arbeitszeitarten', icon: Clock },
                 ]
@@ -55,6 +56,7 @@ export const NAVIGATION: NavCategory[] = [
                     { name: 'Aktivitäten', href: '/aktivitaeten', icon: History },
                     { name: 'Firma', href: '/firma', icon: Building2 },
                     { name: 'Formularwesen', href: '/formulare', icon: FileJson },
+                    { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
                     { name: 'Einstellungen', href: '/einstellungen', icon: Settings },
                 ]
             }
@@ -134,7 +136,7 @@ export const NAVIGATION: NavCategory[] = [
                 label: 'E-Mail',
                 items: [
                     { name: 'E-Mail Center', href: '/emails/inbox', icon: Mail },
-                    { name: 'E-Mail Vorlagen', href: '/email-textvorlagen', icon: MailPlus },
+                    { name: 'Mailtexte für Dokumente', href: '/email-textvorlagen', icon: MailPlus },
                     { name: 'E-Mail-Einstellungen', href: '/email-einstellungen', icon: Settings2 },
                 ]
             },
@@ -176,7 +178,7 @@ export const NAVIGATION: NavCategory[] = [
     }
 ];
 
-/** Name der Menü-Gruppe, die nur mit dem Abteilungs-Recht „Zeiterfassung im Menü sehen“ erscheint. */
+/** Name der Menü-Gruppe, die nur mit dem Abteilungs-Recht „Zeiterfassung im Menü sehen" erscheint. */
 export const ZEITERFASSUNG_KATEGORIE = 'Zeiterfassung';
 
 /** Alle Seiten dieser Gruppe – direkt aus dem Menü abgeleitet, damit Menü und Seitenschutz nie auseinanderlaufen. */

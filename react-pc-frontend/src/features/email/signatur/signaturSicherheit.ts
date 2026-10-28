@@ -30,7 +30,7 @@ const HAT_SCHEMA = /^[a-z][a-z\d+.-]*:/i;
 
 /**
  * Link für `href`: nur http/https. Eingaben ohne Schema wie
- * „www.mustermann.de“ bekommen `https://` vorangestellt. Alles andere
+ * „www.mustermann.de" bekommen `https://` vorangestellt. Alles andere
  * (javascript:, data:, relative Pfade) ergibt einen leeren String.
  */
 export function sichereLinkUrl(eingabe: string | null | undefined): string {
@@ -113,7 +113,7 @@ export function mailtoHref(email: string | null | undefined): string {
 
 /**
  * Führt der Link wirklich zu WhatsApp? Geprüft wird der Host (wa.me, whatsapp.com und
- * Unterdomains) – nicht nur, ob „wa.me“ irgendwo im Text steht („evil.de/wa.me“).
+ * Unterdomains) – nicht nur, ob „wa.me" irgendwo im Text steht („evil.de/wa.me").
  */
 function istWhatsappLink(url: string): boolean {
     try {
@@ -130,7 +130,7 @@ export function whatsappUrl(eingabe: string | null | undefined): string {
     if (!wert) return '';
     if (HAT_SCHEMA.test(wert)) return sichereLinkUrl(wert);
     if (/[a-z]/i.test(wert)) {
-        // Link ohne „https://“ (z. B. „wa.me/49171…“) – nur, wenn er wirklich zu WhatsApp führt.
+        // Link ohne „https://" (z. B. „wa.me/49171…") – nur, wenn er wirklich zu WhatsApp führt.
         const link = sichereLinkUrl(wert);
         return link && istWhatsappLink(link) ? link : '';
     }
@@ -148,8 +148,8 @@ const SOZIAL_BASIS = {
 } as const;
 
 /**
- * Link zu einem Profil. Erlaubt ist ein ganzer Link („https://…“, „www.…“)
- * oder nur der Profilname („@mustermann“).
+ * Link zu einem Profil. Erlaubt ist ein ganzer Link („https://…", „www.…")
+ * oder nur der Profilname („@mustermann").
  */
 export function sozialUrl(netzwerk: keyof typeof SOZIAL_BASIS, eingabe: string | null | undefined): string {
     const wert = (eingabe ?? '').trim();

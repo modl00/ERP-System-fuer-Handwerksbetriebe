@@ -78,10 +78,10 @@ public class Email {
     @Column(length = 255)
     private String senderDomain;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String recipient;
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String cc;
 
     /**
@@ -101,7 +101,7 @@ public class Email {
     // INHALT
     // ═══════════════════════════════════════════════════════════════
 
-    @Column(length = 1000)
+    @Column(columnDefinition = "TEXT")
     private String subject;
 
     @JdbcTypeCode(SqlTypes.LONG32VARCHAR)
@@ -284,6 +284,13 @@ public class Email {
      */
     @Column(nullable = false)
     private boolean isNewsletter = false;
+
+    /**
+     * Vom ERP selbst verschickte Eingangsbestätigung einer Webseiten-Anfrage.
+     * Sie sperrt das Löschen der Anfrage nicht (Issue #272).
+     */
+    @Column(name = "automatische_bestaetigung", nullable = false)
+    private boolean automatischeBestaetigung = false;
 
     // ═══════════════════════════════════════════════════════════════
     // ATTACHMENTS (1:n)

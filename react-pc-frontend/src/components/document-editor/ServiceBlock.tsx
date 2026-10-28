@@ -1,4 +1,4 @@
-import { Trash2, Clock, BarChart3, ChevronRight, AlertTriangle } from 'lucide-react';
+import { Trash2, Clock, BarChart3, ChevronRight, AlertTriangle, BookmarkPlus } from 'lucide-react';
 import { Button } from '../ui/button';
 import { TiptapEditor } from '../TiptapEditor';
 import { hatKundentext } from '../artikel/kundentext';
@@ -7,7 +7,7 @@ import { formatCurrency, serviceLineTotal } from './helpers';
 import type { TiptapAenderungsArt } from '../tiptapVerlauf';
 import type { DocBlock, EditorInstance } from './types';
 import type { ZeitprognoseDto } from '../../types';
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 import { KategorieAnalyseModal } from '../KategorieAnalyseModal';
 import { AddBelowButton } from './TextBlock';
@@ -15,6 +15,42 @@ import { WahlpositionMenu } from './WahlpositionMenu';
 import { EigenePositionKalkulieren } from './EigenePositionKalkulieren';
 import { EigenePositionAlsArtikel } from './EigenePositionAlsArtikel';
 import { AlternativeKalkulation } from './AlternativeKalkulation';
+import { DecimalInput } from '../ui/decimal-input';
+import { formatDecimalInput, validateDecimalInput } from '../../lib/numberInput';
+
+const alsEntwurf = (wert: number | undefined) => (wert ? formatDecimalInput(wert) : '');
+
+function useZahlEntwurf(wert: number | undefined, label: string, uebernehmen: (zahl: number) => void) {
+    const [entwurf, setEntwurf] = useState(() => alsEntwurf(wert));
+    const [bekannterWert, setBekannterWert] = useState(wert);
+
+    if (!Object.is(wert, bekannterWert)) {
+        setBekannterWert(wert);
+        const pruefung = validateDecimalInput(entwurf, { label, min: 0 });
+        const passt = pruefung.valid && (pruefung.value ?? 0) === (wert ?? 0);
+        if (!passt) setEntwurf(alsEntwurf(wert));
+    }
+
+    const aktuell = useRef({ wert, label, uebernehmen });
+    useEffect(() => {
+        aktuell.current = { wert, label, uebernehmen };
+    });
+
+    const aendern = useCallback((text: string) => {
+        setEntwurf(text);
+        const { wert: geltend, label: name, uebernehmen: weitergeben } = aktuell.current;
+        const pruefung = validateDecimalInput(text, { label: name, min: 0 });
+        if (!pruefung.valid) return;
+        const zahl = pruefung.value ?? 0;
+        if (zahl !== (geltend ?? 0)) weitergeben(zahl);
+    }, []);
+
+    const verlassen = () => {
+        if (!validateDecimalInput(entwurf, { label, min: 0 }).valid) setEntwurf(alsEntwurf(wert));
+    };
+
+    return { entwurf, aendern, verlassen };
+}
 
 interface ServiceBlockProps {
     block: DocBlock;
@@ -41,6 +77,14 @@ interface ServiceBlockProps {
     defaultCollapsed?: boolean;
     /** Standard false. Siehe TiptapEditorProps.verlaufsModus. */
     verlaufsModus?: boolean;
+    /**
+     * true, wenn die Position aus einer gespeicherten Leistung stammt und
+     * inzwischen davon abweicht (Name, Text, Preis oder Einheit). Dann zeigt die
+     * Karte den Knopf „Als neue Leistung speichern" – auch zugeklappt.
+     */
+    kannAlsNeueLeistungSpeichern?: boolean;
+    /** Oeffnet den Dialog „Als neue Leistung speichern" fuer diese Position. */
+    onAlsNeueLeistungSpeichern?: (id: string) => void;
 }
 
 export function ServiceBlock({
@@ -59,6 +103,8 @@ export function ServiceBlock({
     onAddBelow,
     defaultCollapsed = true,
     verlaufsModus,
+    kannAlsNeueLeistungSpeichern = false,
+    onAlsNeueLeistungSpeichern,
 }: ServiceBlockProps) {
     const total = serviceLineTotal(block);
     const hasDiscount = (block.discount ?? 0) > 0;
@@ -78,13 +124,21 @@ export function ServiceBlock({
     const [prognoseLoading, setPrognoseLoading] = useState(false);
     const [showAnalyse, setShowAnalyse] = useState(false);
     const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const menge = useZahlEntwurf(block.quantity, 'Menge', (quantity) => onUpdate(block.id, { quantity }));
+    const preis = useZahlEntwurf(block.price, 'Einzelpreis', (price) => onUpdate(block.id, { price }));
+
+    // Keine Leistung oder keine Menge mehr: alte Zeitprognose beim Rendern verwerfen.
+    const prognoseMoeglich = !!block.leistungId && !!block.quantity && block.quantity > 0;
+    const prognoseSchluessel = `${block.leistungId ?? ''}|${block.quantity ?? ''}`;
+    const [prognoseSchluesselVorher, setPrognoseSchluesselVorher] = useState(prognoseSchluessel);
+    if (prognoseSchluessel !== prognoseSchluesselVorher) {
+        setPrognoseSchluesselVorher(prognoseSchluessel);
+        if (!prognoseMoeglich) setZeitprognose(null);
+    }
 
     // Fetch time prediction when leistungId or quantity changes
     useEffect(() => {
-        if (!block.leistungId || !block.quantity || block.quantity <= 0) {
-            setZeitprognose(null);
-            return;
-        }
+        if (!block.leistungId || !block.quantity || block.quantity <= 0) return;
 
         if (debounceRef.current) clearTimeout(debounceRef.current);
 
@@ -192,6 +246,21 @@ export function ServiceBlock({
 
                 {/* Actions */}
                 <div className="flex items-center gap-1 flex-shrink-0">
+                    {/* In der Kopfzeile statt im aufgeklappten Teil: Karten starten
+                        zugeklappt, der Hinweis "weicht ab" muss trotzdem sichtbar sein. */}
+                    {kannAlsNeueLeistungSpeichern && !isLocked && onAlsNeueLeistungSpeichern && (
+                        <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={(e) => { e.stopPropagation(); onAlsNeueLeistungSpeichern(block.id); }}
+                            aria-label="Als neue Leistung speichern"
+                            title="Geändert gegenüber der gespeicherten Leistung – als neue Leistung speichern"
+                            className="h-7 px-2 gap-1 text-xs font-medium text-rose-600 hover:text-rose-700 hover:bg-rose-50 rounded-md"
+                        >
+                            <BookmarkPlus className="w-3.5 h-3.5" aria-hidden="true" />
+                            <span>Neue Leistung</span>
+                        </Button>
+                    )}
                     <WahlpositionMenu
                         block={block}
                         isLocked={isLocked}
@@ -239,18 +308,12 @@ export function ServiceBlock({
                     <div className="flex items-center gap-1.5">
                         <div>
                             <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">Menge</label>
-                            <input
-                                type="number"
-                                min="0"
+                            <DecimalInput
+                                min={0}
                                 aria-label="Menge"
-                                value={block.quantity || ''}
-                                onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === '' || val === '-') { onUpdate(block.id, { quantity: 0 }); return; }
-                                    const num = parseFloat(val);
-                                    if (!isNaN(num) && num >= 0) onUpdate(block.id, { quantity: num });
-                                }}
+                                value={menge.entwurf}
+                                onChange={menge.aendern}
+                                onBlur={menge.verlassen}
                                 disabled={isLocked}
                                 data-verlauf-feld="quantity"
                                 className="w-16 text-center text-sm font-semibold bg-white border border-slate-200 rounded-md px-2 py-1.5 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"
@@ -275,19 +338,12 @@ export function ServiceBlock({
                     <div>
                         <label className="block text-[9px] font-semibold text-slate-400 uppercase tracking-wider mb-0.5">EP</label>
                         <div className="relative">
-                            <input
-                                type="number"
-                                step="0.01"
-                                min="0"
+                            <DecimalInput
+                                min={0}
                                 aria-label="Einzelpreis"
-                                value={block.price || ''}
-                                onFocus={(e) => { if (e.target.value === '0') e.target.value = ''; }}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    if (val === '' || val === '-') { onUpdate(block.id, { price: 0 }); return; }
-                                    const num = parseFloat(val);
-                                    if (!isNaN(num) && num >= 0) onUpdate(block.id, { price: num });
-                                }}
+                                value={preis.entwurf}
+                                onChange={preis.aendern}
+                                onBlur={preis.verlassen}
                                 disabled={isLocked}
                                 data-verlauf-feld="price"
                                 className="w-24 text-right text-sm font-semibold bg-white border border-slate-200 rounded-md pl-2 pr-6 py-1.5 focus:ring-2 focus:ring-rose-500/20 focus:border-rose-300 disabled:bg-slate-100 disabled:text-slate-400 transition-all"

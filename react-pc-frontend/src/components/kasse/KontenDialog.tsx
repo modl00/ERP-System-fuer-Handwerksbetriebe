@@ -186,7 +186,7 @@ export function KontenDialog({ onClose, onChanged }: { onClose: () => void; onCh
                 {!konten && !ladefehler && <div className="flex justify-center py-10"><Loader2 className="h-6 w-6 animate-spin text-rose-500" /></div>}
                 {konten && gruppen.length === 0 && (
                     <p className="py-8 text-center text-sm text-slate-500">
-                        {konten.length === 0 ? 'Es sind noch keine Konten angelegt. Mit „Neues Konto“ legen Sie das erste an.' : 'Kein Konto passt zur Suche.'}
+                        {konten.length === 0 ? 'Es sind noch keine Konten angelegt. Mit „Neues Konto" legen Sie das erste an.' : 'Kein Konto passt zur Suche.'}
                     </p>
                 )}
                 {gruppen.map(({ art, zeilen }) => (

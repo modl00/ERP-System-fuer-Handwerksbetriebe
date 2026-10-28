@@ -1,5 +1,6 @@
 package org.example.kalkulationsprogramm.service;
 
+import org.example.kalkulationsprogramm.util.PdfWriterFabrik;
 import java.awt.Color;
 import java.io.ByteArrayOutputStream;
 import java.io.OutputStream;
@@ -15,23 +16,23 @@ import java.util.regex.Pattern;
 
 import org.springframework.stereotype.Service;
 
-import com.lowagie.text.Chunk;
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.Rectangle;
-import com.lowagie.text.pdf.BaseFont;
-import com.lowagie.text.pdf.ColumnText;
-import com.lowagie.text.pdf.PdfContentByte;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfTemplate;
-import com.lowagie.text.pdf.PdfWriter;
+import org.openpdf.text.Chunk;
+import org.openpdf.text.Document;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.Element;
+import org.openpdf.text.Font;
+import org.openpdf.text.FontFactory;
+import org.openpdf.text.PageSize;
+import org.openpdf.text.Paragraph;
+import org.openpdf.text.Phrase;
+import org.openpdf.text.Rectangle;
+import org.openpdf.text.pdf.BaseFont;
+import org.openpdf.text.pdf.ColumnText;
+import org.openpdf.text.pdf.PdfContentByte;
+import org.openpdf.text.pdf.PdfPCell;
+import org.openpdf.text.pdf.PdfPTable;
+import org.openpdf.text.pdf.PdfTemplate;
+import org.openpdf.text.pdf.PdfWriter;
 
 import org.example.kalkulationsprogramm.domain.Firmeninformation;
 import org.example.kalkulationsprogramm.util.HtmlKlartext;
@@ -171,7 +172,14 @@ public class RechnungPdfService {
              * zur Auftragsbestaetigung nicht eindeutig aufloesen laesst — dann steht
              * dort nur der Betrag.
              */
-            String differenzHinweis) {
+            String differenzHinweis,
+            /**
+             * Eine einfache Rechnung, die den ganzen Auftrag auf einmal abrechnet. Sie
+             * schliesst den Auftrag ab wie eine Schlussrechnung: 100 %, nicht
+             * angefallene Positionen als Differenzzeile, nichts mehr offen. Greift
+             * nur ohne vorherige Rechnungen, siehe {@link #addSummenBlock}.
+             */
+            boolean schliesstAuftragAb) {
 
         // Backwards-compatible constructor ohne Anzeigeoptionen: Balken an, kein Hinweis.
         public AbrechnungsverlaufPdfDto(String basisdokumentNummer, String basisdokumentTyp,
@@ -179,7 +187,17 @@ public class RechnungPdfService {
                                         BigDecimal basisdokumentBetragNetto,
                                         List<AbrechnungspositionPdfDto> positionen) {
             this(basisdokumentNummer, basisdokumentTyp, basisdokumentDatum,
-                 basisdokumentBetragNetto, positionen, true, null);
+                 basisdokumentBetragNetto, positionen, true, null, false);
+        }
+
+        // Ohne Abschluss-Kennzeichen: die Rechnung schliesst den Auftrag nicht ab.
+        public AbrechnungsverlaufPdfDto(String basisdokumentNummer, String basisdokumentTyp,
+                                        java.time.LocalDate basisdokumentDatum,
+                                        BigDecimal basisdokumentBetragNetto,
+                                        List<AbrechnungspositionPdfDto> positionen,
+                                        boolean balkenAnzeigen, String differenzHinweis) {
+            this(basisdokumentNummer, basisdokumentTyp, basisdokumentDatum,
+                 basisdokumentBetragNetto, positionen, balkenAnzeigen, differenzHinweis, false);
         }
     }
 
@@ -302,7 +320,7 @@ public class RechnungPdfService {
         Document document = new Document(PageSize.A4, 0, 0, 0, 0); // No margins, background fills page
 
         try {
-            PdfWriter writer = PdfWriter.getInstance(document, out);
+            PdfWriter writer = PdfWriterFabrik.writer(document, out);
             document.open();
 
             PdfContentByte cb = writer.getDirectContent();
@@ -462,7 +480,7 @@ public class RechnungPdfService {
             }
 
             byte[] imageBytes = java.util.Base64.getDecoder().decode(imageData);
-            com.lowagie.text.Image backgroundImage = com.lowagie.text.Image.getInstance(imageBytes);
+            org.openpdf.text.Image backgroundImage = org.openpdf.text.Image.getInstance(imageBytes);
 
             // Bild auf volle Seitengröße skalieren
             float pageWidth = PageSize.A4.getWidth();
@@ -555,9 +573,9 @@ public class RechnungPdfService {
                 // 3. Render Closure Text (if any) as standalone Paragraph
                 if (block.text() != null && !block.text().isBlank()) {
                      float closureFontSize = Math.max(10f, Math.min(20f, block.fontSize()));
-                     java.util.List<com.lowagie.text.Element> closureElements = parseHtmlToElements(
+                     java.util.List<org.openpdf.text.Element> closureElements = parseHtmlToElements(
                              block.text(), textColor, closureFontSize, block.fett());
-                     for (com.lowagie.text.Element e : closureElements) {
+                     for (org.openpdf.text.Element e : closureElements) {
                          ct.addElement(e);
                      }
                 }
@@ -653,8 +671,8 @@ public class RechnungPdfService {
                      textCell.setPaddingBottom(6f);
 
                      // Rich HTML parser preserves bold, italic, underline, colors, lists & images (font-size is ignored)
-                     java.util.List<com.lowagie.text.Element> elements = parseHtmlToElements(content, textColor, defaultFontSize, defaultBold);
-                     for (com.lowagie.text.Element e : elements) {
+                     java.util.List<org.openpdf.text.Element> elements = parseHtmlToElements(content, textColor, defaultFontSize, defaultBold);
+                     for (org.openpdf.text.Element e : elements) {
                          textCell.addElement(e);
                      }
                      
@@ -662,7 +680,7 @@ public class RechnungPdfService {
 
                  } else {
                      // CASE B: We are OUTSIDE a table (e.g. after Closure) -> Render as Standalone
-                     java.util.List<com.lowagie.text.Element> elements = parseHtmlToElements(content, textColor, defaultFontSize, defaultBold);
+                     java.util.List<org.openpdf.text.Element> elements = parseHtmlToElements(content, textColor, defaultFontSize, defaultBold);
                      // Etwas mehr vertikalen Abstand zwischen aufeinanderfolgenden Textbausteinen,
                      // damit Vor-/Nachtexte visuell klar getrennt sind. Wirkt nur auf den letzten
                      // Paragraph; Zeilenabstand innerhalb des Bausteins bleibt unveraendert.
@@ -672,7 +690,7 @@ public class RechnungPdfService {
                              break;
                          }
                      }
-                     for (com.lowagie.text.Element e : elements) {
+                     for (org.openpdf.text.Element e : elements) {
                          ct.addElement(e);
                      }
                  }
@@ -911,9 +929,9 @@ public class RechnungPdfService {
                 // gilt fuer jeden Chunk ausserhalb der <strong>/<span>-Tags; er darf die
                 // im HTML markierten Stellen nur ergaenzen, nie den ganzen Block umsetzen.
                 float serviceDefaultFontSize = Math.max(10f, Math.min(20f, block.fontSize()));
-                java.util.List<com.lowagie.text.Element> elements = parseHtmlToElements(
+                java.util.List<org.openpdf.text.Element> elements = parseHtmlToElements(
                         block.beschreibungHtml(), textColor, serviceDefaultFontSize, block.fett());
-                for (com.lowagie.text.Element el : elements) {
+                for (org.openpdf.text.Element el : elements) {
                     descCell.addElement(el);
                 }
             } catch (Exception e) {
@@ -1008,7 +1026,7 @@ public class RechnungPdfService {
      * Parst HTML zu iText-Elementen mit Unterstützung für Fett, Kursiv, Farben, Schriftgröße, Listen und Base64-Images.
      * Delegiert an die erweiterte Überladung mit Standard-Defaults (10pt, nicht fett).
      */
-    private java.util.List<com.lowagie.text.Element> parseHtmlToElements(String html, Color defaultColor) {
+    private java.util.List<org.openpdf.text.Element> parseHtmlToElements(String html, Color defaultColor) {
         return parseHtmlToElements(html, defaultColor, 10f, false);
     }
 
@@ -1026,16 +1044,16 @@ public class RechnungPdfService {
      */
     // Package-private statt private, damit RechnungPdfServiceTest direkt prüfen kann, dass
     // font-size im HTML ignoriert wird — über den extrahierten PDF-Text sind Größen nicht sichtbar.
-    java.util.List<com.lowagie.text.Element> parseHtmlToElements(
+    java.util.List<org.openpdf.text.Element> parseHtmlToElements(
             String html, Color defaultColor, float defaultFontSize, boolean defaultBold) {
-        java.util.List<com.lowagie.text.Element> elements = new java.util.ArrayList<>();
+        java.util.List<org.openpdf.text.Element> elements = new java.util.ArrayList<>();
         if (html == null || html.isBlank()) return elements;
 
         // Normalisiere HTML
         html = html.replace("<br>", "<br/>").replace("<br >", "<br/>");
 
         // --- 1. Base64-Bilder extrahieren und durch Platzhalter ersetzen ---
-        java.util.List<com.lowagie.text.Image> extractedImages = new java.util.ArrayList<>();
+        java.util.List<org.openpdf.text.Image> extractedImages = new java.util.ArrayList<>();
         // Capture full img tag (group 0) to extract width/height, plus base64 data (groups 1+2)
         Pattern imgPattern = Pattern.compile(
                 "<img([^>]+)src=[\"']data:image/([^;]+);base64,([^\"']+)[\"'][^>]*>",
@@ -1054,7 +1072,7 @@ public class RechnungPdfService {
                 String fullTag = imgMatcher.group(0);
                 String base64Data = imgMatcher.group(3);
                 byte[] imageBytes = Base64.getDecoder().decode(base64Data);
-                com.lowagie.text.Image img = com.lowagie.text.Image.getInstance(imageBytes);
+                org.openpdf.text.Image img = org.openpdf.text.Image.getInstance(imageBytes);
 
                 // Try to read width/height from the HTML attributes (set by TiptapEditor ResizableImage)
                 float targetWidth = -1;
@@ -1500,6 +1518,17 @@ public class RechnungPdfService {
         boolean hasAbrechnung = abrechnungsverlauf != null && abrechnungsverlauf.positionen() != null
                 && !abrechnungsverlauf.positionen().isEmpty();
 
+        // Schliesst diese Rechnung den Auftrag ab? Die Schlussrechnung immer; die
+        // einfache Rechnung nur, wenn sie den ganzen Auftrag auf einmal abrechnet
+        // (keine Vorrechnungen) und der Client das ausdruecklich meldet. Ohne das
+        // Kennzeichen zeigte eine einfache Rechnung mit geloeschter, nicht
+        // angefallener Position (z.B. Ruestkosten) "96 % abgerechnet" und einen
+        // offenen Rest, obwohl nichts mehr nachkommt.
+        boolean schliesstAuftragAb = isSchlussrechnung
+                || (!isAbschlag && !hasAbrechnung
+                    && "Rechnung".equalsIgnoreCase(dokumentTyp)
+                    && abrechnungsverlauf != null && abrechnungsverlauf.schliesstAuftragAb());
+
         if (hasBasisdokument) {
             // === ABRECHNUNGSSTAND + ZU ZAHLEN ===
             // Zwei klar getrennte Abschnitte: oben was der Auftrag insgesamt kostet und
@@ -1538,12 +1567,13 @@ public class RechnungPdfService {
             addAbschnittsUeberschrift(sumTable, "Abrechnungsstand", 0f);
 
             if (abrechnungsverlauf.balkenAnzeigen() && gesamtAuftragssumme.compareTo(BigDecimal.ZERO) > 0) {
-                // Eine Schlussrechnung schliesst den Auftrag ab — danach ist er per
+                // Eine Schlussrechnung (oder eine einfache Rechnung ueber den ganzen
+                // Auftrag) schliesst den Auftrag ab — danach ist er per
                 // Definition zu 100 % abgerechnet, auch wenn weniger berechnet wurde
                 // als die Auftragsbestaetigung vorsah. Der nicht berechnete Teil steht
                 // als eigene Differenzzeile darunter, nicht als offener Rest.
                 double prozent;
-                if (isSchlussrechnung) {
+                if (schliesstAuftragAb) {
                     prozent = 100d;
                 } else {
                     BigDecimal abgerechnetNetto = bereitsAbgerechnetNetto.add(nettoNachRabatt);
@@ -1629,14 +1659,14 @@ public class RechnungPdfService {
                     "- " + nf.format(brutto) + " €",
                     "netto " + nf.format(nettoNachRabatt) + " €", false);
 
-            // --- Differenz zur Auftragsbestaetigung (nur Schlussrechnung) ---
+            // --- Differenz zur Auftragsbestaetigung (nur wenn die Rechnung den Auftrag abschliesst) ---
             // Als Ausgleichsgroesse gerechnet, nicht aus einem Positionsvergleich:
             // damit geht die Spalte immer auf, egal ob Positionen geloescht, ergaenzt
             // oder in der Menge geaendert wurden oder ein Rabatt dazukam.
             //   > 0  Auftrag war hoeher als abgerechnet -> Leistungen sind entfallen
             //   < 0  mehr abgerechnet als beauftragt    -> Zusatzleistungen
             BigDecimal differenzNetto = BigDecimal.ZERO;
-            if (isSchlussrechnung) {
+            if (schliesstAuftragAb) {
                 differenzNetto = gesamtAuftragssumme
                         .subtract(bereitsAbgerechnetNetto)
                         .subtract(nettoNachRabatt);

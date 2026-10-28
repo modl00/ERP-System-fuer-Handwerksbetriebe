@@ -11,7 +11,7 @@ import { useEffect, useSyncExternalStore } from 'react';
  * <p>{@code useBerechtigung} liefert `null`, solange noch geprüft wird, danach
  * `true`/`false`. Wer `null` bekommt, zeigt einfach noch nichts – so blitzt
  * kein Menüpunkt kurz auf, der danach wieder verschwindet. Ein Fehler beim
- * Laden zählt als „kein Recht“ – aber nur vorläufig: Die nächste Stelle, die
+ * Laden zählt als „kein Recht" – aber nur vorläufig: Die nächste Stelle, die
  * das Recht abfragt, lädt neu (sonst fehlte ein Menü nach einem kurzen
  * Netzaussetzer die ganze Sitzung).</p>
  */

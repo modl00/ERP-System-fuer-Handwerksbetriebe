@@ -16,7 +16,7 @@ describe('VerlaufKarte', () => {
 
         expect(await screen.findByText('In Arbeit')).toBeInTheDocument();
         expect(screen.getByText(/anna/)).toBeInTheDocument();
-        expect(screen.getByText('„Messwert falsch“')).toBeInTheDocument();
+        expect(screen.getByText('„Messwert falsch"')).toBeInTheDocument();
         expect(screen.getByText(/bernd/)).toBeInTheDocument();
         expect(f.mock.calls[0][0]).toBe('/api/wartung/protokolle/7/verlauf');
     });

@@ -9,7 +9,7 @@ import {
     parseSichtbarkeitsAbteilungen, parseSichtbarkeitsBenutzer, type SichtbarkeitsAuswahl,
 } from '../../../../features/email/postfach';
 
-/** Häkchen-Listen von „Wer darf es sehen?“ im Detail. Nur Dummy-Daten (DSGVO). */
+/** Häkchen-Listen von „Wer darf es sehen?" im Detail. Nur Dummy-Daten (DSGVO). */
 
 const ABTEILUNGEN = [
     { abteilungId: 3, abteilungName: 'Werkstatt' },
@@ -42,7 +42,7 @@ interface RahmenProps {
     disabled?: boolean;
 }
 
-/** Wie die Karte: Listen laden, sobald „Nur bestimmte“ gewählt ist. */
+/** Wie die Karte: Listen laden, sobald „Nur bestimmte" gewählt ist. */
 function Rahmen({ start, onChange, ...rest }: RahmenProps) {
     const [wert, setWert] = useState(start);
     const abteilungen = useNachladeListe('/api/abteilungen/berechtigungen', !wert.sichtbarFuerAlle,
@@ -82,7 +82,7 @@ describe('PostfachSichtbarkeit', () => {
         expect(within(benutzer).getAllByRole('checkbox')).toHaveLength(1);
         await user.clear(suche);
         await user.type(suche, 'Erika');
-        expect(within(benutzer).getByText('Kein Treffer für „Erika“.')).toBeInTheDocument();
+        expect(within(benutzer).getByText('Kein Treffer für „Erika".')).toBeInTheDocument();
     });
 
     it('zeigt angehakte ausgeschaltete und nicht mehr gelieferte Einträge, damit man sie abwählen kann', async () => {
@@ -123,7 +123,7 @@ describe('PostfachSichtbarkeit', () => {
         expect(await screen.findByRole('checkbox', { name: 'Büro' })).toBeDisabled();
     });
 
-    it('lädt erneut, wenn vor der Antwort auf „Alle“ und zurück geschaltet wurde', async () => {
+    it('lädt erneut, wenn vor der Antwort auf „Alle" und zurück geschaltet wurde', async () => {
         const user = userEvent.setup();
         let freigeben: () => void = () => {};
         let erster = true;

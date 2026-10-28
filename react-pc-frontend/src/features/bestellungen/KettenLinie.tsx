@@ -30,7 +30,7 @@ export interface KettenLinieProps {
     betrag?: 'brutto' | 'netto';
     /** Laufende Bestellung ohne Rechnung: gestrichelter Platzhalter am Ende. */
     offenesEnde?: boolean;
-    /** Zeigt am offenen Ende „Rechnung hochladen“ und „Suchen“. */
+    /** Zeigt am offenen Ende „Rechnung hochladen" und „Suchen". */
     onRechnungSuchen?: () => void;
     /** Zeigt je verknüpftem Beleg einen Abhängen-Knopf (mit Rückfrage). */
     abhaengbar?: boolean;
@@ -59,7 +59,7 @@ const PUNKT_Y = 18;
 /** Mitte der Linie von links (px). */
 const LINIE_X = 10;
 
-// parseIsoDatum liest „2026-09-22“ als Ortszeit – new Date() nähme UTC und zeigte westlich davon den Vortag
+// parseIsoDatum liest „2026-09-22" als Ortszeit – new Date() nähme UTC und zeigte westlich davon den Vortag
 const formatDatum = (iso: string | null | undefined): string => parseIsoDatum(iso)?.toLocaleDateString('de-DE') ?? '–';
 
 const formatEuro = (wert: number | null | undefined): string | null => {

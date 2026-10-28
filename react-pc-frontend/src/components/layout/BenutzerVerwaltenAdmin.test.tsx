@@ -10,9 +10,9 @@ import { setzeTelefonBerechtigungZurueck } from '../../features/telefon/useTelef
 import { setzeZeiterfassungSichtbarkeitZurueck } from '../../features/zeiterfassung/useZeiterfassungSichtbarkeit';
 
 /**
- * „Benutzer verwalten“ ist nur für Admins da – in der Menüleiste (Benutzermenü)
- * und in der Handy-Navigation („Mehr“ › Einstellungen › Benutzer). Dasselbe gilt für
- * „Formularwesen“ (Menüleiste › Vorlagen & Stammdaten › Administration).
+ * „Benutzer verwalten" ist nur für Admins da – in der Menüleiste (Benutzermenü)
+ * und in der Handy-Navigation („Mehr" › Einstellungen › Benutzer). Dasselbe gilt für
+ * „Formularwesen" (Menüleiste › Vorlagen & Stammdaten › Administration).
  * Nur Dummy-Daten (DSGVO).
  */
 
@@ -55,18 +55,18 @@ async function oeffneMehr() {
     return blatt.closest('div.fixed') as HTMLElement;
 }
 
-describe('„Benutzer verwalten“ nur für Admins', () => {
+describe('„Benutzer verwalten" nur für Admins', () => {
     beforeEach(() => { setzeTelefonBerechtigungZurueck(); setzeZeiterfassungSichtbarkeitZurueck(); });
     afterEach(() => vi.unstubAllGlobals());
 
-    it('Menüleiste: Admin sieht „Benutzer verwalten“', async () => {
+    it('Menüleiste: Admin sieht „Benutzer verwalten"', async () => {
         stubbe(true);
         zeige(<RibbonNavigation />);
         await oeffneBenutzermenue();
         expect(screen.getByRole('link', { name: /Benutzer verwalten/ })).toHaveAttribute('href', '/benutzer');
     });
 
-    it('Menüleiste: normaler Benutzer sieht „Benutzer verwalten“ nicht', async () => {
+    it('Menüleiste: normaler Benutzer sieht „Benutzer verwalten" nicht', async () => {
         stubbe(false);
         zeige(<RibbonNavigation />);
         await oeffneBenutzermenue();
@@ -75,14 +75,14 @@ describe('„Benutzer verwalten“ nur für Admins', () => {
         expect(screen.queryByRole('link', { name: /Benutzer/ })).toBeNull();
     });
 
-    it('Handy-Navigation: Admin sieht „Benutzer“ unter „Mehr“', async () => {
+    it('Handy-Navigation: Admin sieht „Benutzer" unter „Mehr"', async () => {
         stubbe(true);
         zeige(<MobileBottomNav />);
         const bereich = await oeffneMehr();
         expect(within(bereich).getByRole('link', { name: /Benutzer/ })).toHaveAttribute('href', '/benutzer');
     });
 
-    it('Handy-Navigation: normaler Benutzer sieht „Benutzer“ nicht', async () => {
+    it('Handy-Navigation: normaler Benutzer sieht „Benutzer" nicht', async () => {
         stubbe(false);
         zeige(<MobileBottomNav />);
         const bereich = await oeffneMehr();
@@ -91,7 +91,7 @@ describe('„Benutzer verwalten“ nur für Admins', () => {
     });
 });
 
-describe('„Formularwesen“ im Admin-Bereich', () => {
+describe('„Formularwesen" im Admin-Bereich', () => {
     beforeEach(() => { setzeTelefonBerechtigungZurueck(); setzeZeiterfassungSichtbarkeitZurueck(); });
     afterEach(() => vi.unstubAllGlobals());
 
@@ -100,7 +100,7 @@ describe('„Formularwesen“ im Admin-Bereich', () => {
         return screen.findByRole('link', { name: /Textvorlagen/ });
     }
 
-    it('Menüleiste: Admin findet „Formularwesen“ unter Administration neben „Firma“', async () => {
+    it('Menüleiste: Admin findet „Formularwesen" unter Administration neben „Firma"', async () => {
         stubbe(true);
         zeige(<RibbonNavigation />);
         await oeffneStammdaten();
@@ -111,14 +111,14 @@ describe('„Formularwesen“ im Admin-Bereich', () => {
         expect(within(gruppe).getByRole('link', { name: /Firma/ })).toBeInTheDocument();
     });
 
-    it('Menüleiste: normaler Benutzer sieht „Formularwesen“ nicht', async () => {
+    it('Menüleiste: normaler Benutzer sieht „Formularwesen" nicht', async () => {
         stubbe(false);
         zeige(<RibbonNavigation />);
         await oeffneStammdaten();
         expect(screen.queryByRole('link', { name: /Formularwesen/ })).toBeNull();
     });
 
-    it('Handy-Navigation: nur Admins sehen „Formularwesen“', async () => {
+    it('Handy-Navigation: nur Admins sehen „Formularwesen"', async () => {
         stubbe(false);
         const { unmount } = zeige(<MobileBottomNav />);
         let bereich = await oeffneMehr();

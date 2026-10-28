@@ -8,14 +8,14 @@ import { anzeigeKurz } from './zeitachse';
 const AMPEL_TEXT: Record<Ampel, string> = { OK: 'im Plan', KNAPP: 'knapp', VERSPAETET: 'verspätet', OHNE_ZIEL: 'ohne Zieltermin' };
 const MAX_VORGAENGE = 8;
 
-/** „+10 Tage“, „−2 Tage“, „gleich“. */
+/** „+10 Tage", „−2 Tage", „gleich". */
 export function tageText(tage: number | null): string {
     if (tage == null) return 'neu';
     if (tage === 0) return 'gleich';
     return `${tage > 0 ? '+' : '−'}${Math.abs(tage)} ${Math.abs(tage) === 1 ? 'Tag' : 'Tage'}`;
 }
 
-/** Eine Zeile der Vorschau: „Plantermin rückt vom 20.11.26 auf den 04.12.26 (+14 Tage)“. */
+/** Eine Zeile der Vorschau: „Plantermin rückt vom 20.11.26 auf den 04.12.26 (+14 Tage)". */
 export function auftragZeile(a: AuftragAenderung): string {
     const liefer = a.altLiefertermin
         ? (a.altLiefertermin === a.neuLiefertermin ? `Plantermin bleibt am ${anzeigeKurz(a.neuLiefertermin)}` : `Plantermin rückt vom ${anzeigeKurz(a.altLiefertermin)} auf den ${anzeigeKurz(a.neuLiefertermin)} (${tageText(a.tage)})`)

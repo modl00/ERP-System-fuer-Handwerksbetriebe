@@ -19,7 +19,7 @@ const STATUS: Record<string, string> = {
     AUSGEFUEHRT: 'Ausgeführt', VORGESCHLAGEN: 'Vorgeschlagen', BESTAETIGT: 'Bestätigt', VERWORFEN: 'Verworfen', FEHLER: 'Fehler',
 };
 
-/** „zeit_buchen“ → „Zeit buchen“ */
+/** „zeit_buchen" → „Zeit buchen" */
 function werkzeugText(name: string): string {
     const text = name.replace(/_/g, ' ').trim();
     return text ? text.charAt(0).toUpperCase() + text.slice(1) : name;

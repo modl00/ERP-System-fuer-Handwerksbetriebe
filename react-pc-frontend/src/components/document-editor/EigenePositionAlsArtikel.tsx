@@ -73,8 +73,8 @@ export function EigenePositionAlsArtikel({ block, onUebernommen }: { block: DocB
                 body: JSON.stringify({ kurzbeschreibung: name.trim(), beschreibung: block.description ?? '', ...(aufschlag != null ? { verkaufsaufschlagProzent: aufschlag } : {}) }),
             });
             toast.success(texte.ok
-                ? `„${name.trim()}“ steht jetzt im Artikelstamm. Die Position verweist darauf; Preis und Text im Angebot bleiben unverändert.`
-                : `„${name.trim()}“ steht im Artikelstamm, aber Text und Aufschlag konnten nicht übernommen werden. Bitte im Artikel nachtragen.`);
+                ? `„${name.trim()}" steht jetzt im Artikelstamm. Die Position verweist darauf; Preis und Text im Angebot bleiben unverändert.`
+                : `„${name.trim()}" steht im Artikelstamm, aber Text und Aufschlag konnten nicht übernommen werden. Bitte im Artikel nachtragen.`);
             setOffen(false);
             onUebernommen(d.id);
         } catch {

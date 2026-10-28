@@ -18,6 +18,7 @@ import { DetailLayout } from "../components/DetailLayout";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Select } from "../components/ui/select-custom";
 import { useToast } from '../components/ui/toast';
+import { InfoAbschnitt, InfoButton } from "../components/ui/info-button";
 import { KostenstelleSelectModal } from "../components/KostenstelleSelectModal";
 import { AddressAutocomplete } from "../components/AddressAutocomplete";
 import { PhoneInput } from "../components/PhoneInput";
@@ -27,13 +28,6 @@ import { KontaktAnrufeTab } from "../features/telefon/KontaktAnrufeTab";
 import { WeitereRufnummern } from "../features/telefon/WeitereRufnummern";
 import { useKontaktAnrufAnzahl } from "../features/telefon/useKontaktAnrufAnzahl";
 import { useTelefonBerechtigung } from "../features/telefon/useTelefonBerechtigung";
-
-const LIEFERANT_TYPES = [
-    { value: "STAHL", label: "Stahl" },
-    { value: "ALUMINIUM", label: "Aluminium" },
-    { value: "LACKIERER", label: "Lackierer" },
-    { value: "SONSTIGER", label: "Sonstiger" },
-];
 
 const PAGE_SIZE = 12;
 
@@ -58,7 +52,7 @@ function istGueltigerTab(value: string | null): value is LieferantTab {
 /**
  * Holt nach dem Öffnen der Detailseite Kennzahlen, E-Mail-Verlauf und Notizen parallel
  * nach. Die Seite selbst steht dann schon mit den Stammdaten da; `undefined` heißt
- * „lädt noch“, damit die Reiter einen Ladezustand statt einer leeren Liste zeigen.
+ * „lädt noch", damit die Reiter einen Ladezustand statt einer leeren Liste zeigen.
  */
 function useLieferantNachladen(lieferantId: number | string, ladeVersion: number) {
     const toast = useToast();
@@ -66,11 +60,18 @@ function useLieferantNachladen(lieferantId: number | string, ladeVersion: number
     const [emails, setEmails] = useState<ProjektEmail[] | undefined>(undefined);
     const [notizen, setNotizen] = useState<LieferantNotiz[] | undefined>(undefined);
 
-    useEffect(() => {
-        let abgebrochen = false;
+    // Anderer Lieferant oder neu gespeichert: zurück auf „lädt noch", bevor der Effekt nachlädt.
+    const ladeSchluessel = `${lieferantId}-${ladeVersion}`;
+    const [geladenFuer, setGeladenFuer] = useState(ladeSchluessel);
+    if (geladenFuer !== ladeSchluessel) {
+        setGeladenFuer(ladeSchluessel);
         setStatistik(undefined);
         setEmails(undefined);
         setNotizen(undefined);
+    }
+
+    useEffect(() => {
+        let abgebrochen = false;
         const lade = async <T,>(pfad: string, fehlertext: string, setzen: (wert: T) => void, ersatz: T) => {
             try {
                 const res = await fetch(`/api/lieferanten/${lieferantId}/${pfad}`);
@@ -90,8 +91,7 @@ function useLieferantNachladen(lieferantId: number | string, ladeVersion: number
         void lade<LieferantNotiz[]>('notizen', 'Notizen konnten nicht geladen werden.', setNotizen, []);
         return () => { abgebrochen = true; };
         // toast ist stabil; neu laden bei anderem Lieferanten oder nach dem Speichern.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [lieferantId, ladeVersion]);
+    }, [lieferantId, ladeVersion, toast]);
 
     return { statistik, emails, notizen, setNotizen };
 }
@@ -514,7 +514,7 @@ export default function LieferantenEditor() {
     const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
     const [lieferanten, setLieferanten] = useState<Lieferant[]>([]);
     const [selectedLieferant, setSelectedLieferant] = useState<LieferantDetail | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [total, setTotal] = useState(0);
     const [page, setPage] = useState(0);
 
@@ -522,7 +522,7 @@ export default function LieferantenEditor() {
     const [filters, setFilters] = useState({
         q: "",
         name: "",
-        typ: "",
+        rolle: "",
         ort: "",
         email: "",
     });
@@ -554,15 +554,22 @@ export default function LieferantenEditor() {
     // Deep-Link: Die Adresszeile ist die Wahrheit — `?lieferantId=123` öffnet
     // die Detailansicht, ihr Verschwinden schließt sie wieder.
     const lastProcessedLieferantId = useRef<string | null>(null);
+    const lieferantIdAusAdresse = searchParams.get('lieferantId');
+    // Browser-Zurück aus der Detailansicht heraus. Ohne diesen Zweig
+    // bliebe die Detailansicht offen, obwohl die Adresse längst die
+    // Liste zeigt.
+    const [vorherigeLieferantIdAusAdresse, setVorherigeLieferantIdAusAdresse] = useState(lieferantIdAusAdresse);
+    if (vorherigeLieferantIdAusAdresse !== lieferantIdAusAdresse) {
+        setVorherigeLieferantIdAusAdresse(lieferantIdAusAdresse);
+        if (!lieferantIdAusAdresse) {
+            setSelectedLieferant(null);
+            setViewMode('list');
+        }
+    }
     useEffect(() => {
         const lieferantIdParam = searchParams.get('lieferantId');
         if (!lieferantIdParam) {
-            // Browser-Zurück aus der Detailansicht heraus. Ohne diesen Zweig
-            // bliebe die Detailansicht offen, obwohl die Adresse längst die
-            // Liste zeigt.
             lastProcessedLieferantId.current = null;
-            setSelectedLieferant(null);
-            setViewMode('list');
             return;
         }
         if (lastProcessedLieferantId.current === lieferantIdParam) return;
@@ -590,41 +597,54 @@ export default function LieferantenEditor() {
     // auf eine alte Filter-/Seiten-Kombination die aktuelle Liste überschreiben.
     const ladeVorgangRef = useRef(0);
 
-    // Fetch List
-    const loadLieferanten = useCallback(async () => {
+    // Andere Seite, andere Filter oder zurück in der Liste: Ladeanzeige an, bevor der Effekt neu lädt.
+    const [geladeneAbfrage, setGeladeneAbfrage] = useState({ page, filters, viewMode });
+    if (geladeneAbfrage.page !== page || geladeneAbfrage.filters !== filters || geladeneAbfrage.viewMode !== viewMode) {
+        setGeladeneAbfrage({ page, filters, viewMode });
+        if (viewMode === 'list') setLoading(true);
+    }
+
+    // Fetch List (Promise-Kette: Zustand wird erst gesetzt, wenn die Antwort da ist)
+    const loadLieferanten = useCallback(() => {
         const ladeVorgang = ++ladeVorgangRef.current;
         const istAktuell = () => ladeVorgangRef.current === ladeVorgang;
-        setLoading(true);
-        try {
-            const params = new URLSearchParams();
-            params.set("page", String(page));
-            params.set("size", String(PAGE_SIZE));
-            if (filters.q) params.set("q", filters.q);
-            if (filters.name) params.set("name", filters.name);
-            if (filters.typ) params.set("typ", filters.typ);
-            if (filters.ort) params.set("ort", filters.ort);
-            if (filters.email) params.set("email", filters.email);
+        const params = new URLSearchParams();
+        params.set("page", String(page));
+        params.set("size", String(PAGE_SIZE));
+        if (filters.q) params.set("q", filters.q);
+        if (filters.name) params.set("name", filters.name);
+        if (filters.rolle) params.set("rolle", filters.rolle);
+        if (filters.ort) params.set("ort", filters.ort);
+        if (filters.email) params.set("email", filters.email);
 
-            const res = await fetch(`/api/lieferanten?${params.toString()}`);
-            if (!res.ok) throw new Error("Fehler beim Laden");
-            const data = await res.json();
-            if (!istAktuell()) return;
+        return fetch(`/api/lieferanten?${params.toString()}`)
+            .then(async (res) => {
+                if (!res.ok) throw new Error("Fehler beim Laden");
+                const data = await res.json();
+                if (!istAktuell()) return;
 
-            setLieferanten(Array.isArray(data.lieferanten) ? data.lieferanten : []);
-            setTotal(typeof data.gesamt === "number" ? data.gesamt : 0);
-        } catch (err) {
-            console.error(err);
-            if (!istAktuell()) return;
-            setLieferanten([]);
-            setTotal(0);
-        } finally {
-            if (istAktuell()) setLoading(false);
-        }
+                setLieferanten(Array.isArray(data.lieferanten) ? data.lieferanten : []);
+                setTotal(typeof data.gesamt === "number" ? data.gesamt : 0);
+            })
+            .catch((err) => {
+                console.error(err);
+                if (!istAktuell()) return;
+                setLieferanten([]);
+                setTotal(0);
+            })
+            .finally(() => {
+                if (istAktuell()) setLoading(false);
+            });
     }, [page, filters]);
+
+    const neuLaden = () => {
+        setLoading(true);
+        void loadLieferanten();
+    };
 
     useEffect(() => {
         if (viewMode === 'list') {
-            loadLieferanten();
+            void loadLieferanten();
         }
     }, [loadLieferanten, viewMode]);
 
@@ -645,7 +665,7 @@ export default function LieferantenEditor() {
     };
 
     const handleResetFilters = () => {
-        setFilters({ q: "", name: "", typ: "", ort: "", email: "" });
+        setFilters({ q: "", name: "", rolle: "", ort: "", email: "" });
         setPage(0);
     };
 
@@ -743,7 +763,7 @@ export default function LieferantenEditor() {
                 await aktualisiereDetail(data.id);
                 setLadeVersion(v => v + 1);
             } else {
-                loadLieferanten();
+                neuLaden();
             }
         } catch (err) {
             console.error(err);
@@ -766,11 +786,9 @@ export default function LieferantenEditor() {
     // Seite gelöscht wurde), springen wir auf die letzte gültige Seite zurück – sonst
     // stünde man vor einer leeren Liste. Erst nach dem Laden, denn währenddessen ist
     // `total` noch der alte Wert.
-    useEffect(() => {
-        if (loading) return;
-        const letzteSeite = totalPages - 1;
-        if (page > letzteSeite) setPage(letzteSeite);
-    }, [loading, totalPages, page]);
+    if (!loading && page > totalPages - 1) {
+        setPage(totalPages - 1);
+    }
 
     const statusText = useMemo(() => {
         if (loading) return 'Lieferanten werden geladen...';
@@ -822,7 +840,7 @@ export default function LieferantenEditor() {
                         <Plus className="w-4 h-4 mr-2" />
                         Neuer Lieferant
                     </Button>
-                    <Button variant="outline" size="sm" onClick={() => loadLieferanten()}>
+                    <Button variant="outline" size="sm" onClick={neuLaden}>
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
                         Aktualisieren
                     </Button>
@@ -841,16 +859,27 @@ export default function LieferantenEditor() {
                         <input type="text" className="filter-input w-full mt-1 px-3 py-2 border border-slate-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500" placeholder="Lieferantenname" value={filters.name} onChange={e => handleFilterChange('name', e.target.value)} />
                     </div>
                     <div>
-                        <label className="block text-sm font-medium text-gray-700">Typ</label>
+                        <div className="flex items-center gap-1">
+                            <label className="block text-sm font-medium text-gray-700">Rolle</label>
+                            <InfoButton titel="Rolle">
+                                <InfoAbschnitt titel="Was passiert im Hintergrund?">
+                                    <p>Jeder Lieferant hat eine oder mehrere Rollen, z. B. Stahlhandel oder Verzinkerei.</p>
+                                </InfoAbschnitt>
+                                <InfoAbschnitt titel="Was bewirkt das?">
+                                    <p>Der Filter zeigt nur Lieferanten mit dieser Rolle. Die Rollen steuern auch, welche Lieferanten beim Eintragen von Artikelpreisen vorgeschlagen werden.</p>
+                                </InfoAbschnitt>
+                            </InfoButton>
+                        </div>
                         <Select
-                            value={filters.typ}
-                            onChange={(value) => handleFilterChange("typ", value)}
+                            value={filters.rolle}
+                            onChange={(value) => handleFilterChange("rolle", value)}
                             options={[
-                                { value: "", label: "Alle Typen" },
-                                ...LIEFERANT_TYPES
+                                { value: "", label: "Alle Rollen" },
+                                ...LIEFERANT_ROLLEN
                             ]}
-                            placeholder="Typ filtern"
+                            placeholder="Rolle filtern"
                             className="mt-1"
+                            aria-label="Rolle"
                         />
                     </div>
                     <div>
@@ -1025,13 +1054,17 @@ function mitInfoAdresse(vorhandene: string[] | undefined, neueAdresse: string): 
     return liste;
 }
 
-function LieferantModal({ lieferant, onClose, onSave }: { lieferant: Lieferant; onClose: () => void; onSave: (l: Lieferant) => void }) {
+export function LieferantModal({ lieferant, onClose, onSave }: { lieferant: Lieferant; onClose: () => void; onSave: (l: Lieferant) => void }) {
     const [formData, setFormData] = useState<Lieferant>({ ...lieferant });
     const [newEmail, setNewEmail] = useState("");
     const [showKostenstelleModal, setShowKostenstelleModal] = useState(false);
+    const [nameFehler, setNameFehler] = useState<string | null>(null);
+    const nameRef = useRef<HTMLInputElement>(null);
+    const toast = useToast();
 
     const handleChange = (field: keyof Lieferant, value: Lieferant[keyof Lieferant]) => {
         setFormData(prev => ({ ...prev, [field]: value }));
+        if (field === "lieferantenname" && nameFehler) setNameFehler(null);
     };
 
     const addEmail = () => {
@@ -1065,10 +1098,17 @@ function LieferantModal({ lieferant, onClose, onSave }: { lieferant: Lieferant; 
                             <Label htmlFor="lieferant-name">Name *</Label>
                             <Input
                                 id="lieferant-name"
+                                ref={nameRef}
                                 value={formData.lieferantenname || ""}
                                 onChange={(e) => handleChange("lieferantenname", e.target.value)}
                                 required
+                                aria-invalid={nameFehler ? true : undefined}
+                                aria-describedby={nameFehler ? "lieferant-name-fehler" : undefined}
+                                className={cn(nameFehler && "border-red-500 focus-visible:ring-red-500")}
                             />
+                            {nameFehler && (
+                                <p id="lieferant-name-fehler" className="text-sm text-red-600">{nameFehler}</p>
+                            )}
                         </div>
                         <div className="space-y-1.5">
                             <Label htmlFor="lieferant-alias">Zweiter Name (optional)</Label>
@@ -1174,7 +1214,7 @@ function LieferantModal({ lieferant, onClose, onSave }: { lieferant: Lieferant; 
                                     Anhaken, wenn hier per Vorkasse, Lastschrift oder Kreditkarte gezahlt wird.
                                     Rechnungen dieser Firma sind dann schon beglichen, wenn sie per E-Mail
                                     ankommen — sie werden automatisch als bezahlt eingetragen und stehen nicht
-                                    unter „Offene Posten“. So wird nichts versehentlich doppelt überwiesen.
+                                    unter „Offene Posten". So wird nichts versehentlich doppelt überwiesen.
                                 </p>
                             </div>
                         </label>
@@ -1274,6 +1314,15 @@ function LieferantModal({ lieferant, onClose, onSave }: { lieferant: Lieferant; 
                 <div className="p-6 border-t border-slate-100 bg-slate-50 flex justify-end gap-3 rounded-b-xl">
                     <Button variant="ghost" onClick={onClose}>Abbrechen</Button>
                     <Button onClick={() => {
+                        // Ohne Namen lässt sich der Lieferant später nicht wiederfinden –
+                        // gar nicht erst ans Backend schicken.
+                        if (!formData.lieferantenname?.trim()) {
+                            const meldung = "Bitte einen Namen für den Lieferanten eingeben.";
+                            setNameFehler(meldung);
+                            toast.error(meldung);
+                            nameRef.current?.focus();
+                            return;
+                        }
                         // Wenn noch Text im E-Mail-Feld steht, diesen automatisch hinzufügen
                         const finalData = {
                             ...formData,

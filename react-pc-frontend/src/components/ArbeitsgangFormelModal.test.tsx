@@ -50,9 +50,9 @@ it('Testwerte gehen als Zahlen an die Rechnung', async () => {
 });
 
 it('ein Fehler der Formel steht im Klartext da und sperrt nichts', async () => {
-    rechnung = () => antwort({ message: 'Das Feld „V9“ gibt es nicht. Erlaubt sind nur die angelegten Eingabefelder.' }, false, 400);
+    rechnung = () => antwort({ message: 'Das Feld „V9" gibt es nicht. Erlaubt sind nur die angelegten Eingabefelder.' }, false, 400);
     zeige(mitFormel());
-    expect(await screen.findByTestId('formel-fehler')).toHaveTextContent('Das Feld „V9“ gibt es nicht');
+    expect(await screen.findByTestId('formel-fehler')).toHaveTextContent('Das Feld „V9" gibt es nicht');
     expect(screen.queryByTestId('formel-ergebnis-test')).not.toBeInTheDocument();
 });
 
@@ -87,19 +87,19 @@ it('Speichern schickt Felder und Formeln; ohne Bearbeitungsformel ist es gesperr
 
 it('ein Fehler beim Speichern bleibt im Dialog stehen', async () => {
     const user = userEvent.setup();
-    const onSave = vi.fn().mockRejectedValue(new Error('Der Feldname „1x“ ist ungültig.'));
+    const onSave = vi.fn().mockRejectedValue(new Error('Der Feldname „1x" ist ungültig.'));
     const { onClose } = zeige(mitFormel(), onSave);
     await user.click(screen.getByRole('button', { name: /Speichern/ }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Der Feldname „1x“ ist ungültig.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Der Feldname „1x" ist ungültig.');
     expect(onClose).not.toHaveBeenCalled();
 });
 
-it('„Formel entfernen“ gibt es nur bei einem Arbeitsgang mit Formel', () => {
+it('„Formel entfernen" gibt es nur bei einem Arbeitsgang mit Formel', () => {
     zeige(gang());
     expect(screen.queryByRole('button', { name: /Formel entfernen/ })).not.toBeInTheDocument();
 });
 
-it('„Formel entfernen“ schickt leere Angaben', async () => {
+it('„Formel entfernen" schickt leere Angaben', async () => {
     const user = userEvent.setup();
     const { onSave } = zeige(mitFormel());
     await user.click(await screen.findByRole('button', { name: /Formel entfernen/ }));

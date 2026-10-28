@@ -18,11 +18,11 @@ import org.example.kalkulationsprogramm.service.ArtikelServiceContract;
 import org.example.kalkulationsprogramm.service.KategorieService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
@@ -36,9 +36,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * eine Dokumentposition mitbringt - siehe {@link ArtikelPositionsPreisService}.
  *
  * <p>Der Service wird hier bewusst NICHT gemockt, sondern als echter Bean
- * importiert: Er ist zustandslos und ohne Abhaengigkeiten, und diese Tests
- * wollen den tatsaechlich berechneten Preis pruefen, nicht nur, dass
- * irgendein Wert durchgereicht wird.
+ * importiert: Er ist zustandslos, und diese Tests wollen den tatsaechlich
+ * berechneten Preis pruefen, nicht nur, dass irgendein Wert durchgereicht
+ * wird. Die Aufschlagsregeln (AufschlagService) fehlen in diesem Ausschnitt;
+ * dann zaehlt wie bisher nur der Aufschlag am Artikel.
  */
 @WebMvcTest(ArtikelController.class)
 @AutoConfigureMockMvc(addFilters = false)
@@ -48,25 +49,25 @@ class ArtikelSuchePreisvorschlagTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private ArtikelServiceContract artikelService;
 
-    @MockBean
+    @MockitoBean
     private ArtikelImportService artikelImportService;
 
-    @MockBean
+    @MockitoBean
     private LieferantenRepository lieferantenRepository;
 
-    @MockBean
+    @MockitoBean
     private WerkstoffRepository werkstoffRepository;
 
-    @MockBean
+    @MockitoBean
     private ArtikelMatchingService artikelMatchingService;
 
-    @MockBean
+    @MockitoBean
     private KategorieService kategorieService;
 
-    @MockBean
+    @MockitoBean
     private ArtikelDokumentService artikelDokumentService;
 
     /**

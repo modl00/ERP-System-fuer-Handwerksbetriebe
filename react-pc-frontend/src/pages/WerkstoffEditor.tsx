@@ -50,7 +50,7 @@ const ausWerkstoff = (w: Werkstoff): Formular => ({
 });
 
 /**
- * Werkstoffe pflegen: die Auswahlliste „Werkstoff“ am Artikel. Die Dichte rechnet das Programm in Gewicht und Oberfläche je Meter um; die Eignung für
+ * Werkstoffe pflegen: die Auswahlliste „Werkstoff" am Artikel. Die Dichte rechnet das Programm in Gewicht und Oberfläche je Meter um; die Eignung für
  * Verzinken und Pulvern sagt dem Artikel, was für ihn gilt, solange er nichts Eigenes eingestellt hat.
  */
 /** {@code eingebettet}: ohne Seitenkopf und Seitenrand, zum Einsetzen in ein Fenster (zum Beispiel in der Artikelübersicht). */
@@ -110,7 +110,7 @@ export default function WerkstoffEditor({ eingebettet = false }: { eingebettet?:
     };
 
     const loeschen = async (w: Werkstoff) => {
-        const ok = await confirm({ title: 'Werkstoff löschen?', message: `„${w.anzeigename || w.name}“ wird gelöscht. Das lässt sich nicht rückgängig machen.`, confirmLabel: 'Löschen', variant: 'danger' });
+        const ok = await confirm({ title: 'Werkstoff löschen?', message: `„${w.anzeigename || w.name}" wird gelöscht. Das lässt sich nicht rückgängig machen.`, confirmLabel: 'Löschen', variant: 'danger' });
         if (!ok) return;
         try {
             const res = await fetch(`${BASIS}/${w.id}`, { method: 'DELETE' });
@@ -130,7 +130,7 @@ export default function WerkstoffEditor({ eingebettet = false }: { eingebettet?:
                 : {
                     ribbonCategory: 'Artikelverwaltung',
                     title: 'Werkstoffe',
-                    subtitle: 'Die Auswahlliste „Werkstoff“ am Artikel: Stahl, Edelstahl, Aluminium und was Sie sonst verarbeiten.',
+                    subtitle: 'Die Auswahlliste „Werkstoff" am Artikel: Stahl, Edelstahl, Aluminium und was Sie sonst verarbeiten.',
                     actions: <Button size="sm" onClick={() => { setForm({ ...LEER }); setFehler(''); }}><Plus className="mr-2 h-4 w-4" />Neuer Werkstoff</Button>,
                 })}
         >

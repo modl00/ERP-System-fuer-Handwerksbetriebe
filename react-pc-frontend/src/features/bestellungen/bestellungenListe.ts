@@ -90,7 +90,7 @@ export function teileNachAlter<T extends Kette>(
     return { aktuell, aelter };
 }
 
-/** „heute“, „vor 3 Wochen“, „vor 2 Jahren“ – grob genug, um auf einen Blick zu sehen, wie alt etwas ist. */
+/** „heute", „vor 3 Wochen", „vor 2 Jahren" – grob genug, um auf einen Blick zu sehen, wie alt etwas ist. */
 export function formatiereAlter(datum: Date | null, heute: Date): string {
     if (!datum) return 'Datum unbekannt';
     const tage = tageZwischen(datum, heute);
@@ -153,10 +153,11 @@ function normalisiere(text: string): string {
 function suchText(kette: Kette): string {
     const teile: string[] = [kette.lieferantName ?? ''];
     for (const dok of kette.dokumente) {
-        teile.push(TYP_LABELS[dok.typ], dok.dokumentNummer ?? '', dok.dateiname ?? '');
+        // Unbekannte Arten vom Server (z. B. BELEG) heißen „Sonstiges" – wie im Backend
+        teile.push(TYP_LABELS[dok.typ] ?? TYP_LABELS.SONSTIG, dok.dokumentNummer ?? '', dok.dateiname ?? '');
         if (dok.betragBrutto != null && Number.isFinite(dok.betragBrutto)) {
             const betrag = formatEuroText(dok.betragBrutto);
-            // „1.234,50“ und „1234,50“ sollen beide treffen
+            // „1.234,50" und „1234,50" sollen beide treffen
             teile.push(betrag, betrag.replace(/\./g, ''));
         }
         const datum = dokumentDatum(dok);

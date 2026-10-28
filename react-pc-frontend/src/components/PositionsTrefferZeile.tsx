@@ -3,7 +3,7 @@ import { cn } from '../lib/utils';
 import { hervorhebungsStuecke, weitereTrefferText } from '../lib/positionsTreffer';
 
 interface PositionsTrefferZeileProps {
-    /** z. B. „Flachstahl 50x5 · S235JR · Charge 123456 · 12 Stück“ */
+    /** z. B. „Flachstahl 50x5 · S235JR · Charge 123456 · 12 Stück" */
     trefferText: string;
     weitereTreffer?: number | null;
     /** Was der Nutzer gesucht hat – wird im Text hervorgehoben. */

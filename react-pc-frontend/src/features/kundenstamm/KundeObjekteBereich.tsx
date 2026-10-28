@@ -56,7 +56,7 @@ export function KundeObjekteBereich({ kundeId, onAnzahl }: KundeObjekteBereichPr
         if (o.aktiv) {
             const ja = await confirm({
                 title: 'Objekt deaktivieren?',
-                message: `„${o.bezeichnung}“ erscheint dann nicht mehr bei neuen Aufträgen und Wartungen. Bisherige Protokolle und Wartungen bleiben erhalten.`,
+                message: `„${o.bezeichnung}" erscheint dann nicht mehr bei neuen Aufträgen und Wartungen. Bisherige Protokolle und Wartungen bleiben erhalten.`,
                 confirmLabel: 'Deaktivieren',
                 variant: 'warning',
             });

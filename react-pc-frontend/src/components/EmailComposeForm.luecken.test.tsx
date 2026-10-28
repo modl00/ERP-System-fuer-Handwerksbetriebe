@@ -7,7 +7,7 @@ import { EmailComposeForm, anredeEnumToText, formatFileSize, MAX_ATTACHMENT_BYTE
 
 /**
  * Lückentests für das Schreiben-Fenster: Anrede, Vorgangs-Daten, KI-Formulierung,
- * Anhänge, Projekt-Dateien und die Rückfrage „Adresse speichern?“.
+ * Anhänge, Projekt-Dateien und die Rückfrage „Adresse speichern?".
  * Alle Daten sind Dummy-Daten (DSGVO).
  */
 
@@ -86,7 +86,7 @@ describe('EmailComposeForm – Vorgang und Titel', () => {
         render(<EmailComposeForm onClose={() => {}} anfrageId={12}
             anfrage={{ bauvorhaben: 'Treppe Mustermann', kundenEmails: ['max@example.org'] }} />);
         expect(await screen.findByText('Anfrage: Treppe Mustermann')).toBeInTheDocument();
-        await waitFor(() => expect(screen.getByPlaceholderText('Name, Firma oder E-Mail eingeben')).toHaveValue('max@example.org'));
+        await waitFor(() => expect(screen.getByTitle('max@example.org')).toBeInTheDocument());
         expect(screen.getByRole('button', { name: /Dateien aus Anfrage hinzufügen/ })).toBeInTheDocument();
     });
 
@@ -95,7 +95,7 @@ describe('EmailComposeForm – Vorgang und Titel', () => {
         render(<EmailComposeForm onClose={() => {}} projektId={41}
             projekt={{ id: 41, bauvorhaben: 'Garagentor', kundenEmails: ['a@example.org'], kundeDto: { kundenEmails: ['b@example.org', 'a@example.org'] } } as never} />);
         expect(await screen.findByText('Projekt: Garagentor')).toBeInTheDocument();
-        await waitFor(() => expect(screen.getByPlaceholderText('Name, Firma oder E-Mail eingeben')).toHaveValue('a@example.org'));
+        await waitFor(() => expect(screen.getByTitle('a@example.org')).toBeInTheDocument());
     });
 
     it('übersteht einen Netzwerkfehler beim Laden des Vorgangs', async () => {
@@ -341,7 +341,7 @@ describe('EmailComposeForm – Adresse speichern', () => {
 });
 
 describe('EmailComposeForm – Entwurf laden', () => {
-    it('bietet bei Ladefehlern „Erneut laden“ und „Schließen“', async () => {
+    it('bietet bei Ladefehlern „Erneut laden" und „Schließen"', async () => {
         let versuche = 0;
         routen['/api/emails/drafts/55'] = () => (++versuche === 1
             ? { status: 500, body: {} }
@@ -356,7 +356,7 @@ describe('EmailComposeForm – Entwurf laden', () => {
     it('stellt Anfrage-Zuordnung und CC eines Entwurfs wieder her', async () => {
         routen['/api/emails/drafts/55'] = { body: { id: 55, subject: 'Entwurf', recipient: 'kunde@example.org', cc: 'kopie@example.org', anfrageId: 12, attachments: [] } };
         render(<EmailComposeForm onClose={() => {}} draftId={55} zuordnungWaehlbar />);
-        expect(await screen.findByDisplayValue('kopie@example.org')).toBeInTheDocument();
+        expect(await screen.findByTitle('kopie@example.org')).toBeInTheDocument();
         expect(screen.getAllByText('Anfrage').length).toBeGreaterThan(0);
     });
 });

@@ -68,7 +68,12 @@ public class KundenDetailService {
         dto.setOrt(kunde.getOrt());
         dto.setTelefon(kunde.getTelefon());
         dto.setMobiltelefon(kunde.getMobiltelefon());
+        dto.setZahlungsziel(kunde.getZahlungsziel());
         dto.setKundenEmails(new ArrayList<>(Objects.requireNonNullElse(kunde.getKundenEmails(), List.of())));
+        dto.setGesperrt(kunde.istGesperrt());
+        dto.setGesperrtAm(kunde.getGesperrtAm());
+        dto.setAufbewahrenBis(kunde.getAufbewahrenBis());
+        dto.setAnonymisiertAm(kunde.getAnonymisiertAm());
         dto.setProjekte(mapProjekte(projekte));
         dto.setAnfragen(mapAnfragen(anfragen));
         dto.setGeschaeftsdokumente(mapGeschaeftsdokumente(projekte, anfragen));

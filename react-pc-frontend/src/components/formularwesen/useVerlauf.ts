@@ -5,7 +5,7 @@ const MAX_SCHRITTE = 50;
 export interface Verlauf<T> {
     stand: T;
     /**
-     * Ändert den Stand und merkt sich den alten für „Rückgängig“.
+     * Ändert den Stand und merkt sich den alten für „Rückgängig".
      * @param gruppe Folgen mehrere Änderungen mit derselben Gruppe direkt
      *   aufeinander (ein Zug mit der Maus, Tippen im selben Feld, mehrere
      *   Pfeiltasten), wird daraus ein einziger Rückgängig-Schritt.

@@ -70,6 +70,8 @@ public class DateiSpeicherService {
     private final AnfrageRepository anfrageRepository;
     private final Path dokumentenSpeicherplatz;
     private final Path anfragenSpeicherplatz;
+    /** Läuft der Server unter Windows? In Tests umschaltbar. */
+    boolean istWindows = java.io.File.separatorChar == '\\';
     private final Path bilderSpeicherplatz;
     private final Path schnittbilderSpeicherplatz;
     private final ProduktkategorieRepository produktkategorieRepository;
@@ -641,6 +643,11 @@ public class DateiSpeicherService {
 
     public List<ProjektGeschaeftsdokument> holeOffeneGeschaeftsdokumente() {
         return dokumentRepository.findOffeneGeschaeftsdokumente();
+    }
+
+    /** Bezahlte Kundenrechnungen der letzten 12 Monate, ohne stornierte (Offene Posten, Issue #263). */
+    public List<ProjektGeschaeftsdokument> holeBezahlteRechnungen() {
+        return dokumentRepository.findBezahlteRechnungenSeit(java.time.LocalDate.now().minusMonths(12));
     }
 
     public List<ProjektGeschaeftsdokument> holeRechnungenZuProjekt(Long projektId) {
@@ -1368,6 +1375,12 @@ public class DateiSpeicherService {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
                     "Dieses Dokument ist keine Rechnung und kann nicht als bezahlt markiert werden.");
         }
+        // Stornierte Rechnungen gelten als erledigt; wieder öffnen würde sie erneut mahnen.
+        if (!bezahlt && geschaeftsdokument.getDokumentid() != null
+                && dokumentRepository.istStorniert(geschaeftsdokument.getDokumentid())) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
+                    "Diese Rechnung wurde storniert und bleibt deshalb erledigt.");
+        }
         // Ob das Projekt damit bezahlt und beendet ist, entscheidet allein die
         // zentrale Regel in AusgangsGeschaeftsDokumentService – sonst laufen zwei
         // Regeln auseinander und das Projekt springt zwischen offen und beendet.
@@ -1723,6 +1736,12 @@ public class DateiSpeicherService {
             String netzwerkUrl = hicadNetworkUrl();
             if (netzwerkUrl == null || !netzwerkUrl.startsWith("\\\\")) {
                 return; // keine UNC-Freigabe konfiguriert
+            }
+            if (!istWindows) {
+                // Nur Windows versteht \\server\freigabe als Netzwerkpfad. Unter Linux (Docker)
+                // waere es ein Ordner mit diesem Namen im Arbeitsverzeichnis - jede Datei landete
+                // dort ein zweites Mal. Die Freigabe zeigt dort ohnehin auf den Datei-Ordner selbst.
+                return;
             }
             Path netzBasis = Path.of(netzwerkUrl).toAbsolutePath().normalize();
             Path netzZiel = resolveAndValidate(netzBasis, gespeicherterDateiname);

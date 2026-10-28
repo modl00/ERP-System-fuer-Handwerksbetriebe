@@ -19,7 +19,7 @@ const ausPostfach = (p: Postfach): PostfachEingabe => ({
 interface Props { offen: boolean; onSchliessen: () => void }
 
 /**
- * „Meine Postfächer“ (Issue #272, Stufe 1): Jeder Benutzer verwaltet hier seine eigenen Postfächer, mit verschlüsselt gespeichertem Passwort und Verbindungstest.
+ * „Meine Postfächer" (Issue #272, Stufe 1): Jeder Benutzer verwaltet hier seine eigenen Postfächer, mit verschlüsselt gespeichertem Passwort und Verbindungstest.
  * Das Abholen der Mails aus diesen Postfächern folgt in einem nächsten Schritt.
  */
 export function MeinePostfaecherDialog({ offen, onSchliessen }: Props) {
@@ -54,7 +54,7 @@ function Inhalt() {
     }, [ladeStand]);
 
     const loeschen = async (p: Postfach) => {
-        const ja = await bestaetige({ title: 'Postfach entfernen?', message: `Das Postfach „${p.bezeichnung}“ (${p.emailAdresse}) wird aus dem Programm entfernt. In Ihrem Postfach beim Anbieter ändert sich nichts.`, confirmLabel: 'Entfernen', variant: 'danger' });
+        const ja = await bestaetige({ title: 'Postfach entfernen?', message: `Das Postfach „${p.bezeichnung}" (${p.emailAdresse}) wird aus dem Programm entfernt. In Ihrem Postfach beim Anbieter ändert sich nichts.`, confirmLabel: 'Entfernen', variant: 'danger' });
         if (!ja) return;
         try {
             await loeschePostfach(p.id);

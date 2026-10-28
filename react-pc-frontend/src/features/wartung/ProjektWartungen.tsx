@@ -257,7 +257,7 @@ function ZuordnenDialog({ open, onOpenChange, projektId, kundeId, onZugeordnet }
         setArbeitet(eintrag.tuerId);
         try {
             await ordneProjektZu(eintrag.tuerId, projektId);
-            toast.success(`„${eintrag.name}“ ist dem Projekt zugeordnet.`);
+            toast.success(`„${eintrag.name}" ist dem Projekt zugeordnet.`);
             onZugeordnet();
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Die Wartung konnte nicht zugeordnet werden.');
@@ -266,7 +266,7 @@ function ZuordnenDialog({ open, onOpenChange, projektId, kundeId, onZugeordnet }
         }
     };
 
-    // „Alle auswählen“ gilt für die gerade sichtbare (gefilterte) Liste
+    // „Alle auswählen" gilt für die gerade sichtbare (gefilterte) Liste
     const begriff = filter.trim().toLowerCase();
     const sichtbar = (auswahl ?? []).filter((e) => begriff === '' || `${e.name} ${e.objekt}`.toLowerCase().includes(begriff));
     const sichtbarMarkiert = sichtbar.filter((e) => markiert.has(e.tuerId));
@@ -342,7 +342,7 @@ function ZuordnenDialog({ open, onOpenChange, projektId, kundeId, onZugeordnet }
                                     <div className="min-w-0 flex-1 text-sm">
                                         <p className="font-medium text-slate-900 break-words">{e.name}</p>
                                         <p className="text-slate-500 break-words">
-                                            {e.objekt}{e.projektName && <span className="text-amber-700"> · gehört zu „{e.projektName}“</span>}
+                                            {e.objekt}{e.projektName && <span className="text-amber-700"> · gehört zu „{e.projektName}"</span>}
                                         </p>
                                     </div>
                                     <Button size="sm" variant="outline" disabled={arbeitet !== null} onClick={() => void zuordnen(e)} aria-label={`${e.name} diesem Projekt zuordnen`}>

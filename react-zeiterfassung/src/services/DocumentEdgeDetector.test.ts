@@ -150,7 +150,7 @@ describe('DocumentEdgeDetector', () => {
         expect(await m.verfeinereEcken(canvas(800, 600), ecken)).toBe(ecken)
     })
 
-    it('meldet „bereit“ erst nach dem Probelauf der KI', async () => {
+    it('meldet „bereit" erst nach dem Probelauf der KI', async () => {
         const m = await ladeModul()
         let probeFertig: (wert: unknown) => void = () => {}
         scanDocument.mockReturnValueOnce(new Promise(resolve => { probeFertig = resolve }))

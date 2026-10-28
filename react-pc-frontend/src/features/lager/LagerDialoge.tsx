@@ -488,7 +488,7 @@ export function ArtikelDialog({ artikel, onSchliessen, onGespeichert }: ArtikelD
                             <ExternalLink className="w-3.5 h-3.5" aria-hidden="true" /> Preise, Lieferanten und Texte im Artikel öffnen
                         </Link>
                     )}
-                    <p className="text-xs text-slate-500">Den Lagerort ändern Sie über „Umbuchen“ in der Zeile des Artikels.</p>
+                    <p className="text-xs text-slate-500">Den Lagerort ändern Sie über „Umbuchen" in der Zeile des Artikels.</p>
                 </div>
                 {fehler && <div role="alert" className="p-3 bg-rose-50 border border-rose-200 text-sm text-rose-800 rounded-lg">{fehler}</div>}
                 <DialogFooter className="gap-2">

@@ -154,7 +154,7 @@ export function Unterschriftenfeld({ titel, bild, name, vorschlagName, bearbeitb
     const entfernen = async () => {
         const ja = await confirm({
             title: 'Unterschrift löschen?',
-            message: `Die Unterschrift „${titel}“ wird entfernt. Sie lässt sich danach neu zeichnen.`,
+            message: `Die Unterschrift „${titel}" wird entfernt. Sie lässt sich danach neu zeichnen.`,
             confirmLabel: 'Löschen',
             variant: 'danger',
         });

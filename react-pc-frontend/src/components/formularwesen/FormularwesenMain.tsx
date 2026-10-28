@@ -24,20 +24,27 @@ export default function FormularwesenMain() {
 
     // ─── Load Templates ──────────────────────────────────────────────────
 
-    const loadTemplateList = useCallback(async () => {
-        try {
-            setLoadingTemplates(true);
-            const res = await fetch('/api/formulare/templates');
-            if (!res.ok) throw new Error();
-            setTemplates(await res.json());
-        } catch {
-            toast.error('Vorlagen konnten nicht geladen werden.');
-        } finally {
-            setLoadingTemplates(false);
-        }
-    }, [toast]);
+    // Lädt ohne Start-Ladeanzeige (die setzen Startwert bzw. loadTemplateList).
+    const holeVorlagen = useCallback(() =>
+        fetch('/api/formulare/templates')
+            .then(async res => {
+                if (!res.ok) throw new Error();
+                setTemplates(await res.json());
+            })
+            .catch(() => {
+                toast.error('Vorlagen konnten nicht geladen werden.');
+            })
+            .finally(() => {
+                setLoadingTemplates(false);
+            }), [toast]);
 
-    useEffect(() => { loadTemplateList(); }, [loadTemplateList]);
+    /** Neu laden mit Ladeanzeige (nach Duplizieren, Löschen, Speichern …). */
+    const loadTemplateList = useCallback(() => {
+        setLoadingTemplates(true);
+        return holeVorlagen();
+    }, [holeVorlagen]);
+
+    useEffect(() => { void holeVorlagen(); }, [holeVorlagen]);
 
     // ─── Template Operations ─────────────────────────────────────────────
 
@@ -55,7 +62,7 @@ export default function FormularwesenMain() {
             const data: FormTemplate = await res.json();
             openEditor({ name: data.name || name, html: data.html ?? '', dokumenttypen: data.assignedDokumenttypen || [] });
         } catch {
-            toast.error(`Vorlage „${name}“ konnte nicht geladen werden.`);
+            toast.error(`Vorlage „${name}" konnte nicht geladen werden.`);
         }
     };
 
@@ -63,7 +70,7 @@ export default function FormularwesenMain() {
         try {
             const res = await fetch(`/api/formulare/templates/${encodeURIComponent(name)}/copy`, { method: 'POST' });
             if (!res.ok) throw new Error();
-            toast.success(`Vorlage „${name}“ wurde dupliziert.`);
+            toast.success(`Vorlage „${name}" wurde dupliziert.`);
             loadTemplateList();
         } catch {
             // Rückfall: Vorlage laden und als Kopie speichern
@@ -78,7 +85,7 @@ export default function FormularwesenMain() {
                     body: JSON.stringify({ name: copyName, html: data.html, assignedDokumenttypen: data.assignedDokumenttypen })
                 });
                 if (!saveRes.ok) throw new Error();
-                toast.success(`Vorlage als „${copyName}“ dupliziert.`);
+                toast.success(`Vorlage als „${copyName}" dupliziert.`);
                 loadTemplateList();
             } catch {
                 toast.error('Vorlage konnte nicht dupliziert werden.');
@@ -90,7 +97,7 @@ export default function FormularwesenMain() {
         try {
             const res = await fetch(`/api/formulare/templates/${encodeURIComponent(name)}`, { method: 'DELETE' });
             if (!res.ok) throw new Error();
-            toast.success(`Vorlage „${name}“ wurde gelöscht.`);
+            toast.success(`Vorlage „${name}" wurde gelöscht.`);
             loadTemplateList();
         } catch {
             toast.error('Vorlage konnte nicht gelöscht werden.');

@@ -64,7 +64,7 @@ export function fehlendeAngaben(module: WartungModul[], auswahl: ModulAuswahl[])
             continue;
         }
         if (modul.untertypen.length > 0 && !modul.untertypen.some((u) => u.schluessel === eintrag.untertypSchluessel)) {
-            fehlt.push(`Bitte die Bauart für „${modul.name}“ wählen.`);
+            fehlt.push(`Bitte die Bauart für „${modul.name}" wählen.`);
         }
     }
     return fehlt;

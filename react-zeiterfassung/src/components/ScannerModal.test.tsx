@@ -207,7 +207,7 @@ describe('Auslöser von Hand', () => {
         expect(URL.createObjectURL).not.toHaveBeenCalled()
     })
 
-    it('verwirft das Foto bei „Zurück“ ohne neue Seite', async () => {
+    it('verwirft das Foto bei „Zurück" ohne neue Seite', async () => {
         const { user } = oeffneScanner()
         await user.click(screen.getByRole('button', { name: 'Foto von Hand aufnehmen' }))
         await user.click(await screen.findByRole('button', { name: 'Zurück' }))
@@ -303,7 +303,8 @@ describe('Fertig', () => {
         expect(bilder).toHaveLength(2)
         // Maße der zugeschnittenen Seiten (Attrappe: leere Canvas 300 × 150)
         expect(bilder[0]).toEqual({ bild: expect.any(Blob), breite: 300, hoehe: 150 })
-        expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'Scan_test.pdf', type: 'application/pdf' }))
+        // Zweites Argument: die erste Seite als Bild für eine speicherschonende Vorschau
+        expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ name: 'Scan_test.pdf', type: 'application/pdf' }), bilder[0].bild)
     })
 
     it('sperrt während PDF und Übergabe alle Änderungen und erklärt warum', async () => {
@@ -333,7 +334,7 @@ describe('Fertig', () => {
     it('nimmt eine gerade laufende Aufnahme noch mit ins PDF', async () => {
         const { user, onSave } = oeffneScanner()
         await seiteVonHandScannen(user, 1)
-        // Zweite Aufnahme läuft noch (Kamerabild wird gespeichert), da tippt der Nutzer auf „Fertig“
+        // Zweite Aufnahme läuft noch (Kamerabild wird gespeichert), da tippt der Nutzer auf „Fertig"
         let fertigKodiert: () => void = () => {}
         kameraAttrappe.kodiert = new Promise<void>(resolve => { fertigKodiert = resolve })
         vi.mocked(detectDocumentCornersLive).mockResolvedValue(LIVE_BLATT)

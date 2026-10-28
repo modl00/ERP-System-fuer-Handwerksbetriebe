@@ -58,7 +58,7 @@ export function KundeObjektDialog({ open, onOpenChange, kundeId, objekt, ansprec
 
     const speichern = async () => {
         if (eingabe.bezeichnung.trim() === '') {
-            setFehler('Bitte eine Bezeichnung eintragen, zum Beispiel „Werk Nord“ oder „Mehrfamilienhaus Gartenstraße 4“.');
+            setFehler('Bitte eine Bezeichnung eintragen, zum Beispiel „Werk Nord" oder „Mehrfamilienhaus Gartenstraße 4".');
             return;
         }
         setSpeichert(true);

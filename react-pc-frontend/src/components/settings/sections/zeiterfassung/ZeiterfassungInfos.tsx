@@ -17,13 +17,13 @@ export function UrlaubEintrittsjahrInfo() {
                 <ul className="list-disc space-y-0.5 pl-4">
                     <li>Wer bis einschließlich 1. Juli anfängt, hat die Wartezeit von sechs Monaten noch im selben Jahr erfüllt. Gesetzlich steht ihm dann der volle Urlaub zu – auch der Urlaub, der über das gesetzliche Minimum hinausgeht, solange Arbeits- oder Tarifvertrag nichts anderes sagen.</li>
                     <li>Wer später anfängt, bekommt ein Zwölftel des Jahresurlaubs je vollem Monat. Halbe Tage und mehr werden aufgerundet.</li>
-                    <li>„Immer anteilig“ rechnet auch bei Eintritt bis 1. Juli mit Zwölfteln, gibt aber mindestens den gesetzlichen Mindesturlaub (20 Tage bei 5 Arbeitstagen, 16 bei 4).</li>
+                    <li>„Immer anteilig" rechnet auch bei Eintritt bis 1. Juli mit Zwölfteln, gibt aber mindestens den gesetzlichen Mindesturlaub (20 Tage bei 5 Arbeitstagen, 16 bei 4).</li>
                 </ul>
             </InfoAbschnitt>
             <InfoAbschnitt titel={WIRKUNG}>
                 <ul className="list-disc space-y-0.5 pl-4">
                     <li>Gilt für alle Mitarbeiter mit Eintrittsdatum – für Urlaubsanträge, Resturlaub und den Übertrag ins nächste Jahr. Ausgerechnete Überträge früherer Jahre können sich dadurch ändern, gebuchte Urlaubstage nicht.</li>
-                    <li>„Immer anteilig“ nur wählen, wenn Ihre Arbeitsverträge oder Ihr Tarifvertrag das vorsehen. Im Zweifel beim Steuerbüro oder der Innung nachfragen.</li>
+                    <li>„Immer anteilig" nur wählen, wenn Ihre Arbeitsverträge oder Ihr Tarifvertrag das vorsehen. Im Zweifel beim Steuerbüro oder der Innung nachfragen.</li>
                     <li>Beim Mitarbeiter steht neben dem Urlaubsanspruch, wie er zustande kommt.</li>
                 </ul>
             </InfoAbschnitt>
@@ -49,7 +49,7 @@ export function ResturlaubInfo() {
                     <li>Wurde im alten Jahr mehr Urlaub genommen als da war, wird nichts abgezogen – der Übertrag ist dann 0.</li>
                     <li>Gesetzlich verfällt der Rest nur, wenn Sie Ihre Leute rechtzeitig und konkret darauf hingewiesen haben, wie viel Urlaub noch offen ist und wann er verfällt – sonst bleibt er erhalten. Die Erinnerung in der Handy-App hilft dabei, ein schriftlicher Hinweis vom Betrieb ist sicherer.</li>
                     <li>Ein Verfallstag vor dem 31. März ist nur erlaubt, wenn Ihr Tarifvertrag das vorsieht.</li>
-                    <li>Wie viel Urlaub es im Eintrittsjahr gibt, legen Sie in der Karte „Urlaub im Eintrittsjahr“ fest.</li>
+                    <li>Wie viel Urlaub es im Eintrittsjahr gibt, legen Sie in der Karte „Urlaub im Eintrittsjahr" fest.</li>
                     <li>Gebuchte Urlaubstage ändern sich nicht. Den ersten Übertrag gibt es ins Jahr nach dem Update.</li>
                 </ul>
             </InfoAbschnitt>
@@ -62,14 +62,14 @@ export function StartDerZeiterfassungInfo() {
         <InfoButton titel="Start der Zeiterfassung">
             <InfoAbschnitt titel={HINTERGRUND}>
                 <p>
-                    Die Glocke („Zeiten prüfen“) sucht für jeden Mitarbeiter alle Monate, die noch nicht
+                    Die Glocke („Zeiten prüfen") sucht für jeden Mitarbeiter alle Monate, die noch nicht
                     abgeschlossen sind – ab Eintritt bzw. erster Buchung. Mit diesem Datum beginnt die Suche
                     frühestens im Monat dieses Tages.
                 </p>
             </InfoAbschnitt>
             <InfoAbschnitt titel={WIRKUNG}>
                 <ul className="list-disc space-y-0.5 pl-4">
-                    <li>Monate davor erscheinen nicht mehr als „abschließen“. Der Monat des Einführungstags selbst schon.</li>
+                    <li>Monate davor erscheinen nicht mehr als „abschließen". Der Monat des Einführungstags selbst schon.</li>
                     <li>Gebuchte Zeiten und schon abgeschlossene Monate bleiben, wie sie sind. Frühere Monate können Sie im Monatsabschluss weiter von Hand prüfen.</li>
                     <li>Leer lassen heißt: keine Grenze.</li>
                 </ul>
@@ -83,18 +83,18 @@ export function StundenartInfo() {
         <InfoButton titel="Stunden ans Steuerbüro">
             <InfoAbschnitt titel={HINTERGRUND}>
                 <p>
-                    Beim DATEV-Export wird der abgeschlossene Monatsstand gelesen. Bei „Soll“ werden vom
+                    Beim DATEV-Export wird der abgeschlossene Monatsstand gelesen. Bei „Soll" werden vom
                     Monats-Soll laut Arbeitszeitkonto Urlaub, Krankheit, Feiertage usw. abgezogen – der Rest geht
-                    als „Arbeit“ in die Datei. Bei „Ist“ die tatsächlich gestempelten Stunden (ohne Pausen).
+                    als „Arbeit" in die Datei. Bei „Ist" die tatsächlich gestempelten Stunden (ohne Pausen).
                 </p>
             </InfoAbschnitt>
             <InfoAbschnitt titel={WIRKUNG}>
                 <ul className="list-disc space-y-0.5 pl-4">
                     <li>Gilt nur für künftige Exporte, nicht für schon heruntergeladene Dateien.</li>
-                    <li>Urlaub, Krankheit und Feiertage gehen mit ihrer eigenen Lohnart raus. Zusammen mit „Arbeit“ ergibt das bei „Soll“ genau das Soll – nichts wird doppelt gezählt. Steht eine Art auf „Nicht exportieren“, fehlen ihre Stunden in der Datei.</li>
-                    <li>Mitarbeiter ohne Soll (z. B. Aushilfen) auf „Ist“ stellen – sonst zeigt die Vorprüfung ihre Stunden als „wird nicht exportiert“.</li>
+                    <li>Urlaub, Krankheit und Feiertage gehen mit ihrer eigenen Lohnart raus. Zusammen mit „Arbeit" ergibt das bei „Soll" genau das Soll – nichts wird doppelt gezählt. Steht eine Art auf „Nicht exportieren", fehlen ihre Stunden in der Datei.</li>
+                    <li>Mitarbeiter ohne Soll (z. B. Aushilfen) auf „Ist" stellen – sonst zeigt die Vorprüfung ihre Stunden als „wird nicht exportiert".</li>
                     <li>Arbeitszeitkonto, Überstunden und Abschlüsse bleiben unverändert.</li>
-                    <li>War DATEV schon vorher eingerichtet, steht hier „Ist“ – so hat der Export bisher gerechnet.</li>
+                    <li>War DATEV schon vorher eingerichtet, steht hier „Ist" – so hat der Export bisher gerechnet.</li>
                 </ul>
             </InfoAbschnitt>
         </InfoButton>
@@ -107,7 +107,7 @@ export function DatevEinrichtenInfo() {
             <InfoAbschnitt titel={HINTERGRUND}>
                 <p>
                     Es wird nichts automatisch an DATEV geschickt. Im Monatsabschluss erstellt „Für DATEV
-                    exportieren“ nach einer Vorprüfung eine LODAS-Textdatei. Die importiert Ihr Steuerbüro.
+                    exportieren" nach einer Vorprüfung eine LODAS-Textdatei. Die importiert Ihr Steuerbüro.
                 </p>
             </InfoAbschnitt>
             <InfoAbschnitt titel={WIRKUNG}>

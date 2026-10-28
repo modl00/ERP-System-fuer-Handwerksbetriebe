@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import { blobZuCanvas, canvasZuBlob, gibCanvasFrei, ladeBild } from './scanBildHilfen'
 
-/** Ersatz für `Image`: jsdom lädt keine Bilder. Eine URL mit „kaputt“ schlägt fehl. */
+/** Ersatz für `Image`: jsdom lädt keine Bilder. Eine URL mit „kaputt" schlägt fehl. */
 class TestBild {
     onload: (() => void) | null = null
     onerror: (() => void) | null = null

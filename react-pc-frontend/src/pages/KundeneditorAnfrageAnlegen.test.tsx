@@ -30,7 +30,7 @@ afterEach(() => { vi.restoreAllMocks(); });
 const rendern = () => render(<MemoryRouter initialEntries={['/?kundeId=1']}><Kundeneditor /></MemoryRouter>);
 
 describe('Kundenstamm: neue Anfrage im Reiter Anfragen', { timeout: 30000 }, () => {
-    it('zeigt auch ohne Anfragen den Knopf „Neue Anfrage“', async () => {
+    it('zeigt auch ohne Anfragen den Knopf „Neue Anfrage"', async () => {
         const user = userEvent.setup();
         rendern();
 
@@ -40,7 +40,7 @@ describe('Kundenstamm: neue Anfrage im Reiter Anfragen', { timeout: 30000 }, () 
         expect(screen.getByRole('button', { name: /Neue Anfrage/ })).toBeInTheDocument();
     });
 
-    it('öffnet dieselbe Maske wie „Neue Anfrage anlegen“ mit vorgegebenem Kunden ohne Wechsel', async () => {
+    it('öffnet dieselbe Maske wie „Neue Anfrage anlegen" mit vorgegebenem Kunden ohne Wechsel', async () => {
         const user = userEvent.setup();
         rendern();
         await user.click(await screen.findByRole('button', { name: /Anfragen/ }));

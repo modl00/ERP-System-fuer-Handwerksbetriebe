@@ -104,7 +104,7 @@ describe('TextbausteinEditor Vorschau', () => {
         expect(vorschau).toContainElement(absatz);
     });
 
-    it('zeigt nach „Neue Vorlage“ und „Abbrechen“ wieder die zuvor gewaehlte Vorlage', async () => {
+    it('zeigt nach „Neue Vorlage" und „Abbrechen" wieder die zuvor gewaehlte Vorlage', async () => {
         const { container } = renderEditor();
         await findeVorschau(container);
         // Nicht die erste Vorlage waehlen, sonst faellt ein Zuruecksetzen auf die erste nicht auf.
@@ -124,14 +124,14 @@ describe('TextbausteinEditor Loeschen', () => {
         return fetchMock.mock.calls.filter(([, init]) => (init as RequestInit | undefined)?.method === 'DELETE');
     }
 
-    it('fragt vor dem Loeschen nach und loescht bei „Abbrechen“ nichts', async () => {
+    it('fragt vor dem Loeschen nach und loescht bei „Abbrechen" nichts', async () => {
         const { container } = renderEditor();
         await findeVorschau(container);
 
         fireEvent.click(screen.getByRole('button', { name: 'Vorlage löschen' }));
 
         const dialog = await screen.findByRole('dialog', { name: 'Textvorlage löschen?' });
-        expect(dialog).toHaveTextContent('„Anschreiben“ wird endgültig gelöscht.');
+        expect(dialog).toHaveTextContent('„Anschreiben" wird endgültig gelöscht.');
         expect(dialog).toHaveTextContent('Bereits erstellte Dokumente behalten ihren Text.');
         fireEvent.click(within(dialog).getByRole('button', { name: 'Abbrechen' }));
 
@@ -144,9 +144,9 @@ describe('TextbausteinEditor Loeschen', () => {
         const { container } = renderEditor();
         await findeVorschau(container);
 
-        fireEvent.click(screen.getByRole('button', { name: 'Vorlage „Mahnung“ löschen' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Vorlage „Mahnung" löschen' }));
         const dialog = await screen.findByRole('dialog', { name: 'Textvorlage löschen?' });
-        expect(dialog).toHaveTextContent('„Mahnung“ wird endgültig gelöscht.');
+        expect(dialog).toHaveTextContent('„Mahnung" wird endgültig gelöscht.');
         fireEvent.click(within(dialog).getByRole('button', { name: 'Löschen' }));
 
         await waitFor(() => expect(loeschAufrufe()).toHaveLength(1));

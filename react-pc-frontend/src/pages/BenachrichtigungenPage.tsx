@@ -18,7 +18,7 @@ import {
 import { formatZeitpunkt } from '../features/benachrichtigungen/zeitpunkt';
 
 /**
- * Seite „Benachrichtigungen“: alle offenen Meldungen nach Themen sortiert.
+ * Seite „Benachrichtigungen": alle offenen Meldungen nach Themen sortiert.
  * Die Glocke oben rechts führt hierher und zeigt selbst nur noch die Zahl.
  *
  * Was erledigt ist, merkt sich der Server pro Benutzer. Die Seite blendet
@@ -70,36 +70,46 @@ export default function BenachrichtigungenPage() {
     const [neuLaden, setNeuLaden] = useState(false);
 
     const abortRef = useRef<AbortController | null>(null);
-    // Solange noch „Erledigt“-Meldungen unterwegs sind, kein Zwischenstand vom
+    // Solange noch „Erledigt"-Meldungen unterwegs sind, kein Zwischenstand vom
     // Server übernehmen – sonst blitzt gerade Erledigtes kurz wieder auf.
     const laufendeMeldungen = useRef(0);
     const aktivRef = useRef(true);
     // Unser eigenes notifications:refresh (für die Glocke) nicht selbst noch einmal beantworten.
     const eigenesEreignis = useRef(false);
 
-    const laden = useCallback(async (vomNutzer = false): Promise<void> => {
-        if (laufendeMeldungen.current > 0) return;
+    // Ergebnisse erst in den Promise-Callbacks übernehmen, nicht synchron im Effekt.
+    // Den Ladehinweis für den Knopf schaltet `ladenVomNutzer` vorab an.
+    const laden = useCallback((vomNutzer = false): Promise<void> => {
+        if (laufendeMeldungen.current > 0) return Promise.resolve();
         abortRef.current?.abort();
         const controller = new AbortController();
         abortRef.current = controller;
-        if (vomNutzer) setNeuLaden(true);
-        try {
-            const res = await fetch(summaryUrl(true), { signal: controller.signal });
-            if (!res.ok) throw new Error(`Status ${res.status}`);
-            const summary = normalisiere(await res.json());
-            if (controller.signal.aborted) return;
-            setData(summary);
-            setStatus('bereit');
-        } catch (err) {
-            if (controller.signal.aborted || (err as Error).name === 'AbortError') return;
-            // Ein gescheitertes Nachladen im Hintergrund lässt die bisherige Liste stehen.
-            setStatus(vorher => (vorher === 'bereit' ? vorher : 'fehler'));
-            if (vomNutzer) toast.error('Benachrichtigungen konnten nicht geladen werden.');
-        } finally {
-            if (abortRef.current === controller) abortRef.current = null;
-            if (vomNutzer) setNeuLaden(false);
-        }
+        return fetch(summaryUrl(true), { signal: controller.signal })
+            .then(async (res) => {
+                if (!res.ok) throw new Error(`Status ${res.status}`);
+                const summary = normalisiere(await res.json());
+                if (controller.signal.aborted) return;
+                setData(summary);
+                setStatus('bereit');
+            })
+            .catch((err: unknown) => {
+                if (controller.signal.aborted || (err as Error).name === 'AbortError') return;
+                // Ein gescheitertes Nachladen im Hintergrund lässt die bisherige Liste stehen.
+                setStatus(vorher => (vorher === 'bereit' ? vorher : 'fehler'));
+                if (vomNutzer) toast.error('Benachrichtigungen konnten nicht geladen werden.');
+            })
+            .finally(() => {
+                if (abortRef.current === controller) abortRef.current = null;
+                if (vomNutzer) setNeuLaden(false);
+            });
     }, [toast]);
+
+    /** „Neu laden" per Knopf: mit Ladehinweis und Fehler-Toast. */
+    const ladenVomNutzer = () => {
+        if (laufendeMeldungen.current > 0) return;
+        setNeuLaden(true);
+        void laden(true);
+    };
 
     useEffect(() => {
         aktivRef.current = true;
@@ -174,7 +184,7 @@ export default function BenachrichtigungenPage() {
     }, [erledigeEintrag, navigate]);
 
     /**
-     * „Alle erledigt“ eines Themas: Der Server merkt sich ALLE aktuellen
+     * „Alle erledigt" eines Themas: Der Server merkt sich ALLE aktuellen
      * Meldungen der Kategorien als erledigt, nicht nur die angezeigten. Bei
      * E-Mail-Ordnern liest er die Mails wirklich – das E-Mail-Center lädt neu.
      */
@@ -230,7 +240,7 @@ export default function BenachrichtigungenPage() {
                 <Button
                     variant="outline"
                     size="sm"
-                    onClick={() => { void laden(true); }}
+                    onClick={ladenVomNutzer}
                     disabled={neuLaden || status === 'laden'}
                     title={neuLaden || status === 'laden' ? 'Wird gerade geladen …' : 'Stand vom Server holen'}
                 >
@@ -242,7 +252,7 @@ export default function BenachrichtigungenPage() {
             {status === 'laden' && <Ladezustand />}
 
             {status === 'fehler' && (
-                <Fehlerzustand onNeuLaden={() => { setStatus('laden'); void laden(true); }} />
+                <Fehlerzustand onNeuLaden={() => { setStatus('laden'); ladenVomNutzer(); }} />
             )}
 
             {status === 'bereit' && !zeigeThemenleiste && <Leerzustand />}
@@ -407,7 +417,7 @@ function GruppenAbschnitt({ eintrag, onAlleErledigt, onErledigt, onOeffnen, onZu
     );
 }
 
-/** Info-Knopf direkt neben „Sicherung & Updates“. */
+/** Info-Knopf direkt neben „Sicherung & Updates". */
 function SicherungInfo() {
     return (
         <InfoButton titel="Sicherung & Updates">
@@ -424,7 +434,7 @@ function SicherungInfo() {
                 <p>
                     Hier erscheint nur etwas, wenn dabei etwas schiefgegangen ist – oder wenn seit über einem Tag keine
                     Sicherung gelaufen ist, z. B. weil der Rechner nachts aus war. Klappt der nächste Lauf, verschwindet
-                    die Meldung von selbst. „Erledigt“ blendet nur die Meldung aus, das Problem bleibt; schlägt die
+                    die Meldung von selbst. „Erledigt" blendet nur die Meldung aus, das Problem bleibt; schlägt die
                     nächste Sicherung wieder fehl, kommt eine neue Meldung. Diese Meldungen sehen nur Admins.
                 </p>
             </InfoAbschnitt>
@@ -448,7 +458,7 @@ function EintragZeile({ item, hervorheben, onErledigt, onOeffnen }: {
         <li
             className={cn(
                 'flex items-start gap-3 py-3.5 pr-5',
-                // „!“: die Trennlinien der Liste (divide-*) färben sonst ab der
+                // „!": die Trennlinien der Liste (divide-*) färben sonst ab der
                 // zweiten Zeile auch den linken Rand grau.
                 hervorheben ? 'border-l-4 !border-l-red-500 bg-red-50/40 pl-4' : 'pl-5',
             )}
@@ -513,7 +523,7 @@ function EintragZeile({ item, hervorheben, onErledigt, onOeffnen }: {
 
 /**
  * Der Server meldet mehr, als er Einträge mitschickt (z. B. 1.234 ungelesene
- * Spam-Mails): Hinweis „und X weitere“ mit Weg zur passenden Übersicht.
+ * Spam-Mails): Hinweis „und X weitere" mit Weg zur passenden Übersicht.
  */
 function RestZeile({ rest, onZurUebersicht }: { rest: Rest; onZurUebersicht: (link: string) => void }) {
     const { kategorie, angezeigt, weitere } = rest;

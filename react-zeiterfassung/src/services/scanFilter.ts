@@ -2,12 +2,12 @@
  * Bildverbesserung für gescannte Seiten, ähnlich den Filtern der Apple-
  * Scanner-App. Läuft komplett auf dem Gerät.
  *
- * „Dokument“: Die Helligkeit des Papiers wird kachelweise geschätzt (die
+ * „Dokument": Die Helligkeit des Papiers wird kachelweise geschätzt (die
  * hellsten Pixel einer Kachel sind Papier, nicht Schrift) und jedes Pixel
  * durch diesen Hintergrund geteilt. Das macht das Papier gleichmäßig weiß,
  * entfernt Schatten und Lichtverläufe und gleicht pro Farbkanal einen
  * Farbstich (Kunstlicht) aus. Farben wie Stempel oder Logos bleiben.
- * „Schwarz-Weiß“: dasselbe, danach Graustufen mit steiler Kontrastkurve.
+ * „Schwarz-Weiß": dasselbe, danach Graustufen mit steiler Kontrastkurve.
  */
 
 export type ScanFilter = 'dokument' | 'schwarzweiss' | 'original'

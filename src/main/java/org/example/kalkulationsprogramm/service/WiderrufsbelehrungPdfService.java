@@ -1,11 +1,11 @@
 package org.example.kalkulationsprogramm.service;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Font;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.PdfWriter;
+import org.example.kalkulationsprogramm.util.PdfWriterFabrik;
+import org.openpdf.text.Document;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.Font;
+import org.openpdf.text.PageSize;
+import org.openpdf.text.Paragraph;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.example.kalkulationsprogramm.domain.DokumentFreigabe;
@@ -135,7 +135,7 @@ public class WiderrufsbelehrungPdfService
         Document doc = new Document(PageSize.A4, 56, 56, 56, 56);
         try
         {
-            PdfWriter.getInstance(doc, out);
+            PdfWriterFabrik.writer(doc, out);
             doc.open();
             Font titelFont = PdfSchriften.betreff(15f, PdfSchriften.TEXTFARBE);
             Font ueberschrift = PdfSchriften.brieftext(11f, Font.BOLD, PdfSchriften.TEXTFARBE);

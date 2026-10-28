@@ -2,7 +2,9 @@ package org.example.kalkulationsprogramm.repository;
 
 import org.example.kalkulationsprogramm.domain.AusgangsGeschaeftsDokument;
 import org.example.kalkulationsprogramm.domain.AusgangsGeschaeftsDokumentTyp;
+import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -31,6 +33,12 @@ public interface AusgangsGeschaeftsDokumentRepository extends JpaRepository<Ausg
      */
     List<AusgangsGeschaeftsDokument> findByKundeIdOrderByDatumDesc(Long kundeId);
 
+    /** Datenschutz-Prüfung eines Kunden: Dokumente aller seiner Projekte in einer Abfrage. */
+    List<AusgangsGeschaeftsDokument> findByProjektIdIn(java.util.Collection<Long> projektIds);
+
+    /** Datenschutz-Prüfung eines Kunden: Dokumente aller seiner Anfragen in einer Abfrage. */
+    List<AusgangsGeschaeftsDokument> findByAnfrageIdIn(java.util.Collection<Long> anfrageIds);
+
     /**
      * Findet Dokument anhand der Dokumentnummer
      */
@@ -40,6 +48,15 @@ public interface AusgangsGeschaeftsDokumentRepository extends JpaRepository<Ausg
      * Findet alle Nachfolger-Dokumente eines Vorgängers, sortiert nach Erstellungszeitpunkt
      */
     List<AusgangsGeschaeftsDokument> findByVorgaengerIdOrderByErstelltAmAsc(Long vorgaengerId);
+
+    /**
+     * Sperrt die Rechnung, solange eine Gutschrift zu ihr angelegt, geändert oder gebucht wird
+     * oder die Rechnung storniert wird: Zwei gleichzeitige Vorgänge dürfen den Rechnungsbetrag
+     * nicht gemeinsam überschreiten bzw. eine neue Gutschrift übersehen.
+     */
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT d FROM AusgangsGeschaeftsDokument d WHERE d.id = :id")
+    Optional<AusgangsGeschaeftsDokument> sperreZumGutschreiben(@Param("id") Long id);
 
     /**
      * Zählt Abschlagsrechnungen zu einem Vorgänger-Dokument (für Nummerierung)
@@ -176,4 +193,17 @@ public interface AusgangsGeschaeftsDokumentRepository extends JpaRepository<Ausg
 
     @org.springframework.data.jpa.repository.Query("select d.dokumentNummer from AusgangsGeschaeftsDokument d where d.typ = :typ")
     java.util.List<String> findeNummernDerArt(@org.springframework.data.repository.query.Param("typ") AusgangsGeschaeftsDokumentTyp typ);
+
+    /**
+     * Grobe Vorauswahl über den Positionstext, z. B. {@code %"leistungId":12%} in drei Schreibweisen
+     * (kompakt, mit Leerzeichen, ID als Text). Die genaue Prüfung macht der Aufrufer, weil die
+     * Muster auch 120 oder 1234 treffen. Neueste zuerst.
+     */
+    @Query("SELECT d FROM AusgangsGeschaeftsDokument d LEFT JOIN FETCH d.projekt "
+            + "WHERE CAST(d.positionenJson AS String) LIKE :kompakt "
+            + "OR CAST(d.positionenJson AS String) LIKE :mitLeerzeichen "
+            + "OR CAST(d.positionenJson AS String) LIKE :alsText "
+            + "ORDER BY d.datum DESC NULLS LAST, d.id DESC")
+    List<AusgangsGeschaeftsDokument> findeMitLeistungInPositionen(@Param("kompakt") String kompakt,
+            @Param("mitLeerzeichen") String mitLeerzeichen, @Param("alsText") String alsText);
 }

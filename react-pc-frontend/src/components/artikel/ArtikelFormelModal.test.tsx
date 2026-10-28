@@ -58,7 +58,7 @@ describe('ArtikelFormelModal', { timeout: 30000 }, () => {
     });
 
     it('zeigt einen Rechenfehler des Servers in Klartext', async () => {
-        rechnenAntwort = () => antwort({ message: 'Die Formel enthält „Q“, das es nicht gibt.' }, false, 400);
+        rechnenAntwort = () => antwort({ message: 'Die Formel enthält „Q", das es nicht gibt.' }, false, 400);
         zeige(blech);
         expect(await screen.findByTestId('artikel-formel-fehler')).toHaveTextContent('Q');
         expect(screen.queryByTestId('artikel-formel-ergebnis')).toBeNull();
@@ -90,14 +90,14 @@ describe('ArtikelFormelModal', { timeout: 30000 }, () => {
         expect(onUebernehmen).not.toHaveBeenCalled();
     });
 
-    it('„Formel entfernen“ übernimmt eine leere Formel und gibt es nur, wenn eine da ist', async () => {
+    it('„Formel entfernen" übernimmt eine leere Formel und gibt es nur, wenn eine da ist', async () => {
         const user = userEvent.setup();
         const { onUebernehmen } = zeige(blech);
         await user.click(await screen.findByRole('button', { name: /Formel entfernen/ }));
         expect(onUebernehmen).toHaveBeenCalledWith({ felder: [], gewicht: '', flaeche: '' });
     });
 
-    it('ohne bestehende Formel gibt es kein „Formel entfernen“', async () => {
+    it('ohne bestehende Formel gibt es kein „Formel entfernen"', async () => {
         zeige(leer);
         await screen.findByRole('button', { name: /Übernehmen/ });
         expect(screen.queryByRole('button', { name: /Formel entfernen/ })).toBeNull();

@@ -1,6 +1,6 @@
 package org.example.kalkulationsprogramm.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.example.kalkulationsprogramm.domain.Kunde;
 import org.example.kalkulationsprogramm.domain.KundeNotiz;
 import org.example.kalkulationsprogramm.repository.KundeNotizRepository;
@@ -15,15 +15,15 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.List;
@@ -51,26 +51,29 @@ class KundeControllerTest {
     @Autowired
     private ObjectMapper objectMapper;
 
-    @MockBean
+    @MockitoBean
     private KundeRepository kundeRepository;
 
-    @MockBean
+    @MockitoBean
     private KundeMapper kundeMapper;
 
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.KundenDetailService kundenDetailService;
 
-    @MockBean
+    @MockitoBean
     private org.springframework.context.ApplicationEventPublisher eventPublisher;
 
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.KundennummerService kundennummerService;
 
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.KundeDuplikatService kundeDuplikatService;
 
-    @MockBean
+    @MockitoBean
     private KundeNotizRepository kundeNotizRepository;
+
+    @MockitoBean
+    private org.example.kalkulationsprogramm.service.KundeDatenschutzService kundeDatenschutzService;
 
     @BeforeEach
     void setupDuplikatService() {
@@ -188,6 +191,69 @@ class KundeControllerTest {
 
         assertThat(bestehend.getTelefon()).isNull();
         assertThat(bestehend.getMobiltelefon()).isEqualTo("0170 1234567");
+    }
+
+    @Test
+    @DisplayName("Ändern: das Zahlungsziel wird gespeichert (#289)")
+    void updateKundeSpeichertZahlungsziel() throws Exception {
+        Kunde bestehend = bestehenderKunde(21);
+        var payload = new java.util.HashMap<String, Object>();
+        payload.put("kundennummer", "K-12");
+        payload.put("name", "Max Mustermann");
+        payload.put("zahlungsziel", 14);
+
+        mockMvc.perform(put("/api/kunden/12")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isOk());
+
+        assertThat(bestehend.getZahlungsziel()).isEqualTo(14);
+    }
+
+    @Test
+    @DisplayName("Ändern ohne Zahlungsziel lässt den gespeicherten Wert stehen")
+    void updateKundeOhneZahlungszielBehaeltWert() throws Exception {
+        Kunde bestehend = bestehenderKunde(21);
+        var payload = new java.util.HashMap<String, Object>();
+        payload.put("kundennummer", "K-12");
+        payload.put("name", "Max Mustermann");
+
+        mockMvc.perform(put("/api/kunden/12")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isOk());
+
+        assertThat(bestehend.getZahlungsziel()).isEqualTo(21);
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {0, -5, 366, Integer.MAX_VALUE})
+    @DisplayName("Zahlungsziel außerhalb von 1 bis 365 Tagen wird abgelehnt")
+    void zahlungszielAusserhalbDerGrenzen(int tage) throws Exception {
+        Kunde bestehend = bestehenderKunde(21);
+        var payload = new java.util.HashMap<String, Object>();
+        payload.put("kundennummer", "K-12");
+        payload.put("name", "Max Mustermann");
+        payload.put("zahlungsziel", tage);
+
+        mockMvc.perform(put("/api/kunden/12")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(payload)))
+                .andExpect(status().isBadRequest());
+
+        assertThat(bestehend.getZahlungsziel()).isEqualTo(21);
+    }
+
+    private Kunde bestehenderKunde(int zahlungsziel) {
+        Kunde bestehend = new Kunde();
+        bestehend.setId(12L);
+        bestehend.setKundennummer("K-12");
+        bestehend.setName("Max Mustermann");
+        bestehend.setZahlungsziel(zahlungsziel);
+        given(kundeRepository.findById(12L)).willReturn(Optional.of(bestehend));
+        given(kundeRepository.save(any(Kunde.class))).willAnswer(invocation -> invocation.getArgument(0));
+        given(kundeMapper.toListItem(any(Kunde.class))).willReturn(new KundeListItemDto());
+        return bestehend;
     }
 
     @Test

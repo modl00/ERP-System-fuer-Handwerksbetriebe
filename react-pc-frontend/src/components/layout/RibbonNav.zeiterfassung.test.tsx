@@ -38,11 +38,11 @@ async function oeffneMehr() {
     return blatt.closest('div.fixed') as HTMLElement;
 }
 
-describe('Menü – Bereich „Zeiterfassung“', () => {
+describe('Menü – Bereich „Zeiterfassung"', () => {
     beforeEach(() => { setzeTelefonBerechtigungZurueck(); setzeZeiterfassungSichtbarkeitZurueck(); });
     afterEach(() => vi.unstubAllGlobals());
 
-    it('Menüleiste: zeigt mit Recht den Reiter „Zeiterfassung“ samt Seiten', async () => {
+    it('Menüleiste: zeigt mit Recht den Reiter „Zeiterfassung" samt Seiten', async () => {
         stubbe(true);
         zeige(<RibbonNavigation />);
         fireEvent.click(await screen.findByRole('button', { name: 'Zeiterfassung' }));
@@ -69,7 +69,7 @@ describe('Menü – Bereich „Zeiterfassung“', () => {
         expect(screen.queryByRole('button', { name: 'Zeiterfassung' })).toBeNull();
     });
 
-    it('Handy-Navigation: zeigt mit Recht den Reiter „Zeit“ und die Feiertage unter „Mehr“', async () => {
+    it('Handy-Navigation: zeigt mit Recht den Reiter „Zeit" und die Feiertage unter „Mehr"', async () => {
         stubbe(true);
         zeige(<MobileBottomNav />);
         expect(await screen.findByRole('link', { name: /Zeit/ })).toHaveAttribute('href', '/zeitbuchungen');
@@ -77,7 +77,7 @@ describe('Menü – Bereich „Zeiterfassung“', () => {
         expect(within(bereich).getByRole('link', { name: /Feiertage/ })).toBeInTheDocument();
     });
 
-    it('Handy-Navigation: blendet ohne Recht den Reiter „Zeit“ und die Feiertage aus', async () => {
+    it('Handy-Navigation: blendet ohne Recht den Reiter „Zeit" und die Feiertage aus', async () => {
         const fetchMock = stubbe(false);
         zeige(<MobileBottomNav />);
         await waitFor(() => expect(aufrufe(fetchMock, '/api/zeitverwaltung/sichtbarkeit')).toHaveLength(1));

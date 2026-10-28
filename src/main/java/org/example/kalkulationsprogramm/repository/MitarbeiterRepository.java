@@ -16,6 +16,9 @@ import java.util.List;
 public interface MitarbeiterRepository extends JpaRepository<Mitarbeiter, Long> {
     Optional<Mitarbeiter> findByLoginToken(String loginToken);
 
+    /** Wie viele Mitarbeiter (auch ausgeschiedene) gehören zu dieser Abteilung? Solange es welche gibt, darf sie nicht gelöscht werden. */
+    long countByAbteilungen_Id(Long abteilungId);
+
     // Für Zeiterfassung: nur aktive Menschen dürfen sich einloggen, auch ohne Zeitkonto.
     @Query("SELECT m FROM Mitarbeiter m WHERE m.loginToken = :token AND m.aktiv = true AND m.art = org.example.kalkulationsprogramm.domain.MitarbeiterArt.MENSCH")
     Optional<Mitarbeiter> findByLoginTokenAndAktivTrue(@Param("token") String loginToken);
@@ -47,4 +50,13 @@ public interface MitarbeiterRepository extends JpaRepository<Mitarbeiter, Long> 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT m FROM Mitarbeiter m WHERE m.loginToken = :token AND m.aktiv = true AND m.art = org.example.kalkulationsprogramm.domain.MitarbeiterArt.MENSCH")
     Optional<Mitarbeiter> findByLoginTokenAndAktivTrueForUpdate(@Param("token") String token);
+
+    /**
+     * Aktive Mitarbeiter (nur Menschen) für das FRITZ!Box-Telefonbuch, nur mit Nummer.
+     * Je Zeile {@code [id, vorname, nachname, telefon (Handy), festnetz]}.
+     */
+    @Query("SELECT m.id, m.vorname, m.nachname, m.telefon, m.festnetz FROM Mitarbeiter m "
+            + "WHERE m.aktiv = true AND m.art = org.example.kalkulationsprogramm.domain.MitarbeiterArt.MENSCH "
+            + "AND ((m.telefon IS NOT NULL AND m.telefon <> '') OR (m.festnetz IS NOT NULL AND m.festnetz <> ''))")
+    List<Object[]> findeFuerTelefonbuch();
 }

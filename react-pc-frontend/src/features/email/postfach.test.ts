@@ -82,16 +82,16 @@ describe('postfach', () => {
 describe('postfach – Sichtbarkeit', () => {
     const nurBestimmte = (teil: Partial<PostfachDto> = {}) => postfach({ hauptpostfach: false, sichtbarFuerAlle: false, ...teil });
 
-    it('zeigt „alle“ beim Hauptpostfach und bei „Alle im Betrieb“', () => {
+    it('zeigt „alle" beim Hauptpostfach und bei „Alle im Betrieb"', () => {
         expect(beschreibeSichtbarkeit(postfach())).toEqual({ text: 'alle', weitere: 0, vollstaendig: 'Jeder im Betrieb sieht dieses Postfach.' });
         // Hauptpostfach sieht immer jeder – auch wenn das Backend (fälschlich) etwas anderes liefert.
         expect(beschreibeSichtbarkeit(postfach({ sichtbarFuerAlle: false })).text).toBe('alle');
         expect(beschreibeSichtbarkeit(postfach({ hauptpostfach: false })).text).toBe('alle');
-        // Ältere Antwort ohne das Feld: Standard „für alle“.
+        // Ältere Antwort ohne das Feld: Standard „für alle".
         expect(beschreibeSichtbarkeit(postfach({ hauptpostfach: false, sichtbarFuerAlle: undefined as unknown as boolean })).text).toBe('alle');
     });
 
-    it('zeigt beim Postfach für Rechnungen & Mahnungen immer „alle“', () => {
+    it('zeigt beim Postfach für Rechnungen & Mahnungen immer „alle"', () => {
         const rechnungen = nurBestimmte({
             fuerGeschaeftsdokumente: true, sichtbarFuerAbteilungen: [{ id: 2, name: 'Büro' }],
         });
@@ -108,7 +108,7 @@ describe('postfach – Sichtbarkeit', () => {
         }))).toEqual({ text: 'Büro, Max Mustermann', weitere: 0, vollstaendig: 'Büro, Max Mustermann' });
     });
 
-    it('kürzt lange Aufzählungen mit „+N“ und hält die volle Liste für den Tooltip', () => {
+    it('kürzt lange Aufzählungen mit „+N" und hält die volle Liste für den Tooltip', () => {
         const anzeige = beschreibeSichtbarkeit(nurBestimmte({
             sichtbarFuerAbteilungen: [{ id: 2, name: 'Büro' }, { id: 3, name: 'Werkstatt' }],
             sichtbarFuerBenutzer: [
@@ -141,7 +141,7 @@ describe('postfach – Sichtbarkeit', () => {
         ])).toEqual([{ id: 2, name: 'Büro' }, { id: 3, name: 'Werkstatt' }]);
     });
 
-    it('liest Benutzer aus /api/frontend-users robust, sortiert ein und merkt sich „aktiv“', () => {
+    it('liest Benutzer aus /api/frontend-users robust, sortiert ein und merkt sich „aktiv"', () => {
         expect(parseSichtbarkeitsBenutzer('nein')).toEqual([]);
         expect(parseSichtbarkeitsBenutzer([
             { id: 8, displayName: 'Moritz Muster', active: false },
@@ -196,7 +196,7 @@ describe('postfach – Sichtbarkeit bearbeiten', () => {
         expect(parsePostfach({ id: 3 })).toBeNull();
     });
 
-    it('nimmt bei fehlendem „laeuftAus“ false an', () => {
+    it('nimmt bei fehlendem „laeuftAus" false an', () => {
         const { laeuftAus: _ohne, ...alt } = postfach();
         void _ohne;
         expect(parsePostfach(alt)?.laeuftAus).toBe(false);

@@ -97,7 +97,7 @@ function HaekchenListe({
                         </div>
                     )}
                     {gefiltert.length === 0 ? (
-                        <p className="py-2 text-sm text-slate-500">Kein Treffer für „{suche.trim()}“.</p>
+                        <p className="py-2 text-sm text-slate-500">Kein Treffer für „{suche.trim()}".</p>
                     ) : (
                         // -mx-1 px-1 / py-1: Luft für die Fokus-Ringe, die der Scroll-Container sonst abschneidet.
                         <ul className="-mx-1 max-h-44 space-y-0.5 overflow-y-auto px-1 py-1">
@@ -149,8 +149,8 @@ interface PostfachSichtbarkeitProps {
 const umschalten = (ids: number[], id: number) => (ids.includes(id) ? ids.filter(x => x !== id) : [...ids, id]);
 
 /**
- * „Wer darf es sehen?“ für ein Postfach (Etappe 2 der Postfach-Spec):
- * „Alle im Betrieb“ oder „Nur bestimmte“ mit Häkchen bei Abteilungen und
+ * „Wer darf es sehen?" für ein Postfach (Etappe 2 der Postfach-Spec):
+ * „Alle im Betrieb" oder „Nur bestimmte" mit Häkchen bei Abteilungen und
  * Benutzern. Das Hauptpostfach zeigt die Berechtigungen-Seite ohne diese
  * Auswahl – es sieht immer jeder.
  */
@@ -189,7 +189,7 @@ export function PostfachSichtbarkeit({
             <div className="grid grid-cols-1 gap-2 sm:grid-cols-2">
                 {([
                     { alle: true, titel: 'Alle im Betrieb', text: 'Jeder, der sich im Programm anmeldet, sieht die Mails.' },
-                    { alle: false, titel: 'Nur bestimmte', text: 'Nur die Abteilungen und Benutzer, die du anhakst.' },
+                    { alle: false, titel: 'Nur bestimmte', text: 'Nur die Abteilungen und Benutzer, die Sie anhaken.' },
                 ] as const).map(option => {
                     const an = wert.sichtbarFuerAlle === option.alle;
                     return (

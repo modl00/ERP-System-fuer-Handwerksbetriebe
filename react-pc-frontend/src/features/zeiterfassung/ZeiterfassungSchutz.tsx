@@ -6,7 +6,7 @@ import { istZeiterfassungPfad } from '../../components/layout/navigation';
 import { useZeiterfassungSichtbarkeit } from './useZeiterfassungSichtbarkeit';
 
 /**
- * Schützt alle Seiten des Menü-Bereichs „Zeiterfassung“ – auch den direkten
+ * Schützt alle Seiten des Menü-Bereichs „Zeiterfassung" – auch den direkten
  * Aufruf per Adresse oder gespeichertem Link.
  *
  * <p>Welche Seiten dazugehören, kommt aus dem Menü selbst

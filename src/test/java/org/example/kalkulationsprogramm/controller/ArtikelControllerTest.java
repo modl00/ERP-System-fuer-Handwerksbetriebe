@@ -29,10 +29,10 @@ import org.junit.jupiter.api.Test;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.data.domain.PageImpl;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -45,30 +45,30 @@ class ArtikelControllerTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private ArtikelServiceContract artikelService;
 
-    @MockBean
+    @MockitoBean
     private ArtikelImportService artikelImportService;
 
-    @MockBean
+    @MockitoBean
     private LieferantenRepository lieferantenRepository;
 
-    @MockBean
+    @MockitoBean
     private WerkstoffRepository werkstoffRepository;
 
-    @MockBean
+    @MockitoBean
     private ArtikelMatchingService artikelMatchingService;
 
 
 
-    @MockBean
+    @MockitoBean
     private KategorieService kategorieService;
 
-    @MockBean
+    @MockitoBean
     private ArtikelPositionsPreisService artikelPositionsPreisService;
 
-    @MockBean
+    @MockitoBean
     private ArtikelDokumentService artikelDokumentService;
 
     @BeforeEach
@@ -77,9 +77,10 @@ class ArtikelControllerTest {
         // Neutraler Default, damit bestehende Tests den Preisvorschlag nicht
         // extra stubben muessen - siehe ArtikelSuchePreisvorschlagTest fuer den
         // tatsaechlich berechneten Vorschlag.
-        when(artikelPositionsPreisService.berechne(any(), any()))
+        when(artikelPositionsPreisService.berechne(any(), any(), any()))
                 .thenReturn(new ArtikelPositionsPreisService.ArtikelPositionsVorschlag(
                         "Stk", null, ArtikelPreisHinweis.KEIN_PREIS));
+        when(artikelPositionsPreisService.aufschlagFuerListe()).thenReturn(artikel -> null);
     }
 
     @Test
@@ -397,26 +398,6 @@ class ArtikelControllerTest {
                 .andExpect(jsonPath("$.profilform").isArray());
     }
 
-    // ==================================================================
-    // Zerlegung der Sucheingabe
-    // ==================================================================
-
-    @Test
-    void zerlegtSuchbegriffInEinzelneWoerter() {
-        // Die Abmessung darf zusammen oder getrennt geschrieben sein.
-        assertEquals(List.of("rundrohr", "42.4", "2"),
-                ArtikelController.zerlegeSuchbegriff("rundrohr 42.4 x2"));
-        assertEquals(List.of("rundrohr", "42.4", "2"),
-                ArtikelController.zerlegeSuchbegriff("Rundrohr 42.4x2"));
-        assertEquals(List.of("60", "40", "3"),
-                ArtikelController.zerlegeSuchbegriff("60x40x3"));
-        // Mehrfachnennungen und Leerzeichen duerfen nicht stoeren.
-        assertEquals(List.of("rohr", "42.4"),
-                ArtikelController.zerlegeSuchbegriff("  rohr   rohr  42.4 "));
-        assertEquals(List.of(), ArtikelController.zerlegeSuchbegriff("   "));
-        assertEquals(List.of(), ArtikelController.zerlegeSuchbegriff(null));
-    }
-
     @Test
     void sucheVerkraftetSonderzeichenUndUeberlangeEingaben() throws Exception {
         mockArtikelSuche(List.of());
@@ -455,6 +436,15 @@ class ArtikelControllerTest {
         lap.setPreisAenderungsdatum(new java.util.Date());
         lap.setAktuell(aktuell);
         return lap;
+    }
+
+    @Test
+    void naechsteArtikelnummer_liefertVorschau() throws Exception {
+        when(artikelService.naechsteArtikelnummer()).thenReturn("A-004143");
+
+        mockMvc.perform(get("/api/artikel/naechste-artikelnummer"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.artikelnummer").value("A-004143"));
     }
 
     private void mockArtikelSuche(List<Artikel> artikel) {

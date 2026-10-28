@@ -63,7 +63,7 @@ describe('Aktivitäten im System', { timeout: 30000 }, () => {
         expect(await screen.findByText(/Jetzt: 90 Tage/)).toBeInTheDocument();
     });
 
-    it('eigene Zahl von Tagen wird geprüft; „unbegrenzt“ verlangt eine Bestätigung mit Datenschutz-Hinweis', async () => {
+    it('eigene Zahl von Tagen wird geprüft; „unbegrenzt" verlangt eine Bestätigung mit Datenschutz-Hinweis', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByText(/Jetzt: 365 Tage/);

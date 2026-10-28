@@ -136,7 +136,7 @@ describe('KalenderPage', () => {
         expect(await screen.findByRole('heading', { name: 'September 2026' })).toBeInTheDocument()
     })
 
-    it('meldet einen Ladefehler als Toast und Hinweisband; „Erneut versuchen“ lädt neu', async () => {
+    it('meldet einen Ladefehler als Toast und Hinweisband; „Erneut versuchen" lädt neu', async () => {
         vi.stubGlobal('fetch', fetchMock({ kalenderStatus: 500 }))
         renderKalender()
         expect(await screen.findByRole('alert')).toHaveTextContent('Termine konnten nicht geladen werden')
@@ -169,7 +169,7 @@ describe('KalenderPage', () => {
         expect(new Set(aufrufe).size).toBe(7)
     })
 
-    it('„Aktualisieren“ lädt neu und stößt den Sync an, „Zurück“ führt zur Übersicht', async () => {
+    it('„Aktualisieren" lädt neu und stößt den Sync an, „Zurück" führt zur Übersicht', async () => {
         const mock = fetchMock()
         vi.stubGlobal('fetch', mock)
         const onSync = vi.fn()
@@ -186,7 +186,7 @@ describe('KalenderPage', () => {
         expect(await screen.findByText('Startseite')).toBeInTheDocument()
     })
 
-    it('„Aktualisieren“ während des Ladens verwirft die alte Antwort', async () => {
+    it('„Aktualisieren" während des Ladens verwirft die alte Antwort', async () => {
         let septemberAufrufe = 0
         const basis = fetchMock()
         const langsamZuerst = vi.fn(async (input: RequestInfo | URL) => {
@@ -197,7 +197,7 @@ describe('KalenderPage', () => {
                     await new Promise(resolve => setTimeout(resolve, 150))
                     return antwort(eintraege) // alte, langsame Antwort: zwei Termine im September
                 }
-                return antwort([eintraege[0]]) // frische Antwort nach „Aktualisieren“: nur noch die Baustelle
+                return antwort([eintraege[0]]) // frische Antwort nach „Aktualisieren": nur noch die Baustelle
             }
             return basis(input)
         })
@@ -211,7 +211,7 @@ describe('KalenderPage', () => {
         expect(screen.getByRole('button', { name: /Donnerstag, 3\. September 2026, 1 Eintrag/ })).toBeInTheDocument()
     })
 
-    it('Unterseite: Ladefehler zeigt Toast und Hinweisband statt „nicht gefunden“, „Erneut versuchen“ lädt nach', async () => {
+    it('Unterseite: Ladefehler zeigt Toast und Hinweisband statt „nicht gefunden", „Erneut versuchen" lädt nach', async () => {
         vi.stubGlobal('fetch', fetchMock({ kalenderStatus: 500 }))
         renderKalender('/kalender/termin/2026-09-17/t-12')
         expect(await screen.findByRole('alert')).toHaveTextContent('Termine konnten nicht geladen werden')
@@ -236,7 +236,7 @@ describe('KalenderPage', () => {
         expect(await screen.findByText('Kundenseite')).toBeInTheDocument()
     })
 
-    it('zeigt bei ungültigem Datum in der URL den Leerzustand statt „Invalid Date“', async () => {
+    it('zeigt bei ungültigem Datum in der URL den Leerzustand statt „Invalid Date"', async () => {
         renderKalender('/kalender/termin/abc/t-1')
         expect(await screen.findByText(/Dieser Termin wurde nicht gefunden/)).toBeInTheDocument()
         expect(screen.queryByText(/Invalid Date/)).not.toBeInTheDocument()

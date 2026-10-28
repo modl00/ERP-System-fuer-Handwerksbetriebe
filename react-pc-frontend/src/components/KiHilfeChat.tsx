@@ -13,7 +13,7 @@ interface SourceLink {
     url: string;
 }
 
-/** Ein Dokument aus dem Chat: die Datei selbst (für „Als Beleg ablegen“) und der gelesene Text (für Aufgaben an die KI). */
+/** Ein Dokument aus dem Chat: die Datei selbst (für „Als Beleg ablegen") und der gelesene Text (für Aufgaben an die KI). */
 /** Ein Dokument oder eine E-Mail aus dem E-Mail-Center ({@code emailId}) im Chat; bei einer E-Mail gibt es keine Datei. */
 interface Anhang { file: File | null; name: string; text: string | null; hinweis: string | null; emailId?: number }
 
@@ -72,9 +72,9 @@ export function KiHilfeChat() {
     const [input, setInput] = useState('');
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    // Ein Fenster für alles: Die KI beantwortet Fragen zum Programm (Werkzeug „programm_hilfe“) und zu den Daten des Betriebs und macht Vorschläge, die man bestätigt.
+    // Ein Fenster für alles: Die KI beantwortet Fragen zum Programm (Werkzeug „programm_hilfe") und zu den Daten des Betriebs und macht Vorschläge, die man bestätigt.
     // Ist für die KI noch kein Anbieter eingerichtet, antwortet wie bisher die reine Programmhilfe. Unbekannter Stand zählt als bereit: Beim Fragen kommt die genaue Meldung.
-    // Dokument aus dem Chat (hineingezogen oder per Büroklammer): gelesener Text für Aufgaben, die Datei selbst für „Als Beleg ablegen“
+    // Dokument aus dem Chat (hineingezogen oder per Büroklammer): gelesener Text für Aufgaben, die Datei selbst für „Als Beleg ablegen"
     const [anhang, setAnhang] = useState<Anhang | null>(null);
     const [liestDokument, setLiestDokument] = useState(false);
     const [ziehen, setZiehen] = useState(false);
@@ -105,14 +105,34 @@ export function KiHilfeChat() {
         };
     }, [userId]);
 
-    // Reload state when user changes
-    useEffect(() => {
+    /** Bricht eine laufende Frage still ab – ohne Fehlermeldung. */
+    const anfrageAbbrechen = useCallback(() => {
+        laufendeAnfrageRef.current?.abort();
+        laufendeAnfrageRef.current = null;
+        offeneFrageRef.current = null;
+        setLoading(false);
+        setLiveSchritte([]);
+    }, []);
+
+    // Anderer Benutzer: Chat-Zustand beim Rendern aus dessen Speicher übernehmen.
+    const [chatFuerBenutzer, setChatFuerBenutzer] = useState(userId);
+    if (chatFuerBenutzer !== userId) {
+        setChatFuerBenutzer(userId);
         setMessages(readLS(keyMessages, []));
         setOpen(readLS(keyOpen, false));
         setMinimized(readLS(keyMinimized, false));
         setError(null);
         setInput('');
-    }, [keyMessages, keyOpen, keyMinimized]);
+        setLoading(false);
+        setLiveSchritte([]);
+    }
+
+    // Beim Benutzerwechsel und beim Verlassen der Seite keine Antwort mehr abwarten:
+    useEffect(() => () => {
+        laufendeAnfrageRef.current?.abort();
+        laufendeAnfrageRef.current = null;
+        offeneFrageRef.current = null;
+    }, [userId]);
 
     // Lage und Größe des Fensters (Issue #251): frei verschiebbar und in der Größe änderbar, wird gemerkt
     const [rahmen, setRahmen] = useState<Rahmen>(() => begrenze(leseRahmen(readLS<unknown>(keyRahmen, null)) ?? standardRahmen(window.innerWidth, window.innerHeight), window.innerWidth, window.innerHeight));
@@ -124,7 +144,6 @@ export function KiHilfeChat() {
         return () => window.removeEventListener('resize', anpassen);
     }, []);
 
-    /** Zieht das Fenster (Kopf) oder eine Ecke; die Bewegung wird bis zum Loslassen verfolgt und dann gemerkt. */
     const startZiehen = (art: 'verschieben' | 'rechts' | 'links') => (e: React.PointerEvent<HTMLElement>) => {
         if (e.button !== 0 || (art === 'verschieben' && (e.target as HTMLElement).closest('button'))) return;
         e.preventDefault();
@@ -142,7 +161,7 @@ export function KiHilfeChat() {
             window.removeEventListener('pointermove', bewegen);
             window.removeEventListener('pointerup', ende);
             window.removeEventListener('pointercancel', ende);
-            try { localStorage.setItem(keyRahmen, JSON.stringify(rahmenRef.current)); } catch { /* Speicher voll oder gesperrt: dann gilt die Lage nur bis zum Neuladen */ }
+            try { localStorage.setItem(keyRahmen, JSON.stringify(rahmenRef.current)); } catch { /* egal */ }
         };
         window.addEventListener('pointermove', bewegen);
         window.addEventListener('pointerup', ende);
@@ -409,7 +428,7 @@ export function KiHilfeChat() {
 
         try {
             if (assistent) {
-                // Wo man gerade ist, damit „Was bedeutet das hier?“ beantwortbar ist (der Server lässt den sichtbaren Inhalt bei gesperrten Programmdaten weg)
+                // Wo man gerade ist, damit „Was bedeutet das hier?" beantwortbar ist (der Server lässt den sichtbaren Inhalt bei gesperrten Programmdaten weg)
                 const ctx = gatherPageContext();
                 const antwort = await fetch('/api/ki-assistent/chat', {
                     method: 'POST',

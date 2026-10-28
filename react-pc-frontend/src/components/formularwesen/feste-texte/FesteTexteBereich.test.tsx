@@ -115,7 +115,7 @@ describe('FesteTexteBereich', () => {
         expect(await screen.findByText('Stand 13.10.2026 · Fassung 3')).toBeInTheDocument();
     });
 
-    it('zeigt einen Ladefehler mit „Erneut versuchen“', async () => {
+    it('zeigt einen Ladefehler mit „Erneut versuchen"', async () => {
         const fetchMock = vi.fn()
             .mockResolvedValueOnce(json({ message: 'Server nicht erreichbar.' }, 503))
             .mockResolvedValueOnce(json([{ art: 'WIDERRUFSBELEHRUNG', bezeichnung: 'Widerrufsbelehrung', fassung: 2, stand: '2026-10-01', standardtext: false, geaendertAm: null }]));
@@ -152,7 +152,7 @@ describe('FesteTexteBereich', () => {
         expect(screen.getByText('Stand 14.10.2026 · Fassung 1')).toBeInTheDocument();
     });
 
-    it('meldet „Keine Änderung“, wenn das Backend die bisherige Fassung zurückgibt', async () => {
+    it('meldet „Keine Änderung", wenn das Backend die bisherige Fassung zurückgibt', async () => {
         const server = starteServer({ aktuell: detail({ fassung: 2, standardtext: false }) });
         server.put = () => json(server.aktuell);
         const user = userEvent.setup();

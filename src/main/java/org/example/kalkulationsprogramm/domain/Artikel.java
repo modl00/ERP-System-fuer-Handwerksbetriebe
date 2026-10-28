@@ -186,8 +186,8 @@ public class Artikel
     @Column(name = "artikelnummer", unique = true, length = 64)
     private String artikelnummer;
 
-    /** EAN-13 oder EAN-8 Barcode. */
-    @Column(name = "ean", length = 14, unique = true)
+    /** Strichcode (EAN-8, UPC-A, EAN-13 oder GTIN-14), nur bei einem Teil der Artikel vorhanden. Eindeutig. */
+    @Column(name = "ean", unique = true, length = 14)
     private String ean;
 
     /**

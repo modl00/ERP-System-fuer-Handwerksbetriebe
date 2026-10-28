@@ -79,7 +79,7 @@ describe('ZuschneidenAnsicht', () => {
         expect(onZurueck).toHaveBeenCalled()
     })
 
-    it('sperrt „Übernehmen“ bei überkreuzten Ecken und erklärt warum', async () => {
+    it('sperrt „Übernehmen" bei überkreuzten Ecken und erklärt warum', async () => {
         const ueberkreuzt = [{ x: 100, y: 200 }, { x: 820, y: 1700 }, { x: 800, y: 210 }, { x: 90, y: 1690 }]
         render(<ZuschneidenAnsicht fotoUrl="blob:foto" startEcken={ueberkreuzt} onUebernehmen={vi.fn()} onZurueck={vi.fn()} />)
         ladeFoto()
@@ -91,7 +91,7 @@ describe('ZuschneidenAnsicht', () => {
         expect(knopf).toHaveAccessibleDescription(/Ecken überkreuzen sich/)
     })
 
-    it('sperrt „Übernehmen“, wenn der Ausschnitt winzig ist', async () => {
+    it('sperrt „Übernehmen", wenn der Ausschnitt winzig ist', async () => {
         const winzig = [{ x: 100, y: 100 }, { x: 110, y: 100 }, { x: 110, y: 110 }, { x: 100, y: 110 }]
         render(<ZuschneidenAnsicht fotoUrl="blob:foto" startEcken={winzig} onUebernehmen={vi.fn()} onZurueck={vi.fn()} />)
         ladeFoto()

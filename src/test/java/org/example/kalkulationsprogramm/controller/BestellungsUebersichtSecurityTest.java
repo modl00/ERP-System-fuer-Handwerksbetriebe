@@ -37,12 +37,12 @@ import org.example.kalkulationsprogramm.service.RechnungsVorschlagService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.request.RequestPostProcessor;
 
@@ -64,24 +64,24 @@ class BestellungsUebersichtSecurityTest {
 
     @Autowired private MockMvc mockMvc;
 
-    @MockBean private LieferantDokumentRepository dokumentRepository;
-    @MockBean private LieferantGeschaeftsdokumentRepository geschaeftsdokumentRepository;
-    @MockBean private ProjektRepository projektRepository;
-    @MockBean private ProjektDokumentRepository projektDokumentRepository;
-    @MockBean private LieferantDokumentProjektAnteilRepository projektAnteilRepository;
-    @MockBean private KostenstelleRepository kostenstelleRepository;
-    @MockBean private FrontendUserProfileRepository frontendUserProfileRepository;
-    @MockBean private BelegRepository belegRepository;
-    @MockBean private BelegKostenstellenAnteilRepository belegKostenstellenAnteilRepository;
-    @MockBean private BelegService belegService;
-    @MockBean private BelegAuditService belegAuditService;
-    @MockBean private RechnungsVorschlagService rechnungsVorschlagService;
-    @MockBean private KettenVorschlagService kettenVorschlagService;
-    @MockBean private LieferantDokumentService lieferantDokumentService;
-    @MockBean private BestellungsUebersichtService bestellungsUebersichtService;
-    @MockBean private org.example.kalkulationsprogramm.service.LieferantDokumentZuordnungService zuordnungService;
-    @MockBean private org.example.kalkulationsprogramm.service.LieferantDokumentZugriffService zugriffService;
-    @MockBean private FrontendUserDetailsService frontendUserDetailsService;
+    @MockitoBean private LieferantDokumentRepository dokumentRepository;
+    @MockitoBean private LieferantGeschaeftsdokumentRepository geschaeftsdokumentRepository;
+    @MockitoBean private ProjektRepository projektRepository;
+    @MockitoBean private ProjektDokumentRepository projektDokumentRepository;
+    @MockitoBean private LieferantDokumentProjektAnteilRepository projektAnteilRepository;
+    @MockitoBean private KostenstelleRepository kostenstelleRepository;
+    @MockitoBean private FrontendUserProfileRepository frontendUserProfileRepository;
+    @MockitoBean private BelegRepository belegRepository;
+    @MockitoBean private BelegKostenstellenAnteilRepository belegKostenstellenAnteilRepository;
+    @MockitoBean private BelegService belegService;
+    @MockitoBean private BelegAuditService belegAuditService;
+    @MockitoBean private RechnungsVorschlagService rechnungsVorschlagService;
+    @MockitoBean private KettenVorschlagService kettenVorschlagService;
+    @MockitoBean private LieferantDokumentService lieferantDokumentService;
+    @MockitoBean private BestellungsUebersichtService bestellungsUebersichtService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.LieferantDokumentZuordnungService zuordnungService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.LieferantDokumentZugriffService zugriffService;
+    @MockitoBean private FrontendUserDetailsService frontendUserDetailsService;
 
     @org.junit.jupiter.api.BeforeEach
     void alleTypenSichtbar() {
@@ -89,6 +89,38 @@ class BestellungsUebersichtSecurityTest {
         given(zugriffService.sichtbareTypen(any(), any())).willReturn(java.util.Optional.of(
                 java.util.EnumSet.allOf(LieferantDokumentTyp.class)));
         given(zugriffService.istSichtbar(any(), any())).willReturn(true);
+    }
+
+    @Test
+    @DisplayName("Übersicht ohne Anmeldung: 401")
+    void uebersichtOhneLogin() throws Exception {
+        mockMvc.perform(get("/api/bestellungen-uebersicht")).andExpect(status().isUnauthorized());
+        verifyNoInteractions(bestellungsUebersichtService);
+    }
+
+    @Test
+    @WithMockUser
+    @DisplayName("Übersicht: Standard 25 je Gruppe, Anzahl begrenzt, Suche wird durchgereicht, zu lange Suche 400")
+    void uebersichtMehrLadenUndSuche() throws Exception {
+        mockMvc.perform(get("/api/bestellungen-uebersicht")).andExpect(status().isOk());
+        org.mockito.Mockito.verify(bestellungsUebersichtService).ladeUebersicht(any(), eq(25), eq(null));
+
+        mockMvc.perform(get("/api/bestellungen-uebersicht").param("anzahl", "999999").param("suche", "<script>x</script>"))
+                .andExpect(status().isOk());
+        org.mockito.Mockito.verify(bestellungsUebersichtService).ladeUebersicht(any(), eq(1000), eq("<script>x</script>"));
+
+        mockMvc.perform(get("/api/bestellungen-uebersicht").param("anzahl", "-5")).andExpect(status().isOk());
+        org.mockito.Mockito.verify(bestellungsUebersichtService).ladeUebersicht(any(), eq(1), eq(null));
+
+        // ein Zeichen grenzt nichts sinnvoll ein: wie ohne Suche
+        mockMvc.perform(get("/api/bestellungen-uebersicht").param("suche", " x ")).andExpect(status().isOk());
+        org.mockito.Mockito.verify(bestellungsUebersichtService, org.mockito.Mockito.times(2))
+                .ladeUebersicht(any(), eq(25), eq(null));
+
+        mockMvc.perform(get("/api/bestellungen-uebersicht").param("anzahl", "abc")).andExpect(status().isBadRequest());
+        mockMvc.perform(get("/api/bestellungen-uebersicht").param("suche", "x".repeat(201)))
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Der Suchbegriff ist zu lang (höchstens 200 Zeichen)."));
     }
 
     private static final String ABHAENGEN = "/api/bestellungen-uebersicht/abhaengen";

@@ -100,7 +100,7 @@ export function zerlegeEditorHtml(editorHtml: string): EditorTeile {
 
 /**
  * Text des Editors mit erhaltenen Absätzen (Leerzeile) und Umbrüchen –
- * `textContent` allein klebt `<p>Hallo</p><p>wir…</p>` zu „Hallowir…“ zusammen.
+ * `textContent` allein klebt `<p>Hallo</p><p>wir…</p>` zu „Hallowir…" zusammen.
  */
 function alsKlartextMitAbsaetzen(container: HTMLElement): string {
     container.querySelectorAll('br').forEach(br => br.replaceWith('\n'));
@@ -144,7 +144,7 @@ export async function formuliereMitKi(
     const vorschlag = typeof data?.body === 'string' ? data.body.trim() : '';
     if (!vorschlag) return { status: 'kein-vorschlag' };
 
-    // Nur echte Block-Struktur gilt als HTML – ein einzelnes <b> oder „Preis < 100“
+    // Nur echte Block-Struktur gilt als HTML – ein einzelnes <b> oder „Preis < 100"
     // ist Klartext und behält so seine Absätze.
     const vorschlagHtml = /<(p|div|br|ul|ol|li|table)\b/i.test(vorschlag) ? vorschlag : klartextAlsAbsaetze(vorschlag);
     const signatur = teile.signaturHtml || optionen.ersatzSignaturHtml || '';

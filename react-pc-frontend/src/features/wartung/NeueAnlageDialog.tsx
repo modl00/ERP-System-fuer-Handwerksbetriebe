@@ -56,9 +56,9 @@ function NeueAnlageInhalt({ open, onOpenChange, projektId, kundeId, onAngelegt }
     const angelegt = async (tuerId: number, name: string) => {
         try {
             await ordneProjektZu(tuerId, projektId);
-            toast.success(`„${name}“ ist angelegt und dem Projekt zugeordnet.`);
+            toast.success(`„${name}" ist angelegt und dem Projekt zugeordnet.`);
         } catch (e) {
-            toast.error(e instanceof Error ? `„${name}“ ist angelegt, aber nicht zugeordnet: ${e.message}` : `„${name}“ ist angelegt, konnte aber nicht dem Projekt zugeordnet werden.`);
+            toast.error(e instanceof Error ? `„${name}" ist angelegt, aber nicht zugeordnet: ${e.message}` : `„${name}" ist angelegt, konnte aber nicht dem Projekt zugeordnet werden.`);
         }
         setTuerDialog(false);
         onOpenChange(false);

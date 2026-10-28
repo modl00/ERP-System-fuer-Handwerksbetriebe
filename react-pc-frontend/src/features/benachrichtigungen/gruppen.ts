@@ -7,7 +7,7 @@ import type { CategoryDto, NotificationSummary, RecentItemDto } from '../../comp
 import { kategorieFuerEintrag } from '../../components/layout/notification-helpers';
 
 /**
- * Themen der Seite „Benachrichtigungen“: welche Kategorien und Einträge
+ * Themen der Seite „Benachrichtigungen": welche Kategorien und Einträge
  * zusammengehören, in welcher Reihenfolge sie stehen und wie sie aussehen.
  * Reine Daten und Funktionen ohne JSX, damit sie ohne Seiten-Mount testbar sind.
  */
@@ -27,7 +27,7 @@ export interface BenachrichtigungsGruppe {
     recentTypes: string[];
 }
 
-/** id der Gruppe „Sicherung & Updates“ – wird auf der Seite besonders hervorgehoben. */
+/** id der Gruppe „Sicherung & Updates" – wird auf der Seite besonders hervorgehoben. */
 export const GRUPPE_BETRIEB = 'betrieb';
 
 /** id der Sammelgruppe für Meldungen, die (noch) keinem Thema zugeordnet sind. */
@@ -223,7 +223,7 @@ function fuelle(gruppe: BenachrichtigungsGruppe, kategorien: CategoryDto[], eint
 
 /**
  * Sortiert die Antwort des Servers in die Themen. Themen ohne Daten fallen
- * weg; unbekannte Typen landen in „Weitere Meldungen“ ganz am Ende.
+ * weg; unbekannte Typen landen in „Weitere Meldungen" ganz am Ende.
  */
 export function gruppiere(summary: NotificationSummary): GefuellteGruppe[] {
     const bekannteKategorien = new Set(GRUPPEN.flatMap(g => g.types));

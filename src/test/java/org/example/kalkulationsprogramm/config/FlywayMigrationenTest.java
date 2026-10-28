@@ -59,6 +59,28 @@ class FlywayMigrationenTest {
             Map.entry("V415__freigabe_email_code.sql", 1251503045),
             Map.entry("V416__email_signatur_besitzer.sql", 1467540425),
             Map.entry("V417__telefon_reine_vorwahl_leeren.sql", -1484567923),
+            Map.entry("V418__email_signatur_firmen_vorlage.sql", -1806692247),
+            Map.entry("V419__email_gelesen_pro_benutzer.sql", -529857450),
+            Map.entry("V420__anfrage_dokument_hochlader.sql", -787715335),
+            Map.entry("V421__projekt_bezahlt_altfaelle_korrigieren.sql", -888475676),
+            Map.entry("V422__lieferant_position_bezug.sql", -2011741806),
+            Map.entry("V423__freigabe_rechtsnachweis.sql", 273844464),
+            Map.entry("V424__rechtstext_fassung.sql", 157276652),
+            Map.entry("V425__urlaubsantrag_entscheidung.sql", 1247692216),
+            Map.entry("V426__abteilung_zeiterfassung_sichtbar.sql", -1951496007),
+            Map.entry("V427__urlaub_uebertrag.sql", 483432275),
+            Map.entry("V428__zeit_hinweis_gesendet.sql", -727890757),
+            Map.entry("V429__email_automatische_bestaetigung.sql", 854429120),
+            Map.entry("V430__email_draft_besitzer.sql", 617604519),
+            Map.entry("V431__kunde_datenschutz_sperre.sql", -1464614437),
+            Map.entry("V432__kunde_anonymisiert.sql", 755312716),
+            Map.entry("V433__feiertage_bundesland.sql", 907020182),
+            Map.entry("V434__offener_posten_gutschrift.sql", -1881398446),
+            Map.entry("V435__telefonbuch_zuordnung.sql", 1166440287),
+            Map.entry("V436__artikel_ean.sql", 368622790),
+            Map.entry("V437__abteilung_darf_aufschlaege_aendern.sql", -1027148804),
+            Map.entry("V438__kategorie_aufschlag.sql", 361623221),
+            Map.entry("V439__email_empfaenger_ohne_laengengrenze.sql", -1740503236),
             Map.entry("V9000__wartung_grundlagen.sql", 1129854990),
             Map.entry("V9001__wartung_vorlagen.sql", 501082604),
             Map.entry("V9002__wartung_projekt_feldeinsatz.sql", -370188822),
@@ -188,7 +210,7 @@ class FlywayMigrationenTest {
     /** Nachbau von Flyways ChecksumCalculator (CRC32 ueber Zeilen ohne Umbruch, BOM entfernt). */
     static int flywayChecksumme(Path datei) throws IOException {
         CRC32 crc = new CRC32();
-        try (BufferedReader leser = Files.newBufferedReader(datei, StandardCharsets.UTF_8)) {
+        try (BufferedReader leser = Files.newBufferedReader(datei)) {
             String zeile = leser.readLine();
             if (zeile != null && !zeile.isEmpty() && zeile.charAt(0) == BOM) {
                 zeile = zeile.substring(1);
@@ -262,7 +284,7 @@ class FlywayMigrationenTest {
                 if (ERLAUBTE_WERTELISTEN.contains(datei)) {
                     continue;
                 }
-                assertThat(hatCheckMitWerteliste(Files.readString(MIGRATIONEN.resolve(datei), StandardCharsets.UTF_8)))
+                assertThat(hatCheckMitWerteliste(Files.readString(MIGRATIONEN.resolve(datei))))
                         .as("%s: CHECK mit Werteliste - Enum-Werte nicht in der Datenbank festschreiben", datei)
                         .isFalse();
             }
@@ -284,7 +306,7 @@ class FlywayMigrationenTest {
         void ausnahmenAktuell() throws IOException {
             assertThat(migrationen().values()).containsAll(ERLAUBTE_WERTELISTEN);
             for (String datei : ERLAUBTE_WERTELISTEN) {
-                assertThat(hatCheckMitWerteliste(Files.readString(MIGRATIONEN.resolve(datei), StandardCharsets.UTF_8)))
+                assertThat(hatCheckMitWerteliste(Files.readString(MIGRATIONEN.resolve(datei))))
                         .as("%s braucht keine Ausnahme mehr", datei).isTrue();
             }
         }
@@ -297,7 +319,7 @@ class FlywayMigrationenTest {
         @Test
         @DisplayName("Basis ist vorhanden und enthaelt das komplette Schema")
         void vollstaendig() throws IOException {
-            String basis = Files.readString(BASIS, StandardCharsets.UTF_8);
+            String basis = Files.readString(BASIS);
             assertThat(Pattern.compile("(?m)^CREATE TABLE ").matcher(basis).results().count())
                     .isGreaterThan(100);
             assertThat(basis).contains("PostgreSQL database dump complete");
@@ -306,7 +328,7 @@ class FlywayMigrationenTest {
         @Test
         @DisplayName("Basis enthaelt keine E-Mail-Adressen (keine Personendaten)")
         void keinePersonendaten() throws IOException {
-            String basis = Files.readString(BASIS, StandardCharsets.UTF_8);
+            String basis = Files.readString(BASIS);
             assertThat(EMAIL.matcher(basis).find()).as("E-Mail-Adresse im Basis-Schema").isFalse();
         }
 
@@ -321,7 +343,7 @@ class FlywayMigrationenTest {
         @Test
         @DisplayName("Basis loescht nichts und verstellt die Verbindung nicht")
         void keinDropKeinPsqlBefehl() throws IOException {
-            String basis = Files.readString(BASIS, StandardCharsets.UTF_8);
+            String basis = Files.readString(BASIS);
             assertThat(basis).doesNotContainPattern("(?i)\\bDROP\\s++(TABLE|DATABASE|SCHEMA)\\b");
             // psql-Befehle (\restrict ...) versteht Flyway nicht; ein geleerter
             // search_path wuerde die Verbindung fuer die App unbrauchbar machen
@@ -333,7 +355,7 @@ class FlywayMigrationenTest {
         @DisplayName("Keine Enum-CHECKs in der Basis")
         void keineEnumChecks() throws IOException {
             // pg_dump schreibt "x IN ('A','B')" als "x = ANY ((ARRAY['A', 'B']))"
-            for (String zeile : Files.readAllLines(BASIS, StandardCharsets.UTF_8)) {
+            for (String zeile : Files.readAllLines(BASIS)) {
                 if (zeile.contains("= ANY ((ARRAY[")) {
                     Matcher name = CHECK_NAME.matcher(zeile);
                     assertThat(name.find() && ERLAUBTE_WERTELISTEN_CONSTRAINTS.contains(name.group(1)))
@@ -346,7 +368,7 @@ class FlywayMigrationenTest {
         @Test
         @DisplayName("Jede Migration der Basis-Historie existiert unveraendert (Checksumme wie Flyway)")
         void historiePasstZuDenMigrationen() throws IOException {
-            String basis = Files.readString(BASIS, StandardCharsets.UTF_8);
+            String basis = Files.readString(BASIS);
             Matcher treffer = HISTORIE.matcher(basis);
             while (treffer.find()) {
                 Path datei = MIGRATIONEN.resolve(treffer.group(2));
@@ -375,7 +397,7 @@ class FlywayMigrationenTest {
             Set<String> regeln = new TreeSet<>();
             List<String> fremdschluessel = new ArrayList<>();
             String tabelle = null;
-            for (String zeile : Files.readAllLines(BASIS, StandardCharsets.UTF_8)) {
+            for (String zeile : Files.readAllLines(BASIS)) {
                 Matcher alter = ALTER_TABLE.matcher(zeile);
                 if (alter.find()) {
                     tabelle = alter.group(1);

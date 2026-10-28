@@ -8,7 +8,7 @@ import type { Point } from '../../services/scannerOverlay'
 
 export interface ScanSeite {
     id: string
-    /** Object-URL des Original-Fotos – Grundlage für „Ecken anpassen“. */
+    /** Object-URL des Original-Fotos – Grundlage für „Ecken anpassen". */
     fotoUrl: string
     /** Ecken (TL, TR, BR, BL) in Pixeln des Fotos; `null`, bis die Seite einmal zugeschnitten ist. */
     ecken: Point[] | null
@@ -83,7 +83,7 @@ async function schneideZuUndFiltere(seite: ScanSeite, ecken: Point[], optionen: 
  * Hält die Seiten eines Scans und verarbeitet sie im Hintergrund – eine nach
  * der anderen, damit das Handy nicht mehrere große Bilder gleichzeitig
  * rechnet. Jede Seite merkt sich Foto, Ecken, Filter und das ungefilterte
- * Ergebnis, damit Filterwechsel und „Ecken anpassen“ ohne neue Aufnahme gehen.
+ * Ergebnis, damit Filterwechsel und „Ecken anpassen" ohne neue Aufnahme gehen.
  */
 export function useScanSeiten() {
     const toast = useToast()

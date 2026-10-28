@@ -33,7 +33,7 @@ export interface RechnungsVorschlag {
     /** false = eine andere Rechnung passt genauso gut */
     eindeutig: boolean;
     gruende: string[];
-    /** Rechnung ist schon einer anderen Bestellung zugeordnet, z. B. „Lieferschein 4711“. */
+    /** Rechnung ist schon einer anderen Bestellung zugeordnet, z. B. „Lieferschein 4711". */
     gehoertSchonZu?: string | null;
 }
 

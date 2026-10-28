@@ -649,7 +649,7 @@ export function LeistungKalkulation({ leistungId, onPreisGeaendert }: Props) {
 
             {baugruppen.length === 0 && (
                 <p className="text-xs text-slate-500">
-                    Tipp: Teile, die in mehreren Leistungen vorkommen (zum Beispiel ein Pfosten), legen Sie als eigene Leistung an und schalten dort „Als Baugruppe nutzbar“ ein.
+                    Tipp: Teile, die in mehreren Leistungen vorkommen (zum Beispiel ein Pfosten), legen Sie als eigene Leistung an und schalten dort „Als Baugruppe nutzbar" ein.
                     Dann lassen sie sich hier mit einer Menge je Einheit einsetzen.
                 </p>
             )}
@@ -706,7 +706,7 @@ export function LeistungKalkulation({ leistungId, onPreisGeaendert }: Props) {
                     title={!geaendert ? 'Keine Änderung zu speichern' : undefined}>
                     {speichert ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" /> : <Save className="w-4 h-4" />} Kalkulation speichern
                 </Button>
-                {geaendert && <span className="text-xs text-slate-500">Nicht gespeicherte Änderungen. Das Speichern setzt den Preis der Leistung{kalkuliert ? '' : ' nur, wenn „Preis aus der Kalkulation berechnen“ gewählt ist'}.</span>}
+                {geaendert && <span className="text-xs text-slate-500">Nicht gespeicherte Änderungen. Das Speichern setzt den Preis der Leistung{kalkuliert ? '' : ' nur, wenn „Preis aus der Kalkulation berechnen" gewählt ist'}.</span>}
             </div>
 
             {zeilen.length > 0 && !geaendert && (

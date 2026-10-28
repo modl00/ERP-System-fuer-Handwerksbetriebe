@@ -22,7 +22,7 @@ const mengeText = (z: KalkulationPosition) => `${z.menge.toLocaleString('de-DE',
 /**
  * Die Kalkulation hinter einer Angebotsposition, <b>nur intern</b> (steht nicht im Kundendokument): die Zeilen der Leistung mit Material, Arbeit, Maschine
  * und Fremdleistung, gerechnet für die Menge dieser Position, dazu der kalkulierte Preis im Vergleich mit dem Preis im Angebot. Der Preis wird nie von selbst
- * geändert; „Kalkulierten Preis übernehmen“ schreibt ihn nur auf Klick in die Position.
+ * geändert; „Kalkulierten Preis übernehmen" schreibt ihn nur auf Klick in die Position.
  */
 export function ServiceKalkulation({ leistungId, menge, preis, gesperrt, onPreisUebernehmen }: Props) {
     const [offen, setOffen] = useState(false);

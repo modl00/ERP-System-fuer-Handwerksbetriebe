@@ -3,6 +3,7 @@ import { Mail, Loader2, Check, BarChart3, AlertCircle, Lock, Clock, ExternalLink
 import { Select } from '../components/ui/select-custom';
 import { Button } from '../components/ui/button';
 import { SteuerberaterEmailModal } from '../components/SteuerberaterEmailModal';
+import { useToast } from '../components/ui/toast';
 import type { Arbeitszeit, ZeitkontoStatus } from '../types/zeitkonto';
 
 interface MitarbeiterStunden {
@@ -18,7 +19,13 @@ interface MitarbeiterStunden {
     festgeschrieben: boolean;
 }
 
+/** Wählbare Jahre: vier Jahre zurück bis ein Jahr voraus, ausgehend vom aktuellen Jahr. */
+function waehlbareJahre(aktuellesJahr: number): number[] {
+    return Array.from({ length: 6 }, (_, index) => aktuellesJahr - 4 + index);
+}
+
 export default function ZeiterfassungSteuerberater() {
+    const toast = useToast();
     const [zeitkonten, setZeitkonten] = useState<ZeitkontoStatus[]>([]);
     const [stundenDaten, setStundenDaten] = useState<MitarbeiterStunden[]>([]);
     const [selectedMitarbeiter, setSelectedMitarbeiter] = useState<number[]>([]);
@@ -31,26 +38,24 @@ export default function ZeiterfassungSteuerberater() {
     const [jahr, setJahr] = useState(today.getFullYear());
     const [monat, setMonat] = useState(today.getMonth() + 1);
 
-    // Load Zeitkonten on mount
-    const loadZeitkonten = async () => {
-        setLoadingZeitkonten(true);
-        try {
-            const res = await fetch('/api/zeitverwaltung/zeitkonten');
-            if (!res.ok) throw new Error('Zeitkonten konnten nicht geladen werden.');
-            const data = await res.json() as ZeitkontoStatus[];
-            // Menschen ohne aktuell eingerichtetes Zeitkonto fehlen nur aus der
-            // aktuellen Auswahl. Ihre historischen Auswertungsdaten bleiben im Backend.
-            // Geschäftsführer werden bei der monatlichen Stundenübermittlung an den Steuerberater nicht aufgeführt.
-            setZeitkonten(Array.isArray(data) ? data.filter(konto => konto.fuehrtZeitkonto && konto.aktuell !== null && !konto.istGeschaeftsfuehrer) : []);
-        } catch (err) {
-            console.error('Fehler beim Laden der Zeitkonten:', err);
-            setZeitkonten([]);
-        }
-        setLoadingZeitkonten(false);
-    };
-
+    // Load Zeitkonten on mount (Ladeanzeige startet mit true)
     useEffect(() => {
-        loadZeitkonten();
+        fetch('/api/zeitverwaltung/zeitkonten')
+            .then(async (res) => {
+                if (!res.ok) throw new Error('Zeitkonten konnten nicht geladen werden.');
+                const data = await res.json() as ZeitkontoStatus[];
+                // Menschen ohne aktuell eingerichtetes Zeitkonto fehlen nur aus der
+                // aktuellen Auswahl. Ihre historischen Auswertungsdaten bleiben im Backend.
+                // Geschäftsführer werden bei der monatlichen Stundenübermittlung an den Steuerberater nicht aufgeführt.
+                setZeitkonten(Array.isArray(data) ? data.filter(konto => konto.fuehrtZeitkonto && konto.aktuell !== null && !konto.istGeschaeftsfuehrer) : []);
+            })
+            .catch((err) => {
+                console.error('Fehler beim Laden der Zeitkonten:', err);
+                setZeitkonten([]);
+            })
+            .finally(() => {
+                setLoadingZeitkonten(false);
+            });
     }, []);
 
     const arbeitszeitAm = (konto: ZeitkontoStatus, datum: string): Arbeitszeit | null => {
@@ -234,7 +239,7 @@ export default function ZeiterfassungSteuerberater() {
                     <div>
                         <label className="block text-sm font-medium text-slate-700 mb-1">Jahr</label>
                         <Select aria-label="Jahr" value={String(jahr)} onChange={value => setJahr(Number(value))}
-                            className="w-32" options={[2024, 2025, 2026, 2027].map(value => ({ value: String(value), label: String(value) }))} />
+                            className="w-32" options={waehlbareJahre(today.getFullYear()).map(value => ({ value: String(value), label: String(value) }))} />
                     </div>
                     <Button
                         onClick={loadStundenDaten}
@@ -395,6 +400,7 @@ export default function ZeiterfassungSteuerberater() {
                     jahr={jahr}
                     onSuccess={() => {
                         setShowEmailModal(false);
+                        toast.success('E-Mail an den Steuerberater wurde gesendet.');
                     }}
                 />
             )}

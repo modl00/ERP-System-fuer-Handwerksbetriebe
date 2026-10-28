@@ -4,8 +4,8 @@ import { cn } from '../../lib/utils';
 
 /**
  * Kleines Zeichen am Reiter:
- * - `haken`: grünes Häkchen, z. B. „hier ist schon etwas ausgefüllt“.
- * - `punkt`: bernsteinfarbener Punkt, z. B. „hier ist noch etwas nicht gespeichert“.
+ * - `haken`: grünes Häkchen, z. B. „hier ist schon etwas ausgefüllt".
+ * - `punkt`: bernsteinfarbener Punkt, z. B. „hier ist noch etwas nicht gespeichert".
  * Der Text steht für Screenreader und als Tooltip daneben – die Farbe allein trägt die Aussage nicht.
  */
 export interface ReiterKennzeichen {
@@ -17,7 +17,7 @@ export interface ReiterEintrag<T extends string = string> {
     id: T;
     label: string;
     icon?: ReactNode;
-    /** Leiser Zusatz hinter der Beschriftung, z. B. „optional“. */
+    /** Leiser Zusatz hinter der Beschriftung, z. B. „optional". */
     zusatz?: string;
     /** Zahl in einem kleinen Kästchen, z. B. die Anzahl der Lieferanten. */
     anzahl?: number;
@@ -33,7 +33,7 @@ interface ReiterProps<T extends string> {
     reiter: ReiterEintrag<T>[];
     aktiv: T;
     onWechsel: (id: T) => void;
-    /** Worum es in der Leiste geht, z. B. „Bereiche des Artikels“. */
+    /** Worum es in der Leiste geht, z. B. „Bereiche des Artikels". */
     ariaLabel: string;
     /** Eindeutiger Vorsatz für die IDs, falls mehrere Leisten auf einer Seite stehen. */
     idPrefix: string;

@@ -336,8 +336,8 @@ export interface AbzuloesendeFreigabe {
 
 /**
  * Text der Rückfrage, bevor offene Online-Links abgelöst werden – ältere Links desselben
- * Angebots („Der bisherige Online-Link zu diesem Angebot wird damit ungültig.“) und Links
- * anderer Angebote („Der Online-Link zu Angebot AG-1 wird damit ungültig.“).
+ * Angebots („Der bisherige Online-Link zu diesem Angebot wird damit ungültig.") und Links
+ * anderer Angebote („Der Online-Link zu Angebot AG-1 wird damit ungültig.").
  */
 export function abloesungsFrage(freigaben: AbzuloesendeFreigabe[], bezeichnung: string = 'Angebot'): string {
     const saetze: string[] = [];

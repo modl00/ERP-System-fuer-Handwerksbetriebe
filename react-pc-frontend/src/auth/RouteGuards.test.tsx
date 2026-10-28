@@ -170,7 +170,7 @@ describe('Langsame oder fehlende Verbindung beim Start', () => {
         expect(screen.queryByText('Anmeldeseite')).not.toBeInTheDocument();
     });
 
-    it('prüft per „Erneut versuchen“ noch einmal und öffnet dann die Seite', async () => {
+    it('prüft per „Erneut versuchen" noch einmal und öffnet dann die Seite', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => { throw new TypeError('Failed to fetch'); }));
         zeige('/projekte');
         const knopf = await screen.findByRole('button', { name: /Erneut versuchen/ });

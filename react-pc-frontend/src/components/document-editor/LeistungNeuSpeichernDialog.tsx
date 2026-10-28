@@ -22,7 +22,7 @@ const HINWEIS_UNTERSTE_EBENE = 'Bitte wählen Sie einen Ordner der untersten Ebe
 
 export interface GewaehlterOrdner {
     id: number;
-    /** Lesbarer Pfad, z. B. „Geländer › Edelstahl“. */
+    /** Lesbarer Pfad, z. B. „Geländer › Edelstahl". */
     pfad: string;
 }
 
@@ -92,7 +92,7 @@ async function fehlermeldungAus(res: Response): Promise<string> {
 }
 
 /**
- * „Als neue Leistung speichern“: legt aus einer geaenderten Position eine
+ * „Als neue Leistung speichern": legt aus einer geaenderten Position eine
  * zusaetzliche Leistung in einem Ordner der untersten Ebene an. Vorausgewaehlt
  * und aufgeklappt ist der Ordner der Ursprungs-Leistung.
  */
@@ -261,7 +261,7 @@ export function LeistungNeuSpeichernDialog({ block, ursprungsLeistung, onGespeic
                         </InfoButton>
                     </div>
                     <DialogDescription>
-                        „{ursprungsLeistung.name}“ bleibt, wie sie ist. Die geänderte Position kommt als weitere Leistung dazu.
+                        „{ursprungsLeistung.name}" bleibt, wie sie ist. Die geänderte Position kommt als weitere Leistung dazu.
                     </DialogDescription>
                 </DialogHeader>
 

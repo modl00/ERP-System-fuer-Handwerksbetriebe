@@ -515,7 +515,7 @@ const BestellungBearbeiten = () => {
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>
                         <DialogTitle>Bestellung stornieren?</DialogTitle>
-                        <DialogDescription>Die Bestellnummer bleibt vergeben. Material aus Projekten, das noch nicht geliefert ist, steht danach wieder als „zu bestellen“ da.</DialogDescription>
+                        <DialogDescription>Die Bestellnummer bleibt vergeben. Material aus Projekten, das noch nicht geliefert ist, steht danach wieder als „zu bestellen" da.</DialogDescription>
                     </DialogHeader>
                     <label htmlFor="storno-grund" className="text-sm font-medium text-slate-700">Warum wird storniert?</label>
                     <input id="storno-grund" value={stornoGrund} maxLength={500} onChange={(e) => setStornoGrund(e.target.value)} placeholder="Zum Beispiel: Lieferant kann nicht liefern"

@@ -184,7 +184,7 @@ describe('EmailComposeForm – Versand aus dem Dokument-Editor', () => {
         expect(sendeAufrufe()).toHaveLength(0);
     });
 
-    it('meldet nach dem Senden einmal „E-Mail wurde gesendet.“', async () => {
+    it('meldet nach dem Senden einmal „E-Mail wurde gesendet."', async () => {
         const onSuccess = vi.fn();
         renderFormular({ onSuccess });
 

@@ -85,7 +85,7 @@ describe('FunktionsrechteBereich', () => {
         expect(await screen.findByText('Nur Administratoren dürfen Rechte ändern.')).toBeVisible();
     });
 
-    it('zeigt einen Ladefehler mit „Erneut laden“', async () => {
+    it('zeigt einen Ladefehler mit „Erneut laden"', async () => {
         fetcher.mockImplementation(async () => antwort({ message: 'kaputt' }, false, 500));
         zeige();
         expect((await screen.findAllByRole('alert')).some(a => a.textContent?.includes('kaputt'))).toBe(true);

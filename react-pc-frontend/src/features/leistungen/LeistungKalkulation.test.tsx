@@ -501,7 +501,7 @@ const mitMaschine = (anteil = 100): Kalkulation => kalkulation({
     materialSumme: 0, arbeitSumme: 30, maschineSumme: 20, zwischensumme: 50, zuschlag: 5, preisBerechnet: 55, preisGespeichert: 55, zuschlagProzent: 10,
 });
 
-it('zeigt bei einem Arbeitsgang mit Maschine die Maschinenkosten und eine eigene Zeile „Maschine“ in der Zusammenfassung', async () => {
+it('zeigt bei einem Arbeitsgang mit Maschine die Maschinenkosten und eine eigene Zeile „Maschine" in der Zusammenfassung', async () => {
     aktuell = mitMaschine()
     zeige();
 
@@ -587,7 +587,7 @@ it('speichert die Fremdleistungs-Zeile mit Angebot, Menge und Gewicht', async ()
     expect(gespeichert.positionen[0]).toMatchObject({ typ: 'FREMDLEISTUNG', fremdleistungId: 31, gewichtKgJeEinheit: 8.5, menge: 8 });
 });
 
-it('„Günstigsten Veredler wählen“ vergleicht für die Auftragsmenge und trägt den günstigsten ein', async () => {
+it('„Günstigsten Veredler wählen" vergleicht für die Auftragsmenge und trägt den günstigsten ein', async () => {
     const user = userEvent.setup();
     aktuell = kalkulation({ positionen: [fremdZeile()] });
     fetcher.mockImplementation(async (url: string, init?: RequestInit) => {
@@ -637,7 +637,7 @@ it('meldet unvollständiges Gewicht in der Zusammenfassung', async () => {
     expect(await screen.findByTestId('kalkulation-gewicht')).toHaveTextContent('(unvollständig)');
 });
 
-it('Fremdleistung: „Menge aus dem Gewicht“ zeigt den berechneten Wert und speichert ohne Menge', async () => {
+it('Fremdleistung: „Menge aus dem Gewicht" zeigt den berechneten Wert und speichert ohne Menge', async () => {
     const user = userEvent.setup();
     aktuell = kalkulation({ positionen: [fremdZeile({ menge: 6, mengeAus: 'GEWICHT' })] });
     zeige();
@@ -654,7 +654,7 @@ it('Fremdleistung: „Menge aus dem Gewicht“ zeigt den berechneten Wert und sp
     expect(JSON.parse(aufrufe(fetcher, 'PUT', '/kalkulation')[0][1].body).positionen[0]).toMatchObject({ typ: 'FREMDLEISTUNG', fremdleistungId: 31, mengeAus: 'OBERFLAECHE', menge: null });
 });
 
-it('Fremdleistung: „Menge von Hand“ schaltet das Mengenfeld wieder frei', async () => {
+it('Fremdleistung: „Menge von Hand" schaltet das Mengenfeld wieder frei', async () => {
     const user = userEvent.setup();
     aktuell = kalkulation({ positionen: [fremdZeile({ menge: 6, mengeAus: 'GEWICHT' })] });
     zeige();

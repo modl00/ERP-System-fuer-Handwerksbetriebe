@@ -67,7 +67,7 @@ interface ZiehDaten {
  * geht ganz an genau ein Projekt oder eine Kostenstelle – per Ziehen auf die
  * Zielkarte oder per Auswahlliste in der Zeile. Nebenkosten und Rabatte
  * verteilt das Backend anteilig nach Warenwert – entweder auf alle Ziele oder,
- * wenn sie zu bestimmten Positionen gehören („Gilt für“), nur auf deren Ziele.
+ * wenn sie zu bestimmten Positionen gehören („Gilt für"), nur auf deren Ziele.
  */
 export function PositionsAufteilung({ aufteilung, ziele, zielKarten, onProjektHinzufuegen }: PositionsAufteilungProps) {
     const toast = useToast();
@@ -78,7 +78,7 @@ export function PositionsAufteilung({ aufteilung, ziele, zielKarten, onProjektHi
     const [ausgewaehlt, setAusgewaehlt] = useState<Set<number>>(() => new Set());
     const [nurOffene, setNurOffene] = useState(false);
     const [gezogen, setGezogen] = useState<ZiehDaten | null>(null);
-    /** Zuschlag, dessen „Gilt für“ gerade geändert wird. */
+    /** Zuschlag, dessen „Gilt für" gerade geändert wird. */
     const [bezugFuer, setBezugFuer] = useState<number | null>(null);
     const bezugZuschlag = bezugFuer != null ? positionen.find(p => p.id === bezugFuer && istZuschlag(p)) : undefined;
 
@@ -238,7 +238,7 @@ export function PositionsAufteilung({ aufteilung, ziele, zielKarten, onProjektHi
                                     <>
                                         <p className="mt-1 text-sm text-slate-500">
                                             Ohne KI liest das Programm keine Positionen aus. Teilen Sie die Rechnung
-                                            stattdessen „Prozentual“ oder „Absolut“ auf.
+                                            stattdessen „Prozentual" oder „Absolut" auf.
                                         </p>
                                         <p id={kiAusId} className="mx-auto mt-2 max-w-md text-xs text-slate-500">{KI_AUS_ERKLAERUNG}</p>
                                     </>
@@ -436,7 +436,7 @@ interface PositionsZeileProps {
     wirdGezogen: boolean;
     optionen: { value: string; label: string; gruppe?: string }[];
     gesperrtGrund?: string;
-    /** Nur bei Nebenkosten/Rabatt: Text hinter „Gilt für:“, z. B. „alle Positionen“ oder „Pos. 3, 5“. */
+    /** Nur bei Nebenkosten/Rabatt: Text hinter „Gilt für:", z. B. „alle Positionen" oder „Pos. 3, 5". */
     gueltigFuer?: string;
     onZiel: (positionId: number, ziel: string) => void;
     onAuswahl: (positionId: number, an: boolean) => void;
@@ -533,7 +533,7 @@ const PositionsZeile = memo(function PositionsZeile({
                         <button
                             type="button"
                             onClick={() => onBezugAendern(position.id)}
-                            aria-label={`Wofür ${position.positionsArt === 'RABATT' ? 'der Rabatt' : 'die Nebenkosten'} „${name}“ gilt, ändern`}
+                            aria-label={`Wofür ${position.positionsArt === 'RABATT' ? 'der Rabatt' : 'die Nebenkosten'} „${name}" gilt, ändern`}
                             className="rounded font-medium text-rose-700 underline underline-offset-2 hover:text-rose-800 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-500"
                         >
                             ändern

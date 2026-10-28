@@ -8,21 +8,77 @@ import { AuthProvider } from './auth/AuthContext';
 import { RequireAdmin, RequireAuth } from './auth/RouteGuards';
 import { SessionGuard } from './auth/SessionGuard';
 import { installSessionInterceptor } from './auth/sessionInterceptor';
-import { AnrufFensterHost } from './features/telefon/AnrufFensterHost';
+import TextbausteinEditor from './pages/TextbausteinEditor';
+import Leistungseditor from './pages/Leistungseditor';
+import LagerEditor from './pages/LagerEditor';
+import Kundeneditor from './pages/Kundeneditor';
+import LieferantenEditor from './pages/LieferantenEditor';
+import ArtikelEditor from './pages/ArtikelEditor';
+import ArtikelDetail from './pages/ArtikelDetail';
+import ArbeitsgangEditor from './pages/ArbeitsgangEditor';
+import KostenrechnungPage from './pages/KostenrechnungPage';
+import FremdleistungenPage from './pages/FremdleistungenPage';
+import ProduktkategorieEditor from './pages/ProduktkategorieEditor';
+import ProjektEditor from './pages/ProjektEditor';
+import AnfrageEditor from './pages/AnfrageEditor';
+import BestellungenUebersicht from './pages/BestellungenUebersicht';
+import BestellListe from './pages/BestellListe';
+import BestellungBearbeiten from './pages/BestellungBearbeiten';
+import ErfolgsanalyseEditor from './pages/ErfolgsanalyseEditor';
+import KostenstellenControllingEditor from './pages/KostenstellenControllingEditor';
+import FormularwesenEditor from './pages/FormularwesenEditor';
+import OffenePostenEditor from './pages/OffenePostenEditor';
+import EmailCenter from './pages/EmailCenter';
+import EmailTextvorlagenEditor from './pages/EmailTextvorlagenEditor';
+import EmailEinstellungenPage from './pages/EmailEinstellungenPage';
+import Plantafel from './pages/Plantafel';
+import Startbildschirm from './pages/Startbildschirm';
+import WartungUebersicht from './pages/WartungUebersicht';
+import WartungProtokoll from './pages/WartungProtokoll';
+import WartungModulEditor from './pages/WartungModulEditor';
+import WartungAnlage from './pages/WartungAnlage';
+import RechteUebersichtSeite from './pages/RechteUebersicht';
+import MeinTagesverlauf from './pages/MeinTagesverlauf';
+import AktivitaetenImSystem from './pages/AktivitaetenImSystem';
+import AbteilungBerechtigungenEditor from './pages/AbteilungBerechtigungenEditor';
+import { RequireModul } from './features/modulschalter/RequireModul';
 import { RequireWartungModul } from './features/modulschalter/RequireWartungModul';
 import { RequireLagerModul } from './features/modulschalter/RequireLagerModul';
-import { BESTELLBEDARF_PFAD, istFreigegeben } from './lib/freigaben';
+import MietabrechnungEditor from './pages/MietabrechnungEditor';
+import BenutzerEditor from './pages/BenutzerEditor';
+import MitarbeiterEditor from './pages/MitarbeiterEditor';
+import ZeiterfassungKalender from './pages/ZeiterfassungKalender';
+import Monatsabschluss from './pages/Monatsabschluss';
+import ZeiterfassungAuswertung from './pages/ZeiterfassungAuswertung';
+import ZeiterfassungZeitkonten from './pages/ZeiterfassungZeitkonten';
+import ZeiterfassungFeiertage from './pages/ZeiterfassungFeiertage';
+import ZeiterfassungSteuerberater from './pages/ZeiterfassungSteuerberater';
+import Urlaubsantraege from './pages/Urlaubsantraege';
+import Langzeitkrankmeldungen from './pages/Langzeitkrankmeldungen';
+import TerminKalender from './pages/TerminKalender';
+import RechnungsuebersichtEditor from './pages/RechnungsuebersichtEditor';
+import BelegeKasseEditor from './pages/BelegeKasseEditor';
+import DokumentUebersichtEditor from './pages/DokumentUebersichtEditor';
+import FirmaEditor from './pages/FirmaEditor';
+import DocumentEditorPage from './pages/DocumentEditorPage';
+import ArbeitszeitartEditor from './pages/ArbeitszeitartEditor';
+import EinstellungenEditor from './pages/EinstellungenEditor';
+import LoginPage from './pages/LoginPage';
+import FirstLoginSetupPage from './pages/FirstLoginSetupPage';
+import WebsiteEditor from './pages/WebsiteEditor';
+import TelefonPage from './pages/TelefonPage';
+import BenachrichtigungenPage from './pages/BenachrichtigungenPage';
+import { AnrufFensterHost } from './features/telefon/AnrufFensterHost';
 
 // Jede Seite ist eine eigene Datei und wird erst beim Öffnen geladen – der erste Aufruf
 // (von unterwegs über Tailscale) lädt so nur das Gerüst und die aktuelle Seite.
 const TextbausteinEditor = lazy(() => import('./pages/TextbausteinEditor'));
-const Leistungseditor = lazy(() => import('./pages/Leistungseditor'));
+const LeistungenUndKategorien = lazy(() => import('./pages/leistungen/LeistungenUndKategorien'));
 const Kundeneditor = lazy(() => import('./pages/Kundeneditor'));
 const LieferantenEditor = lazy(() => import('./pages/LieferantenEditor'));
 const ArtikelEditor = lazy(() => import('./pages/ArtikelEditor'));
 const ArtikelDetail = lazy(() => import('./pages/ArtikelDetail'));
 const ArbeitsgangEditor = lazy(() => import('./pages/ArbeitsgangEditor'));
-const ProduktkategorieEditor = lazy(() => import('./pages/ProduktkategorieEditor'));
 const ProjektEditor = lazy(() => import('./pages/ProjektEditor'));
 const AnfrageEditor = lazy(() => import('./pages/AnfrageEditor'));
 const BestellungenUebersicht = lazy(() => import('./pages/BestellungenUebersicht'));
@@ -50,8 +106,6 @@ const BelegeKasseEditor = lazy(() => import('./pages/BelegeKasseEditor'));
 const DokumentUebersichtEditor = lazy(() => import('./pages/DokumentUebersichtEditor'));
 const FirmaEditor = lazy(() => import('./pages/FirmaEditor'));
 const BestellungEditor = lazy(() => import('./pages/BestellungEditor'));
-const BestellListe = lazy(() => import('./pages/BestellListe'));
-const BestellungBearbeiten = lazy(() => import('./pages/BestellungBearbeiten'));
 const DocumentEditorPage = lazy(() => import('./pages/DocumentEditorPage'));
 const ArbeitszeitartEditor = lazy(() => import('./pages/ArbeitszeitartEditor'));
 const EinstellungenEditor = lazy(() => import('./pages/EinstellungenEditor'));
@@ -60,18 +114,6 @@ const FirstLoginSetupPage = lazy(() => import('./pages/FirstLoginSetupPage'));
 const WebsiteEditor = lazy(() => import('./pages/WebsiteEditor'));
 const TelefonPage = lazy(() => import('./pages/TelefonPage'));
 const BenachrichtigungenPage = lazy(() => import('./pages/BenachrichtigungenPage'));
-const LagerEditor = lazy(() => import('./pages/LagerEditor'));
-const WartungUebersicht = lazy(() => import('./pages/WartungUebersicht'));
-const WartungProtokoll = lazy(() => import('./pages/WartungProtokoll'));
-const WartungAnlage = lazy(() => import('./pages/WartungAnlage'));
-const WartungModulEditor = lazy(() => import('./pages/WartungModulEditor'));
-const Plantafel = lazy(() => import('./pages/Plantafel'));
-const RechteUebersichtSeite = lazy(() => import('./pages/RechteUebersicht'));
-const MeinTagesverlauf = lazy(() => import('./pages/MeinTagesverlauf'));
-const AktivitaetenImSystem = lazy(() => import('./pages/AktivitaetenImSystem'));
-const KostenrechnungPage = lazy(() => import('./pages/KostenrechnungPage'));
-const FremdleistungenPage = lazy(() => import('./pages/FremdleistungenPage'));
-const Startbildschirm = lazy(() => import('./pages/Startbildschirm'));
 
 // Install the global fetch interceptor once at module load time so that
 // any HTTP 401 response from a non-auth endpoint triggers a session-expiry event.
@@ -89,46 +131,44 @@ const router = createBrowserRouter(createRoutesFromElements(
               <Route path="/onboarding" element={<RequireAdmin><Seite vollbild><FirstLoginSetupPage /></Seite></RequireAdmin>} />
 
               <Route element={<RequireAuth><MainLayout /></RequireAuth>}>
-                <Route path="/" element={<Seite><Startbildschirm /></Seite>} />
-                <Route path="/start" element={<Seite><Startbildschirm /></Seite>} />
+                <Route path="/" element={<ErrorBoundary><Startbildschirm /></ErrorBoundary>} />
+                <Route path="/start" element={<ErrorBoundary><Startbildschirm /></ErrorBoundary>} />
 
-                <Route path="/textbausteine" element={<Seite><TextbausteinEditor /></Seite>} />
-                <Route path="/leistungen" element={<Seite><Leistungseditor /></Seite>} />
-                <Route path="/arbeitszeitarten" element={<Seite><ArbeitszeitartEditor /></Seite>} />
-                <Route path="/kunden" element={<Seite><Kundeneditor /></Seite>} />
-                <Route path="/mitarbeiter" element={<Seite><MitarbeiterEditor /></Seite>} />
-                <Route path="/lieferanten" element={<Seite><LieferantenEditor /></Seite>} />
-                <Route path="/artikel" element={<Seite><ArtikelEditor /></Seite>} />
-                <Route path="/artikel/:id" element={<Seite><ArtikelDetail /></Seite>} />
-                <Route path="/arbeitsgaenge" element={<Seite><ArbeitsgangEditor /></Seite>} />
-                <Route path="/kostenrechnung" element={<RequireAdmin><Seite><KostenrechnungPage /></Seite></RequireAdmin>} />
-                <Route path="/fremdleistungen" element={<Seite><FremdleistungenPage /></Seite>} />
-                <Route path="/lager" element={<RequireLagerModul><Seite><LagerEditor /></Seite></RequireLagerModul>} />
+                <Route path="/textbausteine" element={<ErrorBoundary><TextbausteinEditor /></ErrorBoundary>} />
+                <Route path="/leistungen" element={<ErrorBoundary><Leistungseditor /></ErrorBoundary>} />
+                <Route path="/arbeitszeitarten" element={<ErrorBoundary><ArbeitszeitartEditor /></ErrorBoundary>} />
+                <Route path="/kunden" element={<ErrorBoundary><Kundeneditor /></ErrorBoundary>} />
+                <Route path="/mitarbeiter" element={<ErrorBoundary><MitarbeiterEditor /></ErrorBoundary>} />
+                <Route path="/lieferanten" element={<ErrorBoundary><LieferantenEditor /></ErrorBoundary>} />
+                <Route path="/artikel" element={<ErrorBoundary><ArtikelEditor /></ErrorBoundary>} />
+                <Route path="/artikel/:id" element={<ErrorBoundary><ArtikelDetail /></ErrorBoundary>} />
+                <Route path="/arbeitsgaenge" element={<ErrorBoundary><ArbeitsgangEditor /></ErrorBoundary>} />
+                <Route path="/kostenrechnung" element={<RequireAdmin><ErrorBoundary><KostenrechnungPage /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/fremdleistungen" element={<ErrorBoundary><FremdleistungenPage /></ErrorBoundary>} />
+                <Route path="/lager" element={<RequireLagerModul><ErrorBoundary><LagerEditor /></ErrorBoundary></RequireLagerModul>} />
                 <Route path="/werkstoffe" element={<Navigate to="/artikel#werkstoffe" replace />} />
                 <Route path="/aufschlaege" element={<Navigate to="/artikel#aufschlaege" replace />} />
-                <Route path="/produktkategorien" element={<Seite><ProduktkategorieEditor /></Seite>} />
-                <Route path="/projekte" element={<Seite><ProjektEditor /></Seite>} />
-                <Route path="/anfragen" element={<Seite><AnfrageEditor /></Seite>} />
-                <Route path="/bestellungen" element={<Seite><BestellungenUebersicht /></Seite>} />
-                <Route path="/bestellungen/liste" element={<Seite><BestellListe /></Seite>} />
-                <Route path="/bestellungen/bestellung/:id" element={<Seite><BestellungBearbeiten /></Seite>} />
-                <Route path={BESTELLBEDARF_PFAD} element={istFreigegeben(BESTELLBEDARF_PFAD)
-                    ? <Seite><BestellungEditor /></Seite>
-                    : <Navigate to="/bestellungen" replace />} />
-                <Route path="/wartung" element={<RequireWartungModul><Seite><WartungUebersicht /></Seite></RequireWartungModul>} />
-                <Route path="/wartung/:id" element={<RequireWartungModul><Seite><WartungProtokoll /></Seite></RequireWartungModul>} />
-                <Route path="/wartung/anlagen/:tuerId" element={<RequireWartungModul><Seite><WartungAnlage /></Seite></RequireWartungModul>} />
-                <Route path="/wartung/module/:id" element={<RequireAdmin><RequireWartungModul><Seite><WartungModulEditor /></Seite></RequireWartungModul></RequireAdmin>} />
-                <Route path="/kalender" element={<Seite><TerminKalender /></Seite>} />
-                <Route path="/plantafel" element={<Seite><Plantafel /></Seite>} />
-                <Route path="/analyse" element={<Seite><ErfolgsanalyseEditor /></Seite>} />
-                <Route path="/kostenstellen" element={<Seite><KostenstellenControllingEditor /></Seite>} />
-                <Route path="/website" element={<RequireAdmin><Seite><WebsiteEditor /></Seite></RequireAdmin>} />
-                <Route path="/formulare" element={<RequireAdmin><Seite><FormularwesenEditor /></Seite></RequireAdmin>} />
-                <Route path="/offeneposten" element={<Seite><OffenePostenEditor /></Seite>} />
-                <Route path="/rechnungsuebersicht" element={<Seite><RechnungsuebersichtEditor /></Seite>} />
-                <Route path="/belege-kasse" element={<Seite><BelegeKasseEditor /></Seite>} />
-                <Route path="/dokumentuebersicht" element={<Seite><DokumentUebersichtEditor /></Seite>} />
+                <Route path="/produktkategorien" element={<ErrorBoundary><ProduktkategorieEditor /></ErrorBoundary>} />
+                <Route path="/projekte" element={<ErrorBoundary><ProjektEditor /></ErrorBoundary>} />
+                <Route path="/anfragen" element={<ErrorBoundary><AnfrageEditor /></ErrorBoundary>} />
+                <Route path="/bestellungen" element={<ErrorBoundary><BestellungenUebersicht /></ErrorBoundary>} />
+                <Route path="/bestellungen/liste" element={<ErrorBoundary><BestellListe /></ErrorBoundary>} />
+                <Route path="/bestellungen/bestellung/:id" element={<ErrorBoundary><BestellungBearbeiten /></ErrorBoundary>} />
+                <Route path="/bestellungen/bedarf" element={<Navigate to="/bestellungen/liste" replace />} />
+                <Route path="/wartung" element={<RequireWartungModul><ErrorBoundary><WartungUebersicht /></ErrorBoundary></RequireWartungModul>} />
+                <Route path="/wartung/:id" element={<RequireWartungModul><ErrorBoundary><WartungProtokoll /></ErrorBoundary></RequireWartungModul>} />
+                <Route path="/wartung/anlagen/:tuerId" element={<RequireWartungModul><ErrorBoundary><WartungAnlage /></ErrorBoundary></RequireWartungModul>} />
+                <Route path="/wartung/module/:id" element={<RequireAdmin><RequireWartungModul><ErrorBoundary><WartungModulEditor /></ErrorBoundary></RequireWartungModul></RequireAdmin>} />
+                <Route path="/kalender" element={<ErrorBoundary><TerminKalender /></ErrorBoundary>} />
+                <Route path="/plantafel" element={<ErrorBoundary><Plantafel /></ErrorBoundary>} />
+                <Route path="/analyse" element={<ErrorBoundary><ErfolgsanalyseEditor /></ErrorBoundary>} />
+                <Route path="/kostenstellen" element={<ErrorBoundary><KostenstellenControllingEditor /></ErrorBoundary>} />
+                <Route path="/website" element={<RequireAdmin><ErrorBoundary><WebsiteEditor /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/formulare" element={<RequireAdmin><ErrorBoundary><FormularwesenEditor /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/offeneposten" element={<ErrorBoundary><OffenePostenEditor /></ErrorBoundary>} />
+                <Route path="/rechnungsuebersicht" element={<ErrorBoundary><RechnungsuebersichtEditor /></ErrorBoundary>} />
+                <Route path="/belege-kasse" element={<ErrorBoundary><BelegeKasseEditor /></ErrorBoundary>} />
+                <Route path="/dokumentuebersicht" element={<ErrorBoundary><DokumentUebersichtEditor /></ErrorBoundary>} />
                 <Route path="/emails" element={<Navigate to="/emails/inbox" replace />} />
                 <Route path="/emails/:folder" element={<Seite><EmailCenter /></Seite>} />
                 <Route path="/emails/:folder/:emailId" element={<Seite><EmailCenter /></Seite>} />
@@ -139,25 +179,25 @@ const router = createBrowserRouter(createRoutesFromElements(
                 {/* Ziel der Glocke – für alle Angemeldeten; was jemand sieht, entscheidet der Server. */}
                 <Route path="/benachrichtigungen" element={<Seite><BenachrichtigungenPage /></Seite>} />
 
-                <Route path="/miete" element={<Seite><MietabrechnungEditor /></Seite>} />
-                <Route path="/benutzer" element={<RequireAdmin><Seite><BenutzerEditor /></Seite></RequireAdmin>} />
+                <Route path="/miete" element={<RequireModul modul="miete" titel="Mietabrechnung" ribbonCategory="Finanzen & Controlling" modulName="Das Mietabrechnungsmodul" erhalten="Die bisherigen Mietobjekte und Abrechnungen"><ErrorBoundary><MietabrechnungEditor /></ErrorBoundary></RequireModul>} />
+                <Route path="/benutzer" element={<RequireAdmin><ErrorBoundary><BenutzerEditor /></ErrorBoundary></RequireAdmin>} />
 
                 {/* Zeiterfassung & Admin */}
-                <Route path="/monatsabschluss" element={<Seite><Monatsabschluss /></Seite>} />
-                <Route path="/zeitbuchungen" element={<Seite><ZeiterfassungKalender /></Seite>} />
-                <Route path="/auswertung" element={<Seite><ZeiterfassungAuswertung /></Seite>} />
-                <Route path="/steuerberater" element={<Seite><ZeiterfassungSteuerberater /></Seite>} />
-                <Route path="/zeitkonten" element={<Seite><ZeiterfassungZeitkonten /></Seite>} />
-                <Route path="/feiertage" element={<Seite><ZeiterfassungFeiertage /></Seite>} />
-                <Route path="/urlaubsantraege" element={<Seite><Urlaubsantraege /></Seite>} />
-                <Route path="/langzeitkrankmeldungen" element={<Seite><Langzeitkrankmeldungen /></Seite>} />
-                <Route path="/rechte-uebersicht" element={<RequireAdmin><Seite><RechteUebersichtSeite /></Seite></RequireAdmin>} />
-                <Route path="/mein-tagesverlauf" element={<Seite><MeinTagesverlauf /></Seite>} />
-                <Route path="/aktivitaeten" element={<RequireAdmin><Seite><AktivitaetenImSystem /></Seite></RequireAdmin>} />
-                {/* Die Rechte sind in die Einstellungen umgezogen; alte Links und Lesezeichen landen im Reiter. */}
-                <Route path="/abteilung-berechtigungen" element={<Navigate to="/einstellungen#berechtigungen" replace />} />
-                <Route path="/firma" element={<RequireAdmin><Seite><FirmaEditor /></Seite></RequireAdmin>} />
-                <Route path="/einstellungen" element={<RequireAdmin><Seite><EinstellungenEditor /></Seite></RequireAdmin>} />
+                <Route path="/monatsabschluss" element={<ErrorBoundary><Monatsabschluss /></ErrorBoundary>} />
+                <Route path="/zeitbuchungen" element={<ErrorBoundary><ZeiterfassungKalender /></ErrorBoundary>} />
+                <Route path="/auswertung" element={<ErrorBoundary><ZeiterfassungAuswertung /></ErrorBoundary>} />
+                <Route path="/steuerberater" element={<ErrorBoundary><ZeiterfassungSteuerberater /></ErrorBoundary>} />
+                <Route path="/zeitkonten" element={<ErrorBoundary><ZeiterfassungZeitkonten /></ErrorBoundary>} />
+                <Route path="/feiertage" element={<ErrorBoundary><ZeiterfassungFeiertage /></ErrorBoundary>} />
+                <Route path="/urlaubsantraege" element={<ErrorBoundary><Urlaubsantraege /></ErrorBoundary>} />
+                <Route path="/langzeitkrankmeldungen" element={<ErrorBoundary><Langzeitkrankmeldungen /></ErrorBoundary>} />
+                <Route path="/rechte-uebersicht" element={<RequireAdmin><ErrorBoundary><RechteUebersichtSeite /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/mein-tagesverlauf" element={<ErrorBoundary><MeinTagesverlauf /></ErrorBoundary>} />
+                <Route path="/aktivitaeten" element={<RequireAdmin><ErrorBoundary><AktivitaetenImSystem /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/abteilung-berechtigungen" element={<RequireAdmin><ErrorBoundary><AbteilungBerechtigungenEditor /></ErrorBoundary></RequireAdmin>} />
+
+                <Route path="/firma" element={<RequireAdmin><ErrorBoundary><FirmaEditor /></ErrorBoundary></RequireAdmin>} />
+                <Route path="/einstellungen" element={<RequireAdmin><ErrorBoundary><EinstellungenEditor /></ErrorBoundary></RequireAdmin>} />
 
                 <Route path="*" element={<Navigate to="/projekte" replace />} />
               </Route>

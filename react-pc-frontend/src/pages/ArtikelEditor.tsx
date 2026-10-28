@@ -1,6 +1,6 @@
 import { useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookTemplate, RefreshCw, FolderPlus, Plus, Percent, Cuboid, Archive } from "lucide-react";
+import { RefreshCw, FolderPlus, Plus, Percent, Cuboid } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogFooter } from "../components/ui/dialog";
 import { cn } from "../lib/utils";
@@ -11,24 +11,33 @@ import { ArtikelSuche, type ArtikelSucheHandle } from "../components/artikel/Art
 import { AufschlagPflege } from "../components/artikel/AufschlagPflege";
 import { useDarfAufschlaegeAendern } from "../features/aufschlaege/useDarfAufschlaegeAendern";
 import { WerkstoffPflege } from "../components/artikel/WerkstoffPflege";
-import { VorlagenUebernehmenDialog } from "../components/VorlagenUebernehmenDialog";
+
+// ==================== MAIN COMPONENT ====================
 
 export default function ArtikelEditor() {
     const navigate = useNavigate();
+    // Filterleiste und Trefferliste stecken in ArtikelSuche - dieselbe Suche nutzt
+    // das Auswahlfenster im Dokument-Editor. Hier bleibt nur das Seitengeruest.
     const sucheRef = useRef<ArtikelSucheHandle>(null);
     const aufschlaegeGeaendert = useRef(false);
+    // Der Aktualisieren-Knopf steht in der Kopfzeile, die Liste eine Ebene tiefer:
+    // Damit sein Spinner mitlaeuft, meldet die Suche ihren Ladezustand herauf.
     const [loading, setLoading] = useState(false);
+
+    // Modals state
     const [showCategoryManagerModal, setShowCategoryManagerModal] = useState(false);
     const [showCreateModal, setShowCreateModal] = useState(false);
-    const [showVorlagen, setShowVorlagen] = useState(false);
+    // Aufschläge sind eine Preisregel: Knopf und Fenster gibt es nur für Benutzer mit dem Recht „Aufschläge ändern"
     const darfAufschlaegeAendern = useDarfAufschlaegeAendern();
     const [showAufschlaege, setShowAufschlaege] = useState(false);
-    const [nurArchiviert, setNurArchiviert] = useState(false);
+    // Nach dem Schließen zeigt die Liste die neuen Preisvorschläge, aber nur, wenn wirklich etwas gespeichert wurde.
     const schliesseAufschlaege = (offen: boolean) => {
         setShowAufschlaege(offen);
         if (!offen && aufschlaegeGeaendert.current) { aufschlaegeGeaendert.current = false; sucheRef.current?.neuLaden(); }
     };
+    // Werkstoffe gehören nur zu Artikeln und werden deshalb hier neben den Kategorien gepflegt
     const [showWerkstoffe, setShowWerkstoffe] = useState(false);
+    // Nach Änderungen an den Werkstoffen lädt die Suche ihre Filterlisten neu (die Filter selbst stehen in der Adresszeile und bleiben)
     const [sucheSchluessel, setSucheSchluessel] = useState(0);
     const werkstoffeGeaendert = useRef(false);
     const werkstoffFensterSchliessen = () => {
@@ -49,15 +58,6 @@ export default function ArtikelEditor() {
                     <Button size="sm" className="bg-rose-600 text-white hover:bg-rose-700" onClick={() => setShowCreateModal(true)}>
                         <Plus className="w-4 h-4 mr-2" />
                         Neu
-                    </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                        onClick={() => setShowVorlagen(true)}
-                    >
-                        <BookTemplate className="w-4 h-4 mr-2" />
-                        Stahlprofile aus Vorlage
                     </Button>
                     <Button
                         variant="outline"
@@ -88,15 +88,6 @@ export default function ArtikelEditor() {
                         <Cuboid className="w-4 h-4 mr-2" aria-hidden="true" />
                         Werkstoffe pflegen
                     </Button>
-                    <Button
-                        variant="outline"
-                        size="sm"
-                        className={nurArchiviert ? "border-amber-400 bg-amber-50 text-amber-700 hover:bg-amber-100" : "border-rose-300 text-rose-700 hover:bg-rose-50"}
-                        onClick={() => { setNurArchiviert(v => !v); setSucheSchluessel(k => k + 1); }}
-                    >
-                        <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
-                        {nurArchiviert ? 'Archiv (aktiv)' : 'Archiv anzeigen'}
-                    </Button>
                     <Button variant="outline" size="sm" onClick={() => sucheRef.current?.neuLaden()}>
                         <RefreshCw className={cn("w-4 h-4 mr-2", loading && "animate-spin")} />
                         Aktualisieren
@@ -104,11 +95,16 @@ export default function ArtikelEditor() {
                 </>
             }
         >
-            <ArtikelSuche key={sucheSchluessel} ref={sucheRef} urlSync onLadezustand={setLoading} nurArchiviert={nurArchiviert} />
+            {/* Die Artikelverwaltung haelt ihre Suche in der Adresszeile: Filter
+                ueberleben einen Reload und lassen sich als Link weitergeben. */}
+            <ArtikelSuche key={sucheSchluessel} ref={sucheRef} urlSync onLadezustand={setLoading} />
 
+            {/* Modals */}
             {showCreateModal && (
                 <CreateArticleModal
                     onClose={() => setShowCreateModal(false)}
+                    // Gleich auf die Seite des neuen Artikels: Dort geht es mit Preisen und
+                    // Angebotstexten weiter. "Zurueck" fuehrt wieder auf die Liste mit ihrer Suche.
                     onSave={(artikel) => {
                         setShowCreateModal(false);
                         navigate(`/artikel/${encodeURIComponent(artikel.id)}`, { state: { vonListe: true } });
@@ -121,12 +117,6 @@ export default function ArtikelEditor() {
                     onClose={() => setShowCategoryManagerModal(false)}
                 />
             )}
-            <VorlagenUebernehmenDialog
-                art="profile"
-                offen={showVorlagen}
-                onOpenChange={setShowVorlagen}
-                onFertig={() => { setShowVorlagen(false); sucheRef.current?.neuLaden(); }}
-            />
             {darfAufschlaegeAendern && (
                 <Dialog open={showAufschlaege} onOpenChange={schliesseAufschlaege} className="w-full max-w-5xl max-h-[90vh]" aria-labelledby="artikel-aufschlaege-titel">
                     <DialogContent>

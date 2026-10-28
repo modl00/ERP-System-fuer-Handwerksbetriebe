@@ -35,7 +35,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 const rendern = () => render(<ToastProvider><AufschlagPflege /></ToastProvider>);
 
 describe('Aufschläge einstellen (Fenster in der Artikelübersicht)', { timeout: 30000 }, () => {
-    it('lässt eine gespeicherte 0 beim Anklicken stehen: 0 Prozent ist ein eigener Wert, leer heißt „nicht eingestellt“', async () => {
+    it('lässt eine gespeicherte 0 beim Anklicken stehen: 0 Prozent ist ein eigener Wert, leer heißt „nicht eingestellt"', async () => {
         vi.stubGlobal('fetch', vi.fn(async () => json({ ...UEBERSICHT, allgemein: 0 })));
         const user = userEvent.setup();
         rendern();
@@ -53,7 +53,7 @@ describe('Aufschläge einstellen (Fenster in der Artikelübersicht)', { timeout:
 
         expect(await screen.findByLabelText('Aufschlag in Prozent')).toHaveValue('20');
         expect(within(screen.getByTestId('aufschlag-kategorie-1')).getByText('25 %')).toBeVisible();
-        expect(within(screen.getByTestId('aufschlag-kategorie-2')).getByText('25 % (von „Stahl“)')).toBeVisible();
+        expect(within(screen.getByTestId('aufschlag-kategorie-2')).getByText('25 % (von „Stahl")')).toBeVisible();
         expect(within(screen.getByTestId('aufschlag-kategorie-3')).getByText('20 % (allgemein)')).toBeVisible();
         expect(screen.getByLabelText('Aufschlag für Stahl › Rohre')).toHaveValue('');
     });

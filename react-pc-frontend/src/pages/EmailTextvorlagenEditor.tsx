@@ -426,7 +426,7 @@ function TemplateEditorPanel({
           </div>
           <p className="text-xs text-slate-400">
             Tipp: Klicken Sie auf einen Platzhalter-Button, um ihn an der Cursor-Position
-            einzufügen. Über „Button“ in der Werkzeugleiste fügen Sie einen auffälligen
+            einzufügen. Über „Button" in der Werkzeugleiste fügen Sie einen auffälligen
             Link-Button ein, z. B. zur Google-Bewertung.
           </p>
         </div>
@@ -758,7 +758,7 @@ export default function EmailTextvorlagenEditor() {
     if (!template.id) return;
     const bestaetigt = await confirmDialog({
       title: 'Mailtext löschen',
-      message: `Mailtext „${template.name}“ wirklich löschen? Danach startet die E-Mail für diesen Dokumenttyp ohne vorbereiteten Text.`,
+      message: `Mailtext „${template.name}" wirklich löschen? Danach startet die E-Mail für diesen Dokumenttyp ohne vorbereiteten Text.`,
       variant: 'danger',
       confirmLabel: 'Löschen'
     });

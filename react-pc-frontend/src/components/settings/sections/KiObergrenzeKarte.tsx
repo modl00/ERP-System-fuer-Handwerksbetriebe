@@ -26,7 +26,7 @@ const DATENSCHUTZ = [
 const EINGRIFF = [
     { value: 'AUS', label: 'Aus', beschreibung: 'Keine KI-Funktion im Programm.' },
     { value: 'NUR_LESEN', label: 'Nur lesen', beschreibung: 'Auskünfte und Suchen, nichts ändern.' },
-    { value: 'MIT_BESTAETIGUNG', label: 'Mit Bestätigung (empfohlen)', beschreibung: 'Änderungen nur als Vorschlag mit „Ja, ausführen“.' },
+    { value: 'MIT_BESTAETIGUNG', label: 'Mit Bestätigung (empfohlen)', beschreibung: 'Änderungen nur als Vorschlag mit „Ja, ausführen".' },
     { value: 'ERWEITERT', label: 'Erweitert', beschreibung: 'Zusätzlich laufen einzeln freigeschaltete Werkzeuge ohne Rückfrage. Löschen nie.' },
 ];
 

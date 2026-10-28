@@ -12,7 +12,7 @@ describe('Menüleiste – noch nicht freigegebene Seiten', () => {
     beforeEach(() => setzeTelefonBerechtigungZurueck());
     afterEach(() => vi.unstubAllGlobals());
 
-    it('zeigt unter Einkauf nur „Bestellungen“, nicht den „Bedarf“', async () => {
+    it('zeigt unter Einkauf nur „Bestellungen", nicht den „Bedarf"', async () => {
         stubbeFetch(
             (url) => (url.pathname === '/api/auth/me' ? antwort(admin({ kiAktiv: false })) : undefined),
             (url) => (url.pathname === '/api/telefon/berechtigung' ? antwort({ darfTelefonSehen: false }) : undefined),

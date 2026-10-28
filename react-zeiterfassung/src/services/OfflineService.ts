@@ -269,7 +269,7 @@ export const OfflineService = {
             }
             if (syncResult.abgebrochen) {
                 // Server ausgelastet oder Verbindung weg: keine Stammdaten nachschieben,
-                // sonst bekommt auch der nächste Feierabend-Tipp nur „zu viele Anfragen“.
+                // sonst bekommt auch der nächste Feierabend-Tipp nur „zu viele Anfragen".
                 return {
                     ...KEIN_ABGLEICH,
                     pendingSynced: syncResult.synced,
@@ -766,13 +766,13 @@ export interface SendeBuchungOptionen {
     originalTime?: string
     /** Idempotenz-Schlüssel; bleibt beim Einreihen gleich (Standard: neu erzeugt). */
     operationId?: string
-    /** Dauer der durch Stop/Pause beendeten Arbeit, für „heute gearbeitet“. */
+    /** Dauer der durch Stop/Pause beendeten Arbeit, für „heute gearbeitet". */
     durationMinutes?: number
     /** So lange wartet die Oberfläche auf die Antwort (Standard 5000 ms). Die Anfrage läuft danach weiter. */
     timeoutMs?: number
     /**
      * true: Eine echte Ablehnung (4xx außer 408/425/429) landet sofort in der
-     * Reparatur-Liste („Mobile gewinnt“). false: Es wird nichts gespeichert –
+     * Reparatur-Liste („Mobile gewinnt"). false: Es wird nichts gespeichert –
      * der Aufrufer entscheidet selbst (z. B. Wechsel ohne laufende Buchung).
      */
     ablehnungInReparaturListe: boolean

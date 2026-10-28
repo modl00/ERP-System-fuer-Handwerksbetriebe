@@ -7,9 +7,6 @@ import ArtikelDetail from './ArtikelDetail';
 import { ToastProvider } from '../components/ui/toast';
 import { ConfirmProvider } from '../components/ui/confirm-dialog';
 
-// Der Lager-Bereich hat eigene Tests (ArtikelLagerBereich.test.tsx) und eigene Abrufe.
-vi.mock('../features/lager/ArtikelLagerBereich', () => ({ ArtikelLagerBereich: () => null }));
-
 // Der echte Tiptap-Editor braucht Browser-APIs, die jsdom nicht bereitstellt
 // (z. B. document.createRange). Fuer diese Seite reicht ein steuerbarer Stub -
 // ein Textfeld, ueber das Tests den HTML-Inhalt direkt setzen koennen, ohne
@@ -200,23 +197,7 @@ describe('ArtikelDetail', () => {
         expect(await screen.findByText('Feuerverzinken')).toBeInTheDocument();
         expect(screen.getByText('Pulverbeschichten')).toBeInTheDocument();
         // Barrierefreiheit: die Aussage darf nicht allein an der Farbe haengen.
-        expect(screen.getAllByText(/^möglich/).length).toBe(2);
-    });
-
-    it('sagt, woher die Eignung kommt, und verweist für die Kosten auf die Fremdleistungen', async () => {
-        renderSeite();
-        await screen.findByText('Feuerverzinken');
-        expect(screen.getAllByText(/\(vom Werkstoff\)/).length).toBe(2);
-        expect(screen.getByRole('link', { name: 'Fremdleistungen' })).toHaveAttribute('href', '/fremdleistungen');
-    });
-
-    it('die Box „Was ist das für ein Teil?“ erklärt, wozu sie dient, und hat ein Bearbeiten, das das Stammdaten-Formular öffnet', async () => {
-        const user = userEvent.setup();
-        window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
-        renderSeite();
-        expect(await screen.findByText(/Daraus rechnet das Programm Gewicht und Oberfläche/)).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: 'Angaben zum Teil bearbeiten' }));
-        expect(await screen.findByTestId('artikel-stammdaten-form')).toBeInTheDocument();
+        expect(screen.getAllByText('möglich').length).toBe(2);
     });
 
     it('listet alle Lieferanten mit deren eigener Artikelnummer', async () => {
@@ -362,7 +343,7 @@ describe('ArtikelDetail', () => {
 
         render(<ArtikelDetail />, { wrapper: Wrapper });
 
-        expect(await screen.findByTestId('aufschlag-wirksam')).toHaveTextContent('Leer: es gilt 25 % von „Stahl”.');
+        expect(await screen.findByTestId('aufschlag-wirksam')).toHaveTextContent('Leer: es gilt 25 % von „Stahl".');
     });
 
     it('nennt den allgemeinen Aufschlag und schweigt, wenn der Artikel einen eigenen hat', async () => {
@@ -765,7 +746,7 @@ describe('ArtikelDetail', () => {
             expect(await screen.findByRole('heading', { name: 'Bilder & Unterlagen' })).toBeInTheDocument();
         });
 
-        it('führt vom Bild-Platzhalter in den Reiter „Bilder & Unterlagen“', async () => {
+        it('führt vom Bild-Platzhalter in den Reiter „Bilder & Unterlagen"', async () => {
             const user = userEvent.setup();
             renderSeite();
             await user.click(await screen.findByRole('button', { name: 'Bild hinzufügen' }));

@@ -11,7 +11,7 @@ const AUFTRAG_H = 48;
 const VORGANG_H = 34;
 const LINKS_B = 288;
 
-/** „ +3 Tage“ hinter der Ampel, wenn die Lieferzeit nach dem Zieltermin liegt. */
+/** „ +3 Tage" hinter der Ampel, wenn die Lieferzeit nach dem Zieltermin liegt. */
 const verspaetungText = (tage?: number | null) => (tage ? ` +${tage} ${tage === 1 ? 'Tag' : 'Tage'}` : '');
 
 const AMPEL: Record<Ampel, { text: string; klasse: string }> = {

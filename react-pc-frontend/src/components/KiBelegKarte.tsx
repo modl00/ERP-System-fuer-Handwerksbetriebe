@@ -29,7 +29,7 @@ async function fehlerText(res: Response, fallback: string): Promise<string> {
 }
 
 /**
- * Beleg im KI-Chat: Datei wählen, auswerten lassen, Vorschlag prüfen, erst nach „Ja, ablegen“ wird gespeichert (über den gewohnten Import des Lieferanten).
+ * Beleg im KI-Chat: Datei wählen, auswerten lassen, Vorschlag prüfen, erst nach „Ja, ablegen" wird gespeichert (über den gewohnten Import des Lieferanten).
  * Es wird nichts angelegt: Ist der Lieferant unbekannt, gibt es nur den Hinweis, ihn zuerst anzulegen.
  */
 export function KiBelegKarte({ datei: vorgegeben = null }: { datei?: File | null } = {}) {

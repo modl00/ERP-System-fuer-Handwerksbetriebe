@@ -59,7 +59,7 @@ interface Entwurf { anbieter: Anbieter; datenschutz: Datenschutz; modell: Record
 /**
  * Eine Tabelle für alles, was je KI-Funktion einzustellen ist: wer antwortet (Anbieter), mit welchem Modell und wohin die Daten gehen dürfen (Datenschutz).
  * Funktionen, die noch fest bei Gemini laufen, stehen mit in der Tabelle; Anbieter und Datenschutz sind dort gesperrt. Die Modelle je Anbieter lassen sich
- * mit einem Klick laden. „Nur lokal“ sperrt Cloud-Anbieter, auch der Server prüft das bei jedem Aufruf.
+ * mit einem Klick laden. „Nur lokal" sperrt Cloud-Anbieter, auch der Server prüft das bei jedem Aufruf.
  */
 export function KiFunktionenKarte() {
     const toast = useToast();
@@ -120,7 +120,7 @@ export function KiFunktionenKarte() {
     const aendere = (id: string, teil: Partial<Entwurf>) => {
         setEntwurf(alt => {
             const neu = { ...alt[id], ...teil };
-            // Nur lokal passt nur zur lokalen KI: Wer „nur lokal“ wählt, bekommt die lokale KI
+            // Nur lokal passt nur zur lokalen KI: Wer „nur lokal" wählt, bekommt die lokale KI
             if (neu.datenschutz === 'NUR_LOKAL' && neu.anbieter !== 'LOKAL') neu.anbieter = 'LOKAL';
             return { ...alt, [id]: neu };
         });
@@ -218,7 +218,7 @@ export function KiFunktionenKarte() {
             title="KI-Funktionen"
             description={
                 <p>
-                    Für jede Funktion: Welcher Anbieter antwortet, mit welchem Modell, und dürfen die Fragen ins Internet? Bei „Nur lokal“ sind Cloud-Anbieter gesperrt, Ihre Kunden- und
+                    Für jede Funktion: Welcher Anbieter antwortet, mit welchem Modell, und dürfen die Fragen ins Internet? Bei „Nur lokal" sind Cloud-Anbieter gesperrt, Ihre Kunden- und
                     Firmendaten verlassen dann das Haus nicht. Ohne eigene Modellwahl gilt der Standard.
                 </p>
             }
@@ -322,7 +322,7 @@ export function KiFunktionenKarte() {
                             className="mt-1 h-4 w-4 rounded border-slate-300 text-rose-600 focus:ring-rose-500" />
                         <span>
                             <span className="font-medium text-slate-900">KI-Hilfe darf im Internet suchen (Google-Suche)</span>
-                            <span className="block text-xs text-slate-500">Die Suche hat ein eigenes, kleineres Google-Kontingent. Bei Fehlern „Kontingent erschöpft“ hilft oft, sie auszuschalten.</span>
+                            <span className="block text-xs text-slate-500">Die Suche hat ein eigenes, kleineres Google-Kontingent. Bei Fehlern „Kontingent erschöpft" hilft oft, sie auszuschalten.</span>
                         </span>
                     </label>
 

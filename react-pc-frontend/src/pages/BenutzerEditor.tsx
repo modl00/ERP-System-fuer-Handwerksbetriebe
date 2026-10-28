@@ -13,6 +13,7 @@ import { Card } from '../components/ui/card';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Select } from '../components/ui/select-custom';
+import { InfoAbschnitt, InfoButton } from '../components/ui/info-button';
 import { PageLayout } from '../components/layout/PageLayout';
 import { cn } from '../lib/utils';
 import { useToast } from '../components/ui/toast';
@@ -30,14 +31,8 @@ interface FrontendUser {
     shortCode: string | null;
     roles: string[];
     active: boolean;
-    defaultSignature: { id: number; name: string } | null;
     mitarbeiter: { id: number; vorname: string; nachname: string } | null;
     emailAbsender: { id: number; emailAdresse: string; anzeigename: string | null } | null;
-}
-
-interface EmailSignature {
-    id: number;
-    name: string;
 }
 
 interface Mitarbeiter {
@@ -133,11 +128,10 @@ export default function BenutzerEditor() {
     const toast = useToast();
     const confirmDialog = useConfirm();
     const [users, setUsers] = useState<FrontendUser[]>([]);
-    const [signatures, setSignatures] = useState<EmailSignature[]>([]);
     const [mitarbeiterList, setMitarbeiterList] = useState<Mitarbeiter[]>([]);
     const [postfaecher, setPostfaecher] = useState<PostfachDto[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
-    const [loading, setLoading] = useState(false);
+    const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
 
     // Form State
@@ -149,55 +143,58 @@ export default function BenutzerEditor() {
         role: 'USER' as 'ADMIN' | 'USER',
         active: true,
         shortCode: '',
-        defaultSignatureId: null as number | null,
         mitarbeiterId: null as number | null,
         emailAbsenderId: null as number | null,
     });
 
     const selectedUser = users.find(u => u.id === selectedUserId) || null;
 
-    // Load data
-    const loadData = useCallback(async () => {
+    // Load data – Ergebnisse erst in den Promise-Callbacks übernehmen, nicht synchron im Effekt.
+    const ladeDaten = useCallback(() =>
+        Promise.all([
+            fetch('/api/frontend-users'),
+            fetch('/api/mitarbeiter'),
+            fetch('/api/postfaecher'),
+        ])
+            .then(async ([usersRes, mitarbeiterRes, postfaecherRes]) => {
+                if (usersRes.ok) {
+                    const data = await usersRes.json();
+                    setUsers(Array.isArray(data) ? data : []);
+                }
+                if (mitarbeiterRes.ok) {
+                    const data = await mitarbeiterRes.json();
+                    setMitarbeiterList(Array.isArray(data) ? data : []);
+                }
+                if (postfaecherRes.ok) {
+                    const data = await postfaecherRes.json();
+                    setPostfaecher(Array.isArray(data) ? data : []);
+                } else {
+                    toast.error('Postfächer konnten nicht geladen werden.');
+                }
+            })
+            .catch((err: unknown) => {
+                console.error('Fehler beim Laden:', err);
+                toast.error('Benutzer konnten nicht geladen werden.');
+            })
+            .finally(() => {
+                setLoading(false);
+            }),
+    [toast]);
+
+    /** Neu laden (Knopf, nach dem Speichern/Löschen) – mit Ladehinweis. */
+    const loadData = useCallback(() => {
         setLoading(true);
-        try {
-            const [usersRes, signaturesRes, mitarbeiterRes, postfaecherRes] = await Promise.all([
-                fetch('/api/frontend-users'),
-                fetch('/api/email/signatures'),
-                fetch('/api/mitarbeiter'),
-                fetch('/api/postfaecher'),
-            ]);
-            if (usersRes.ok) {
-                const data = await usersRes.json();
-                setUsers(Array.isArray(data) ? data : []);
-            }
-            if (signaturesRes.ok) {
-                const data = await signaturesRes.json();
-                setSignatures(Array.isArray(data) ? data : []);
-            }
-            if (mitarbeiterRes.ok) {
-                const data = await mitarbeiterRes.json();
-                setMitarbeiterList(Array.isArray(data) ? data : []);
-            }
-            if (postfaecherRes.ok) {
-                const data = await postfaecherRes.json();
-                setPostfaecher(Array.isArray(data) ? data : []);
-            } else {
-                toast.error('Postfächer konnten nicht geladen werden.');
-            }
-        } catch (err) {
-            console.error('Fehler beim Laden:', err);
-            toast.error('Benutzer konnten nicht geladen werden.');
-        } finally {
-            setLoading(false);
-        }
-    }, [toast]);
+        return ladeDaten();
+    }, [ladeDaten]);
 
     useEffect(() => {
-        loadData();
-    }, [loadData]);
+        void ladeDaten();
+    }, [ladeDaten]);
 
-    // Sync form with selected user
-    useEffect(() => {
+    // Sync form with selected user (andere Auswahl oder neu geladene Daten)
+    const [vorherSelectedUser, setVorherSelectedUser] = useState(selectedUser);
+    if (vorherSelectedUser !== selectedUser) {
+        setVorherSelectedUser(selectedUser);
         if (selectedUser) {
             setFormData({
                 id: selectedUser.id,
@@ -207,12 +204,11 @@ export default function BenutzerEditor() {
                 role: selectedUser.roles?.includes('ADMIN') ? 'ADMIN' : 'USER',
                 active: selectedUser.active !== false,
                 shortCode: selectedUser.shortCode || '',
-                defaultSignatureId: selectedUser.defaultSignature?.id || null,
                 mitarbeiterId: selectedUser.mitarbeiter?.id || null,
                 emailAbsenderId: selectedUser.emailAbsender?.id || null,
             });
         }
-    }, [selectedUser]);
+    }
 
     // Reset form for new user
     const handleNewUser = () => {
@@ -225,7 +221,6 @@ export default function BenutzerEditor() {
             role: 'USER',
             active: true,
             shortCode: '',
-            defaultSignatureId: null,
             mitarbeiterId: null,
             emailAbsenderId: null,
         });
@@ -259,7 +254,6 @@ export default function BenutzerEditor() {
                     roles: [formData.role],
                     active: formData.active,
                     shortCode: formData.shortCode.trim() || null,
-                    defaultSignatureId: formData.defaultSignatureId,
                     mitarbeiterId: formData.mitarbeiterId,
                     emailAbsenderId: formData.emailAbsenderId,
                 }),
@@ -268,13 +262,12 @@ export default function BenutzerEditor() {
                 toast.success(formData.id ? 'Benutzer gespeichert.' : 'Benutzer angelegt.');
                 await loadData();
                 setFormData(prev => ({ ...prev, password: '' }));
-                toast.success(formData.id ? 'Der Benutzer ist gespeichert.' : 'Der Benutzer ist angelegt.');
                 if (!formData.id) {
                     // Reset form after creating new user
                     handleNewUser();
                 }
             } else {
-                // Das Backend nennt den Grund, z. B. „Benutzername ist bereits vergeben.”
+                // Das Backend nennt den Grund, z. B. „Benutzername ist bereits vergeben."
                 toast.error(await leseFehlermeldung(res, 'Benutzer konnte nicht gespeichert werden.'));
             }
         } catch {
@@ -456,29 +449,12 @@ export default function BenutzerEditor() {
                             </p>
                         </div>
 
-                        {/* Default Signature */}
-                        <div className="space-y-2">
-                            <Label htmlFor="signature">Standard-Signatur (optional)</Label>
-                            <Select
-                                value={formData.defaultSignatureId?.toString() || ''}
-                                onChange={(value) => setFormData(prev => ({
-                                    ...prev,
-                                    defaultSignatureId: value ? Number(value) : null
-                                }))}
-                                options={[
-                                    { value: '', label: 'Keine Signatur' },
-                                    ...signatures.map((sig) => ({ value: sig.id.toString(), label: sig.name }))
-                                ]}
-                                placeholder="Signatur wählen"
-                            />
-                            <p className="text-xs text-slate-500">
-                                Wird automatisch für E-Mails dieses Benutzers verwendet.
-                            </p>
-                        </div>
-
                         {/* Mitarbeiter Zuordnung */}
                         <div className="space-y-2">
-                            <Label htmlFor="mitarbeiter">Mitarbeiter zuordnen</Label>
+                            <div className="flex items-center gap-1.5">
+                                <Label htmlFor="mitarbeiter">Mitarbeiter zuordnen</Label>
+                                <MitarbeiterZuordnungInfo />
+                            </div>
                             <Select
                                 value={formData.mitarbeiterId?.toString() || ''}
                                 onChange={(value) => setFormData(prev => ({
@@ -487,20 +463,12 @@ export default function BenutzerEditor() {
                                 }))}
                                 options={[
                                     { value: '', label: 'Kein Mitarbeiter' },
-                                    ...mitarbeiterList.map((m) => {
-                                        // Ein Mitarbeiter gehört zu höchstens einem Benutzer: bereits vergebene sind gesperrt und sagen, an wen
-                                        const besitzer = users.find(u => u.mitarbeiter?.id === m.id && u.id !== formData.id);
-                                        return {
-                                            value: m.id.toString(),
-                                            label: `${m.vorname} ${m.nachname}${besitzer ? ` (gehört schon zu ${besitzer.displayName})` : ''}`,
-                                            disabled: !!besitzer,
-                                        };
-                                    })
+                                    ...mitarbeiterList.map((m) => ({ value: m.id.toString(), label: `${m.vorname} ${m.nachname}` }))
                                 ]}
                                 placeholder="Mitarbeiter wählen"
                             />
                             <p className="text-xs text-slate-500">
-                                Verknüpft diesen Benutzer mit einem Mitarbeiter für die Nachverfolgung von Uploads.
+                                Nötig für Arbeitszeiten, Zeitkonto-Korrekturen und Notizen – und damit Uploads mit diesem Namen protokolliert werden.
                             </p>
                         </div>
 
@@ -525,7 +493,7 @@ export default function BenutzerEditor() {
                                 aria-label="Eigenes Postfach"
                             />
                             <p className="text-xs text-slate-500">
-                                Bei neuen E-Mails dieses Benutzers steht dieses Postfach bei „Senden von“ vorne.
+                                Bei neuen E-Mails dieses Benutzers steht dieses Postfach bei „Senden von" vorne.
                                 Postfächer richten Sie unter <strong>Einstellungen → E-Mail</strong> ein.
                             </p>
                         </div>
@@ -535,7 +503,8 @@ export default function BenutzerEditor() {
                             <h4 className="text-sm font-semibold text-slate-900 mb-2">Hinweis</h4>
                             <p className="text-sm text-slate-600 leading-relaxed">
                                 Benutzerprofile steuern Login, Rollen und die Personalisierung von E-Mails/Dokumenten.
-                                Die Mitarbeiter-Zuordnung dient der Nachverfolgung hochgeladener Dokumente.
+                                Über die Mitarbeiter-Zuordnung steht im Protokoll, wer Dokumente hochgeladen, Notizen
+                                geschrieben und Arbeitszeiten oder Zeitkonto-Korrekturen erfasst oder geändert hat.
                             </p>
                         </div>
 
@@ -559,12 +528,34 @@ export default function BenutzerEditor() {
                                 <X className="w-4 h-4" /> Abbrechen
                             </Button>
                         </div>
-                        {speichernGesperrtGrund && (
-                            <p role="note" className="text-sm text-slate-600" data-testid="speichern-hindernis">{speichernGesperrtGrund}</p>
-                        )}
                     </div>
                 </Card>
             </div>
         </PageLayout>
+    );
+}
+
+/** Info-Knopf neben „Mitarbeiter zuordnen". */
+function MitarbeiterZuordnungInfo() {
+    return (
+        <InfoButton titel="Mitarbeiter zuordnen">
+            <InfoAbschnitt titel="Was passiert im Hintergrund?">
+                <p>
+                    Erfasst, ändert oder löscht dieser Benutzer Arbeitszeiten im Kalender oder legt er
+                    Zeitkonto-Korrekturen an bzw. storniert sie, schreibt das ERP den zugeordneten Mitarbeiter als
+                    Bearbeiter ins Protokoll für die Steuerprüfung. Bei Notizen und hochgeladenen Dokumenten steht
+                    dieser Name als Verfasser bzw. Hochlader.
+                </p>
+            </InfoAbschnitt>
+            <InfoAbschnitt titel="Was bewirkt das?">
+                <p>
+                    Ohne Zuordnung kann dieser Benutzer keine Arbeitszeiten erfassen, ändern oder löschen, keine
+                    Zeitkonto-Korrekturen anlegen oder stornieren und keine Notizen schreiben, bearbeiten oder löschen – das
+                    ERP lehnt das mit einem Hinweis ab, statt jemand anderen einzutragen. Hochladen geht weiter, dann
+                    aber ohne Namen. Urlaub und Krankheit, Login, Rollen und alle übrigen Funktionen bleiben
+                    unverändert.
+                </p>
+            </InfoAbschnitt>
+        </InfoButton>
     );
 }

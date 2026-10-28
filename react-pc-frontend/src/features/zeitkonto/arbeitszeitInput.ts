@@ -15,7 +15,7 @@ export const WOCHENTAGE: ReadonlyArray<{ key: StundenKey; label: string }> = [
 ];
 /**
  * Beschriftung des Zeitfensters. Seit Issue #270 gibt es nur noch das Ende:
- * „Frühester Start“ hatte keine Wirkung und wurde aus der Oberfläche entfernt.
+ * „Frühester Start" hatte keine Wirkung und wurde aus der Oberfläche entfernt.
  */
 export interface ZeitfensterBeschriftung { ende: string }
 export const ZEITFENSTER_LABELS: ZeitfensterBeschriftung = { ende: 'Spätestes Ende' };

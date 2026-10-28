@@ -18,7 +18,7 @@ const antwort = (daten: unknown, ok = true, status = 200) => ({ ok, status, json
 let fetcher: ReturnType<typeof vi.fn>;
 let liste: ReturnType<typeof maschine>[];
 const aufrufe = (methode: string, teil = '') => fetcher.mock.calls.filter(([u, i]) => (i?.method ?? 'GET') === methode && String(u).includes(teil));
-/** Antwort des Reiters „Kostensätze“ (Dummy-Daten); die Seite lädt sie nach kurzer Wartezeit, auch wenn der Test schon weiter ist. */
+/** Antwort des Reiters „Kostensätze" (Dummy-Daten); die Seite lädt sie nach kurzer Wartezeit, auch wenn der Test schon weiter ist. */
 const satzZeile = { art: 'BETRIEB', name: 'Ganzer Betrieb', anzahl: 3, lohnkosten: 120000, stunden: 3100, personalkostensatz: 38.71, umlage: 9.68, kostensatz: 48.39, wagnisBetrag: 2.42, gewinnBetrag: 5.08, verrechnungssatz: 55.89, hinweis: null };
 const kostensaetze = {
     jahr: 2026, modus: 'HOCHRECHNUNG', lohnkostenGesamt: 120000, stundenGesamt: 3100, gemeinkostenGesamt: 30000, umlage: 9.68, wagnisProzent: 5, gewinnProzent: 10,
@@ -61,7 +61,7 @@ describe('KostenrechnungPage', { timeout: 30000 }, () => {
         expect(zweite).toHaveTextContent('Noch keinem Arbeitsgang zugeordnet');
     });
 
-    it('der Reiter „Kostensätze“ zeigt die Übersicht statt der Maschinen, und „Neue Maschine“ gibt es dort nicht', async () => {
+    it('der Reiter „Kostensätze" zeigt die Übersicht statt der Maschinen, und „Neue Maschine" gibt es dort nicht', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByTestId('maschine-5');
@@ -132,7 +132,7 @@ describe('KostenrechnungPage', { timeout: 30000 }, () => {
         expect(JSON.parse(aufrufe('PUT', '/api/maschinen/5')[0][1].body).satzVonHand).toBe(12.5);
     });
 
-    it('beim Bearbeiten steht der Verlauf des Satzes, und ein Arbeitsgang einer anderen Maschine wird als „umgehängt“ gekennzeichnet', async () => {
+    it('beim Bearbeiten steht der Verlauf des Satzes, und ein Arbeitsgang einer anderen Maschine wird als „umgehängt" gekennzeichnet', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByTestId('maschine-5');
@@ -141,7 +141,7 @@ describe('KostenrechnungPage', { timeout: 30000 }, () => {
 
         expect(await within(dialog).findByText(/Verlauf des Satzes \(1\)/)).toBeVisible();
         expect(within(dialog).getByRole('checkbox', { name: /Schweißen/ })).toBeChecked();
-        expect(within(dialog).getByText(/nutzt bisher „Kappsäge“, wird umgehängt/)).toBeVisible();
+        expect(within(dialog).getByText(/nutzt bisher „Kappsäge", wird umgehängt/)).toBeVisible();
         expect(within(dialog).getByRole('checkbox', { name: /Sägen/ })).not.toBeChecked();
     });
 

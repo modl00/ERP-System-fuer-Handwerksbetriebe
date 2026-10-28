@@ -1,14 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { Archive, ArrowLeft, Euro, FileText, Images, LayoutDashboard, Package, RefreshCw, RotateCcw, Ruler, Trash2 } from "lucide-react";
+import { ArrowLeft, Euro, FileText, Images, LayoutDashboard, Package, RefreshCw, Ruler } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Reiter, ReiterPanel, type ReiterEintrag } from "../components/ui/reiter";
 import { useToast } from "../components/ui/toast";
-import { useAuth } from "../auth/AuthContext";
-import { useConfirm } from "../components/ui/confirm-dialog";
 import { ArtikelDokumente } from "../components/artikel/ArtikelDokumente";
-import { ArtikelFertigungsunterlagen } from "../components/artikel/ArtikelFertigungsunterlagen";
 import { UebersichtReiter, type ArtikelReiterId } from "../components/artikel/detail/UebersichtReiter";
 import { PreiseReiter } from "../components/artikel/detail/PreiseReiter";
 import { AngabenReiter } from "../components/artikel/detail/AngabenReiter";
@@ -17,7 +14,6 @@ import { zahlAlsEingabe } from "../components/artikel/detail/format";
 import { stripHtmlTags } from "../lib/htmlSanitizer";
 import { parseDecimal } from "../components/verrechnungslohnFormat";
 import { cn } from "../lib/utils";
-import { ArtikelLagerBereich } from "../features/lager/ArtikelLagerBereich";
 import type { Artikel, ArtikelDetail as ArtikelDetailData } from "../types";
 
 /**
@@ -34,7 +30,7 @@ function richtextOderNull(html: string): string | null {
 function sichtbarerText(html: string): string {
     return stripHtmlTags(html)
         .replace(/&nbsp;/gi, " ")
-        .replace(/ /g, " ")
+        .replace(/\u00a0/g, " ")
         .trim();
 }
 
@@ -64,8 +60,6 @@ export default function ArtikelDetail() {
     const navigate = useNavigate();
     const location = useLocation();
     const toast = useToast();
-    const { isAdmin } = useAuth();
-    const confirm = useConfirm();
 
     /**
      * Zurueck zur Artikelliste.
@@ -110,42 +104,58 @@ export default function ArtikelDetail() {
     const [speichern, setSpeichern] = useState(false);
     // Stammdaten bearbeiten (Name, Nummern, Einheit, Kategorie, Maße ...)
     const [stammdatenBearbeiten, setStammdatenBearbeiten] = useState(false);
-    const [archivAktion, setArchivAktion] = useState(false);
 
-    const laden = useCallback(async () => {
-        if (!id) return;
+    // Ergebnisse erst in den Promise-Callbacks übernehmen, nicht synchron im Effekt.
+    // Den Ladezustand schalten die Auslöser an: `laden` (Knöpfe, nach dem
+    // Speichern) bzw. die Render-Anpassung bei einem anderen Artikel.
+    const ladeDaten = useCallback(() => {
+        if (!id) return Promise.resolve();
         // Beim Auffrischen bleibt die Seite stehen (kein Skeleton, Reiter und
         // Eingaben bleiben); nur ein Fehler wird gemeldet.
         const auffrischen = geladeneId.current === id;
-        setLaedt(true);
-        if (!auffrischen) setFehler(null);
-        try {
-            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/detail`);
-            if (res.status === 404) {
-                geladeneId.current = null;
-                setFehler("Dieser Artikel wurde nicht gefunden.");
-                setDaten(null);
-                return;
-            }
-            if (!res.ok) throw new Error("Laden fehlgeschlagen");
-            setDaten(await res.json());
-            setDatenFuer(id);
-            setFehler(null);
-            geladeneId.current = id;
-        } catch (err) {
-            console.error(err);
-            if (auffrischen) toast.error("Die Artikeldaten konnten nicht neu geladen werden.");
-            else setFehler("Die Artikeldaten konnten nicht geladen werden.");
-        } finally {
-            setLaedt(false);
-        }
-        // toast bewusst nicht in den Abhaengigkeiten: useToast() liefert bei jedem
-        // Render des ToastProvider ein neues Objekt. Sonst loeste jeder Toast in der
-        // App ein erneutes Laden aus (siehe ArtikelDokumente).
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [id]);
+        return fetch(`/api/artikel/${encodeURIComponent(id)}/detail`)
+            .then(async (res) => {
+                if (res.status === 404) {
+                    geladeneId.current = null;
+                    setFehler("Dieser Artikel wurde nicht gefunden.");
+                    setDaten(null);
+                    return;
+                }
+                if (!res.ok) throw new Error("Laden fehlgeschlagen");
+                setDaten(await res.json());
+                setDatenFuer(id);
+                setFehler(null);
+                geladeneId.current = id;
+            })
+            .catch((err: unknown) => {
+                console.error(err);
+                if (auffrischen) toast.error("Die Artikeldaten konnten nicht neu geladen werden.");
+                else setFehler("Die Artikeldaten konnten nicht geladen werden.");
+            })
+            .finally(() => {
+                setLaedt(false);
+            });
+    }, [id, toast]);
 
-    useEffect(() => { laden(); }, [laden]);
+    /** Neu laden (Aktualisieren, nach dem Speichern): Ladezustand an, beim Erstladen alten Fehler weg. */
+    const laden = useCallback(() => {
+        if (!id) return Promise.resolve();
+        setLaedt(true);
+        if (geladeneId.current !== id) setFehler(null);
+        return ladeDaten();
+    }, [id, ladeDaten]);
+
+    // Anderer Artikel: sofort als „lädt" zeigen und alten Fehler entfernen, bevor der Effekt neu lädt.
+    const [vorherigeId, setVorherigeId] = useState(id);
+    if (vorherigeId !== id) {
+        setVorherigeId(id);
+        if (id) {
+            setLaedt(true);
+            setFehler(null);
+        }
+    }
+
+    useEffect(() => { void ladeDaten(); }, [ladeDaten]);
 
     /**
      * Merkt sich, fuer welche Artikel-ID die Angebotsfelder zuletzt aus den
@@ -177,64 +187,6 @@ export default function ArtikelDetail() {
             // Der Editor formt das HTML beim Laden mitunter leicht um - verglichen wird der sichtbare Text.
             || sichtbarerText(angebotsfelder.beschreibung) !== sichtbarerText(angebotsStand.beschreibung);
     }, [angebotsStand, angebotsfelder]);
-
-    const archivieren = async () => {
-        if (!id || !artikel) return;
-        const ok = await confirm({
-            title: 'Artikel archivieren',
-            message: `„${artikel.produktname}" wird archiviert und aus der aktiven Artikelliste ausgeblendet.`,
-            confirmLabel: 'Archivieren',
-            variant: 'warning',
-        });
-        if (!ok) return;
-        setArchivAktion(true);
-        try {
-            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/archivieren`, { method: 'POST' });
-            if (!res.ok) throw new Error('Archivieren fehlgeschlagen');
-            toast.success('Artikel archiviert.');
-            void laden();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Der Artikel konnte nicht archiviert werden.');
-        } finally {
-            setArchivAktion(false);
-        }
-    };
-
-    const wiederherstellen = async () => {
-        if (!id) return;
-        setArchivAktion(true);
-        try {
-            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/wiederherstellen`, { method: 'POST' });
-            if (!res.ok) throw new Error('Wiederherstellen fehlgeschlagen');
-            toast.success('Artikel wiederhergestellt.');
-            void laden();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Der Artikel konnte nicht wiederhergestellt werden.');
-        } finally {
-            setArchivAktion(false);
-        }
-    };
-
-    const loeschen = async () => {
-        if (!id || !artikel) return;
-        const ok = await confirm({
-            title: 'Artikel endgültig löschen',
-            message: `„${artikel.produktname}" wird unwiderruflich gelöscht. Preise, Dokumente und Bestand werden ebenfalls gelöscht.`,
-            confirmLabel: 'Endgültig löschen',
-            variant: 'danger',
-        });
-        if (!ok) return;
-        setArchivAktion(true);
-        try {
-            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}`, { method: 'DELETE' });
-            if (!res.ok) throw new Error('Löschen fehlgeschlagen');
-            toast.success('Artikel gelöscht.');
-            zurueckZurListe();
-        } catch (e) {
-            toast.error(e instanceof Error ? e.message : 'Der Artikel konnte nicht gelöscht werden.');
-            setArchivAktion(false);
-        }
-    };
 
     const speichereAngebotsfelder = async () => {
         if (!id) return;
@@ -330,12 +282,7 @@ export default function ArtikelDetail() {
     const inhalt = (reiterId: ArtikelReiterId) => {
         switch (reiterId) {
             case "uebersicht":
-                return (
-                    <>
-                        <UebersichtReiter daten={daten} onGespeichert={laden} onZuReiter={wechsleReiter} onBearbeiten={stammdatenOeffnen} />
-                        <ArtikelLagerBereich artikelId={artikel.id} einheitGeaendertStand={artikel.version} />
-                    </>
-                );
+                return <UebersichtReiter daten={daten} onGespeichert={laden} onZuReiter={wechsleReiter} onBearbeiten={stammdatenOeffnen} />;
             case "preise":
                 return <PreiseReiter daten={daten} onGespeichert={laden} />;
             case "angaben":
@@ -359,12 +306,7 @@ export default function ArtikelDetail() {
                     />
                 );
             case "bilder":
-                return (
-                    <>
-                        <ArtikelDokumente artikelId={artikel.id} onGeaendert={() => void laden()} />
-                        <ArtikelFertigungsunterlagen artikelId={artikel.id} />
-                    </>
-                );
+                return <ArtikelDokumente artikelId={artikel.id} onGeaendert={() => void laden()} />;
         }
     };
 
@@ -374,7 +316,7 @@ export default function ArtikelDetail() {
             title={artikel.produktname}
             subtitle={[artikel.artikelnummer, artikel.werkstoffName].filter(Boolean).join(" · ")}
             actions={
-                <div className="flex gap-2 flex-wrap">
+                <div className="flex gap-2">
                     <Button variant="outline" size="sm"
                         className="border-rose-300 text-rose-700 hover:bg-rose-50"
                         onClick={zurueckZurListe}>
@@ -388,32 +330,6 @@ export default function ArtikelDetail() {
                         <RefreshCw className={cn("w-4 h-4 mr-2", laedt && "motion-safe:animate-spin")} aria-hidden="true" />
                         Aktualisieren
                     </Button>
-                    {artikel.archiviert && (
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600">
-                            <Archive className="w-3.5 h-3.5" /> Archiviert
-                        </span>
-                    )}
-                    {!artikel.archiviert && (
-                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
-                            onClick={archivieren} disabled={archivAktion}>
-                            <Archive className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Archivieren
-                        </Button>
-                    )}
-                    {artikel.archiviert && (
-                        <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
-                            onClick={wiederherstellen} disabled={archivAktion}>
-                            <RotateCcw className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Wiederherstellen
-                        </Button>
-                    )}
-                    {artikel.archiviert && isAdmin && (
-                        <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50"
-                            onClick={loeschen} disabled={archivAktion}>
-                            <Trash2 className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Endgültig löschen
-                        </Button>
-                    )}
                 </div>
             }
         >

@@ -120,7 +120,7 @@ export interface KundeDetail {
 
 export interface KundeLoeschPruefung {
   loeschbar: boolean;
-  /** Fertige Klartexte wie „2 Projekte”, „3 Angebote/Rechnungen”. */
+  /** Fertige Klartexte wie „2 Projekte", „3 Angebote/Rechnungen". */
   hindernisse: string[];
   /**
    * Aufbewahrungsende bei einer Sperre (ISO-Date), null wenn löschbar. Bei
@@ -350,8 +350,6 @@ export interface Lieferant {
   vorauskasse?: boolean;
   /** Übliche Lieferzeit in Arbeitstagen ab Bestellung; leer = unbekannt. */
   standardLieferzeitTage?: number | null;
-  archiviert?: boolean;
-  archiviertAm?: string | null;
 }
 
 /** Enum-Wert vom Backend: technischer Wert plus Klartext und Erklaerung. */
@@ -392,14 +390,21 @@ export interface Artikel {
   werkstoffId?: number;
   werkstoffName?: string;
   kgProMeter?: number;
-  handelseinheitBezeichnung?: string | null;
-  handelseinheitMeter?: number | null;
+  werkstoffId?: number;
+  /** Strichcode, nur bei einem Teil der Artikel vorhanden. */
+  ean?: string;
+  version?: number;
+  stegdicke?: number;
+  flanschdicke?: number;
   flaecheJeQm?: number;
   kgJeStueck?: number;
   m2JeStueck?: number;
   /** TABELLE, BERECHNET oder HAND; leer bei älteren Artikeln. */
   gewichtHerkunft?: string;
   gewichtVeraltet?: boolean;
+  /** Nur für diesen Artikel festgelegt (leer = vom Werkstoff übernommen) */
+  verzinkungsgeeignetEigen?: boolean | null;
+  pulverbeschichtungsgeeignetEigen?: boolean | null;
   werkstoffVerzinkungsgeeignet?: boolean | null;
   werkstoffPulverbeschichtungsgeeignet?: boolean | null;
 
@@ -462,8 +467,6 @@ export interface Artikel {
   positionsEinzelpreis?: number;
   /** OK | KEIN_AUFSCHLAG | KEIN_PREIS | KEIN_GEWICHT */
   preisHinweis?: 'OK' | 'KEIN_AUFSCHLAG' | 'KEIN_PREIS' | 'KEIN_GEWICHT';
-  archiviert?: boolean;
-  archiviertAm?: string | null;
 }
 
 /** Ein Lieferant mit seiner Artikelnummer und seinem aktuellen Preis. */
@@ -532,18 +535,6 @@ export interface ArtikelDokument {
   dateigroesseBytes?: number;
   /** Fertiger Pfad auf den Datei-Endpunkt - hier nicht selbst zusammensetzen. */
   url: string;
-}
-
-/** Fertigungsunterlage am Artikelstamm oder Anhang an einer Bestellposition (Backend: FertigungsunterlageDto). */
-export interface Fertigungsunterlage {
-  id: number;
-  originalDateiname: string;
-  erstelltAm?: string;
-  dateigroesseBytes?: number;
-  /** Download-URL */
-  url: string;
-  /** Bei aus Artikelstamm übernommenen Anteilen: ID der ArtikelFertigungsunterlage, sonst null. */
-  quellId?: number | null;
 }
 
 export interface Abteilung {
@@ -886,7 +877,6 @@ export interface ArtikelInProjekt {
   /** Was die Position insgesamt kostet - Einzelpreis mal Menge. */
   gesamtpreis?: number;
   preisProStueck?: number;
-  lieferantId?: number;
   lieferantName?: string;
   /**
    * Aus dem eigenen Lager entnommen. Nur diese Positionen zaehlen als
@@ -896,13 +886,6 @@ export interface ArtikelInProjekt {
   ausLager?: boolean;
   /** false heisst "muss noch bestellt werden" - siehe offene Bestellliste. */
   bestellt?: boolean;
-  /** Im Lager für dieses Projekt zurückgehalten, aber noch nicht entnommen. */
-  reserviert?: boolean;
-  reserviertAm?: string;
-  reserviertMenge?: number;
-  hinzugefuegtAm?: string;
-  werkstoffName?: string;
-  kommentar?: string;
 }
 
 export interface ProjektDetail extends Projekt {

@@ -26,7 +26,7 @@ function dummyArtikel(anzahl: number) {
 let fetchMock: ReturnType<typeof vi.fn>;
 // Über diese Variable lässt sich im Test simulieren, dass die Trefferzahl schrumpft.
 let gesamtTreffer = GESAMT;
-// Ob der angemeldete Benutzer das Recht „Aufschläge ändern“ hat
+// Ob der angemeldete Benutzer das Recht „Aufschläge ändern" hat
 let darfAufschlaege = false;
 
 function mockArtikelApi() {
@@ -326,7 +326,7 @@ describe('ArtikelEditor – Aufschläge nur mit Recht', () => {
         vi.restoreAllMocks();
     });
 
-    it('zeigt ohne das Recht keinen Knopf „Aufschläge” und fragt die Aufschläge gar nicht erst ab', async () => {
+    it('zeigt ohne das Recht keinen Knopf „Aufschläge" und fragt die Aufschläge gar nicht erst ab', async () => {
         darfAufschlaege = false;
         renderArtikelEditor();
         await screen.findByRole('button', { name: /Kategorien anlegen/ });
@@ -361,7 +361,7 @@ describe('ArtikelEditor – Werkstoffe pflegen', () => {
         vi.restoreAllMocks();
     });
 
-    it('öffnet über „Werkstoffe pflegen” ein Fenster mit der Werkstoffliste und schließt es wieder', async () => {
+    it('öffnet über „Werkstoffe pflegen" ein Fenster mit der Werkstoffliste und schließt es wieder', async () => {
         const user = userEvent.setup();
         renderArtikelEditor();
 

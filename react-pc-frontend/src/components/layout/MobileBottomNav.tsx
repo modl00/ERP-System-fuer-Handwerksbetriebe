@@ -4,7 +4,7 @@ import { cn } from '../../lib/utils';
 import {
     Briefcase, Clock, Mail, Package, MoreHorizontal,
     X, FileText, User, Truck, ShoppingCart, FileCheck,
-    BarChart3, Euro, Home, Layers, List, Calendar,
+    BarChart3, Euro, Home, Layers, Calendar,
     CalendarDays, Plane, FileJson, ChevronRight, Stethoscope,
     Phone, Voicemail
 } from 'lucide-react';
@@ -64,15 +64,8 @@ const MORE_SECTIONS: NavSection[] = [
     {
         label: 'Dokumente',
         items: [
+            { name: 'Leistungen & Kategorien', href: '/leistungen', icon: Layers },
             { name: 'Textvorlagen', href: '/textbausteine', icon: FileText },
-            { name: 'Leistungen', href: '/leistungen', icon: List },
-        ]
-    },
-    {
-        label: 'Katalog',
-        items: [
-            { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
-            { name: 'Projekt-Kategorien', href: '/produktkategorien', icon: Layers },
         ]
     },
     {
@@ -88,12 +81,13 @@ const MORE_SECTIONS: NavSection[] = [
         items: [
             { name: 'Feiertage', href: '/feiertage', icon: CalendarDays },
             { name: 'Formularwesen', href: '/formulare', icon: FileJson },
+            { name: 'Arbeitsgänge', href: '/arbeitsgaenge', icon: Clock },
             { name: 'Benutzer', href: '/benutzer', icon: User },
         ]
     },
 ];
 
-const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/benutzer']);
+const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/benutzer', '/arbeitsgaenge']);
 /** Nur mit dem Abteilungs-Recht „Anrufe & Anrufbeantworter" sichtbar. */
 const TELEFON_PATHS = new Set(['/telefon/anrufe', '/telefon/anrufbeantworter']);
 

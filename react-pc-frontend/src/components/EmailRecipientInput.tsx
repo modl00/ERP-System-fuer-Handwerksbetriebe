@@ -33,11 +33,11 @@ export interface EmailRecipientInputProps {
      * Tab, Plus-Knopf oder beim Verlassen des Felds dazu.
      */
     mehrfach?: boolean;
-    /** Name für Screenreader, z. B. „Empfänger“ oder „Kopie (CC)“. */
+    /** Name für Screenreader, z. B. „Empfänger" oder „Kopie (CC)". */
     ariaLabel?: string;
     /**
      * Mehrfach-Modus: meldet, ob gerade etwas getippt ist, das noch kein Kärtchen ist.
-     * So kann das Formular „Senden“ freigeben – der Klick darauf verlässt das Feld und
+     * So kann das Formular „Senden" freigeben – der Klick darauf verlässt das Feld und
      * macht das Getippte vorher zum Kärtchen.
      */
     onEntwurfChange?: (vorhanden: boolean) => void;
@@ -146,13 +146,17 @@ export function EmailRecipientInput({
         return items;
     })();
 
+    // Zu kurzer Suchtext: Trefferliste beim Rendern leeren.
+    const [suchtextVorher, setSuchtextVorher] = useState(suchtext);
+    if (suchtext !== suchtextVorher) {
+        setSuchtextVorher(suchtext);
+        if (!suchtext || suchtext.length < 2) setContacts([]);
+    }
+
     // Debounced Suche
     useEffect(() => {
         if (debounceRef.current) clearTimeout(debounceRef.current);
-        if (!suchtext || suchtext.length < 2) {
-            setContacts([]);
-            return;
-        }
+        if (!suchtext || suchtext.length < 2) return;
         debounceRef.current = setTimeout(() => {
             searchContacts(suchtext);
         }, 250);
@@ -199,10 +203,13 @@ export function EmailRecipientInput({
         };
     }, [showDropdown]);
 
-    // Reset highlight when items change
-    useEffect(() => {
+    // Reset highlight when items change (Zustand beim Rendern anpassen)
+    const anzahlSchluessel = `${displayItems.length}|${linkedEmails.length}`;
+    const [anzahlSchluesselVorher, setAnzahlSchluesselVorher] = useState(anzahlSchluessel);
+    if (anzahlSchluessel !== anzahlSchluesselVorher) {
+        setAnzahlSchluesselVorher(anzahlSchluessel);
         setHighlightIdx(-1);
-    }, [displayItems.length, linkedEmails.length]);
+    }
 
     /** Mehrfach-Modus: neue Empfänger als Kärtchen anhängen. */
     const uebernehme = (neue: string[]) => {
@@ -243,7 +250,7 @@ export function EmailRecipientInput({
     const totalSelectableItems = linkedEmails.length + displayItems.length;
 
     const handleKeyDown = (e: React.KeyboardEvent) => {
-        // Escape schließt auch die Liste „keine Treffer“ – sie verdeckt sonst die Felder darunter.
+        // Escape schließt auch die Liste „keine Treffer" – sie verdeckt sonst die Felder darunter.
         if (e.key === 'Escape' && isOpen) {
             setIsOpen(false);
             return;
@@ -369,7 +376,7 @@ export function EmailRecipientInput({
                                 if (!uebernehmeEntwurf()) setIsOpen(true);
                                 inputRef.current?.focus();
                             }}
-                            aria-label={entwurf.trim() ? `„${entwurf.trim()}“ als Empfänger hinzufügen` : 'Weiteren Empfänger hinzufügen'}
+                            aria-label={entwurf.trim() ? `„${entwurf.trim()}" als Empfänger hinzufügen` : 'Weiteren Empfänger hinzufügen'}
                             title="Weiteren Empfänger hinzufügen"
                             className="ml-auto h-7 w-7 shrink-0 p-0"
                         >

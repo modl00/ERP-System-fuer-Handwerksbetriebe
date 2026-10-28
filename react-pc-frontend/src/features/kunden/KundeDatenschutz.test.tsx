@@ -101,7 +101,7 @@ describe('KundeGesperrtBand – Anonymisieren', () => {
 
         const dialog = await screen.findByRole('dialog', { name: 'Kunde anonymisieren?' });
         expect(within(dialog).getByText('K-1042 · Max Mustermann')).toBeInTheDocument();
-        expect(within(dialog).getByText(/Der Name wird zu „Gelöschter Kunde K-1042“/)).toBeInTheDocument();
+        expect(within(dialog).getByText(/Der Name wird zu „Gelöschter Kunde K-1042"/)).toBeInTheDocument();
         expect(within(dialog).getByText(/Baustellen-Anschrift seiner Projekte und Anfragen/)).toBeInTheDocument();
         expect(within(dialog).getByText('Name in Freigabe-Links wird entfernt (angenommene Angebote behalten den Auftragsnachweis).')).toBeInTheDocument();
         expect(within(dialog).getByText('Rechnungen, Angebote und E-Mails bleiben unverändert.')).toBeInTheDocument();

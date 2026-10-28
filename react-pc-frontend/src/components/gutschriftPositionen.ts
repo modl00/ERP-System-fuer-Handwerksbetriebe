@@ -13,7 +13,7 @@ export function gutschriftPositionsTitel(rechnungNummer: string, grund: string):
  * Dokument-Editor liest und schreibt (`{ blocks, globalRabatt }`, wie auch die
  * Teilrechnung aus der DokumentHierarchie), damit er sie ohne Umweg oeffnet.
  *
- * Genau eine Leistungsposition: Menge 1, Einheit „psch“ (pauschal), Einzelpreis
+ * Genau eine Leistungsposition: Menge 1, Einheit „psch" (pauschal), Einzelpreis
  * = Netto-Betrag. Der Betrag steht POSITIV in der Position; das Minus setzt der
  * Server beim Speichern der Gutschrift.
  *

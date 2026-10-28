@@ -52,7 +52,7 @@ describe('ZeiterfassungZeitkonten – Issue #270', () => {
         const user = userEvent.setup(); renderSeite(); await screen.findByText('Max Mustermann');
         await user.click(screen.getByRole('button', { name: 'Teilzeit Büro löschen' }));
         const dialog = await screen.findByRole('dialog', { name: 'Arbeitszeit-Vorlage löschen' });
-        expect(within(dialog).getByText('„Teilzeit Büro“ wirklich löschen?')).toBeVisible();
+        expect(within(dialog).getByText('„Teilzeit Büro" wirklich löschen?')).toBeVisible();
         await user.click(within(dialog).getByRole('button', { name: 'Löschen' }));
         await waitFor(() => expect(fetchMock.mock.calls.some(([url, init]) => String(url) === '/api/zeitverwaltung/zeitkontenmodelle/4?expectedVersion=1' && init?.method === 'DELETE')).toBe(true));
     });

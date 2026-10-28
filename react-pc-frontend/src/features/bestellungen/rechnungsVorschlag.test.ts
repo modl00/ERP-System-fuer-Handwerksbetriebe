@@ -90,7 +90,7 @@ describe('antwortFehlerText', () => {
 });
 
 describe('API', () => {
-    it('nimmt auch eine Fehlermeldung im Feld „error“', async () => {
+    it('nimmt auch eine Fehlermeldung im Feld „error"', async () => {
         vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false, json: async () => ({ error: 'Datei zu groß' }) }));
         await expect(rechnungVerknuepfen(1, 2)).rejects.toThrow('Datei zu groß');
     });

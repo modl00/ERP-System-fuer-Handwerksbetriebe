@@ -1,6 +1,6 @@
 /**
  * Pure-Logic-Helpers für die Glocke (NotificationBell) und die Seite
- * „Benachrichtigungen“ (pages/BenachrichtigungenPage.tsx).
+ * „Benachrichtigungen" (pages/BenachrichtigungenPage.tsx).
  *
  * Bewusst in einer eigenen Datei (kein React, keine Komponenten), damit
  * - Vitest die Funktionen direkt testen kann (siehe NotificationBell.test.ts)
@@ -94,7 +94,7 @@ export const MAX_IDS_PRO_ANFRAGE = 200;
 /**
  * Adresse für den Abruf der Benachrichtigungen. Die Glocke braucht nur die
  * Gesamtzahl (`alle = false`, das Backend kürzt dann die Listen), die Seite
- * „Benachrichtigungen“ alle Einträge (`alle = true`). Der im Browser gewählte
+ * „Benachrichtigungen" alle Einträge (`alle = true`). Der im Browser gewählte
  * Mitarbeiter geht wie bisher mit.
  */
 export function summaryUrl(alle: boolean): string {

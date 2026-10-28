@@ -13,7 +13,7 @@ export interface NachladeListe<T> {
  * Lädt eine Liste erst, wenn sie gebraucht wird (`aktiv`), und danach nicht
  * erneut – auch nicht, wenn `aktiv` zwischendurch wieder `false` war. Fehler
  * meldet sie per Toast; der Aufrufer zeigt dazu den Zustand `fehler` mit
- * „Erneut laden“ (`neuLaden`).
+ * „Erneut laden" (`neuLaden`).
  */
 export function useNachladeListe<T>(url: string, aktiv: boolean, parse: (daten: unknown) => T[], fehlerText: string): NachladeListe<T> {
     const toast = useToast();

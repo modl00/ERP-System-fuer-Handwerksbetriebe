@@ -10,7 +10,7 @@ export interface EinmalTimer {
 /**
  * Ein einzelner `setTimeout`, der beim Unmount automatisch abgeraeumt wird.
  *
- * Fuer kurze Nachlaeufer wie „Gespeichert“-Haken oder Hinweise, die nach ein
+ * Fuer kurze Nachlaeufer wie „Gespeichert"-Haken oder Hinweise, die nach ein
  * paar Sekunden wieder verschwinden. Ohne Aufraeumen feuert so ein Timer auch
  * nach dem Schliessen der Komponente noch und setzt State ins Leere – in Tests
  * sogar erst, wenn jsdom schon abgebaut ist (`window is not defined`).

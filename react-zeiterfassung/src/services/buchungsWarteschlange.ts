@@ -29,7 +29,7 @@ export interface PendingEntry {
      */
     durationMinutes?: number
     /**
-     * Nur echte Serverfehler (5xx) zählen hierfür – nicht 429 („zu viele Anfragen“)
+     * Nur echte Serverfehler (5xx) zählen hierfür – nicht 429 („zu viele Anfragen")
      * und nicht Funklöcher. Grundlage für {@link haengtDauerhaft}.
      */
     serverfehlerVersuche?: number
@@ -120,7 +120,7 @@ export function buildBookingRequestPayload(
 
 /**
  * Antworten, bei denen ein späterer Versuch klappen kann: Zeitüberschreitung,
- * „zu früh“, zu viele Anfragen (Gateway oder gesperrte Internetadresse) und
+ * „zu früh", zu viele Anfragen (Gateway oder gesperrte Internetadresse) und
  * Serverfehler. Alles andere aus dem 4xx-Bereich ist eine echte Ablehnung.
  */
 export function istVoruebergehenderFehler(status: number): boolean {
@@ -198,7 +198,7 @@ export async function schreibeFallsNochWartend(
 }
 
 /**
- * So lange gilt eine Buchung, die die App gerade selbst sendet, als „noch unterwegs“.
+ * So lange gilt eine Buchung, die die App gerade selbst sendet, als „noch unterwegs".
  * Der Service Worker fasst sie in dieser Zeit nicht an (sonst ginge sie doppelt raus).
  */
 export const FRISCH_UNTERWEGS_MS = 60_000
@@ -211,7 +211,7 @@ function istFrischUnterwegs(entry: PendingEntry): boolean {
 }
 
 /**
- * Gibt Einträge frei, die noch als „wird gerade gesendet“ markiert sind – etwa weil
+ * Gibt Einträge frei, die noch als „wird gerade gesendet" markiert sind – etwa weil
  * die App mitten im Senden eingefroren oder beendet wurde.
  */
 export async function gibHaengendeEintraegeFrei(ausnehmen: ReadonlySet<string> = new Set()) {
@@ -353,7 +353,7 @@ export async function arbeiteWarteschlangeAb(
         }
 
         // Nur senden, wenn der Eintrag noch da ist (ein anderer Weg kann ihn schon
-        // übertragen haben) – prüfen und als „wird gesendet“ markieren in einem Schritt.
+        // übertragen haben) – prüfen und als „wird gesendet" markieren in einem Schritt.
         const inflightEntry = await schreibeFallsNochWartend(entry.id, gespeichert => ({
             ...gespeichert,
             status: 'inflight',

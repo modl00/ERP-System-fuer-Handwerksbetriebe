@@ -1,9 +1,9 @@
 import { useEffect, useState } from 'react';
 
 /**
- * Darf der angemeldete Benutzer die Aufschläge ändern (Recht „Aufschläge ändern“ der Abteilung, Administratoren immer)?
+ * Darf der angemeldete Benutzer die Aufschläge ändern (Recht „Aufschläge ändern" der Abteilung, Administratoren immer)?
  * Fragt bei jedem Einhängen neu, merkt sich nichts zwischen Benutzern: Nach einem Benutzerwechsel kann so kein fremdes Recht stehen bleiben.
- * Solange die Antwort fehlt oder die Abfrage scheitert, gilt „nein“: Der Knopf bleibt dann einfach weg. Der Server prüft das Recht bei jedem Zugriff ohnehin selbst.
+ * Solange die Antwort fehlt oder die Abfrage scheitert, gilt „nein": Der Knopf bleibt dann einfach weg. Der Server prüft das Recht bei jedem Zugriff ohnehin selbst.
  */
 export function useDarfAufschlaegeAendern(): boolean {
     const [darf, setDarf] = useState(false);

@@ -70,7 +70,7 @@ const uebersicht = {
     }],
 };
 
-/** Vorschläge für „Dokument hinzufügen“ – je Test setzbar. */
+/** Vorschläge für „Dokument hinzufügen" – je Test setzbar. */
 let kettenVorschlaege: unknown[] = [];
 
 function antwortFuer(url: string): Response {
@@ -126,7 +126,7 @@ describe('BestellungenUebersicht – Kette als Linie', () => {
         expect(vorschlagsAufruf).toContain('dokumentIds=1&dokumentIds=2&dokumentIds=3&alleLieferanten=false&typ=RECHNUNG');
     });
 
-    it('„Dokument hinzufügen“ in der Fußzeile sucht alle Arten und ordnet zu', async () => {
+    it('„Dokument hinzufügen" in der Fußzeile sucht alle Arten und ordnet zu', async () => {
         kettenVorschlaege = [{
             dokument: dok(9, 'WERKSTOFFZEUGNIS', 'WZ-9', vorTagen(4)),
             lieferantName: 'Max Mustermann GmbH', kettenDokumentId: 2, kettenDokumentTyp: 'LIEFERSCHEIN', kettenDokumentNummer: 'LS-1',
@@ -150,7 +150,7 @@ describe('BestellungenUebersicht – Kette als Linie', () => {
         await waitFor(() => expect(uebersichtAufrufe()).toHaveLength(2));
     });
 
-    it('zeigt „Dokument hinzufügen“ nicht bei ausgeblendeten Bestellungen', async () => {
+    it('zeigt „Dokument hinzufügen" nicht bei ausgeblendeten Bestellungen', async () => {
         zeige();
         await screen.findByRole('list', { name: 'Belege der Bestellung' });
         expect(screen.getByRole('button', { name: 'Dokument hinzufügen' })).toBeInTheDocument();
@@ -260,7 +260,7 @@ describe('BestellungenUebersicht – nur 25 laden, Suche über alle', () => {
     });
     afterEach(() => vi.unstubAllGlobals());
 
-    it('lädt 25, zählt aus „gesamt“ und holt mit „Mehr laden“ die nächsten 25', async () => {
+    it('lädt 25, zählt aus „gesamt" und holt mit „Mehr laden" die nächsten 25', async () => {
         liefere = url => {
             const anzahl = Number(url.searchParams.get('anzahl'));
             return antwort(laufendeKetten(Math.min(anzahl, 30)), 30, { offeneAnfragen: 9, offeneAnfragenAktuell: 4, zugeordnet: 7 });
@@ -269,7 +269,7 @@ describe('BestellungenUebersicht – nur 25 laden, Suche über alle', () => {
         expect(await screen.findByText('25 von 30 angezeigt')).toBeInTheDocument();
         expect(uebersichtAufrufe()[0].searchParams.get('anzahl')).toBe('25');
         expect(uebersichtAufrufe()[0].searchParams.has('suche')).toBe(false);
-        // Zähler am Reiter aus „gesamt“; „Angebote“ zählt nur die aktuellen
+        // Zähler am Reiter aus „gesamt"; „Angebote" zählt nur die aktuellen
         expect(screen.getByRole('tab', { name: /Bestellt/ })).toHaveTextContent('30');
         expect(screen.getByRole('tab', { name: /Angebote/ })).toHaveTextContent('4');
         expect(screen.getByRole('tab', { name: /Erledigt/ })).toHaveTextContent('7');
@@ -285,7 +285,7 @@ describe('BestellungenUebersicht – nur 25 laden, Suche über alle', () => {
         expect(screen.queryByRole('button', { name: /Mehr zu: Mehr laden/ })).not.toBeInTheDocument();
     });
 
-    it('zeigt „Mehr laden“, solange bei den überfälligen Bestellungen noch welche fehlen', async () => {
+    it('zeigt „Mehr laden", solange bei den überfälligen Bestellungen noch welche fehlen', async () => {
         const alt = Array.from({ length: 25 }, (_, i) => ({
             id: `alt${i}`, lieferantId: 900 + i, lieferantName: `Alt ${i}`,
             dokumente: [dok(2000 + i, 'AUFTRAGSBESTAETIGUNG', `AB-ALT-${i}`, vorTagen(100 + i))],
@@ -301,7 +301,7 @@ describe('BestellungenUebersicht – nur 25 laden, Suche über alle', () => {
         expect(screen.getByRole('button', { name: 'Mehr laden' })).toBeInTheDocument();
     });
 
-    it('zeigt den Info-Knopf neben „Mehr laden“', async () => {
+    it('zeigt den Info-Knopf neben „Mehr laden"', async () => {
         liefere = () => antwort(laufendeKetten(25), 140);
         zeige();
         await screen.findByText('25 von 140 angezeigt');
@@ -411,7 +411,7 @@ describe('BestellungenUebersicht – nur 25 laden, Suche über alle', () => {
         expect(screen.getByText('Aktuell GmbH')).toBeInTheDocument();
     });
 
-    it('nennt Treffer in anderen Reitern aus „gesamt“ und erklärt, wenn nichts passt', async () => {
+    it('nennt Treffer in anderen Reitern aus „gesamt" und erklärt, wenn nichts passt', async () => {
         liefere = url => {
             const suche = url.searchParams.get('suche');
             if (suche === 'erledigt') {
@@ -428,7 +428,7 @@ describe('BestellungenUebersicht – nur 25 laden, Suche über alle', () => {
 
         await userEvent.clear(feld);
         await userEvent.type(feld, 'gibtsnicht');
-        expect(await screen.findByText('Keine Bestellung passt zu „gibtsnicht“.')).toBeInTheDocument();
+        expect(await screen.findByText('Keine Bestellung passt zu „gibtsnicht".')).toBeInTheDocument();
     });
 
     it('zieht die Zähler beim Ausblenden sofort mit', async () => {

@@ -143,7 +143,7 @@ describe('kettenBetrag', () => {
 });
 
 describe('passtZurSuche', () => {
-    it('findet unbekannte Arten vom Server (BELEG) als „Sonstiges“', () => {
+    it('findet unbekannte Arten vom Server (BELEG) als „Sonstiges"', () => {
         const beleg = kette([dok({ typ: 'BELEG' as never, dokumentNummer: 'B-1' })]);
         expect(passtZurSuche(beleg, 'sonstiges')).toBe(true);
         expect(passtZurSuche(beleg, 'undefined')).toBe(false);

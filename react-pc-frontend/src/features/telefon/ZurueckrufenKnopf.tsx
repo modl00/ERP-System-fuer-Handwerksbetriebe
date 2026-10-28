@@ -66,7 +66,7 @@ export function ZurueckrufenKnopf({ nummer, wer, gross = false, onStart, onGesta
                     aria-busy={anrufen.laeuft}
                     aria-label={beschriftung}
                     title={anrufen.laeuft ? 'Anruf wird gestartet …' : 'Zurückrufen'}
-                    // Nur-Symbol-Knopf: quadratisch statt Text-Abstände der Größe „sm“.
+                    // Nur-Symbol-Knopf: quadratisch statt Text-Abstände der Größe „sm".
                     className="h-8 w-8 shrink-0 rounded-lg p-0 focus:outline-none focus:ring-2 focus:ring-rose-500 disabled:cursor-wait"
                 >
                     <Symbol aria-hidden="true" className={symbolKlasse} />

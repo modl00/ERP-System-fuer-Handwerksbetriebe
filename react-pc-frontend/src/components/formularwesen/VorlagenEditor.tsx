@@ -135,7 +135,7 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
     const anschriftSetzen = () => {
         const block = findeAnschriftBlock(items);
         if (!block) return;
-        // Kein Toast: der Hinweis springt sichtbar auf „Anschrift sitzt im Fenster“.
+        // Kein Toast: der Hinweis springt sichtbar auf „Anschrift sitzt im Fenster".
         aendern(block.id, anschriftInsFenster(form));
     };
 
@@ -195,7 +195,7 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
             setName(endName);
             setGespeichert(fingerabdruck(stand, dokumenttypen));
             setNamensDialog(false);
-            toast.success(`Vorlage „${endName}“ gespeichert.`);
+            toast.success(`Vorlage „${endName}" gespeichert.`);
         } catch {
             toast.error('Vorlage konnte nicht gespeichert werden.');
         } finally {
@@ -222,7 +222,7 @@ export default function VorlagenEditor({ vorlage, onZurueck }: VorlagenEditorPro
             });
             if (!res.ok) throw new Error();
             setName(neuerName);
-            toast.success(`Vorlage heißt jetzt „${neuerName}“.`);
+            toast.success(`Vorlage heißt jetzt „${neuerName}".`);
         } catch {
             toast.error('Vorlage konnte nicht umbenannt werden.');
         }

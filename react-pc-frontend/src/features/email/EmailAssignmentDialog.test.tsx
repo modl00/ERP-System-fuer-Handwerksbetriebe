@@ -51,7 +51,7 @@ describe('AssignModal – Lieferant und Zuordnung aufheben', () => {
         await waitFor(() => expect(onClose).toHaveBeenCalled());
     });
 
-    it('zeigt „Zuordnung aufheben“ nur bei zugeordneter Mail und ruft es auf', async () => {
+    it('zeigt „Zuordnung aufheben" nur bei zugeordneter Mail und ruft es auf', async () => {
         const user = userEvent.setup();
         const onUnassign = vi.fn(() => Promise.resolve());
         const { onClose } = rendere({ aktuelleZuordnung: 'Lieferant · Musterstahl GmbH', onUnassign });

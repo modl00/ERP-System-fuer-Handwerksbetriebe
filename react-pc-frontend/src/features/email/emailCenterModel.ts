@@ -330,7 +330,7 @@ export function buildForwardSubject(subject?: string): string {
 
 /**
  * Fehlermeldung nach dem Löschen: eine einzelne Mail mit Server-Begründung (wenn vorhanden),
- * mehrere als „n von m“, damit klar ist, dass ein Teil durchging.
+ * mehrere als „n von m", damit klar ist, dass ein Teil durchging.
  */
 export function loeschFehlerMeldung(fehlgeschlagen: number, gesamt: number, serverMeldung?: string | null): string {
     const grund = serverMeldung?.trim() || '';

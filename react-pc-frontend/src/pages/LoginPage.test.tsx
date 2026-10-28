@@ -26,7 +26,7 @@ function stubStatus(antwort: () => Promise<Partial<Response>>) {
 
 const zeige = () => render(<MemoryRouter><LoginPage /></MemoryRouter>);
 
-describe('Anmeldeseite: „Konto anlegen“ nur beim allerersten Benutzer', () => {
+describe('Anmeldeseite: „Konto anlegen" nur beim allerersten Benutzer', () => {
     it('zeigt nur das Anmelden, sobald es Benutzer gibt', async () => {
         const fetchMock = stubStatus(async () => ({ ok: true, json: async () => ({ hasLoginUsers: true, setupRequired: false }) }));
         zeige();
@@ -35,7 +35,7 @@ describe('Anmeldeseite: „Konto anlegen“ nur beim allerersten Benutzer', () =
         expect(screen.queryByRole('button', { name: /Konto anlegen/ })).not.toBeInTheDocument();
     });
 
-    it('bietet „Konto anlegen“ an, solange noch kein Benutzer existiert', async () => {
+    it('bietet „Konto anlegen" an, solange noch kein Benutzer existiert', async () => {
         stubStatus(async () => ({ ok: true, json: async () => ({ hasLoginUsers: false, setupRequired: true }) }));
         auth.register.mockResolvedValue({ success: true });
         zeige();
@@ -43,7 +43,7 @@ describe('Anmeldeseite: „Konto anlegen“ nur beim allerersten Benutzer', () =
         expect(screen.getByRole('button', { name: /Konto erstellen/ })).toBeInTheDocument();
     });
 
-    it('blendet „Konto anlegen“ nach dem ersten Konto aus', async () => {
+    it('blendet „Konto anlegen" nach dem ersten Konto aus', async () => {
         stubStatus(async () => ({ ok: true, json: async () => ({ hasLoginUsers: false, setupRequired: true }) }));
         auth.register.mockResolvedValue({ success: true });
         const { container } = zeige();

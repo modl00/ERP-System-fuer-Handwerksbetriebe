@@ -1,7 +1,7 @@
 /**
  * Reine Hilfsfunktionen für das stückweise Laden der Bestellübersicht:
  * Der Server liefert je Reiter nur die neuesten {@link SEITEN_GROESSE} Ketten
- * und zählt dazu, wie viele es insgesamt gibt („Mehr laden“ holt die nächsten).
+ * und zählt dazu, wie viele es insgesamt gibt („Mehr laden" holt die nächsten).
  * Angebote und laufende Bestellungen kürzt er je Alter getrennt: bis zu
  * `anzahl` aktuelle und bis zu `anzahl` alte (über 60 Tage ohne Bewegung).
  */
@@ -19,7 +19,7 @@ export const SUCHE_VERZOEGERUNG_MS = 400;
 /** Anzahl je Gruppe nach der Suche, vor dem Kürzen. */
 export interface GruppenGesamt {
     offeneAnfragen: number;
-    /** Angebote, die sich in den letzten 60 Tagen bewegt haben – Zähler am Reiter „Angebote“. */
+    /** Angebote, die sich in den letzten 60 Tagen bewegt haben – Zähler am Reiter „Angebote". */
     offeneAnfragenAktuell: number;
     laufendeBestellungen: number;
     /** Laufende Bestellungen, die sich in den letzten 60 Tagen bewegt haben. */
@@ -140,7 +140,7 @@ export function ladeStand<T extends Kette>(
  * Teilt die angezeigten Ketten in Blöcke nach der Lade-Runde, in der sie kamen.
  * `teil` ist genau ein vom Server getrennt gekürzter Teil (aktuell oder alt bzw.
  * die ganze Gruppe), neueste zuerst – die Runde ist also Position / Seitengröße.
- * So bleiben schon sichtbare Karten im Mauerwerk stehen, wenn „Mehr laden“ neue
+ * So bleiben schon sichtbare Karten im Mauerwerk stehen, wenn „Mehr laden" neue
  * anhängt – sonst würden die Spalten neu aufgeteilt und alles verrutscht.
  */
 export function inLadeBloecke<T>(teil: T[], seite = SEITEN_GROESSE): T[][] {
@@ -150,7 +150,7 @@ export function inLadeBloecke<T>(teil: T[], seite = SEITEN_GROESSE): T[][] {
 }
 
 /**
- * Sofort-Anzeige beim Ausblenden: Ketten wandern nach „Ausgeblendet“, die
+ * Sofort-Anzeige beim Ausblenden: Ketten wandern nach „Ausgeblendet", die
  * Zähler ziehen mit. Der Server-Stand kommt danach mit dem stillen Neuladen.
  */
 export function ausblendenOptimistisch<T extends Kette & { id: string }>(
@@ -185,7 +185,7 @@ export function ausblendenOptimistisch<T extends Kette & { id: string }>(
 }
 
 /**
- * Sofort-Anzeige beim Einblenden: Die Kette verschwindet aus „Ausgeblendet“.
+ * Sofort-Anzeige beim Einblenden: Die Kette verschwindet aus „Ausgeblendet".
  * In welchen Reiter sie zurückkehrt, weiß erst der Server (stilles Neuladen).
  */
 export function einblendenOptimistisch<T extends Kette & { id: string }>(

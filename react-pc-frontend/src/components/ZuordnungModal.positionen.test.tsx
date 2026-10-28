@@ -10,7 +10,7 @@ import { benutzer } from '../features/ki/kiTestdaten';
 import type { DokumentPosition, PositionsUebersicht } from './zuordnung/positionen';
 
 /**
- * Modus „Nach Positionen“ im Zuordnungsdialog: jede Warenposition geht an
+ * Modus „Nach Positionen" im Zuordnungsdialog: jede Warenposition geht an
  * genau ein Projekt bzw. eine Kostenstelle, die Beträge rechnet das Backend.
  * Nur Dummy-Daten (DSGVO).
  */
@@ -246,7 +246,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
         expect(within(zeilen[0]).getByText('300,00 €')).toBeInTheDocument();
         expect(within(zeilen[0]).getByRole('combobox', { name: 'Ziel für Position 1' })).toBeInTheDocument();
         expect(zeilen[2]).toHaveTextContent('Gilt für: alle Positionen');
-        expect(within(zeilen[2]).getByRole('button', { name: 'Wofür die Nebenkosten „Fracht“ gilt, ändern' })).toBeInTheDocument();
+        expect(within(zeilen[2]).getByRole('button', { name: 'Wofür die Nebenkosten „Fracht" gilt, ändern' })).toBeInTheDocument();
         expect(within(zeilen[2]).queryByRole('combobox')).toBeNull();
         expect(screen.getByText('Noch 2 Positionen nicht zugeordnet')).toBeInTheDocument();
     });
@@ -260,7 +260,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
         expect(speichernKnopf()).toBeDisabled();
         expect(screen.getAllByText('Noch 2 Positionen nicht zugeordnet.').length).toBeGreaterThan(0);
 
-        // Position 1 per Auswahl an „Carport Musterfrau“, den Rest an „Halle Mustermann“
+        // Position 1 per Auswahl an „Carport Musterfrau", den Rest an „Halle Mustermann"
         fireEvent.click(screen.getByRole('checkbox', { name: 'Position 1 markieren' }));
         await waehle(screen.getByRole('combobox', { name: 'Ausgewählte zuordnen zu' }), 'Carport Musterfrau');
         expect(screen.getByRole('checkbox', { name: 'Position 1 markieren' })).not.toBeChecked();
@@ -306,9 +306,9 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
         expect(screen.queryByText(/nur für bestimmte Positionen/)).toBeNull();
     });
 
-    describe('Zuschlag gehört zu bestimmten Positionen („Gilt für“)', () => {
+    describe('Zuschlag gehört zu bestimmten Positionen („Gilt für")', () => {
         const fracht = () => screen.getByRole('listitem', { name: 'Position 3: Fracht' });
-        const aendern = () => within(fracht()).getByRole('button', { name: 'Wofür die Nebenkosten „Fracht“ gilt, ändern' });
+        const aendern = () => within(fracht()).getByRole('button', { name: 'Wofür die Nebenkosten „Fracht" gilt, ändern' });
         const vorschauAnfragen = () => mockFetch.mock.calls
             .filter(([url]) => String(url).includes('/positionen/1/vorschau'))
             .map(([, options]) => JSON.parse(options.body as string) as VorschauAnfrage);
@@ -329,7 +329,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
             // Escape schließt nur den kleinen Dialog, nicht die Zuordnung
             fireEvent.click(aendern());
             let dialog = await screen.findByRole('dialog', { name: 'Wofür gilt dieser Zuschlag?' });
-            expect(within(dialog).getByText('Nebenkosten „Fracht“ · 30,00 €')).toBeInTheDocument();
+            expect(within(dialog).getByText('Nebenkosten „Fracht" · 30,00 €')).toBeInTheDocument();
             expect(within(dialog).getByRole('radio', { name: /Auf alle Positionen verteilen/ })).toBeChecked();
             fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Pos. 2: Schrauben M12' }));
             fireEvent.keyDown(document.activeElement ?? document.body, { key: 'Escape' });
@@ -337,7 +337,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
             expect(props.onClose).not.toHaveBeenCalled();
             expect(fracht()).toHaveTextContent('Gilt für: alle Positionen');
 
-            // Häkchen setzen wählt „Nur für diese Positionen“ von selbst
+            // Häkchen setzen wählt „Nur für diese Positionen" von selbst
             fireEvent.click(aendern());
             dialog = await screen.findByRole('dialog', { name: 'Wofür gilt dieser Zuschlag?' });
             fireEvent.click(within(dialog).getByRole('checkbox', { name: 'Pos. 2: Schrauben M12' }));
@@ -360,7 +360,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
             expect(postBody('/positionen/1/zuordnen').positionen).toContainEqual({ positionId: 3, bezugPositionIds: [2] });
         });
 
-        it('sperrt Übernehmen ohne Häkchen und setzt mit „alle“ zurück', async () => {
+        it('sperrt Übernehmen ohne Häkchen und setzt mit „alle" zurück', async () => {
             await oeffneMitZielen(POSITIONEN.map(p => (p.id === 3 ? { ...p, bezugPositionIds: [1] } : p)));
             // von der KI gespeicherter Bezug ist sofort zu sehen
             expect(fracht()).toHaveTextContent('Gilt für: Pos. 1');
@@ -392,7 +392,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
             within(dialog).getByRole('button', { name: 'Übernehmen' }).focus();
             await user.keyboard('{Enter}');
             await waitFor(() => expect(fracht()).toHaveTextContent('Gilt für: Pos. 1'));
-            // Fokus kehrt zum „ändern“ zurück
+            // Fokus kehrt zum „ändern" zurück
             await waitFor(() => expect(document.activeElement).toBe(aendern()));
         });
     });
@@ -453,7 +453,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
         expect(screen.getByRole('button', { name: /Nochmal versuchen/ })).toBeInTheDocument();
     });
 
-    it('sperrt „Positionen auslesen“ ohne KI-Schlüssel, erklärt warum und nennt den Ausweg', async () => {
+    it('sperrt „Positionen auslesen" ohne KI-Schlüssel, erklärt warum und nennt den Ausweg', async () => {
         richteEin({ positionen: uebersicht({ positionen: [], summePositionen: 0 }) });
         const standard = mockFetch.getMockImplementation()!;
         mockFetch.mockImplementation((url: string, options?: RequestInit) => (url === '/api/auth/me'
@@ -467,7 +467,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
         expect(knopf).toBeDisabled();
         expect(knopf).toHaveAccessibleDescription(KI_AUS_ERKLAERUNG);
         expect(knopf.parentElement).toHaveAttribute('title', KI_AUS_ERKLAERUNG);
-        expect(screen.getByText(/Teilen Sie die Rechnung\s+stattdessen „Prozentual“ oder „Absolut“ auf/)).toBeInTheDocument();
+        expect(screen.getByText(/Teilen Sie die Rechnung\s+stattdessen „Prozentual" oder „Absolut" auf/)).toBeInTheDocument();
         expect(screen.queryByText(/Die KI liest Artikel, Mengen und Preise/)).not.toBeInTheDocument();
 
         fireEvent.click(knopf);
@@ -513,7 +513,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
         expect(speichernKnopf()).toBeDisabled();
     });
 
-    it('zeigt mit „Nur offene zeigen“ nur Positionen ohne Ziel', async () => {
+    it('zeigt mit „Nur offene zeigen" nur Positionen ohne Ziel', async () => {
         richteEin({ positionen: uebersicht(), zuordnungen: ZWEI_PROJEKTE });
         render(<ZuordnungModal {...props} />);
         fireEvent.click(await screen.findByRole('button', { name: /Nach Positionen/ }));
@@ -537,7 +537,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
             await screen.findByRole('list', { name: 'Positionen der Rechnung' });
         }
 
-        it('zeigt jedes Projekt als Ablagefläche plus „Nicht zugeordnet“', async () => {
+        it('zeigt jedes Projekt als Ablagefläche plus „Nicht zugeordnet"', async () => {
             await oeffnePositionen();
             expect(screen.getByRole('group', { name: 'Ziel Halle Mustermann' })).toBeInTheDocument();
             expect(screen.getByRole('group', { name: 'Ziel Carport Musterfrau' })).toBeInTheDocument();
@@ -573,7 +573,7 @@ describe('ZuordnungModal – Aufteilung nach Positionen', () => {
             expect(screen.getByRole('checkbox', { name: 'Position 1 markieren' })).toBeChecked();
         });
 
-        it('hebt die Zuordnung auf „Nicht zugeordnet“ auf und ignoriert Ablegen daneben', async () => {
+        it('hebt die Zuordnung auf „Nicht zugeordnet" auf und ignoriert Ablegen daneben', async () => {
             await oeffnePositionen();
             ablegen(1, 'p:10');
             expect(zielVon(1)).toHaveTextContent('Halle Mustermann');

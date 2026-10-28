@@ -24,7 +24,7 @@ describe('WaehlTelefonZeile', () => {
         window.localStorage.clear();
     });
 
-    it('sagt ohne gespeichertes Telefon „noch nicht gewählt“ und bietet „Auswählen“ an', async () => {
+    it('sagt ohne gespeichertes Telefon „noch nicht gewählt" und bietet „Auswählen" an', async () => {
         stubbe();
         zeige();
         const knopf = await screen.findByRole('button', { name: 'Telefon an diesem Rechner auswählen' });

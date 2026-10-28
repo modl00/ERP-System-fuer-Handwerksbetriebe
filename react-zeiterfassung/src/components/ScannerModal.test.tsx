@@ -207,7 +207,7 @@ describe('Auslöser von Hand', () => {
         expect(URL.createObjectURL).not.toHaveBeenCalled()
     })
 
-    it('verwirft das Foto bei „Zurück“ ohne neue Seite', async () => {
+    it('verwirft das Foto bei „Zurück" ohne neue Seite', async () => {
         const { user } = oeffneScanner()
         await user.click(screen.getByRole('button', { name: 'Foto von Hand aufnehmen' }))
         await user.click(await screen.findByRole('button', { name: 'Zurück' }))
@@ -334,7 +334,7 @@ describe('Fertig', () => {
     it('nimmt eine gerade laufende Aufnahme noch mit ins PDF', async () => {
         const { user, onSave } = oeffneScanner()
         await seiteVonHandScannen(user, 1)
-        // Zweite Aufnahme läuft noch (Kamerabild wird gespeichert), da tippt der Nutzer auf „Fertig“
+        // Zweite Aufnahme läuft noch (Kamerabild wird gespeichert), da tippt der Nutzer auf „Fertig"
         let fertigKodiert: () => void = () => {}
         kameraAttrappe.kodiert = new Promise<void>(resolve => { fertigKodiert = resolve })
         vi.mocked(detectDocumentCornersLive).mockResolvedValue(LIVE_BLATT)

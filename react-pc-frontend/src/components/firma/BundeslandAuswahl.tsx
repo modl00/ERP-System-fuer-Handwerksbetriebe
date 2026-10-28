@@ -48,7 +48,7 @@ interface Props {
 /**
  * Bundesland-Auswahl in den Firmendaten (Issue #222): Vorschlag anhand der PLZ
  * und eine aufklappbare Liste der Feiertage, die damit gelten. Gespeichert wird
- * erst mit „Speichern“ der Firmendaten.
+ * erst mit „Speichern" der Firmendaten.
  */
 export function BundeslandAuswahl({ value, onChange, plz }: Props) {
     const gewaehlt = value || STANDARD_BUNDESLAND;

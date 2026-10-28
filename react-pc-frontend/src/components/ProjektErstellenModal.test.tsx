@@ -73,7 +73,7 @@ describe('ProjektErstellenModal – Anfrage übernehmen', () => {
         expect(postBody().anfrageIds).toEqual([42]);
     });
 
-    it('übernimmt die Anfrage nicht mehr, wenn danach auf „Ohne Anfrage anlegen“ gewechselt wird', async () => {
+    it('übernimmt die Anfrage nicht mehr, wenn danach auf „Ohne Anfrage anlegen" gewechselt wird', async () => {
         const { onSuccess } = zeige();
         await userEvent.click(await screen.findByText('Geländer Musterstraße'));
         await screen.findByText('(10007)');

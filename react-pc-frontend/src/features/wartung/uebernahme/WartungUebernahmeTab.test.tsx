@@ -15,7 +15,7 @@ const VORSCHAU: Vorschau = {
         { altId: 2, altNummer: 'A-2', titel: 'Instandhaltung Tür', status: 'offen', protokollart: 'Instandhaltungsprotokoll', module: ['m_bst', 'm_boden'], modulQuelle: 'TITEL_UND_PRUEFPUNKTE',
             ergaenzteModule: [], bauart: null, pruefpunkte: 30, pruefpunkteZugeordnet: 30, pruefpunkteEigene: 0, fragen: ['Die Bauart (1-flügelig, 2-flügelig, Schiebetür) ist nicht erkennbar. Bitte wählen.'] },
         { altId: 3, altNummer: 'A-3', titel: 'Wartungsprotokoll', status: 'offen', protokollart: 'Wartungsprotokoll', module: [], modulQuelle: 'UNKLAR', ergaenzteModule: [], bauart: null,
-            pruefpunkte: 0, pruefpunkteZugeordnet: 0, pruefpunkteEigene: 0, fragen: ['Modul fehlt: Weder der Titel „Wartungsprotokoll“ noch die Prüfpunkte nennen eines. Bitte wählen.'] },
+            pruefpunkte: 0, pruefpunkteZugeordnet: 0, pruefpunkteEigene: 0, fragen: ['Modul fehlt: Weder der Titel „Wartungsprotokoll" noch die Prüfpunkte nennen eines. Bitte wählen.'] },
     ],
     werte: [
         { feld: 'Anschlag', altWert: 'DINL', neuerWert: 'DIN links', anzahl: 22, aktion: 'ZUGEORDNET' },
@@ -23,7 +23,7 @@ const VORSCHAU: Vorschau = {
         { feld: 'Baujahr', altWert: 'Keine Angabe', neuerWert: '', anzahl: 21, aktion: 'LEER' },
     ],
     eigenePruefpunkte: [{ label: 'Sonderpunkt Kunde', anzahl: 3 }],
-    hinweise: ['Variante „Standard ohne Handtaster“ des Moduls Feststellanlage wird im Katalog ergänzt.'],
+    hinweise: ['Variante „Standard ohne Handtaster" des Moduls Feststellanlage wird im Katalog ergänzt.'],
 };
 
 let fetcher: ReturnType<typeof vi.fn>;
@@ -57,7 +57,7 @@ describe('Übernahme aus HandwerkPro: Vorschau', { timeout: 30000 }, () => {
         expect(fetcher).toHaveBeenCalledWith('/api/admin/wartung-import/vorschau', expect.objectContaining({ method: 'POST', body: '{"quelle":"HandwerkPro","wartungen":[]}' }));
         expect(screen.getByText('2 Protokolle brauchen eine Entscheidung')).toBeInTheDocument();
         expect(screen.getByText(/Modul fehlt: Weder der Titel/)).toBeInTheDocument();
-        expect(screen.getByText(/Variante „Standard ohne Handtaster“/)).toBeInTheDocument();
+        expect(screen.getByText(/Variante „Standard ohne Handtaster"/)).toBeInTheDocument();
         expect(screen.getByText('wird neu angelegt')).toBeInTheDocument();
         expect(screen.getByText('Sonderpunkt Kunde')).toBeInTheDocument();
         expect(screen.getByText('aus Titel und Prüfpunkten')).toBeInTheDocument();
@@ -108,7 +108,7 @@ describe('Übernahme aus HandwerkPro: Vorschau', { timeout: 30000 }, () => {
 
     it('Übernehmen: erst eine Rückfrage, dann geht die Datei an den Server; danach steht der Bericht mit ausgelassenen Protokollen da', async () => {
         const bericht: Ergebnisbericht = { protokolleNeu: 105, protokolleSchonDa: 0, kundenNeu: 6, objekteNeu: 8, tuerenNeu: 43, pruefpunkteEigene: 227, werteVerworfen: 0, katalogErgaenzt: 71,
-            uebersprungen: ['A-3: Modul fehlt.'], hinweise: ['Der Techniker „Max Mustermann“ ist im ERP kein Mitarbeiter.'] };
+            uebersprungen: ['A-3: Modul fehlt.'], hinweise: ['Der Techniker „Max Mustermann" ist im ERP kein Mitarbeiter.'] };
         fetcher.mockImplementation(async (url: string) => (url.includes('/ausfuehren') ? antwort(bericht) : antwort(VORSCHAU)));
         const user = userEvent.setup();
         render(<WartungUebernahmeTab />);

@@ -21,27 +21,20 @@ interface KettenZuordnungProps {
 }
 
 /**
- * „Projekten zuordnen” für eine ganze Bestellung: Hat sie mehrere Rechnungen,
+ * „Projekten zuordnen" für eine ganze Bestellung: Hat sie mehrere Rechnungen,
  * steht oben im Dialog die Rechnungs-Leiste. Nach dem Speichern springt der
  * Dialog zur nächsten offenen Rechnung und schließt erst, wenn keine mehr offen ist.
- * Liegt noch keine Rechnung vor (AB/Lieferschein), wird das erste verfügbare
- * Dokument zur Projektzuordnung geöffnet – ohne Lager-Buchungs-Option.
  */
 export function KettenZuordnung({ kette, onSchliessen }: KettenZuordnungProps) {
     const toast = useToast();
     const alleRechnungen = useMemo(() => rechnungenDerKette(kette.dokumente), [kette.dokumente]);
-    const keineLagerBuchung = alleRechnungen.length === 0;
-    // Kein Rechnungs-Dokument vorhanden: erstes AB/Lieferschein-Dokument verwenden
-    const alleVerfuegbar = useMemo(() =>
-        alleRechnungen.length > 0 ? alleRechnungen : kette.dokumente.slice().sort((a, b) => a.id - b.id),
-        [alleRechnungen, kette.dokumente]);
     const [lokalZugeordnet, setLokalZugeordnet] = useState<ReadonlySet<number>>(() => new Set());
-    const [aktuelleId, setAktuelleId] = useState(() => startRechnungId(alleVerfuegbar));
+    const [aktuelleId, setAktuelleId] = useState(() => startRechnungId(alleRechnungen));
     const [leisteFokussieren, setLeisteFokussieren] = useState(false);
     // Ref statt State: onClose läuft im selben Durchgang wie onSuccess.
     const gespeichertRef = useRef(false);
 
-    const rechnungen = useMemo(() => mitLokalZugeordnet(alleVerfuegbar, lokalZugeordnet), [alleVerfuegbar, lokalZugeordnet]);
+    const rechnungen = useMemo(() => mitLokalZugeordnet(alleRechnungen, lokalZugeordnet), [alleRechnungen, lokalZugeordnet]);
     const aktuelle = rechnungen.find(r => r.id === aktuelleId) ?? rechnungen[0];
     if (!aktuelle) return null;
 
@@ -66,7 +59,6 @@ export function KettenZuordnung({ kette, onSchliessen }: KettenZuordnungProps) {
             dokumentNummer={aktuelle.dokumentNummer}
             lieferantName={kette.lieferantName}
             pdfUrl={aktuelle.pdfUrl}
-            keineLagerBuchung={keineLagerBuchung}
             rechnungsLeiste={rechnungen.length >= 2 ? (
                 <RechnungsLeiste
                     rechnungen={rechnungen}

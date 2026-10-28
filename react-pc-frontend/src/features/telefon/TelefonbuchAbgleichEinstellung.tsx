@@ -14,7 +14,7 @@ import type { TelefonbuchAbgleichErgebnis, TelefonbuchStatus } from './types';
 export const ABFRAGE_ABSTAND_MS = 2000;
 
 /**
- * Einstellung „Kontakte ins FRITZ!Box-Telefonbuch übertragen“ (nur Administratoren).
+ * Einstellung „Kontakte ins FRITZ!Box-Telefonbuch übertragen" (nur Administratoren).
  *
  * <p>Der Schalter wird sofort gespeichert. Ist er an (und die Telefon-Anbindung
  * aktiv), hält das ERP in der FRITZ!Box ein eigenes Telefonbuch aktuell – nach
@@ -42,23 +42,28 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
     const [abfrageGestoppt, setAbfrageGestoppt] = useState(false);
     const [ergebnis, setErgebnis] = useState<TelefonbuchAbgleichErgebnis | null>(null);
 
-    const lade = useCallback(async () => {
-        setLaedt(true);
-        setLadefehler(null);
-        try {
-            setStatus(await ladeTelefonbuchStatus());
-        } catch (e) {
-            const meldung = e instanceof Error ? e.message : 'Der Stand des FRITZ!Box-Telefonbuchs konnte nicht geladen werden.';
-            setLadefehler(meldung);
-            toast.error(meldung);
-        } finally {
-            setLaedt(false);
-        }
-    }, [toast]);
+    // Ergebnisse erst in den Promise-Callbacks übernehmen, nicht synchron im Effekt.
+    const ladeStand = useCallback(() =>
+        ladeTelefonbuchStatus()
+            .then((neu) => setStatus(neu))
+            .catch((e: unknown) => {
+                const meldung = e instanceof Error ? e.message : 'Der Stand des FRITZ!Box-Telefonbuchs konnte nicht geladen werden.';
+                setLadefehler(meldung);
+                toast.error(meldung);
+            })
+            .finally(() => setLaedt(false)),
+    [toast]);
 
     useEffect(() => {
-        void lade();
-    }, [lade]);
+        void ladeStand();
+    }, [ladeStand]);
+
+    /** „Erneut laden": Ladeanzeige an, alten Fehler weg, dann neu holen. */
+    const lade = () => {
+        setLaedt(true);
+        setLadefehler(null);
+        return ladeStand();
+    };
 
     const laeuft = !!status?.laeuftGerade;
 
@@ -82,15 +87,16 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
         };
     }, [laeuft, abfrageGestoppt, status, toast]);
 
-    // Lauf fertig: Ergebnis zeigen, Fehler zusätzlich als Toast.
-    useEffect(() => {
-        if (!wartetAufErgebnis || !status || status.laeuftGerade) return;
+    // Lauf fertig: Ergebnis zeigen …
+    if (wartetAufErgebnis && status && !status.laeuftGerade) {
         setWartetAufErgebnis(false);
-        const letztes = status.letztesErgebnis;
-        if (!letztes) return;
-        setErgebnis(letztes);
-        if (!letztes.erfolgreich) toast.error(letztes.meldung || 'Das FRITZ!Box-Telefonbuch konnte nicht abgeglichen werden.');
-    }, [wartetAufErgebnis, status, toast]);
+        if (status.letztesErgebnis) setErgebnis(status.letztesErgebnis);
+    }
+    // … und einen Fehler zusätzlich als Toast melden. Ein Ergebnis wird nur an
+    // dieser Stelle gesetzt, jedes neue also genau einmal gemeldet.
+    useEffect(() => {
+        if (ergebnis && !ergebnis.erfolgreich) toast.error(ergebnis.meldung || 'Das FRITZ!Box-Telefonbuch konnte nicht abgeglichen werden.');
+    }, [ergebnis, toast]);
 
     const anbindungAktiv = telefonAnbindungAktiv ?? status?.telefonAnbindungAktiv ?? false;
     const telefonbuchName = status?.telefonbuchName ?? 'ERP-Kontakte';
@@ -100,7 +106,7 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
         if (!aktiv) {
             const ok = await confirm({
                 title: 'Übertragung ausschalten?',
-                message: `Das Telefonbuch „${telefonbuchName}“ wird dabei aus der FRITZ!Box gelöscht. Andere Telefonbücher `
+                message: `Das Telefonbuch „${telefonbuchName}" wird dabei aus der FRITZ!Box gelöscht. Andere Telefonbücher `
                     + 'bleiben unberührt. Beim Wiedereinschalten wird es neu angelegt.',
                 confirmLabel: 'Ausschalten und löschen',
                 variant: 'danger',
@@ -119,7 +125,7 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
             setWartetAufErgebnis(neu.laeuftGerade);
             toast.success(aktiv
                 ? 'Die Kontakte werden jetzt ins FRITZ!Box-Telefonbuch übertragen.'
-                : `Ausgeschaltet. Das Telefonbuch „${telefonbuchName}“ wird aus der FRITZ!Box gelöscht.`);
+                : `Ausgeschaltet. Das Telefonbuch „${telefonbuchName}" wird aus der FRITZ!Box gelöscht.`);
         } catch (e) {
             setStatus(vorher);
             toast.error(e instanceof Error ? e.message : 'Die Einstellung konnte nicht gespeichert werden.');
@@ -160,7 +166,7 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
     }, [ergebnis, status]);
 
     const knopfGesperrt = !status?.aktiv && !loeschungOffen
-        ? 'Erst „Kontakte ins FRITZ!Box-Telefonbuch übertragen“ einschalten'
+        ? 'Erst „Kontakte ins FRITZ!Box-Telefonbuch übertragen" einschalten'
         : status?.aktiv && !anbindungAktiv ? 'Erst die Telefon-Anbindung aktivieren und speichern' : undefined;
     const knopfText = laeuft
         ? (loeschungOffen ? 'Wird gelöscht …' : 'Wird abgeglichen …')
@@ -174,7 +180,7 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
                 <InfoButton titel="Kontakte ins FRITZ!Box-Telefonbuch übertragen">
                     <InfoAbschnitt titel="Was passiert im Hintergrund?">
                         <p>
-                            Das ERP legt in der FRITZ!Box ein eigenes Telefonbuch „{telefonbuchName}“ an und hält es aktuell:
+                            Das ERP legt in der FRITZ!Box ein eigenes Telefonbuch „{telefonbuchName}" an und hält es aktuell:
                             kurz nach jeder Änderung, beim Start des Servers und jede Nacht. Mit dabei sind Kunden, aktive
                             Lieferanten und Mitarbeiter sowie Steuerberater mit Ansprechpartnern – gesperrte und anonymisierte
                             Kunden nicht.
@@ -183,11 +189,11 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
                     <InfoAbschnitt titel="Was bewirkt das?">
                         <p>
                             Bei Anrufen zeigen Telefone und FRITZ!App Fon den Namen. Andere Telefonbücher der FRITZ!Box
-                            ändert das ERP nie. Von Hand angelegte Einträge in „{telefonbuchName}“ werden beim nächsten
+                            ändert das ERP nie. Von Hand angelegte Einträge in „{telefonbuchName}" werden beim nächsten
                             Abgleich gelöscht – eigene Kontakte bitte in ein anderes Telefonbuch.
                         </p>
                         <p>
-                            Ausschalten löscht das Telefonbuch „{telefonbuchName}“ aus der FRITZ!Box. Ist sie gerade nicht
+                            Ausschalten löscht das Telefonbuch „{telefonbuchName}" aus der FRITZ!Box. Ist sie gerade nicht
                             erreichbar, holt das ERP das nach.
                         </p>
                     </InfoAbschnitt>
@@ -221,7 +227,7 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
                                 {schaltet && <Loader2 aria-hidden="true" className="h-4 w-4 text-slate-400 motion-safe:animate-spin" />}
                             </span>
                             <span className="block text-xs text-slate-500">
-                                Aus: Es wird nichts mehr übertragen und das Telefonbuch „{telefonbuchName}“ wird aus der FRITZ!Box gelöscht.
+                                Aus: Es wird nichts mehr übertragen und das Telefonbuch „{telefonbuchName}" wird aus der FRITZ!Box gelöscht.
                             </span>
                         </span>
                     </label>
@@ -236,8 +242,8 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
                         <p role="note" className="flex items-start gap-2 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
                             <AlertTriangle aria-hidden="true" className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
                             <span>
-                                Das Telefonbuch „{telefonbuchName}“ ist noch nicht aus der FRITZ!Box gelöscht. Das ERP versucht es
-                                beim nächsten Start, jede Nacht und mit „Löschen jetzt nachholen“ erneut.
+                                Das Telefonbuch „{telefonbuchName}" ist noch nicht aus der FRITZ!Box gelöscht. Das ERP versucht es
+                                beim nächsten Start, jede Nacht und mit „Löschen jetzt nachholen" erneut.
                             </span>
                         </p>
                     )}
@@ -245,7 +251,7 @@ export function TelefonbuchAbgleichEinstellung({ telefonAnbindungAktiv }: { tele
                     <ul className="space-y-1 rounded-lg border border-slate-200 bg-slate-50 p-3 text-sm text-slate-600">
                         <li>
                             In der FRITZ!App Fon und an den Telefonen das Telefonbuch
-                            <strong className="text-slate-900"> „{telefonbuchName}“</strong> auswählen.
+                            <strong className="text-slate-900"> „{telefonbuchName}"</strong> auswählen.
                         </li>
                         <li>Die Nummern der Mitarbeiter sind dort für alle sichtbar, die das Telefonbuch nutzen.</li>
                     </ul>

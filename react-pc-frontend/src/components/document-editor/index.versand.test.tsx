@@ -12,7 +12,7 @@ import type { EmailComposeModal } from '../EmailComposeModal';
  * Dialogfolge vor PDF-Export und E-Mail-Versand (Issue #261 + Online-Annahme):
  * - PDF einer offenen Rechnung: erst Warnung, Abbrechen ändert nichts.
  * - E-Mail einer Rechnung: gebucht wird erst beim Senden, Vorschau gesperrt.
- * - Angebot: Wahl „online annehmen?“ und Rückfrage, wenn ein alter Link abgelöst wird.
+ * - Angebot: Wahl „online annehmen?" und Rückfrage, wenn ein alter Link abgelöst wird.
  *
  * Das Mailfenster ist hier ein Stub, der seine Props festhält; sein eigenes
  * Verhalten prüft EmailComposeForm.versand.test.tsx. Nur Dummy-Daten (DSGVO).
@@ -298,7 +298,7 @@ describe('E-Mail-Versand eines Angebots', () => {
         return JSON.parse(init!.body as string);
     }
 
-    it('„Nein“ verschickt ohne Link: keine Gültigkeitsfrage, mitFreigabe=false', async () => {
+    it('„Nein" verschickt ohne Link: keine Gültigkeitsfrage, mitFreigabe=false', async () => {
         const user = userEvent.setup();
         starte({ dokument: angebot });
         await emailStarten(user);
@@ -314,7 +314,7 @@ describe('E-Mail-Versand eines Angebots', () => {
         expect(mailfenster.props?.entwurfSpeichern).toBe(true);
     });
 
-    it('„Ja“ fragt nach der Gültigkeit und verschickt mit Link', async () => {
+    it('„Ja" fragt nach der Gültigkeit und verschickt mit Link', async () => {
         const user = userEvent.setup();
         starte({ dokument: angebot });
         await emailStarten(user);

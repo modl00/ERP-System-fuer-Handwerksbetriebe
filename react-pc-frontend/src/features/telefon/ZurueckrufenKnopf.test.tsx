@@ -72,7 +72,7 @@ describe('ZurueckrufenKnopf', () => {
         await waitFor(() => expect(knopf).toBeEnabled());
     });
 
-    it('zeigt als großer Knopf die Beschriftung „Zurückrufen“', async () => {
+    it('zeigt als großer Knopf die Beschriftung „Zurückrufen"', async () => {
         stubbe();
         zeige('0931 1234567', true);
         const knopf = await screen.findByRole('button', { name: 'Max Mustermann zurückrufen' });

@@ -2,7 +2,7 @@ import { preisHinweisText, type PreisHinweis } from "../preisHinweis";
 import type { Artikel } from "../../../types";
 import { formatCurrency } from "./format";
 
-/** „So steht es im Angebot: 1 m à …“ – oder der Hinweis, warum sich noch kein Preis ergibt. */
+/** „So steht es im Angebot: 1 m à …" – oder der Hinweis, warum sich noch kein Preis ergibt. */
 export function AngebotsZeile({ artikel }: { artikel: Artikel }) {
     const hinweis = (artikel.preisHinweis ?? "KEIN_PREIS") as PreisHinweis;
     if (hinweis === "OK") {

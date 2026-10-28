@@ -105,7 +105,7 @@ describe('Sichtbarer Zeitraum (#267)', () => {
 
         fireEvent.click(await screen.findByRole('button', { name: 'Nächste Woche' }));
         await waitFor(() => expect(kalenderAbrufe()).toContain('/api/kalender?von=2026-10-05&bis=2026-10-11'));
-        // Das Feld „Monat“ folgt der Woche.
+        // Das Feld „Monat" folgt der Woche.
         expect(screen.getByRole('button', { name: 'Monat: Oktober' })).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: 'Monat' }));
@@ -240,7 +240,7 @@ describe('Darstellung (#267)', () => {
         expect(knopf.className).not.toContain('bg-violet-100');
     });
 
-    it('„+N weitere“ ist ein Knopf und öffnet die Tagesansicht, Termine stehen vor Abwesenheiten', async () => {
+    it('„+N weitere" ist ein Knopf und öffnet die Tagesansicht, Termine stehen vor Abwesenheiten', async () => {
         const termine = [1, 2, 3].map(i => termin({ id: i, titel: `Termin ${i}`, startZeit: `0${i + 6}:00:00`, endeZeit: `0${i + 7}:00:00`, datum: '2026-10-14' }));
         stubKalender({
             termine,
@@ -249,7 +249,7 @@ describe('Darstellung (#267)', () => {
         zeigeAm('2026-10-14');
         fireEvent.click(screen.getByRole('button', { name: 'Monat' }));
         const weitere = await screen.findByRole('button', { name: '+2 weitere' });
-        // Alle drei Termine sind sichtbar, die Abwesenheiten rutschen in „weitere“.
+        // Alle drei Termine sind sichtbar, die Abwesenheiten rutschen in „weitere".
         expect(screen.getByRole('button', { name: /Termin 3/ })).toBeInTheDocument();
         expect(screen.queryByTitle('Urlauber 1 – Urlaub')).not.toBeInTheDocument();
         fireEvent.click(weitere);

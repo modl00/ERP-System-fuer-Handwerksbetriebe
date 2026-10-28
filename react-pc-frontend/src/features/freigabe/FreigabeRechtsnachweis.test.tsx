@@ -65,7 +65,7 @@ describe('FreigabeRechtsnachweis', () => {
         expect(screen.getByText(/13\.10\.2026, 09:30 an max@example\.de/)).toBeInTheDocument();
         expect(screen.getByText('Erst nach Ablauf der Widerrufsfrist beginnen (bis 27.10.2026).')).toHaveClass('bg-amber-50');
         expect(screen.getByText('Widerrufsbelehrung vom 13.10.2026 · Datenschutzerklärung vom 13.10.2026')).toBeInTheDocument();
-        expect(screen.getByText('„Zahlungspflichtig beauftragen“')).toBeInTheDocument();
+        expect(screen.getByText('„Zahlungspflichtig beauftragen"')).toBeInTheDocument();
         expect(screen.getByText(/Häkchen: Ich beauftrage Angebot AN-1/)).toBeInTheDocument();
 
         await userEvent.click(screen.getByRole('button', { name: /Arbeitsbeginn und Widerrufsfrist/ }));

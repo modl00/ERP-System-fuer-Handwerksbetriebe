@@ -46,7 +46,7 @@ async function fertigeSeite() {
 }
 
 describe('useScanSeiten', () => {
-    it('legt eine Seite an, schneidet sie im Hintergrund zu und verbessert sie mit „Dokument“', async () => {
+    it('legt eine Seite an, schneidet sie im Hintergrund zu und verbessert sie mit „Dokument"', async () => {
         const { result } = renderHook(() => useScanSeiten(), { wrapper: mitToasts })
         act(() => { result.current.fuegeSeiteHinzu({ fotoUrl: 'blob:foto-1', ecken: ECKEN, verfeinern: false }) })
 
@@ -113,7 +113,7 @@ describe('useScanSeiten', () => {
         expect(URL.createObjectURL).toHaveBeenCalledTimes(1)
     })
 
-    it('schneidet nach „Ecken anpassen“ mit den neuen Ecken und dem gewählten Filter neu zu', async () => {
+    it('schneidet nach „Ecken anpassen" mit den neuen Ecken und dem gewählten Filter neu zu', async () => {
         const { result } = await fertigeSeite()
         const id = result.current.seiten[0].id
         act(() => { result.current.setzeFilter(id, 'original') })

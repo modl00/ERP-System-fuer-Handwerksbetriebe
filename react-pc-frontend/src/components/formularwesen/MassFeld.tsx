@@ -5,7 +5,7 @@ import { validateDecimalInput } from '../../lib/numberInput';
 
 interface MassFeldProps {
     label: string;
-    /** Angezeigter Wert, bereits umgerechnet (z. B. „45,0“). */
+    /** Angezeigter Wert, bereits umgerechnet (z. B. „45,0"). */
     anzeige: string;
     einheit: string;
     min: number;

@@ -1431,11 +1431,11 @@ describe('DocumentEditor – Rückgängig & Wiederholen', () => {
         await waitFor(() => expect(screen.getByDisplayValue('Dachrinne reinigen')).toBeInTheDocument(), { timeout: 3000 });
     }
 
-    /** Loeschen-Knopf einer Karte (traegt svg.lucide-trash2). */
+    /** Loeschen-Knopf einer Karte (traegt svg.lucide-trash-2). */
     function muelleimer(container: HTMLElement, blockId: string): HTMLButtonElement {
         const treffer = Array.from(
             container.querySelectorAll<HTMLButtonElement>(`[data-block-id="${blockId}"] button`)
-        ).find(b => b.querySelector('svg.lucide-trash2'));
+        ).find(b => b.querySelector('svg.lucide-trash-2'));
         if (!treffer) throw new Error(`Kein Löschen-Knopf für Block ${blockId} gefunden`);
         return treffer;
     }
@@ -1908,7 +1908,7 @@ describe('DocumentEditor – Als neue Leistung speichern', () => {
 
         await waitFor(() => expect(screen.queryByRole('dialog', { name: 'Als neue Leistung speichern' })).not.toBeInTheDocument());
         expect(knopf()).not.toBeInTheDocument();
-        expect(await screen.findByText(/Neue Leistung „Geländer montieren, V4A“ im Ordner „Geländer › Edelstahl“ gespeichert/)).toBeInTheDocument();
+        expect(await screen.findByText(/Neue Leistung „Geländer montieren, V4A" im Ordner „Geländer › Edelstahl" gespeichert/)).toBeInTheDocument();
 
         // Kein haengender "Dialog offen"-Zustand: Rückgängig ist bedienbar und
         // nimmt genau die Verknuepfung zurueck.
@@ -1994,7 +1994,7 @@ describe('DocumentEditor – einfache Rechnung schliesst den Auftrag ab', () => 
     function muelleimer(container: HTMLElement, blockId: string): HTMLButtonElement {
         const treffer = Array.from(
             container.querySelectorAll<HTMLButtonElement>(`[data-block-id="${blockId}"] button`)
-        ).find(b => b.querySelector('svg.lucide-trash2'));
+        ).find(b => b.querySelector('svg.lucide-trash-2'));
         if (!treffer) throw new Error(`Kein Löschen-Knopf für Block ${blockId} gefunden`);
         return treffer;
     }
@@ -2123,9 +2123,9 @@ describe('DocumentEditor – einfache Rechnung schliesst den Auftrag ab', () => 
 
 describe('DocumentEditor – Timer nach dem Schließen', () => {
     // Regression (CI-Lauf zu PR #317): Nach erfolgreichem Speichern zeigt der
-    // Knopf 2 s lang „Gespeichert“. Der Timer dafür wurde beim Schließen des
+    // Knopf 2 s lang „Gespeichert". Der Timer dafür wurde beim Schließen des
     // Editors nicht abgeräumt und feuerte nach Testende, als jsdom schon
-    // abgebaut war („window is not defined“) – der ganze Testlauf brach ab.
+    // abgebaut war („window is not defined") – der ganze Testlauf brach ab.
     let fetchMock: ReturnType<typeof mockFetch>;
 
     beforeEach(() => {
@@ -2140,7 +2140,7 @@ describe('DocumentEditor – Timer nach dem Schließen', () => {
         vi.restoreAllMocks();
     });
 
-    it('lässt nach dem Schließen keinen „Gespeichert“-Timer zurück', async () => {
+    it('lässt nach dem Schließen keinen „Gespeichert"-Timer zurück', async () => {
         vi.useFakeTimers();
         const { unmount } = renderEditor();
         await warteMitFakeTimern(() => expect(zahlungszielFeld()).toHaveValue('14'));

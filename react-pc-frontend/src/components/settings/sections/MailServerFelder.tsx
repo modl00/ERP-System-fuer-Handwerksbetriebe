@@ -26,7 +26,7 @@ export function AnbieterAuswahl({ id, wert, onChange }: { id: string; wert: stri
 }
 
 interface ServerBlockProps {
-    /** Eindeutiger Anfang der Feld-Kennungen, zum Beispiel „postfachSmtp“ */
+    /** Eindeutiger Anfang der Feld-Kennungen, zum Beispiel „postfachSmtp" */
     idPrefix: string;
     art: Art;
     titel: string;

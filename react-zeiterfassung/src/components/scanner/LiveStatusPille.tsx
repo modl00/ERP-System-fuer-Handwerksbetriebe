@@ -12,7 +12,7 @@ interface LiveStatusPilleProps {
 
 /**
  * Kurzer Hinweis oben im Kamerabild, was der Scanner gerade tut.
- * aria-live="polite": Die Aufnahme selbst ist so kurz, dass „assertive“
+ * aria-live="polite": Die Aufnahme selbst ist so kurz, dass „assertive"
  * nur andere Ansagen abschneiden würde.
  */
 export default function LiveStatusPille({ erkennung, phase, anzahlSeiten }: LiveStatusPilleProps) {

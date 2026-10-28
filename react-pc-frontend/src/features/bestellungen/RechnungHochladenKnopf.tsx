@@ -18,7 +18,7 @@ interface RechnungHochladenKnopfProps {
 }
 
 /**
- * „Rechnung hochladen“: öffnet die Dateiauswahl (PDF, JPG, PNG), lädt hoch und
+ * „Rechnung hochladen": öffnet die Dateiauswahl (PDF, JPG, PNG), lädt hoch und
  * hängt die Rechnung sofort an die Bestellung. Das Auslesen läuft danach im Hintergrund.
  */
 export function RechnungHochladenKnopf({ bestellDokumentId, onHochgeladen, variant = 'outline', className }: RechnungHochladenKnopfProps) {

@@ -37,7 +37,7 @@ function Inhalt({ typen, onSchliessen }: Props) {
         setFehler('');
         try {
             setListe(await speichereZuordnung(z.arbeitsgangId, wert === '' ? null : Number(wert)));
-            toast.success(`„${z.arbeitsgang}“ ist zugeordnet. Die Plantafel hat sich neu gerechnet.`);
+            toast.success(`„${z.arbeitsgang}" ist zugeordnet. Die Plantafel hat sich neu gerechnet.`);
         } catch (e) {
             setFehler(e instanceof Error ? e.message : 'Die Zuordnung konnte nicht gespeichert werden.');
         } finally {

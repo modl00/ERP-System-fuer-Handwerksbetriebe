@@ -172,7 +172,7 @@ export default function WartungUebersicht() {
         setAendert(true);
         try {
             const r = await aendereProtokollart([...ausgewaehlt], neueArt);
-            if (r.geaendert > 0) toast.success(`${r.geaendert} ${r.geaendert === 1 ? 'Wartung ist' : 'Wartungen sind'} jetzt als „${neueArt}“ eingetragen.`);
+            if (r.geaendert > 0) toast.success(`${r.geaendert} ${r.geaendert === 1 ? 'Wartung ist' : 'Wartungen sind'} jetzt als „${neueArt}" eingetragen.`);
             if (r.uebersprungen.length > 0) {
                 toast.warning(`Nicht geändert: ${r.uebersprungen.map((u) => `${u.nummer ?? 'Nr. ' + u.id} (${u.grund})`).join(' · ')}`);
             } else if (r.geaendert === 0) {
@@ -279,7 +279,7 @@ export default function WartungUebersicht() {
                                 </div>
                             </div>
                         </div>
-                        {datumFalsch && <p role="alert" className="mt-3 text-sm text-rose-700">Das Datum „von“ liegt nach dem Datum „bis“.</p>}
+                        {datumFalsch && <p role="alert" className="mt-3 text-sm text-rose-700">Das Datum „von" liegt nach dem Datum „bis".</p>}
                     </Card>
 
                     {ladeStatus === 'laedt' && (

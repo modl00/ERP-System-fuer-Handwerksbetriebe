@@ -24,7 +24,7 @@ export interface AbsenderPostfach extends PostfachKurz {
     hauptpostfach: boolean;
     /**
      * Als Absender wählbar? `false` beim Postfach für Rechnungen & Mahnungen – es steht nur
-     * als eigene Adresse in der Liste (wird bei „Allen antworten“ nicht mit angeschrieben),
+     * als eigene Adresse in der Liste (wird bei „Allen antworten" nicht mit angeschrieben),
      * darüber gehen aber nur Dokumente aus dem Dokument-Editor raus. Fehlt (ältere Antwort) → wählbar.
      */
     waehlbar?: boolean;
@@ -117,25 +117,25 @@ export interface PostfachTestErgebnis {
     message: string;
 }
 
-/** Lokaler Teil der Adresse mit @, z. B. „info@“ – für das kleine Postfach-Schild. */
+/** Lokaler Teil der Adresse mit @, z. B. „info@" – für das kleine Postfach-Schild. */
 export function lokalerTeil(adresse: string): string {
     const at = adresse.indexOf('@');
     return at > 0 ? adresse.slice(0, at + 1) : adresse;
 }
 
-/** „Anzeigename <adresse>“ bzw. nur die Adresse, wenn kein Name hinterlegt ist. */
+/** „Anzeigename <adresse>" bzw. nur die Adresse, wenn kein Name hinterlegt ist. */
 export function formatPostfach(postfach: PostfachKurz): string {
     const name = postfach.anzeigename?.trim();
     return name ? `${name} <${postfach.emailAdresse}>` : postfach.emailAdresse;
 }
 
-/** Postfächer, die in „Senden von“ zur Auswahl stehen (ohne das Postfach für Rechnungen & Mahnungen). */
+/** Postfächer, die in „Senden von" zur Auswahl stehen (ohne das Postfach für Rechnungen & Mahnungen). */
 export function nurWaehlbareAbsender(postfaecher: AbsenderPostfach[]): AbsenderPostfach[] {
     return postfaecher.filter(p => p.waehlbar !== false);
 }
 
 /**
- * Vorbelegung für „Senden von“: eigenes Postfach, sonst Hauptpostfach,
+ * Vorbelegung für „Senden von": eigenes Postfach, sonst Hauptpostfach,
  * sonst das erste der Liste – jeweils nur unter den wählbaren. `null` nur, wenn keins wählbar ist.
  */
 export function waehleStandardAbsender(postfaecher: AbsenderPostfach[]): AbsenderPostfach | null {
@@ -156,8 +156,8 @@ export function parseAbsenderPostfaecher(data: unknown): AbsenderPostfach[] {
 }
 
 /**
- * Relative Zeitangabe für den Abruf-Status, z. B. „gerade eben“, „vor 2 Min.“,
- * „vor 3 Std.“, „vor 2 Tagen“.
+ * Relative Zeitangabe für den Abruf-Status, z. B. „gerade eben", „vor 2 Min.",
+ * „vor 3 Std.", „vor 2 Tagen".
  */
 export function formatVorZeit(iso: string, jetzt: Date = new Date()): string {
     const zeitpunkt = new Date(iso).getTime();
@@ -234,7 +234,7 @@ export function parsePostfaecher(data: unknown): PostfachDto[] {
     return data.map(parsePostfach).filter((p): p is PostfachDto => p !== null);
 }
 
-/** Eintrag der Häkchen-Liste „Benutzer“ auf der Berechtigungen-Seite. */
+/** Eintrag der Häkchen-Liste „Benutzer" auf der Berechtigungen-Seite. */
 export interface SichtbarkeitsBenutzer extends SichtbarBenutzer {
     aktiv: boolean;
 }
@@ -276,9 +276,9 @@ export function passtZurSuche(text: string, suche: string): boolean {
 }
 
 export interface SichtbarkeitsAnzeige {
-    /** Kurzer Text für die Liste, z. B. „alle“ oder „Büro, Max Mustermann“. */
+    /** Kurzer Text für die Liste, z. B. „alle" oder „Büro, Max Mustermann". */
     text: string;
-    /** Wie viele Namen nicht mehr in den Text gepasst haben („+3“). */
+    /** Wie viele Namen nicht mehr in den Text gepasst haben („+3"). */
     weitere: number;
     /** Vollständige Aufzählung für den Tooltip. */
     vollstaendig: string;
@@ -286,14 +286,14 @@ export interface SichtbarkeitsAnzeige {
 
 /**
  * Hauptpostfach und das Postfach für Rechnungen & Mahnungen sieht immer jeder im
- * Betrieb (Nutzervorgabe) – dort gibt es keine Auswahl „Nur bestimmte“.
+ * Betrieb (Nutzervorgabe) – dort gibt es keine Auswahl „Nur bestimmte".
  */
 export function immerFuerAlleSichtbar(postfach: Pick<PostfachDto, 'hauptpostfach' | 'fuerGeschaeftsdokumente'>): boolean {
     return postfach.hauptpostfach || postfach.fuerGeschaeftsdokumente;
 }
 
 /**
- * Was in der Postfach-Liste hinter „Sichtbar:“ steht. Abteilungen zuerst, dann
+ * Was in der Postfach-Liste hinter „Sichtbar:" steht. Abteilungen zuerst, dann
  * Benutzer; ab `maxNamen` wird gekürzt und der Rest als Zahl angegeben.
  */
 export function beschreibeSichtbarkeit(postfach: PostfachDto, maxNamen = 3): SichtbarkeitsAnzeige {

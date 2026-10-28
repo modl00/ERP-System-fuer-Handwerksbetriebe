@@ -20,7 +20,7 @@ export function verbindeEmpfaenger(liste: string[]): string {
 /**
  * Teilt die laufende Eingabe: Alles vor dem letzten Komma/Semikolon ist fertig getippt
  * und wird zum Kärtchen, der Rest bleibt im Eingabefeld. Kommas in Anführungszeichen
- * („Mustermann, Max“) trennen nicht.
+ * („Mustermann, Max") trennen nicht.
  */
 export function teileEingabe(text: string): { fertig: string[]; rest: string } {
     let inAnfuehrung = false;

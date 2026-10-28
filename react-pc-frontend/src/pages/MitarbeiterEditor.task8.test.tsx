@@ -8,7 +8,7 @@ import MitarbeiterEditor from './MitarbeiterEditor';
 
 const auth = vi.hoisted(() => ({ isAdmin: true, user: null as null | { mitarbeiter?: { id: number } } }));
 vi.mock('../auth/AuthContext', () => ({ useAuth: () => auth }));
-// Recht „Zeiterfassung sehen“: true = ja, false = nein, null = wird noch geprüft.
+// Recht „Zeiterfassung sehen": true = ja, false = nein, null = wird noch geprüft.
 const zeiterfassung = vi.hoisted(() => ({ darf: true as boolean | null }));
 vi.mock('../features/zeiterfassung/useZeiterfassungSichtbarkeit', () => ({ useZeiterfassungSichtbarkeit: () => zeiterfassung.darf }));
 
@@ -229,7 +229,7 @@ describe('MitarbeiterEditor Task 8 – atomare Arbeitszeit', () => {
         expect(await screen.findByRole('button', { name: /Token erstellen/ })).toBeVisible();
     });
 
-    it('zeigt ohne Recht „Zeiterfassung sehen“ nur einen Hinweis und lädt keine Arbeitszeit', async () => {
+    it('zeigt ohne Recht „Zeiterfassung sehen" nur einen Hinweis und lädt keine Arbeitszeit', async () => {
         const user = userEvent.setup();
         zeiterfassung.darf = false;
         renderEditor();

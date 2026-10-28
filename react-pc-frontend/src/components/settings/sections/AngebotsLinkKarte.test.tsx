@@ -30,7 +30,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 const zeige = () => render(<ToastProvider><AngebotsLinkKarte /></ToastProvider>);
 
 describe('AngebotsLinkKarte', () => {
-    it('neue Installation: Schalter aus, keine Adresse, Hinweis „ohne Link“, Speichern gesperrt', async () => {
+    it('neue Installation: Schalter aus, keine Adresse, Hinweis „ohne Link", Speichern gesperrt', async () => {
         zeige();
 
         expect(await screen.findByText('Angebots-E-Mails gehen ohne Link raus.')).toBeInTheDocument();

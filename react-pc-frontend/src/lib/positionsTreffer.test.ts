@@ -62,7 +62,7 @@ describe('normalisiere', () => {
         expect(normalisiere('Blech 2000 x 1000 x 3')).toBe('blech 2000x1000x3');
         expect(normalisiere('Rohr 33,7*2,6')).toBe('rohr 33,7x2,6');
         expect(normalisiere('  Winkel\t\u00a0 50  X  50  ')).toBe('winkel 50x50');
-        // „x“ ohne Ziffern auf beiden Seiten bleibt mit Leerraum stehen
+        // „x" ohne Ziffern auf beiden Seiten bleibt mit Leerraum stehen
         expect(normalisiere('Box x 5')).toBe('box x 5');
         expect(normalisiere('5 x Box')).toBe('5 x box');
         expect(normalisiere('x 5')).toBe('x 5');
@@ -225,7 +225,7 @@ describe('hervorhebungsStuecke', () => {
     });
 
     it('markiert nichts, wenn Kleinschreiben die Länge ändert', () => {
-        // „İ“ wird klein zu zwei Zeichen – die Positionen passten nicht mehr
+        // „İ" wird klein zu zwei Zeichen – die Positionen passten nicht mehr
         expect(hervorhebungsStuecke('İnox Stahl', 'stahl')).toEqual([{ text: 'İnox Stahl', treffer: false }]);
     });
 

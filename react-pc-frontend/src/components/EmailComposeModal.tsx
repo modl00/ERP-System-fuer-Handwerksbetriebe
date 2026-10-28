@@ -78,7 +78,7 @@ interface EmailComposeModalProps {
     gueltigkeitTage?: number;
     /** Optional callback after successful email send */
     onSuccess?: () => void;
-    /** Siehe EmailComposeForm: läuft nach Klick auf „Senden“, vor dem Versand (z. B. Buchen). */
+    /** Siehe EmailComposeForm: läuft nach Klick auf „Senden", vor dem Versand (z. B. Buchen). */
     vorDemSenden?: () => Promise<VorDemSendenErgebnis>;
     /** Siehe EmailComposeForm: Vorschau/Download der angehängten Datei sperren, Hinweis zeigen. */
     anhangVorschauGesperrt?: string;

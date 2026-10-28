@@ -26,12 +26,12 @@ interface Props {
 /** Was gilt, wenn am Artikel selbst kein Aufschlag steht: der der Kategorie, sonst der allgemeine. */
 function geltenderAufschlagText(a: Artikel): string {
     const prozent = a.wirksamProzent == null ? "" : `${formatZahl(a.wirksamProzent, 2)} %`;
-    if (a.wirksamQuelle === "KATEGORIE") return `Leer: es gilt ${prozent} von „${a.wirksamVon || "Kategorie"}“.`;
+    if (a.wirksamQuelle === "KATEGORIE") return `Leer: es gilt ${prozent} von „${a.wirksamVon || "Kategorie"}".`;
     if (a.wirksamQuelle === "ALLGEMEIN") return `Leer: es gilt der allgemeine Aufschlag von ${prozent}.`;
     return "Leer: es gilt kein Aufschlag, der Preis ist der Einkaufspreis.";
 }
 
-/** Reiter „Für Angebote“: was der Kunde liest, wenn dieses Material in einem Angebot steht. */
+/** Reiter „Für Angebote": was der Kunde liest, wenn dieses Material in einem Angebot steht. */
 export function AngeboteReiter({ artikel, felder, onAendern, speichert, onSpeichern }: Props) {
     return (
         <section className="bg-white border border-slate-200 rounded-lg p-5">

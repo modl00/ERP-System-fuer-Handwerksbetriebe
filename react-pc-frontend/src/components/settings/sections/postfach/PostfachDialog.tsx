@@ -17,8 +17,8 @@ import type {
     PostfachTestRequest,
 } from '../../../../features/email/postfach';
 
-const AUSLAUFEND_KEIN_HAUPTPOSTFACH = 'Ein auslaufendes Postfach kann nicht Hauptpostfach werden. Zuerst „Läuft aus“ abwählen.';
-const AUSLAUFEND_KEIN_RECHNUNGSPOSTFACH = 'Ein auslaufendes Postfach kann nicht für Rechnungen & Mahnungen genutzt werden. Zuerst „Läuft aus“ abwählen.';
+const AUSLAUFEND_KEIN_HAUPTPOSTFACH = 'Ein auslaufendes Postfach kann nicht Hauptpostfach werden. Zuerst „Läuft aus" abwählen.';
+const AUSLAUFEND_KEIN_RECHNUNGSPOSTFACH = 'Ein auslaufendes Postfach kann nicht für Rechnungen & Mahnungen genutzt werden. Zuerst „Läuft aus" abwählen.';
 
 /** Standard-Ports bei Hetzner und den meisten Anbietern (SSL). */
 const SMTP_PORT_STANDARD = '465';
@@ -188,7 +188,7 @@ export function PostfachDialog({
             smtpPort: lesePort(formular.smtpPort) ?? null,
             imapHost: leerZuNull(formular.imapHost),
             imapPort: lesePort(formular.imapPort) ?? null,
-            // Sichtbarkeit wird unter Einstellungen → Berechtigungen gepflegt: hier immer unverändert.
+            // Sichtbarkeit wird unter Einstellungen → Abteilungen & Rechte gepflegt: hier immer unverändert.
             sichtbarFuerAlle: null,
             abteilungIds: null,
             benutzerIds: null,
@@ -274,7 +274,7 @@ export function PostfachDialog({
     ].filter(Boolean).join(' · ');
 
     const beschaeftigt = speichert || testet;
-    // „Läuft aus“ verträgt sich nicht mit Hauptpostfach und Rechnungs-Postfach – in beide Richtungen sperren.
+    // „Läuft aus" verträgt sich nicht mit Hauptpostfach und Rechnungs-Postfach – in beide Richtungen sperren.
     const auslaufenGesperrtGrund = formular.hauptpostfach
         ? 'Das Hauptpostfach kann nicht auslaufen. Bitte zuerst ein anderes Postfach zum Hauptpostfach machen.'
         : formular.fuerGeschaeftsdokumente
@@ -286,7 +286,7 @@ export function PostfachDialog({
         .some(feld => formular[feld] !== ausgangsstand[feld]);
 
     /**
-     * Link „Einstellungen → Berechtigungen“: wechselt den Reiter und schließt damit den Dialog.
+     * Link „Einstellungen → Abteilungen & Rechte": wechselt den Reiter und schließt damit den Dialog.
      * Ungespeicherte Eingaben gehen dabei nicht still verloren – erst nachfragen.
      */
     const zuDenBerechtigungen = async (event: MouseEvent<HTMLAnchorElement>) => {
@@ -294,7 +294,7 @@ export function PostfachDialog({
         event.preventDefault();
         const ok = await confirm({
             title: 'Änderungen verwerfen?',
-            message: 'Sie haben noch nicht gespeichert. Trotzdem zu den Berechtigungen wechseln?',
+            message: 'Sie haben noch nicht gespeichert. Trotzdem zu „Abteilungen & Rechte" wechseln?',
             confirmLabel: 'Verwerfen',
             cancelLabel: 'Weiter bearbeiten',
             variant: 'warning',
@@ -457,7 +457,7 @@ export function PostfachDialog({
                         <span>
                             Wer dieses Postfach sehen darf, legen Sie unter{' '}
                             <a href="#berechtigungen" onClick={(e) => void zuDenBerechtigungen(e)} className="font-medium text-rose-700 underline-offset-2 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 rounded">
-                                Einstellungen → Berechtigungen
+                                Einstellungen → Abteilungen & Rechte
                             </a>{' '}
                             fest.
                         </span>
@@ -488,7 +488,7 @@ export function PostfachDialog({
                                     <p>Mit diesen Angaben holt das Programm regelmäßig neue E-Mails ab (Posteingang, IMAP) und verschickt Ihre E-Mails (Postausgang, SMTP).</p>
                                 </InfoAbschnitt>
                                 <InfoAbschnitt titel="Was bewirkt das?">
-                                    <p>Ohne diese Angaben werden keine E-Mails abgerufen oder verschickt. Die Werte nennt Ihr E-Mail-Anbieter (oft auf seiner Hilfeseite unter „IMAP/SMTP“).</p>
+                                    <p>Ohne diese Angaben werden keine E-Mails abgerufen oder verschickt. Die Werte nennt Ihr E-Mail-Anbieter (oft auf seiner Hilfeseite unter „IMAP/SMTP").</p>
                                     <p className="mt-1">Legen Sie später weitere Postfächer an, sind dort die Angaben des Hauptpostfachs schon eingetragen. Liegt ein Postfach bei einem anderen Anbieter, ändern Sie sie dort einfach.</p>
                                 </InfoAbschnitt>
                             </InfoButton>

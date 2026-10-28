@@ -3,7 +3,7 @@ import { Drawer as DrawerPrimitive } from 'vaul'
 import { cn } from '../../lib/utils'
 
 /**
- * Bottom-Sheet auf Basis von vaul – der shadcn-Baustein „drawer“, über den
+ * Bottom-Sheet auf Basis von vaul – der shadcn-Baustein „drawer", über den
  * shadcn-MCP bezogen und auf unser Design-System umgestellt: weiße Fläche,
  * rounded-t-3xl, Griff oben, Scrim mit Weichzeichner. Lässt sich mit dem
  * Finger nach unten zuziehen. Meldungen (Toasts) schweben darüber und lassen

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState, type ReactNode } from 'react';
-import { Bell, CalendarCheck, Percent, Plus, Shield, Trash2, Users, Wallet } from 'lucide-react';
+import { Bell, CalendarCheck, Plus, Shield, Trash2, Users, Wallet } from 'lucide-react';
 import { InfoAbschnitt, InfoButton } from '../../ui/info-button';
 import { Button } from '../../ui/button';
 import { useToast } from '../../ui/toast';
@@ -13,7 +13,7 @@ import { setzeZeiterfassungSichtbarkeitZurueck } from '../../../features/zeiterf
  * Eingangsrechnungen, Zeiterfassung im Menü, Monatsabschluss, Telefon und Push-Nachrichten. Ganz oben:
  * wer welches E-Mail-Postfach sieht ({@link PostfachSichtbarkeitKarte}).
  *
- * <p>War vorher eine eigene Seite „Lieferanten-Dokumentenrechte" mit eigenem
+ * <p>War vorher eine eigene Seite „Lieferanten-Dokumentenrechte“ mit eigenem
  * Look (blauer Infokasten, grüne Kästchen neben normalen Häkchen). Als Reiter
  * der Einstellungen nutzt sie jetzt dieselben Karten und Häkchen wie die
  * übrigen Bereiche.</p>
@@ -36,7 +36,6 @@ interface AbteilungBerechtigung {
     darfRechnungenSehen: boolean;
     darfFreigabeAnnahmePushen: boolean;
     darfWebseitenAnfragenPushen: boolean;
-    darfAufschlaegeAendern: boolean;
 }
 
 type Schalter =
@@ -46,8 +45,7 @@ type Schalter =
     | 'darfRechnungenGenehmigen'
     | 'darfRechnungenSehen'
     | 'darfFreigabeAnnahmePushen'
-    | 'darfWebseitenAnfragenPushen'
-    | 'darfAufschlaegeAendern';
+    | 'darfWebseitenAnfragenPushen';
 
 const DOKUMENT_TYP_LABELS: Record<string, string> = {
     ANGEBOT: 'Angebot',
@@ -73,7 +71,6 @@ function normalisiere(abt: AbteilungBerechtigung): AbteilungBerechtigung {
         darfRechnungenSehen: abt.darfRechnungenSehen === true,
         darfFreigabeAnnahmePushen: abt.darfFreigabeAnnahmePushen === true,
         darfWebseitenAnfragenPushen: abt.darfWebseitenAnfragenPushen === true,
-        darfAufschlaegeAendern: abt.darfAufschlaegeAendern === true,
     };
 }
 
@@ -108,7 +105,7 @@ function ZeiterfassungSichtbarkeitInfo() {
         <InfoButton titel="Zeiterfassung im Menü sehen">
             <InfoAbschnitt titel="Was passiert im Hintergrund?">
                 <p>
-                    Mitarbeiter dieser Abteilung sehen am PC den Bereich „Zeiterfassung" mit Kalender, Urlaubsanträgen,
+                    Mitarbeiter dieser Abteilung sehen am PC den Bereich „Zeiterfassung“ mit Kalender, Urlaubsanträgen,
                     Monatsabschluss, Lange Krankheit und den übrigen Seiten. Administratoren und die Geschäftsführung
                     sehen ihn immer. Gehört ein Mitarbeiter zu mehreren Abteilungen, reicht ein Haken.
                 </p>
@@ -117,27 +114,8 @@ function ZeiterfassungSichtbarkeitInfo() {
                 <p>
                     Ohne Haken verschwindet der Bereich aus dem Menü, und das Programm gibt die Zeiten, Abwesenheiten und
                     Urlaubsanträge anderer Mitarbeiter an diesen Zugang auch nicht mehr heraus. Im Termin-Kalender sieht er
-                    kranke Kollegen nur als „Abwesend". Das Stempeln und Urlaub-Beantragen in der Handy-App bleibt davon
+                    kranke Kollegen nur als „Abwesend“. Das Stempeln und Urlaub-Beantragen in der Handy-App bleibt davon
                     unberührt. Ein PC-Zugang ohne verknüpften Mitarbeiter sieht den Bereich nur als Administrator.
-                </p>
-            </InfoAbschnitt>
-        </InfoButton>
-    );
-}
-
-function AufschlaegeInfo() {
-    return (
-        <InfoButton titel="Aufschläge ändern">
-            <InfoAbschnitt titel="Was passiert im Hintergrund?">
-                <p>
-                    Mitarbeiter dieser Abteilung sehen in der Artikelübersicht den Knopf „Aufschläge" und dürfen dort den allgemeinen Aufschlag und
-                    den Aufschlag je Kategorie ändern. Administratoren dürfen das immer. Gehört ein Mitarbeiter zu mehreren Abteilungen, reicht ein Haken.
-                </p>
-            </InfoAbschnitt>
-            <InfoAbschnitt titel="Was bewirkt das?">
-                <p>
-                    Ohne dieses Recht sehen und ändern andere den allgemeinen Aufschlag und die Aufschläge der Kategorien nicht. Der Aufschlag direkt am Artikel kann weiterhin jeder Benutzer
-                    ändern. Der Preisvorschlag ändert sich nach einer Änderung sofort; bereits erstellte Angebote und Rechnungen bleiben unverändert.
                 </p>
             </InfoAbschnitt>
         </InfoButton>
@@ -271,7 +249,6 @@ export function BerechtigungenSection() {
                     darfRechnungenSehen: abteilung.darfRechnungenSehen,
                     darfFreigabeAnnahmePushen: abteilung.darfFreigabeAnnahmePushen,
                     darfWebseitenAnfragenPushen: abteilung.darfWebseitenAnfragenPushen,
-                    darfAufschlaegeAendern: abteilung.darfAufschlaegeAendern,
                 }),
             });
             if (!res.ok) {
@@ -279,7 +256,7 @@ export function BerechtigungenSection() {
                     ? 'Nur Administratoren dürfen Berechtigungen ändern.'
                     : 'Berechtigungen konnten nicht gespeichert werden.');
             }
-            toast.success(`Rechte für „${abteilung.abteilungName}" gespeichert.`);
+            toast.success(`Rechte für „${abteilung.abteilungName}“ gespeichert.`);
             // Betrifft die Änderung die eigene Abteilung, sollen Menü und Seiten sofort folgen.
             setzeZeiterfassungSichtbarkeitZurueck();
             setSaveSuccess(abteilung.abteilungId);
@@ -302,10 +279,10 @@ export function BerechtigungenSection() {
                     title="Rechte pro Abteilung"
                     description={
                         <>
-                            <p>Hier legen Sie fest, was die Mitarbeiter einer Abteilung sehen und tun dürfen.</p>
+                            <p>Hier legst du fest, was die Mitarbeiter einer Abteilung sehen und tun dürfen.</p>
                             <p>
                                 <strong className="font-medium text-slate-700">Sehen:</strong> Der Mitarbeiter sieht diese Dokumente in der App.{' '}
-                                <strong className="font-medium text-slate-700">Scannen:</strong> Er darf sie auch hochladen – das schließt „Sehen" mit ein.
+                                <strong className="font-medium text-slate-700">Scannen:</strong> Er darf sie auch hochladen – das schließt „Sehen“ mit ein.
                             </p>
                         </>
                     }
@@ -415,19 +392,11 @@ export function BerechtigungenSection() {
                                             erklaerung="Sieht nur schon genehmigte Eingangsrechnungen (Buchhaltung)." />
                                     </Gruppe>
 
-                                    <Gruppe icon={<Percent className="h-4 w-4 text-rose-600" />} titel="Preise">
-                                        <RechtZeile checked={abt.darfAufschlaegeAendern} disabled={sperre}
-                                            onChange={() => schalte(abt.abteilungId, 'darfAufschlaegeAendern')}
-                                            titel="Aufschläge ändern"
-                                            erklaerung="Darf in der Artikelübersicht den allgemeinen Aufschlag und den Aufschlag je Kategorie einstellen."
-                                            info={<AufschlaegeInfo />} />
-                                    </Gruppe>
-
                                     <Gruppe icon={<CalendarCheck className="h-4 w-4 text-rose-600" />} titel="Zeiterfassung, Monatsabschluss & Telefon">
                                         <RechtZeile checked={abt.darfZeiterfassungSehen} disabled={sperre}
                                             onChange={() => schalte(abt.abteilungId, 'darfZeiterfassungSehen')}
                                             titel="Zeiterfassung im Menü sehen"
-                                            erklaerung='Zeigt am PC den Bereich „Zeiterfassung" in der Menüleiste.'
+                                            erklaerung="Zeigt am PC den Bereich „Zeiterfassung“ in der Menüleiste."
                                             info={<ZeiterfassungSichtbarkeitInfo />} />
                                         <RechtZeile checked={abt.darfMonatAbschliessen} disabled={sperre}
                                             onChange={() => schalte(abt.abteilungId, 'darfMonatAbschliessen')}

@@ -33,7 +33,7 @@ interface PositionsZielZeileProps {
 }
 
 /**
- * Ziel (Projekt oder Kostenstelle) im Modus „Nach Positionen“ – zugleich
+ * Ziel (Projekt oder Kostenstelle) im Modus „Nach Positionen" – zugleich
  * Ablagefläche: Positionen hierher ziehen ordnet sie zu. Betrag und Anteil
  * kommen aus der Vorschau des Backends.
  */
@@ -130,7 +130,7 @@ export function PositionsZielZeile({
     );
 }
 
-/** Ablagefläche „Nicht zugeordnet“: hierher ziehen hebt die Zuordnung auf. */
+/** Ablagefläche „Nicht zugeordnet": hierher ziehen hebt die Zuordnung auf. */
 export function NichtZugeordnetAblage({ anzahlOffen }: { anzahlOffen: number }) {
     const { setNodeRef, isOver } = useDroppable({ id: ablageId('') });
     const gezogen = useGezogeneAnzahl();

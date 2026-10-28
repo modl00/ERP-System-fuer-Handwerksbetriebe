@@ -92,7 +92,7 @@ describe('CreateArticleModal', () => {
         expect(await screen.findByText('Artikel A-004143 ist angelegt.')).toBeInTheDocument();
     });
 
-    it('übernimmt Einheit und Werkstoff aus „Das Wichtigste“', async () => {
+    it('übernimmt Einheit und Werkstoff aus „Das Wichtigste"', async () => {
         const user = userEvent.setup();
         renderModal();
         await nameEintragen();
@@ -107,7 +107,7 @@ describe('CreateArticleModal', () => {
         expect(postBody()).toMatchObject({ verrechnungseinheit: 'LAUFENDE_METER', werkstoffId: 4 });
     });
 
-    it('schickt die unveränderte Vorschau auch bei „Eigene Nummer“ als null, eine echte eigene Nummer aber mit', async () => {
+    it('schickt die unveränderte Vorschau auch bei „Eigene Nummer" als null, eine echte eigene Nummer aber mit', async () => {
         const user = userEvent.setup();
         renderModal();
         await nameEintragen();
@@ -125,7 +125,7 @@ describe('CreateArticleModal', () => {
         expect(postBody().artikelnummer).toBe('FL-20-10');
     });
 
-    it('schickt null, wenn im Feld „Eigene Nummer“ die Vorschau unverändert steht', async () => {
+    it('schickt null, wenn im Feld „Eigene Nummer" die Vorschau unverändert steht', async () => {
         const user = userEvent.setup();
         renderModal();
         await nameEintragen();
@@ -138,7 +138,7 @@ describe('CreateArticleModal', () => {
         expect(postBody().artikelnummer).toBeNull();
     });
 
-    it('wechselt mit „Automatisch“ zurück zur Vorschau', async () => {
+    it('wechselt mit „Automatisch" zurück zur Vorschau', async () => {
         const user = userEvent.setup();
         renderModal();
         await screen.findByText('A-004143 · wird automatisch vergeben');
@@ -154,7 +154,7 @@ describe('CreateArticleModal', () => {
         expect(await screen.findByText('wird beim Anlegen automatisch vergeben')).toBeInTheDocument();
     });
 
-    it('springt ohne Namen zurück auf „Das Wichtigste“ und setzt den Fokus ins Namensfeld', async () => {
+    it('springt ohne Namen zurück auf „Das Wichtigste" und setzt den Fokus ins Namensfeld', async () => {
         const user = userEvent.setup();
         renderModal();
 
@@ -167,7 +167,7 @@ describe('CreateArticleModal', () => {
         expect(artikelPosts()).toHaveLength(0);
     });
 
-    it('führt mit „Weiter“ durch die Reiter; auf dem letzten gibt es kein „Weiter“', async () => {
+    it('führt mit „Weiter" durch die Reiter; auf dem letzten gibt es kein „Weiter"', async () => {
         const user = userEvent.setup();
         renderModal();
 
@@ -215,7 +215,7 @@ describe('CreateArticleModal', () => {
     });
 
     it('zeigt die Meldung des Servers bei einer vergebenen Artikelnummer und legt nichts an', async () => {
-        postAntwort = { ok: false, status: 400, body: { status: 400, message: 'Die Artikelnummer „4711“ ist schon vergeben.' } };
+        postAntwort = { ok: false, status: 400, body: { status: 400, message: 'Die Artikelnummer „4711" ist schon vergeben.' } };
         const user = userEvent.setup();
         const { onSave } = renderModal();
 
@@ -225,7 +225,7 @@ describe('CreateArticleModal', () => {
         await user.type(screen.getByLabelText('Artikel-Nr.'), '4711');
         await user.click(screen.getByRole('button', { name: 'Artikel anlegen' }));
 
-        expect(await screen.findByText('Die Artikelnummer „4711“ ist schon vergeben.')).toBeInTheDocument();
+        expect(await screen.findByText('Die Artikelnummer „4711" ist schon vergeben.')).toBeInTheDocument();
         expect(onSave).not.toHaveBeenCalled();
         // Nach dem Fehler darf man es erneut versuchen
         expect(screen.getByRole('button', { name: 'Artikel anlegen' })).toBeEnabled();
@@ -291,7 +291,7 @@ describe('CreateArticleModal', () => {
         await user.upload(screen.getByLabelText('Unterlage auswählen'), new File(['pdf'], 'zeichnung.pdf', { type: 'application/pdf' }));
         await user.click(screen.getByRole('button', { name: 'Artikel anlegen' }));
 
-        expect(await screen.findByText('„zeichnung.pdf“ konnte nicht hochgeladen werden – du kannst sie auf der Artikelseite nachreichen.')).toBeInTheDocument();
+        expect(await screen.findByText('„zeichnung.pdf" konnte nicht hochgeladen werden – du kannst sie auf der Artikelseite nachreichen.')).toBeInTheDocument();
         await waitFor(() => expect(onSave).toHaveBeenCalledWith(expect.objectContaining({ id: 77 })));
     });
 

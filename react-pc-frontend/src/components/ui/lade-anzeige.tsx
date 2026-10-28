@@ -3,22 +3,22 @@ import { RefreshCw, WifiOff } from 'lucide-react';
 import { Button } from './button';
 import { cn } from '../../lib/utils';
 
-/** Ab hier gilt das Laden als „langsam“ – von unterwegs über Tailscale passiert das schnell. */
+/** Ab hier gilt das Laden als „langsam" – von unterwegs über Tailscale passiert das schnell. */
 export const LANGSAM_NACH_MS = 8000;
 
 interface LadeAnzeigeProps {
-    /** Was gerade geladen wird, z. B. „Anmeldung wird geprüft …“. */
+    /** Was gerade geladen wird, z. B. „Anmeldung wird geprüft …". */
     text: string;
     /** Füllt den ganzen Bildschirm (vor dem Seitenrahmen) statt nur den Inhaltsbereich. */
     vollbild?: boolean;
-    /** Was „Erneut versuchen“ tut. Standard: Seite neu laden. */
+    /** Was „Erneut versuchen" tut. Standard: Seite neu laden. */
     onErneut?: () => void;
     langsamNachMs?: number;
 }
 
 /**
  * Ladezustand mit Rückmeldung bei langsamer Verbindung: Dauert es länger als
- * {@link LANGSAM_NACH_MS}, erscheint ein Hinweis mit „Erneut versuchen“ – statt dass der
+ * {@link LANGSAM_NACH_MS}, erscheint ein Hinweis mit „Erneut versuchen" – statt dass der
  * Nutzer vor einem endlos drehenden Kreisel sitzt und rätselt, ob noch etwas passiert.
  */
 export function LadeAnzeige({ text, vollbild = false, onErneut, langsamNachMs = LANGSAM_NACH_MS }: LadeAnzeigeProps) {
@@ -57,7 +57,7 @@ interface VerbindungsHinweisProps {
     onErneut?: () => void;
 }
 
-/** Kurzer Hinweis mit „Erneut versuchen“ – für langsames Laden und für einen nicht erreichbaren Server. */
+/** Kurzer Hinweis mit „Erneut versuchen" – für langsames Laden und für einen nicht erreichbaren Server. */
 export function VerbindungsHinweis({ text, onErneut }: VerbindungsHinweisProps) {
     return (
         <div className="flex flex-col items-center gap-3 max-w-sm text-center">

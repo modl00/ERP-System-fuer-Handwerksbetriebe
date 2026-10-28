@@ -78,7 +78,7 @@ describe('Test-Box', { timeout: 30000 }, () => {
         await waitFor(() => expect(aufrufe('GET', '/api/testbox/punkte')).toHaveLength(2));
     });
 
-    it('„Funktioniert“ ohne Text liefert gleich einen Vorschlag zum Bestätigen', async () => {
+    it('„Funktioniert" ohne Text liefert gleich einen Vorschlag zum Bestätigen', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByRole('heading', { name: '#7 Menü' });

@@ -236,7 +236,7 @@ describe('Datenfelder im Feldeinsatz bearbeiten', () => {
 
     it('zeigt beim Umbenennen die Meldung des Servers, wenn es scheitert, und das Feld bleibt zum Bearbeiten offen', async () => {
         stubServer(protokoll(), (url, methode) => (url.endsWith('/definition') && methode === 'PUT'
-            ? antwort(409, { message: 'Dieses Protokoll ist „abgeschlossen“ und lässt sich nicht mehr ändern.' }) : undefined));
+            ? antwort(409, { message: 'Dieses Protokoll ist „abgeschlossen" und lässt sich nicht mehr ändern.' }) : undefined));
         zeige();
         await userEvent.click(await screen.findByRole('button', { name: 'Datenfeld umbenennen: Hersteller' }));
         const eingabe = screen.getByRole('textbox', { name: 'Datenfeld umbenennen: Hersteller' });

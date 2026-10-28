@@ -78,7 +78,7 @@ function sumStunden(buchungen: AuswertungBuchung[]): number {
     return buchungen.reduce((s, b) => s + (b.dauerMinuten ?? 0), 0) / 60;
 }
 
-/** Stunden im deutschen Format mit Komma und zwei Nachkommastellen, z. B. „7,50“. */
+/** Stunden im deutschen Format mit Komma und zwei Nachkommastellen, z. B. „7,50". */
 function formatStunden(wert: number): string {
     return wert.toLocaleString('de-DE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }

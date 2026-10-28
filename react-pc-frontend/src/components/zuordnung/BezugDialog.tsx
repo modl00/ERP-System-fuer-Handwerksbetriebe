@@ -10,7 +10,7 @@ import { formatEuro, istWare, type DokumentPosition } from './positionen';
 const UEBER_ZUORDNUNG_Z_INDEX = 50;
 
 /**
- * Erklärt, wozu „Gilt für“ an Nebenkosten und Rabatten da ist. Steht in der
+ * Erklärt, wozu „Gilt für" an Nebenkosten und Rabatten da ist. Steht in der
  * Überschrift des Änderungsdialogs und neben der Nebenkosten-Summe – nicht an
  * jeder Zeile, sonst wird die Positionsliste unruhig.
  */
@@ -47,9 +47,9 @@ interface BezugDialogProps {
 }
 
 /**
- * Kleiner Dialog „Wofür gilt dieser Zuschlag?“: auf alle Positionen verteilen
+ * Kleiner Dialog „Wofür gilt dieser Zuschlag?": auf alle Positionen verteilen
  * oder nur auf ausgewählte Warenpositionen. Übernehmen löst die Live-Vorschau
- * neu aus; Escape und „Abbrechen“ verwerfen die Änderung.
+ * neu aus; Escape und „Abbrechen" verwerfen die Änderung.
  */
 export function BezugDialog({ zuschlag, positionen, bezug, onUebernehmen, onAbbrechen }: BezugDialogProps) {
     const titelId = useId();
@@ -93,7 +93,7 @@ export function BezugDialog({ zuschlag, positionen, bezug, onUebernehmen, onAbbr
                             <ZuschlagBezugInfo />
                         </div>
                         <DialogDescription>
-                            {art} „{name}“ · {formatEuro(zuschlag.gesamtpreisNetto)} €
+                            {art} „{name}" · {formatEuro(zuschlag.gesamtpreisNetto)} €
                         </DialogDescription>
                     </DialogHeader>
 

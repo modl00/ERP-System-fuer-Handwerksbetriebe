@@ -145,12 +145,15 @@ export const CategoryTreeModal: React.FC<CategoryTreeModalProps> = ({
 
     const selectedParentLabel = useMemo(() => {
         if (!selectedNode) return 'Hauptkategorie';
-        return `Unter „${selectedNode.bezeichnung}“`;
+        return `Unter „${selectedNode.bezeichnung}"`;
     }, [selectedNode]);
 
-    useEffect(() => {
+    // Andere (oder aktualisierte) Kategorie gewählt: Rollen-Auswahl beim Rendern übernehmen.
+    const [rollenQuelle, setRollenQuelle] = useState(selectedNode);
+    if (selectedNode !== rollenQuelle) {
+        setRollenQuelle(selectedNode);
         setSelectedRollen(selectedNode?.typischeRollen || []);
-    }, [selectedNode]);
+    }
 
     const updateNodeRollen = useCallback((nodeId: number, typischeRollen: LieferantRolle[]) => {
         setRoots((prev) => prev.map((node) => (Number(node.id) === nodeId ? { ...node, typischeRollen } : node)));
@@ -197,23 +200,26 @@ export const CategoryTreeModal: React.FC<CategoryTreeModalProps> = ({
         }
     }, [selectedNode, selectedRollen, toast, updateNodeRollen]);
 
-    const loadRoots = useCallback(async () => {
-        setLoading(true);
-        try {
-            const res = await fetch('/api/artikel/kategorien/haupt');
-            if (!res.ok) {
-                throw new Error('Kategorien konnten nicht geladen werden.');
-            }
-            const data = await res.json();
-            setRoots(Array.isArray(data) ? data : []);
-        } catch (err) {
-            console.error(err);
-            toast.error('Kategorien konnten nicht geladen werden.');
-            setRoots([]);
-        } finally {
-            setLoading(false);
-        }
-    }, [toast]);
+    // Den Ladezustand zu Beginn setzt der Aufrufer (Startwert true bzw. Handler).
+    const loadRoots = useCallback(() =>
+        fetch('/api/artikel/kategorien/haupt')
+            .then((res) => {
+                if (!res.ok) {
+                    throw new Error('Kategorien konnten nicht geladen werden.');
+                }
+                return res.json();
+            })
+            .then((data) => {
+                setRoots(Array.isArray(data) ? data : []);
+            })
+            .catch((err) => {
+                console.error(err);
+                toast.error('Kategorien konnten nicht geladen werden.');
+                setRoots([]);
+            })
+            .finally(() => {
+                setLoading(false);
+            }), [toast]);
 
     const loadChildren = useCallback(async (parentId: number) => {
         try {
@@ -319,6 +325,7 @@ export const CategoryTreeModal: React.FC<CategoryTreeModalProps> = ({
                 throw new Error('Kategorie konnte nicht angelegt werden.');
             }
 
+            setLoading(true);
             await loadRoots();
 
             if (parentId) {
@@ -451,7 +458,7 @@ export const CategoryTreeModal: React.FC<CategoryTreeModalProps> = ({
                                     <div>
                                         <p className="text-xs uppercase tracking-wide text-slate-500">Lieferanten-Vorschlag</p>
                                         <h4 className="text-lg font-semibold text-slate-900">
-                                            Typische Rollen für „{selectedNode.bezeichnung}“
+                                            Typische Rollen für „{selectedNode.bezeichnung}"
                                         </h4>
                                         <p className="text-sm text-slate-500">
                                             Steuert, welche Lieferanten beim Preis-Eintragen für Artikel dieser Kategorie vorgeschlagen werden.

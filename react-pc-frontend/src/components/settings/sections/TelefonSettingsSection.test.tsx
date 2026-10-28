@@ -141,7 +141,7 @@ describe('TelefonSettingsSection', () => {
         expect(aufrufe(fetchMock, '/api/telefon/admin/nachholen', 'POST')).toHaveLength(0);
     });
 
-    it('enthält den Bereich „Telefon an diesem Rechner“ mit Anleitung für das Headset', async () => {
+    it('enthält den Bereich „Telefon an diesem Rechner" mit Anleitung für das Headset', async () => {
         stubbe();
         zeige();
         expect(await screen.findByRole('heading', { name: 'Telefon an diesem Rechner' })).toBeInTheDocument();
@@ -157,7 +157,7 @@ describe('TelefonSettingsSection', () => {
         expect(within(anleitung).getByText(/Zugriff für Anwendungen zulassen/)).toBeInTheDocument();
     });
 
-    it('enthält den Bereich „FRITZ!Box-Telefonbuch“', async () => {
+    it('enthält den Bereich „FRITZ!Box-Telefonbuch"', async () => {
         stubbe();
         zeige();
         expect(await screen.findByRole('checkbox', { name: /Kontakte ins FRITZ!Box-Telefonbuch übertragen/ })).not.toBeChecked();

@@ -257,17 +257,17 @@ export function punktFarben(termine: KalenderTermin[], max = 3): string[] {
 
 // ==================== Beschriftungen ====================
 
-/** „Donnerstag, 17. September 2026“ */
+/** „Donnerstag, 17. September 2026" */
 export function formatDatumLang(iso: string): string {
     return parseLocalDate(iso).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 }
 
-/** „Donnerstag, 17. September“ */
+/** „Donnerstag, 17. September" */
 export function formatDatumOhneJahr(iso: string): string {
     return parseLocalDate(iso).toLocaleDateString('de-DE', { weekday: 'long', day: 'numeric', month: 'long' })
 }
 
-/** „Heute“, „Morgen“, „Gestern“ oder null. */
+/** „Heute", „Morgen", „Gestern" oder null. */
 export function relativerTag(iso: string, heute: string): string | null {
     if (iso === heute) return 'Heute'
     if (iso === addiereTage(heute, 1)) return 'Morgen'
@@ -275,13 +275,13 @@ export function relativerTag(iso: string, heute: string): string | null {
     return null
 }
 
-/** „09:00 – 10:30 Uhr“, „09:00 Uhr“ oder „Ganztägig“. */
+/** „09:00 – 10:30 Uhr", „09:00 Uhr" oder „Ganztägig". */
 export function formatZeitraum(termin: KalenderTermin): string {
     if (termin.ganztaegig || !termin.startZeit) return 'Ganztägig'
     return termin.endeZeit ? `${termin.startZeit} – ${termin.endeZeit} Uhr` : `${termin.startZeit} Uhr`
 }
 
-/** „September 2026“ */
+/** „September 2026" */
 export function formatMonatsTitel(iso: string): string {
     const date = parseLocalDate(iso)
     return `${MONATE[date.getMonth()]} ${date.getFullYear()}`

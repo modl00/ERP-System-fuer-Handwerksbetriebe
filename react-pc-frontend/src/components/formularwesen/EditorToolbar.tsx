@@ -64,7 +64,7 @@ export default function EditorToolbar({
                         type="button"
                         onClick={starten}
                         title="Vorlage umbenennen"
-                        aria-label={`Vorlage „${name}“ umbenennen`}
+                        aria-label={`Vorlage „${name}" umbenennen`}
                         className="group flex min-w-0 items-center gap-2 rounded-md px-2 py-1.5 text-left hover:bg-slate-50 focus:outline-none focus-visible:ring-2 focus-visible:ring-rose-500"
                     >
                         <span className="truncate text-base font-semibold text-slate-900" data-kuerzung-erlaubt>{name}</span>

@@ -149,7 +149,7 @@ export function ZugangVonUnterwegsKarte({ onSaved }: { onSaved?: () => void }) {
                             Am Server einmal in der Eingabeaufforderung: <Befehl>tailscale funnel --bg 8080</Befehl>
                             {' '}– beim ersten Mal führt Tailscale durch das Einschalten von Funnel.
                         </li>
-                        <li>Hier „Über Tailscale Funnel freigeben“ wählen und speichern.</li>
+                        <li>Hier „Über Tailscale Funnel freigeben" wählen und speichern.</li>
                         <li>
                             Testen: Handy <strong>ohne</strong> Tailscale im Mobilfunk, Adresse{' '}
                             <Befehl>{adresse}</Befehl> öffnen und den QR-Code scannen.

@@ -90,7 +90,7 @@ describe('NummernkreiseSection', () => {
         expect(await screen.findByText(/1 bis 10 Buchstaben/)).toBeInTheDocument();
     });
 
-    it('geht mit „Wieder das bisherige Format“ zurück, nur bei eigenem Format angeboten', async () => {
+    it('geht mit „Wieder das bisherige Format" zurück, nur bei eigenem Format angeboten', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByTestId('nummernkreis-RECHNUNG');

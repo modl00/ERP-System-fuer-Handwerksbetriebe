@@ -586,7 +586,7 @@ describe('Monatsabschluss zurücksetzen nur mit Recht (#269)', () => {
 });
 
 describe('Monatsabschluss-Recht wird noch geprüft', () => {
-    it('zeigt weder Zurücksetzen-Knopf noch „Recht fehlt“, solange die Antwort aussteht', async () => {
+    it('zeigt weder Zurücksetzen-Knopf noch „Recht fehlt", solange die Antwort aussteht', async () => {
         closed = true;
         berechtigungHaengt = true;
         tage = [arbeitstag(3, 1)];
@@ -695,7 +695,7 @@ describe('Tageserfassung: Schließen, Uhrzeiten, Vorbelegung, Verlauf (#269)', (
         expect(confirm).not.toHaveBeenCalled();
     });
 
-    it('fragt bei ungespeicherten Änderungen nach und schließt erst nach „Verwerfen“', async () => {
+    it('fragt bei ungespeicherten Änderungen nach und schließt erst nach „Verwerfen"', async () => {
         tage = [arbeitstag(3, 1, [gespeichert])];
         await oeffneTag();
         fireEvent.change(screen.getByRole('textbox', { name: 'Von Buchung 1' }), { target: { value: '07:30' } });
@@ -722,7 +722,7 @@ describe('Tageserfassung: Schließen, Uhrzeiten, Vorbelegung, Verlauf (#269)', (
         expect(screen.getByRole('dialog', { name: 'Tageserfassung' })).toBeVisible();
     });
 
-    it('markiert „Ende vor Beginn“, rechnet nicht über Mitternacht und sperrt das Speichern', async () => {
+    it('markiert „Ende vor Beginn", rechnet nicht über Mitternacht und sperrt das Speichern', async () => {
         tage = [arbeitstag(3, 1, [gespeichert])];
         await oeffneTag();
         fireEvent.change(screen.getByRole('textbox', { name: 'Bis Buchung 1' }), { target: { value: '07:00' } });

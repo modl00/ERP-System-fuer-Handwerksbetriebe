@@ -209,7 +209,7 @@ describe('loeschFehlerMeldung', () => {
         expect(loeschFehlerMeldung(1, 1)).toBe('Die E-Mail konnte nicht gelöscht werden.');
     });
 
-    it('zählt bei mehreren Mails „n von m“ und hängt den Grund an', () => {
+    it('zählt bei mehreren Mails „n von m" und hängt den Grund an', () => {
         expect(loeschFehlerMeldung(2, 5, null)).toBe('2 von 5 E-Mails konnten nicht gelöscht werden.');
         expect(loeschFehlerMeldung(1, 2, 'Keine Berechtigung.')).toBe('1 von 2 E-Mails konnten nicht gelöscht werden. Keine Berechtigung.');
     });

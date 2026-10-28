@@ -89,8 +89,8 @@ function datenfeldFehler(feld: Pick<ModulDatenfeld | GlobalesDatenfeld, 'label' 
     if (feld.label.trim() === '') return 'Bitte jedes Datenfeld benennen.';
     if (feld.feldtyp === 'AUSWAHL') {
         const optionen = feld.optionen.map((o) => o.trim()).filter((o) => o !== '');
-        if (optionen.length === 0) return `Beim Datenfeld „${feld.label.trim()}“ fehlen die Auswahlmöglichkeiten.`;
-        if (new Set(optionen).size !== optionen.length) return `Beim Datenfeld „${feld.label.trim()}“ kommt eine Auswahlmöglichkeit doppelt vor.`;
+        if (optionen.length === 0) return `Beim Datenfeld „${feld.label.trim()}" fehlen die Auswahlmöglichkeiten.`;
+        if (new Set(optionen).size !== optionen.length) return `Beim Datenfeld „${feld.label.trim()}" kommt eine Auswahlmöglichkeit doppelt vor.`;
     }
     return null;
 }
@@ -116,7 +116,7 @@ export function fehlerImModul(m: ModulDetail): string | null {
         if (abschnitt.label.trim() === '') return 'Bitte jeden Abschnitt benennen.';
         if (abschnitt.pruefpunkte.some((p) => p.label.trim() === '')) return 'Bitte jeden Prüfpunkt beschreiben.';
         const verwaist = abschnitt.pruefpunkte.find((p) => p.nurBeiUntertyp !== null && !schluessel.has(p.nurBeiUntertyp));
-        if (verwaist) return `Der Prüfpunkt „${verwaist.label.trim()}“ gilt für eine Bauart, die es nicht mehr gibt.`;
+        if (verwaist) return `Der Prüfpunkt „${verwaist.label.trim()}" gilt für eine Bauart, die es nicht mehr gibt.`;
         for (const feld of abschnitt.datenfelder) {
             const fehler = datenfeldFehler(feld);
             if (fehler) return fehler;

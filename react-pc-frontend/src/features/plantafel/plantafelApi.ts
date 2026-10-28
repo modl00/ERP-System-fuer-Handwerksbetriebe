@@ -121,7 +121,7 @@ export const setzeFruehestens = (id: number, datum: string | null, stand?: numbe
 export const setzeRang = (id: number, rang: number | null, stand?: number | null) =>
     anfrage<Auftrag>(`${BASIS}/vorgaenge/${id}/rang`, 'Die Reihenfolge konnte nicht gespeichert werden.', json('PUT', { rang, stand: stand ?? null }));
 
-/** Eine mögliche Änderung zum Ausprobieren („Vorschau“). Leere Felder bleiben unverändert; „…Setzen“ heißt: Auch ein leerer Wert gilt (Termin aufheben). */
+/** Eine mögliche Änderung zum Ausprobieren („Vorschau"). Leere Felder bleiben unverändert; „…Setzen" heißt: Auch ein leerer Wert gilt (Termin aufheben). */
 export interface Probe {
     aufwandStunden?: number | null;
     dauerTage?: number | null;
@@ -154,7 +154,7 @@ export const ladeRhythmus = () => anfrage<Rhythmus>(`${BASIS}/rhythmus`, 'Der Wo
 export const speichereRhythmus = (r: Rhythmus) =>
     anfrage<Rhythmus>('/api/settings/planung/rhythmus', 'Der Wochenrhythmus konnte nicht gespeichert werden.', json('PUT', r));
 
-/** Wartevorgang: Lieferant, „bestellt am“ und bestätigter Liefertermin; alles leer = aufheben. */
+/** Wartevorgang: Lieferant, „bestellt am" und bestätigter Liefertermin; alles leer = aufheben. */
 export const setzeLieferung = (id: number, l: { lieferantId: number | null; bestelltAm: string | null; lieferterminLieferant: string | null }, stand?: number | null) =>
     anfrage<Auftrag>(`${BASIS}/vorgaenge/${id}/lieferung`, 'Die Lieferung konnte nicht gespeichert werden.', json('PUT', { ...l, stand: stand ?? null }));
 

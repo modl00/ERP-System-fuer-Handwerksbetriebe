@@ -34,7 +34,7 @@ function zeige(kiAktiv: boolean) {
 
 describe('MainLayout – KI-Hilfe-Chat', () => {
     beforeEach(() => {
-        // Der Chat merkt sich „offen“ je Benutzer im localStorage und geht beim Laden wieder auf.
+        // Der Chat merkt sich „offen" je Benutzer im localStorage und geht beim Laden wieder auf.
         localStorage.setItem('frontendUserSelection', JSON.stringify({ id: 1 }));
         localStorage.setItem('ki-hilfe-open-1', 'true');
         localStorage.setItem('ki-hilfe-open', 'true');

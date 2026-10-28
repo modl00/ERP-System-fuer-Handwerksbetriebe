@@ -36,7 +36,7 @@ export interface KettenVorschlag extends Treffer {
     kettenDokumentNummer: string | null;
     sicher: boolean;
     gruende: string[];
-    /** Hängt schon in einer anderen Kette, z. B. „Lieferschein 4711“. */
+    /** Hängt schon in einer anderen Kette, z. B. „Lieferschein 4711". */
     gehoertSchonZu?: string | null;
 }
 
@@ -49,9 +49,9 @@ export interface SuchKette {
 interface Woerter {
     einzahl: string;
     mehrzahl: string;
-    /** „keine Rechnung“, „kein Lieferschein“ */
+    /** „keine Rechnung", „kein Lieferschein" */
     kein: string;
-    /** Relativpronomen: „…, die passen könnte“ */
+    /** Relativpronomen: „…, die passen könnte" */
     relativ: 'der' | 'die' | 'das';
 }
 
@@ -66,23 +66,23 @@ const TYP_WOERTER: Record<VorschlagsTyp, Woerter> = {
     GUTSCHRIFT: { einzahl: 'Gutschrift', mehrzahl: 'Gutschriften', kein: 'keine Gutschrift', relativ: 'die' },
 };
 
-/** Wörter für eine Dokumentart – `null` heißt „alle Arten“ und ergibt „Dokument“. */
+/** Wörter für eine Dokumentart – `null` heißt „alle Arten" und ergibt „Dokument". */
 export function typWoerter(typ: VorschlagsTyp | null): Woerter {
     return typ ? TYP_WOERTER[typ] : DOKUMENT_WOERTER;
 }
 
-/** „3 Lieferscheine“, „1 Rechnung“, „0 Dokumente“ */
+/** „3 Lieferscheine", „1 Rechnung", „0 Dokumente" */
 export function anzahlMitNomen(anzahl: number, typ: VorschlagsTyp | null): string {
     const woerter = typWoerter(typ);
     return `${anzahl} ${anzahl === 1 ? woerter.einzahl : woerter.mehrzahl}`;
 }
 
-/** „Lieferschein 4711“ – ohne Nummer mit dem Dateinamen. */
+/** „Lieferschein 4711" – ohne Nummer mit dem Dateinamen. */
 export function dokumentBezeichnung(dok: Pick<KettenBeleg, 'typ' | 'dokumentNummer' | 'dateiname'>): string {
     return `${TYP_LABELS[dok.typ]} ${dok.dokumentNummer ?? dok.dateiname}`;
 }
 
-/** „Lieferschein 4711“ – das Kettendokument, an das der Vorschlag passt. */
+/** „Lieferschein 4711" – das Kettendokument, an das der Vorschlag passt. */
 export function kettenDokumentBezeichnung(vorschlag: Pick<KettenVorschlag, 'kettenDokumentTyp' | 'kettenDokumentNummer'>): string {
     const label = TYP_LABELS[vorschlag.kettenDokumentTyp] ?? 'Dokument';
     return vorschlag.kettenDokumentNummer ? `${label} ${vorschlag.kettenDokumentNummer}` : label;
@@ -144,7 +144,7 @@ export async function inKetteVerknuepfen(kettenDokumentId: number, dokumentId: n
 }
 
 /**
- * Lieferanten-Dokument (Reiter „Dokumente“) in die Form, die der Suchdialog
+ * Lieferanten-Dokument (Reiter „Dokumente") in die Form, die der Suchdialog
  * braucht. Ohne `url` dient der Download-Pfad des Lieferanten als Vorschau.
  */
 export function lieferantDokumentAlsBeleg(dok: LieferantDokument, lieferantId?: number | string): KettenBeleg {

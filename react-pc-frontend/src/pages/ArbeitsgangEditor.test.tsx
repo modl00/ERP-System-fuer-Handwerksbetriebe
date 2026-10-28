@@ -1,60 +1,62 @@
-import { render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import type { ReactNode } from 'react';
-import ArbeitsgangEditor from './ArbeitsgangEditor';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { render, screen, within } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 import { ConfirmProvider } from '../components/ui/confirm-dialog';
 import { ToastProvider } from '../components/ui/toast';
+import ArbeitsgangEditor from './ArbeitsgangEditor';
 
-vi.mock('../components/layout/PageLayout', () => ({ PageLayout: ({ children, actions }: { children: ReactNode; actions?: ReactNode }) => <div>{actions}{children}</div> }));
+/** Abteilungen werden nur noch unter Einstellungen → Abteilungen & Rechte gepflegt. Nur Dummy-Daten. */
 
-/** Nur Dummy-Daten. */
-const antwort = (daten: unknown) => ({ ok: true, status: 200, json: async () => daten, text: async () => JSON.stringify(daten) });
+function stubbe(abteilungen: { id: number; name: string }[]) {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+        const url = String(input);
+        if (url === '/api/abteilungen') return new Response(JSON.stringify(abteilungen), { status: 200 });
+        if (url === '/api/arbeitsgaenge') {
+            return new Response(JSON.stringify([
+                { id: 7, beschreibung: 'Montage Metallfassade', abteilungId: 4, stundensatz: 65, stundensatzJahr: new Date().getFullYear() },
+            ]), { status: 200 });
+        }
+        return new Response('[]', { status: 200 });
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    return fetchMock;
+}
 
-beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn(async (url: string) => {
-        if (url === '/api/abteilungen') return antwort([{ id: 1, name: 'Werkstatt' }]);
-        if (url === '/api/arbeitsgaenge') return antwort([
-            { id: 10, beschreibung: 'Sägen', abteilungId: 1, abteilungName: 'Werkstatt', stundensatz: 60, stundensatzJahr: 2026, maschinenStundensatz: 40, maschinenBezeichnung: 'Kappsäge', maschineId: 5 },
-            { id: 11, beschreibung: 'Bohren', abteilungId: 1, abteilungName: 'Werkstatt', stundensatz: 55, stundensatzJahr: 2026, maschinenStundensatz: 22.5, maschinenBezeichnung: 'Ständerbohrmaschine', maschineId: null },
-        ]);
-        return antwort([]);
-    }));
-});
-afterEach(() => { vi.unstubAllGlobals(); });
+function zeige() {
+    render(
+        <MemoryRouter>
+            <ToastProvider><ConfirmProvider><ArbeitsgangEditor /></ConfirmProvider></ToastProvider>
+        </MemoryRouter>,
+    );
+}
 
-const zeige = () => render(
-    <MemoryRouter initialEntries={['/arbeitsgaenge']}>
-        <ToastProvider><ConfirmProvider>
-            <Routes>
-                <Route path="/arbeitsgaenge" element={<ArbeitsgangEditor />} />
-                <Route path="/kostenrechnung" element={<p>Hier ist die Kostenrechnung</p>} />
-            </Routes>
-        </ConfirmProvider></ToastProvider>
-    </MemoryRouter>,
-);
+beforeEach(() => vi.unstubAllGlobals());
 
-describe('ArbeitsgangEditor und die Maschinenliste', () => {
-    it('kennzeichnet eine Maschine aus der Maschinenliste und führt zu ihrer Pflege in der Kostenrechnung, statt sie am Arbeitsgang zu ändern', async () => {
-        const user = userEvent.setup();
+describe('ArbeitsgangEditor – Abteilungen nur noch zur Auswahl', () => {
+    it('bietet kein Anlegen oder Löschen von Abteilungen mehr an, sondern verweist auf die Einstellungen', async () => {
+        const fetchMock = stubbe([{ id: 4, name: 'Montage' }]);
         zeige();
-        await user.click(await screen.findByText('Werkstatt'));
 
-        expect(await screen.findByTestId('maschine-10')).toHaveTextContent('Maschine aus der Maschinenliste: Kappsäge');
-        expect(screen.getByTestId('maschine-11')).toHaveTextContent('Maschine: Ständerbohrmaschine');
-        expect(screen.getByTestId('maschine-11')).not.toHaveTextContent('Maschinenliste');
+        expect(await screen.findByText('Montage Metallfassade')).toBeInTheDocument();
+        expect(screen.queryByPlaceholderText(/Neue Abteilung/)).not.toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Abteilung anlegen/ })).not.toBeInTheDocument();
+        expect(screen.queryByTitle('Abteilung löschen')).not.toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Maschine von Sägen bearbeiten' }));
-        expect(await screen.findByText('Hier ist die Kostenrechnung')).toBeVisible();
+        const link = screen.getByRole('link', { name: 'Einstellungen → Abteilungen & Rechte' });
+        expect(link).toHaveAttribute('href', '/einstellungen#berechtigungen');
+        expect(link.closest('p')).toHaveTextContent('Abteilungen legen Sie unter Einstellungen → Abteilungen & Rechte an, benennen sie dort um oder löschen sie.');
+
+        // Arbeitsgänge anlegen bleibt auf der Seite.
+        expect(screen.getByRole('textbox', { name: 'Bezeichnung' })).toBeInTheDocument();
+        expect(fetchMock.mock.calls.every(([, init]) => (init?.method ?? 'GET') === 'GET')).toBe(true);
     });
 
-    it('ein Arbeitsgang ohne Maschine aus der Liste öffnet weiter das Fenster am Arbeitsgang', async () => {
-        const user = userEvent.setup();
+    it('verlinkt auch im leeren Zustand auf die Einstellungen', async () => {
+        stubbe([]);
         zeige();
-        await user.click(await screen.findByText('Werkstatt'));
-        await user.click(await screen.findByRole('button', { name: 'Maschine von Bohren bearbeiten' }));
-        expect(screen.queryByText('Hier ist die Kostenrechnung')).toBeNull();
-        expect(await screen.findByRole('dialog')).toBeVisible();
+
+        const leer = (await screen.findByText('Keine Abteilungen vorhanden')).parentElement!;
+        expect(within(leer).getByRole('link', { name: 'Einstellungen → Abteilungen & Rechte' }))
+            .toHaveAttribute('href', '/einstellungen#berechtigungen');
     });
 });

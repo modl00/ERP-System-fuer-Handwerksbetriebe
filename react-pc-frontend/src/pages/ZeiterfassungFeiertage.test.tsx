@@ -84,7 +84,7 @@ describe('ZeiterfassungFeiertage', () => {
         expect(await screen.findByRole('heading', { name: `Feiertage ${jahr}` })).toBeVisible();
     });
 
-    it('schaltet halben Tag und „Gilt bei uns“ über PUT um', async () => {
+    it('schaltet halben Tag und „Gilt bei uns" über PUT um', async () => {
         const user = userEvent.setup();
         renderSeite();
         const halb = await screen.findByRole('switch', { name: 'Halber Tag: Neujahr' });

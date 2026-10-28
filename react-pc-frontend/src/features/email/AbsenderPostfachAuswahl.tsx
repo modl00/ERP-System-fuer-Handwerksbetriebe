@@ -38,10 +38,10 @@ function zusatz(postfach: AbsenderPostfach): string {
 }
 
 /**
- * „Von“ im Schreiben-Fenster.
+ * „Von" im Schreiben-Fenster.
  *
  * <ul>
- *   <li><b>auswahl</b> – neue Mail: „Senden von“ aus den Postfächern des Betriebs.</li>
+ *   <li><b>auswahl</b> – neue Mail: „Senden von" aus den Postfächern des Betriebs.</li>
  *   <li><b>fest</b> – Antworten, Allen antworten, Weiterleiten und
  *       Geschäftsdokumente: nur eine Textzeile, das Backend legt das Postfach fest
  *       (das, in dem die Mail ankam bzw. das Rechnungs-Postfach).</li>

@@ -5,7 +5,7 @@ import { Card } from '../components/ui/card';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { InfoAbschnitt, InfoButton } from '../components/ui/info-button';
-import { RefreshCw, FileText, FilePlus2, Package, Clock, CheckCircle, AlertCircle, X, FolderOpen, EyeOff, Eye, Archive, Search, ChevronDown, ChevronRight, Check, Sparkles, Plus, UserX, Undo2 } from 'lucide-react';
+import { RefreshCw, FileText, FilePlus2, Package, Clock, CheckCircle, AlertCircle, X, FolderOpen, EyeOff, Eye, Archive, Search, ChevronDown, ChevronRight, Check, Sparkles, Plus } from 'lucide-react';
 import { useToast } from '../components/ui/toast';
 import { ZuordnungModal as BelegZuordnungModal } from '../components/ZuordnungModal';
 import { useConfirm } from '../components/ui/confirm-dialog';
@@ -51,11 +51,11 @@ interface DokumentenKette {
     dokumente: DokumentRef[];
     /** Kanten innerhalb der Kette (Nachfolger → Vorgänger), z. B. Rechnung → Lieferschein. */
     verbindungen?: KettenVerbindung[];
-    /** Nur bei „Bestellt“ gefüllt: die wahrscheinlichste Rechnung (ab 40 %). */
+    /** Nur bei „Bestellt" gefüllt: die wahrscheinlichste Rechnung (ab 40 %). */
     rechnungsVorschlag?: RechnungsVorschlag | null;
 }
 
-type TabKey = 'offen' | 'laufend' | 'abgeschlossen' | 'zugeordnet' | 'ausgeblendet' | 'privat';
+type TabKey = 'offen' | 'laufend' | 'abgeschlossen' | 'zugeordnet' | 'ausgeblendet';
 
 type BestellungsUebersicht = UebersichtListen<DokumentenKette>;
 
@@ -66,7 +66,6 @@ const GRUPPE_JE_TAB: Record<TabKey, GruppenSchluessel> = {
     abgeschlossen: 'abgeschlossen',
     zugeordnet: 'zugeordnet',
     ausgeblendet: 'ausgeblendet',
-    privat: 'privat',
 };
 
 /** Wie die Liste geladen wird: entscheidet, welcher Ladezustand sichtbar ist. */
@@ -147,11 +146,9 @@ interface KetteCardProps {
     onZuordnen?: (kette: DokumentenKette) => void;
     onAusblenden?: (kette: DokumentenKette) => void;
     onEinblenden?: (kette: DokumentenKette) => void;
-    onAlsPrivat?: (kette: DokumentenKette) => void;
-    onPrivatAufheben?: (kette: DokumentenKette) => void;
     /** Rechnung suchen am offenen Ende der Kette (nicht bei Angeboten und Ausgeblendetem). */
     onRechnungSuchen?: (kette: DokumentenKette) => void;
-    /** „Dokument hinzufügen“ in der Fußzeile: beliebige Dokumentart nachträglich zuordnen. */
+    /** „Dokument hinzufügen" in der Fußzeile: beliebige Dokumentart nachträglich zuordnen. */
     onDokumentHinzufuegen?: (kette: DokumentenKette) => void;
     /** Nach Abhängen oder Hochladen: Seite neu laden. */
     onGeaendert: () => void;
@@ -162,7 +159,7 @@ interface KetteCardProps {
     busy?: boolean;
 }
 
-function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, onAusblenden, onEinblenden, onAlsPrivat, onPrivatAufheben, onRechnungSuchen, onDokumentHinzufuegen, onGeaendert, onVorschlagUebernehmen, uebernehmenBusy, ohneRechnungHinweis, busy }: KetteCardProps) {
+function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, onAusblenden, onEinblenden, onRechnungSuchen, onDokumentHinzufuegen, onGeaendert, onVorschlagUebernehmen, uebernehmenBusy, ohneRechnungHinweis, busy }: KetteCardProps) {
     const betrag = kettenBetrag(kette);
     const alter = formatiereAlter(letzteBewegung(kette), heute);
     const vorschlag = onVorschlagUebernehmen ? kette.rechnungsVorschlag : null;
@@ -268,14 +265,14 @@ function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, on
                     {!vorschlag.eindeutig && (
                         <p className="text-[11px] text-amber-700 flex items-start gap-1">
                             <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" aria-hidden="true" />
-                            Weitere Rechnung gleich wahrscheinlich – bitte über „Suchen“ prüfen.
+                            Weitere Rechnung gleich wahrscheinlich – bitte über „Suchen" prüfen.
                         </p>
                     )}
                 </div>
             )}
 
             {/* Fußzeile: Aktionen */}
-            {(showZuordnenButton || onDokumentHinzufuegen || onAusblenden || onEinblenden || onAlsPrivat || onPrivatAufheben) && (
+            {(showZuordnenButton || onDokumentHinzufuegen || onAusblenden || onEinblenden) && (
                 <div className="pt-3 border-t border-slate-100 flex items-center justify-between gap-2 flex-wrap">
                     <div className="flex gap-2 flex-wrap">
                         {showZuordnenButton && onZuordnen && (
@@ -301,40 +298,19 @@ function KetteCard({ kette, heute, onOpenPdf, showZuordnenButton, onZuordnen, on
                                 Wieder einblenden
                             </Button>
                         )}
-                        {onPrivatAufheben && (
-                            <Button onClick={() => onPrivatAufheben(kette)} size="sm" variant="outline" disabled={busy}>
-                                <Undo2 className="w-4 h-4" aria-hidden="true" />
-                                Zurück in den normalen Workflow
-                            </Button>
-                        )}
                     </div>
-                    <div className="flex gap-2 ml-auto">
-                        {onAlsPrivat && (
-                            <Button
-                                onClick={() => onAlsPrivat(kette)}
-                                size="sm"
-                                variant="ghost"
-                                disabled={busy}
-                                className="text-slate-500 hover:text-amber-700 hover:bg-amber-50"
-                                title="Diese Rechnung gehört nicht zur Firma – aus dem normalen Workflow entfernen"
-                            >
-                                <UserX className="w-4 h-4" aria-hidden="true" />
-                                Privat (gehört nicht zur Firma)
-                            </Button>
-                        )}
-                        {onAusblenden && (
-                            <Button
-                                onClick={() => onAusblenden(kette)}
-                                size="sm"
-                                variant="ghost"
-                                disabled={busy}
-                                className="text-slate-500 hover:text-rose-700 hover:bg-rose-50"
-                            >
-                                <EyeOff className="w-4 h-4" aria-hidden="true" />
-                                Ausblenden
-                            </Button>
-                        )}
-                    </div>
+                    {onAusblenden && (
+                        <Button
+                            onClick={() => onAusblenden(kette)}
+                            size="sm"
+                            variant="ghost"
+                            disabled={busy}
+                            className="text-slate-500 hover:text-rose-700 hover:bg-rose-50 ml-auto"
+                        >
+                            <EyeOff className="w-4 h-4" aria-hidden="true" />
+                            Ausblenden
+                        </Button>
+                    )}
                 </div>
             )}
         </Card>
@@ -461,7 +437,7 @@ export default function BestellungenUebersicht() {
     const [error, setError] = useState<string | null>(null);
     const [busyKetteId, setBusyKetteId] = useState<string | null>(null);
     const [offeneBelege, setOffeneBelege] = useState<BelegZuordnungRef[]>([]);
-    const [offeneBelegeLoading, setOffeneBelegeLoading] = useState(false);
+    const [offeneBelegeLoading, setOffeneBelegeLoading] = useState(true);
     const [showBelegAuswahl, setShowBelegAuswahl] = useState(false);
     const [selectedBeleg, setSelectedBeleg] = useState<BelegZuordnungRef | null>(null);
 
@@ -481,67 +457,81 @@ export default function BestellungenUebersicht() {
     const [sucheLaedt, setSucheLaedt] = useState(false);
     const [mehrLaedt, setMehrLaedt] = useState(false);
 
-    const loadData = useCallback(async (modus: LadeModus = 'voll') => {
+    // Ergebnisse erst in den Promise-Callbacks übernehmen, nicht synchron im Effekt.
+    // Die Ladeanzeigen schaltet `loadData` vorab an (beim ersten Laden der Startwert).
+    const ladeUebersicht = useCallback((modus: LadeModus) => {
         anfrageRef.current?.abort();
         const anfrage = new AbortController();
         anfrageRef.current = anfrage;
         const parameter = { ...parameterRef.current };
+        return fetch(uebersichtUrl(parameter), { signal: anfrage.signal })
+            .then(async (res) => {
+                if (!res.ok) {
+                    const body = await res.json().catch(() => null) as { message?: unknown } | null;
+                    throw new Error(typeof body?.message === 'string' && body.message ? body.message : 'Bestellungen konnten nicht geladen werden.');
+                }
+                const json = await res.json();
+                if (anfrageRef.current !== anfrage) return; // inzwischen neuere Anfrage unterwegs
+                setData(normalisiereUebersicht<DokumentenKette>(json));
+                setGeladeneSuche(parameter.suche);
+                setError(null);
+            })
+            .catch((err: unknown) => {
+                // Abgebrochen (neuere Anfrage oder Seite verlassen): kein Fehler für den Nutzer
+                if (anfrage.signal.aborted || anfrageRef.current !== anfrage) return;
+                const meldung = err instanceof Error ? err.message : 'Bestellungen konnten nicht geladen werden.';
+                // Ohne angezeigte Liste ersetzt der Fehler die Liste, sonst bleibt sie stehen und ein Toast meldet es
+                if (modus === 'voll') setError(meldung);
+                else toast.error(meldung);
+            })
+            .finally(() => {
+                if (anfrageRef.current === anfrage) {
+                    anfrageRef.current = null;
+                    setLoading(false);
+                    setSucheLaedt(false);
+                    setMehrLaedt(false);
+                }
+            });
+    }, [toast]);
+
+    const loadData = useCallback((modus: LadeModus = 'voll') => {
         if (modus === 'voll') setLoading(true);
         if (modus === 'suche') setSucheLaedt(true);
         if (modus === 'mehr') setMehrLaedt(true);
-        try {
-            const res = await fetch(uebersichtUrl(parameter), { signal: anfrage.signal });
-            if (!res.ok) {
-                const body = await res.json().catch(() => null) as { message?: unknown } | null;
-                throw new Error(typeof body?.message === 'string' && body.message ? body.message : 'Bestellungen konnten nicht geladen werden.');
-            }
-            const json = await res.json();
-            if (anfrageRef.current !== anfrage) return; // inzwischen neuere Anfrage unterwegs
-            setData(normalisiereUebersicht<DokumentenKette>(json));
-            setGeladeneSuche(parameter.suche);
-            setError(null);
-        } catch (err) {
-            // Abgebrochen (neuere Anfrage oder Seite verlassen): kein Fehler für den Nutzer
-            if (anfrage.signal.aborted || anfrageRef.current !== anfrage) return;
-            const meldung = err instanceof Error ? err.message : 'Bestellungen konnten nicht geladen werden.';
-            // Ohne angezeigte Liste ersetzt der Fehler die Liste, sonst bleibt sie stehen und ein Toast meldet es
-            if (modus === 'voll') setError(meldung);
-            else toast.error(meldung);
-        } finally {
-            if (anfrageRef.current === anfrage) {
-                anfrageRef.current = null;
-                setLoading(false);
-                setSucheLaedt(false);
-                setMehrLaedt(false);
-            }
-        }
-    }, [toast]);
+        return ladeUebersicht(modus);
+    }, [ladeUebersicht]);
 
     useEffect(() => () => anfrageRef.current?.abort(), []);
 
-    const loadOffeneBelege = useCallback(async () => {
-        setOffeneBelegeLoading(true);
-        try {
-            const res = await fetch('/api/bestellungen-uebersicht/belege-offen');
-            if (res.status === 401 || res.status === 403) {
+    const ladeOffeneBelege = useCallback(() =>
+        fetch('/api/bestellungen-uebersicht/belege-offen')
+            .then(async (res) => {
+                if (res.status === 401 || res.status === 403) {
+                    setOffeneBelege([]);
+                    return;
+                }
+                if (!res.ok) throw new Error('Fehler beim Laden');
+                const json = await res.json();
+                setOffeneBelege(Array.isArray(json) ? json : []);
+            })
+            .catch(() => {
+                toast.error('Belege konnten nicht geladen werden');
                 setOffeneBelege([]);
-                return;
-            }
-            if (!res.ok) throw new Error('Fehler beim Laden');
-            const json = await res.json();
-            setOffeneBelege(Array.isArray(json) ? json : []);
-        } catch {
-            toast.error('Belege konnten nicht geladen werden');
-            setOffeneBelege([]);
-        } finally {
-            setOffeneBelegeLoading(false);
-        }
-    }, [toast]);
+            })
+            .finally(() => {
+                setOffeneBelegeLoading(false);
+            }),
+    [toast]);
+
+    const loadOffeneBelege = useCallback(() => {
+        setOffeneBelegeLoading(true);
+        return ladeOffeneBelege();
+    }, [ladeOffeneBelege]);
 
     useEffect(() => {
-        void loadData();
-        void loadOffeneBelege();
-    }, [loadData, loadOffeneBelege]);
+        void ladeUebersicht('voll');
+        void ladeOffeneBelege();
+    }, [ladeUebersicht, ladeOffeneBelege]);
 
     // Suche fragt den Server (alle Bestellungen, nicht nur die geladenen) – entprellt, Löschen sofort
     useEffect(() => {
@@ -557,7 +547,7 @@ export default function BestellungenUebersicht() {
 
     const neuLadenNachAenderung = useCallback(() => { void loadData('still'); }, [loadData]);
 
-    /** Letzte Karte vor „Mehr laden“ – bleibt nach dem Nachladen an derselben Stelle im Bild. */
+    /** Letzte Karte vor „Mehr laden" – bleibt nach dem Nachladen an derselben Stelle im Bild. */
     const listeRef = useRef<HTMLDivElement>(null);
     const scrollAnkerRef = useRef<{ id: string; top: number } | null>(null);
 
@@ -608,7 +598,7 @@ export default function BestellungenUebersicht() {
         if (!ok) return;
 
         setBulkBusy(true);
-        // Optimistic Update: Ketten sofort in „Ausgeblendet“ verschieben, Zähler ziehen mit
+        // Optimistic Update: Ketten sofort in „Ausgeblendet" verschieben, Zähler ziehen mit
         setData(prev => prev ? ausblendenOptimistisch(prev, ketten, heute) : prev);
 
         const allDokumentIds = ketten.flatMap(k => k.dokumente.map(d => d.id));
@@ -679,25 +669,6 @@ export default function BestellungenUebersicht() {
         }
     }, [heute, loadData, toast]);
 
-    const setKettePrivat = useCallback(async (kette: DokumentenKette, privat: boolean) => {
-        setBusyKetteId(kette.id);
-        try {
-            const res = await fetch(`/api/bestellungen-uebersicht/${privat ? 'als-privat' : 'privat-aufheben'}`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ dokumentIds: kette.dokumente.map(d => d.id) }),
-            });
-            if (!res.ok) throw new Error('Fehler');
-            await loadData('still');
-            toast.success(privat ? 'Als privat markiert' : 'Wieder im normalen Workflow');
-        } catch {
-            toast.error('Aktion fehlgeschlagen');
-            await loadData('still');
-        } finally {
-            setBusyKetteId(null);
-        }
-    }, [loadData, toast]);
-
     // Die Suche filtert der Server über alle Bestellungen; sie wirkt auf alle Reiter gleichzeitig
     const sucheAktiv = geladeneSuche !== '';
     const gefiltert = useMemo(() => ({
@@ -706,7 +677,6 @@ export default function BestellungenUebersicht() {
         abgeschlossen: data?.abgeschlossen ?? [],
         zugeordnet: data?.zugeordnet ?? [],
         ausgeblendet: data?.ausgeblendet ?? [],
-        privat: data?.privat ?? [],
     } satisfies Record<TabKey, DokumentenKette[]>), [data]);
     const gesamt = useMemo(() => gesamtJeGruppe(data ?? normalisiereUebersicht<DokumentenKette>(null), heute), [data, heute]);
     const gesamtImTab = (key: TabKey) => gesamt[GRUPPE_JE_TAB[key]];
@@ -725,8 +695,6 @@ export default function BestellungenUebersicht() {
             erklaerung: 'Bestellungen, deren Kosten schon zugeordnet sind.', leer: 'Noch keine Bestellungen zugeordnet.' },
         { key: 'ausgeblendet', label: 'Ausgeblendet', icon: <Archive className="w-4 h-4" />, zaehler: gesamt.ausgeblendet,
             erklaerung: 'Ausgeblendete Einträge. Sie lassen sich jederzeit wieder einblenden.', leer: 'Keine ausgeblendeten Einträge.' },
-        { key: 'privat', label: 'Privat', icon: <UserX className="w-4 h-4" />, zaehler: gesamt.privat ?? 0,
-            erklaerung: 'Rechnungen, die nicht zur Firma gehören (z. B. private Einkäufe). Sie erscheinen nicht im normalen Workflow.', leer: 'Keine privaten Rechnungen.' },
     ];
     const aktiverTab = tabs.find(t => t.key === tab) ?? tabs[0];
     const currentList = gefiltert[tab];
@@ -740,7 +708,6 @@ export default function BestellungenUebersicht() {
 
     const renderKarte = (kette: DokumentenKette, optionen: { ohneRechnungHinweis?: boolean } = {}) => {
         const istAusgeblendetTab = tab === 'ausgeblendet';
-        const istPrivatTab = tab === 'privat';
         const istBestellt = tab === 'laufend';
         // Bestellt, Rechnung zuordnen, Erledigt: dort kann noch ein Dokument fehlen
         const dokumenteErgaenzbar = tab === 'laufend' || tab === 'abgeschlossen' || tab === 'zugeordnet';
@@ -750,14 +717,12 @@ export default function BestellungenUebersicht() {
                 kette={kette}
                 heute={heute}
                 onOpenPdf={handleOpenPdf}
-                showZuordnenButton={tab === 'abgeschlossen' || tab === 'zugeordnet' || tab === 'laufend'}
+                showZuordnenButton={tab === 'abgeschlossen'}
                 onZuordnen={setZuordnungKette}
-                onAusblenden={istAusgeblendetTab || istPrivatTab ? undefined : (k) => setKetteAusgeblendet(k, true)}
+                onAusblenden={istAusgeblendetTab ? undefined : (k) => setKetteAusgeblendet(k, true)}
                 onEinblenden={istAusgeblendetTab ? (k) => setKetteAusgeblendet(k, false) : undefined}
-                onAlsPrivat={istAusgeblendetTab || istPrivatTab ? undefined : (k) => setKettePrivat(k, true)}
-                onPrivatAufheben={istPrivatTab ? (k) => setKettePrivat(k, false) : undefined}
                 // Rechnung suchen/hochladen: bei laufenden Bestellungen und bei Teillieferungen ohne Rechnung
-                onRechnungSuchen={tab !== 'offen' && !istAusgeblendetTab && !istPrivatTab ? k => setDokumentSuche({ kette: k, startTyp: 'RECHNUNG' }) : undefined}
+                onRechnungSuchen={tab !== 'offen' && !istAusgeblendetTab ? k => setDokumentSuche({ kette: k, startTyp: 'RECHNUNG' }) : undefined}
                 onDokumentHinzufuegen={dokumenteErgaenzbar ? k => setDokumentSuche({ kette: k, startTyp: null }) : undefined}
                 onGeaendert={neuLadenNachAenderung}
                 onVorschlagUebernehmen={istBestellt ? vorschlagUebernehmen : undefined}
@@ -769,7 +734,7 @@ export default function BestellungenUebersicht() {
     };
     // Mauerwerk: Karten unterschiedlicher Höhe ohne Lücken (Tastatur-Reihenfolge spaltenweise)
     const kartenGitter = 'columns-1 md:columns-2 xl:columns-3 gap-4';
-    /** Ein Mauerwerk je Lade-Runde, damit „Mehr laden“ die sichtbaren Karten nicht umsortiert. */
+    /** Ein Mauerwerk je Lade-Runde, damit „Mehr laden" die sichtbaren Karten nicht umsortiert. */
     const renderBloecke = (teil: DokumentenKette[], optionen: { ohneRechnungHinweis?: boolean } = {}) =>
         inLadeBloecke(teil).map(block => (
             <div key={block[0].id} className={kartenGitter}>{block.map(k => renderKarte(k, optionen))}</div>
@@ -777,7 +742,7 @@ export default function BestellungenUebersicht() {
     const aelterGesamt = Math.max(gesamt.offeneAnfragen - gesamt.offeneAnfragenAktuell, offeneTeile.aelter.length);
     const aelterAlleGeladen = offeneTeile.aelter.length >= aelterGesamt;
     const ueberfaelligGesamt = Math.max(gesamt.laufendeBestellungen - gesamt.laufendeBestellungenAktuell, laufendeTeile.aelter.length);
-    /** „(n)“, wenn alles geladen ist, sonst „(n von m)“. */
+    /** „(n)", wenn alles geladen ist, sonst „(n von m)". */
     const anzahlText = (geladen: number, insgesamt: number) => (geladen >= insgesamt ? `${geladen}` : `${geladen} von ${insgesamt}`);
 
     return (
@@ -906,9 +871,9 @@ export default function BestellungenUebersicht() {
                     {sucheAktiv ? (
                         trefferWoanders.length > 0 ? (
                             <>
-                                <p className="text-lg font-medium">Keine Treffer in „{aktiverTab.label}“</p>
+                                <p className="text-lg font-medium">Keine Treffer in „{aktiverTab.label}"</p>
                                 <div className="mt-3 space-y-2">
-                                    <p className="text-sm">Zu „{geladeneSuche}“ gibt es Treffer in:</p>
+                                    <p className="text-sm">Zu „{geladeneSuche}" gibt es Treffer in:</p>
                                     <div className="flex flex-wrap justify-center gap-2">
                                         {trefferWoanders.map(t => (
                                             <Button key={t.key} size="sm" variant="outline" onClick={() => setTab(t.key)}>
@@ -920,7 +885,7 @@ export default function BestellungenUebersicht() {
                             </>
                         ) : (
                             <>
-                                <p className="text-lg font-medium">Keine Bestellung passt zu „{geladeneSuche}“.</p>
+                                <p className="text-lg font-medium">Keine Bestellung passt zu „{geladeneSuche}".</p>
                                 <p className="text-sm mt-1">Durchsucht wurden alle Bestellungen in allen Reitern – auch die noch nicht geladenen.</p>
                             </>
                         )
@@ -939,8 +904,8 @@ export default function BestellungenUebersicht() {
                                 onClick={() => void kettenAusblenden(
                                     currentList,
                                     alleGeladen
-                                        ? `Wirklich alle ${currentList.length} erledigten Bestellungen ausblenden? Sie stehen danach unter „Ausgeblendet“.`
-                                        : `Wirklich die ${currentList.length} angezeigten erledigten Bestellungen ausblenden? Sie stehen danach unter „Ausgeblendet“. Die ${gesamtAktiverTab - currentList.length} noch nicht geladenen bleiben hier.`,
+                                        ? `Wirklich alle ${currentList.length} erledigten Bestellungen ausblenden? Sie stehen danach unter „Ausgeblendet".`
+                                        : `Wirklich die ${currentList.length} angezeigten erledigten Bestellungen ausblenden? Sie stehen danach unter „Ausgeblendet". Die ${gesamtAktiverTab - currentList.length} noch nicht geladenen bleiben hier.`,
                                     `${currentList.length} Bestellungen ausgeblendet`,
                                 )}
                                 disabled={bulkBusy}
@@ -985,8 +950,8 @@ export default function BestellungenUebersicht() {
                                             onClick={() => void kettenAusblenden(
                                                 offeneTeile.aelter,
                                                 aelterAlleGeladen
-                                                    ? `Wirklich ${offeneTeile.aelter.length} ältere Angebote ausblenden? Sie stehen danach unter „Ausgeblendet“.`
-                                                    : `Wirklich die ${offeneTeile.aelter.length} angezeigten älteren Angebote ausblenden? Sie stehen danach unter „Ausgeblendet“. Die ${aelterGesamt - offeneTeile.aelter.length} noch nicht geladenen bleiben hier.`,
+                                                    ? `Wirklich ${offeneTeile.aelter.length} ältere Angebote ausblenden? Sie stehen danach unter „Ausgeblendet".`
+                                                    : `Wirklich die ${offeneTeile.aelter.length} angezeigten älteren Angebote ausblenden? Sie stehen danach unter „Ausgeblendet". Die ${aelterGesamt - offeneTeile.aelter.length} noch nicht geladenen bleiben hier.`,
                                                 `${offeneTeile.aelter.length} ältere Angebote ausgeblendet`,
                                             )}
                                         >
@@ -1041,10 +1006,10 @@ export default function BestellungenUebersicht() {
                                 </Button>
                                 <InfoButton titel="Mehr laden">
                                     <InfoAbschnitt titel="Was passiert im Hintergrund?">
-                                        <p>Damit die Seite schnell bleibt, lädt sie pro Reiter zuerst nur die 25 neuesten Bestellungen – bei „Angebote“ und „Bestellt“ zusätzlich bis zu 25 ältere, damit Überfälliges sofort sichtbar ist. Die Suche durchsucht dagegen immer alle Bestellungen.</p>
+                                        <p>Damit die Seite schnell bleibt, lädt sie pro Reiter zuerst nur die 25 neuesten Bestellungen – bei „Angebote" und „Bestellt" zusätzlich bis zu 25 ältere, damit Überfälliges sofort sichtbar ist. Die Suche durchsucht dagegen immer alle Bestellungen.</p>
                                     </InfoAbschnitt>
                                     <InfoAbschnitt titel="Was bewirkt das?">
-                                        <p>„Mehr laden“ holt die nächsten 25. Es geht nichts verloren – ältere Bestellungen sind nur noch nicht geladen.</p>
+                                        <p>„Mehr laden" holt die nächsten 25. Es geht nichts verloren – ältere Bestellungen sind nur noch nicht geladen.</p>
                                     </InfoAbschnitt>
                                 </InfoButton>
                             </div>

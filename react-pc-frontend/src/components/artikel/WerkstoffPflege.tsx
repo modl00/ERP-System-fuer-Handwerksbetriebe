@@ -55,7 +55,7 @@ interface Props {
 }
 
 /**
- * Werkstoffe pflegen: die Auswahlliste „Werkstoff“ am Artikel (Stahl, Edelstahl, Aluminium und was sonst verarbeitet wird).
+ * Werkstoffe pflegen: die Auswahlliste „Werkstoff" am Artikel (Stahl, Edelstahl, Aluminium und was sonst verarbeitet wird).
  * Gedacht für ein Fenster in der Artikelübersicht. Die Eignung für Verzinken und Pulvern gilt für alle Artikel aus diesem Werkstoff.
  */
 export function WerkstoffPflege({ onGeaendert }: Props = {}) {
@@ -68,18 +68,18 @@ export function WerkstoffPflege({ onGeaendert }: Props = {}) {
     const [fehler, setFehler] = useState('');
     const [speichert, setSpeichert] = useState(false);
 
-    const laden = useCallback(async () => {
-        try {
-            const res = await fetch(BASIS);
-            if (!res.ok) throw new Error(await parseErrorMessage(res, 'Die Werkstoffe konnten nicht geladen werden.'));
-            setListe(await res.json() as Werkstoff[]);
-            setLadefehler('');
-        } catch (e) {
-            const text = e instanceof Error ? e.message : 'Die Werkstoffe konnten nicht geladen werden.';
-            setLadefehler(text);
-            toast.error(text);
-        }
-    }, [toast]);
+    const laden = useCallback(() =>
+        fetch(BASIS)
+            .then(async res => {
+                if (!res.ok) throw new Error(await parseErrorMessage(res, 'Die Werkstoffe konnten nicht geladen werden.'));
+                setListe(await res.json() as Werkstoff[]);
+                setLadefehler('');
+            })
+            .catch(e => {
+                const text = e instanceof Error ? e.message : 'Die Werkstoffe konnten nicht geladen werden.';
+                setLadefehler(text);
+                toast.error(text);
+            }), [toast]);
 
     useEffect(() => { void laden(); }, [laden]);
 
@@ -120,7 +120,7 @@ export function WerkstoffPflege({ onGeaendert }: Props = {}) {
     };
 
     const loeschen = async (w: Werkstoff) => {
-        const ok = await confirm({ title: 'Werkstoff löschen?', message: `„${w.anzeigename || w.name}“ wird gelöscht. Das lässt sich nicht rückgängig machen.`, confirmLabel: 'Löschen', variant: 'danger' });
+        const ok = await confirm({ title: 'Werkstoff löschen?', message: `„${w.anzeigename || w.name}" wird gelöscht. Das lässt sich nicht rückgängig machen.`, confirmLabel: 'Löschen', variant: 'danger' });
         if (!ok) return;
         try {
             const res = await fetch(`${BASIS}/${encodeURIComponent(String(w.id))}`, { method: 'DELETE' });
@@ -188,7 +188,7 @@ export function WerkstoffPflege({ onGeaendert }: Props = {}) {
                                     <p className="font-medium text-slate-800">Was passiert im Hintergrund?</p>
                                     <p>Alle Artikel aus diesem Werkstoff gelten sofort als verzinkbar bzw. pulverbeschichtbar.</p>
                                     <p className="mt-2 font-medium text-slate-800">Was bewirkt das?</p>
-                                    <p>Die Eignung erscheint auf der Artikelseite und in den Filtern „verzinkbar“ und „pulverbeschichtbar“ der Artikelsuche. Preise und bestehende Angebote ändern sich nicht.</p>
+                                    <p>Die Eignung erscheint auf der Artikelseite und in den Filtern „verzinkbar" und „pulverbeschichtbar" der Artikelsuche. Preise und bestehende Angebote ändern sich nicht.</p>
                                 </InfoButton>
                             </legend>
                             <label className="flex items-center gap-2 text-sm text-slate-700">

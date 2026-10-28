@@ -3,7 +3,7 @@
  * Aktuell sind alle Bereiche freigegeben; die Funktion bleibt als Erweiterungspunkt.
  */
 
-/** Knopf „E-Mail” je Lieferant (Bestellanfrage per E-Mail). */
+/** Knopf „E-Mail" je Lieferant (Bestellanfrage per E-Mail). */
 export const BESTELLANFRAGE_PER_EMAIL_AKTIV = true;
 
 /** Pfad zur Bestellungs-Detailseite. */

@@ -23,7 +23,7 @@ export interface RechtstextArtTexte {
     /** Fester Hinweis unter dem Editor. */
     hinweis?: string;
     vorschlaege: TextVorschlag[];
-    /** Info neben „Auf Standardtext zurücksetzen“. */
+    /** Info neben „Auf Standardtext zurücksetzen". */
     zuruecksetzenInfo: InfoText;
 }
 

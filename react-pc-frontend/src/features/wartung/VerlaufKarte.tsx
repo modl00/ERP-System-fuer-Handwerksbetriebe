@@ -45,7 +45,7 @@ export function VerlaufKarte({ protokollId, stand }: Props) {
                             <span className="font-medium">{STATUS_ANZEIGE[e.nachStatus].label}</span>
                             <span className="text-slate-500"> (vorher {STATUS_ANZEIGE[e.vonStatus].label.toLowerCase()})</span>
                             {' '}· {zeitText(e.zeit)}{e.benutzer ? ` · ${e.benutzer}` : ''}
-                            {e.grund && <span className="block text-slate-600">„{e.grund}“</span>}
+                            {e.grund && <span className="block text-slate-600">„{e.grund}"</span>}
                         </li>
                     ))}
                 </ul>

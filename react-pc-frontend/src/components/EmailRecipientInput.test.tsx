@@ -538,7 +538,7 @@ describe('EmailRecipientInput', () => {
             expect(screen.getByText('Verknüpfte E-Mail-Adressen')).toBeInTheDocument();
             expect(feld()).toHaveFocus();
             await user.type(feld(), 'max@example.org');
-            fireEvent.click(screen.getByRole('button', { name: '„max@example.org“ als Empfänger hinzufügen' }));
+            fireEvent.click(screen.getByRole('button', { name: '„max@example.org" als Empfänger hinzufügen' }));
             expect(wert()).toBe('max@example.org');
         });
 

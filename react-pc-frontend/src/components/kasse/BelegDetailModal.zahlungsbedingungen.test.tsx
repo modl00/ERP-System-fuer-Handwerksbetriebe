@@ -38,7 +38,7 @@ beforeEach(() => { vi.stubGlobal('scrollTo', vi.fn()); });
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('BelegDetailModal: Zahlungsbedingungen (#191)', () => {
-    it('zeigt unter „Mehr Details“ Nummern, Zahlungsziel und Skonto der Eingangsrechnung', async () => {
+    it('zeigt unter „Mehr Details" Nummern, Zahlungsziel und Skonto der Eingangsrechnung', async () => {
         const u = userEvent.setup();
         const b = beleg({ eingangsrechnungBestellnummer: 'B-100', eingangsrechnungReferenzNummer: 'AB-7', eingangsrechnungSkontoProzent: 2, eingangsrechnungSkontoTage: 14, eingangsrechnungNettoTage: 30, eingangsrechnungTatsaechlichGezahlt: 116.62, eingangsrechnungMitSkonto: true });
         stub(b);

@@ -9,8 +9,8 @@ interface UngelesenKopfzeileProps {
 }
 
 /**
- * Kopfzeile über der Mail-Liste: Zahl der ungelesenen Mails, „Alle gelesen“
- * und ein (i), das erklärt, dass „gelesen“ für jeden Benutzer einzeln gilt.
+ * Kopfzeile über der Mail-Liste: Zahl der ungelesenen Mails, „Alle gelesen"
+ * und ein (i), das erklärt, dass „gelesen" für jeden Benutzer einzeln gilt.
  */
 export function UngelesenKopfzeile({ anzahl, onAlleGelesen }: UngelesenKopfzeileProps) {
     return (
@@ -39,7 +39,7 @@ export function UngelesenKopfzeile({ anzahl, onAlleGelesen }: UngelesenKopfzeile
                     </InfoAbschnitt>
                     <InfoAbschnitt titel="Was bewirkt das?">
                         <p>
-                            Öffnest du eine Mail oder klickst „Alle gelesen“, ist sie nur bei dir gelesen.
+                            Öffnest du eine Mail oder klickst „Alle gelesen", ist sie nur bei dir gelesen.
                             Für deine Kollegen bleibt sie fett, und ihre Glocke meldet sie weiter, bis sie sie selbst öffnen.
                         </p>
                         <p>Gesendete Mails gelten immer als gelesen.</p>

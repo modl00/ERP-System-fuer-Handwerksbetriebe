@@ -536,7 +536,7 @@ describe('LieferantDokumentModal', () => {
         });
     });
 
-    // Issue #266 Punkt 2: Der Knopf „Zuordnen“ im Warnband war ohne Funktion.
+    // Issue #266 Punkt 2: Der Knopf „Zuordnen" im Warnband war ohne Funktion.
     describe('Zuordnen (Kein Projekt zugeordnet)', () => {
         it('reicht das Dokument an den Aufrufer weiter, der die Projekt-Zuordnung öffnet', async () => {
             global.fetch = buildFetchMock() as unknown as typeof fetch;
@@ -600,7 +600,7 @@ describe('LieferantDokumentModal', () => {
     });
 
     describe('PDF-Vorschau', () => {
-        it('zeigt „Die Datei wurde nicht gefunden.“ statt eines endlosen Spinners, wenn die Datei fehlt', async () => {
+        it('zeigt „Die Datei wurde nicht gefunden." statt eines endlosen Spinners, wenn die Datei fehlt', async () => {
             global.fetch = buildFetchMock({ download: () => new Response(null, { status: 404 }) }) as unknown as typeof fetch;
             renderModal();
 
@@ -609,7 +609,7 @@ describe('LieferantDokumentModal', () => {
             expect(screen.queryByTitle('PDF Vorschau')).toBeNull();
         });
 
-        it('zeigt „Vorschau konnte nicht geladen werden.“ bei einem Serverfehler', async () => {
+        it('zeigt „Vorschau konnte nicht geladen werden." bei einem Serverfehler', async () => {
             global.fetch = buildFetchMock({ download: () => new Response(null, { status: 500 }) }) as unknown as typeof fetch;
             renderModal();
 

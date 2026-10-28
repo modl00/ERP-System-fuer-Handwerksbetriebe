@@ -1,6 +1,6 @@
 /**
  * Netzwerkordner mit Benutzername und Passwort im Docker-Betrieb (#133): Das Programm kann eine Freigabe im Container nicht selbst einhängen, das übernimmt der Stack
- * (docker-compose.netzwerk.yml). Diese Hilfe macht aus Adresse und Benutzer die vier Zeilen für „Environment variables“ in Portainer. Das Passwort wird hier nie
+ * (docker-compose.netzwerk.yml). Diese Hilfe macht aus Adresse und Benutzer die vier Zeilen für „Environment variables" in Portainer. Das Passwort wird hier nie
  * eingegeben oder gespeichert: In der Zeile steht ein Platzhalter, den man im Stack selbst ersetzt.
  */
 
@@ -15,7 +15,7 @@ export const SMB_VERSIONEN: { wert: SmbVersion; text: string }[] = [
 export interface SmbErgebnis {
     /** Die vier Zeilen zum Kopieren; leer, wenn die Eingabe noch nicht reicht. */
     zeilen: string;
-    /** Die Adresse so, wie der Stack sie braucht (ohne Schrägstriche am Anfang, mit „/“). */
+    /** Die Adresse so, wie der Stack sie braucht (ohne Schrägstriche am Anfang, mit „/"). */
     adresse: string;
     /** Was an der Eingabe nicht stimmt, in Klartext; leer, wenn alles passt. */
     fehler: string;

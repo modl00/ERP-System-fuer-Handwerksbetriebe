@@ -11,9 +11,9 @@ export interface Einzelergebnis { referenz: Referenz; status: 'ABGESCHLOSSEN' | 
 export interface SammelResponse { ergebnisse: Einzelergebnis[] }
 export interface Verlauf extends Referenz, Kennzahlen { festgeschrieben: boolean; version: number | null; festgeschriebenAm: string | null; festgeschriebenVonMitarbeiterId: number | null; audit: { id: number; aktion: string; akteurMitarbeiterId: number; akteurName: string; zeitpunkt: string }[] }
 export interface Zuordnung { kategorie: string; ausgeschlossen: boolean; lohnart: string | null }
-/** Welche Stunden als „Arbeit“ ans Steuerbüro gehen: laut Arbeitszeitkonto (Soll) oder tatsächlich gearbeitet (Ist). */
+/** Welche Stunden als „Arbeit" ans Steuerbüro gehen: laut Arbeitszeitkonto (Soll) oder tatsächlich gearbeitet (Ist). */
 export type Stundenart = 'SOLL' | 'IST';
-/** `stundenart: null` heißt „wie der Betrieb“. Wird nur zusammen mit einer Personalnummer gespeichert. */
+/** `stundenart: null` heißt „wie der Betrieb". Wird nur zusammen mit einer Personalnummer gespeichert. */
 export interface Personalnummer { mitarbeiterId: number; personalnummer: string; stundenart: Stundenart | null }
 export interface Konfiguration { version: number | null; ziel: string; beraterNr: string | null; mandantenNr: string | null; stundenart: Stundenart; zuordnungen: Zuordnung[]; personalnummern: Personalnummer[] }
 export interface ExportRequest { auswahl: Stand[]; konfigurationVersion: number | null }

@@ -21,7 +21,7 @@ interface Props {
 }
 
 /**
- * „Für welches Projekt?“ im Beleg-Fenster (#178/#243): dieselbe Zuordnung wie in den Bestellungen, damit die Kosten im Projekt (Material, Nachkalkulation) ankommen.
+ * „Für welches Projekt?" im Beleg-Fenster (#178/#243): dieselbe Zuordnung wie in den Bestellungen, damit die Kosten im Projekt (Material, Nachkalkulation) ankommen.
  * Hier lässt sich ein Projekt wählen, wenn die Rechnung noch keinem Ziel zugeordnet ist. Ist sie es schon, steht die Zuordnung da; aufgeteilt wird weiter in den
  * Bestellungen, damit hier keine bestehende Aufteilung überschrieben wird.
  */
@@ -62,7 +62,7 @@ export function BelegProjektSektion({ eingangsrechnungId }: Props) {
                 toast.error(b?.error ?? b?.message ?? 'Die Zuordnung zum Projekt konnte nicht gespeichert werden.');
                 return;
             }
-            toast.success(`Der Beleg gehört jetzt zum Projekt „${projekt.bauvorhaben}“.`);
+            toast.success(`Der Beleg gehört jetzt zum Projekt „${projekt.bauvorhaben}".`);
             await laden();
         } catch {
             toast.error('Die Zuordnung zum Projekt konnte nicht gespeichert werden (keine Verbindung).');

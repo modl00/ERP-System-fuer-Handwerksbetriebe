@@ -1,6 +1,7 @@
 package org.example.kalkulationsprogramm.service.telefon;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.json.JsonMapper;
 import org.example.kalkulationsprogramm.dto.Telefon.AnrufbeantworterDto;
 import org.example.kalkulationsprogramm.dto.Telefon.TelefonEinstellungenDto;
 import org.example.kalkulationsprogramm.dto.Telefon.TelefonEinstellungenSpeichernDto;
@@ -41,7 +42,7 @@ class TelefonEinstellungenServiceTest {
     void setUp() {
         when(settings.get(anyString(), any())).thenAnswer(i -> werte.getOrDefault(i.getArgument(0), i.getArgument(1)));
         doAnswer(i -> werte.put(i.getArgument(0), i.getArgument(1))).when(settings).save(anyString(), any(), any());
-        service = new TelefonEinstellungenService(settings, secrets, new ObjectMapper());
+        service = new TelefonEinstellungenService(settings, secrets, JsonMapper.builderWithJackson2Defaults().build());
     }
 
     private static TelefonEinstellungenSpeichernDto dto(String host, String benutzer, String passwort) {

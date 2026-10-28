@@ -35,7 +35,10 @@ import { istEinfacheKostenstellenZuordnung } from './kostenstellenModus';
 
 // ===================== Detail / Validierungs-Modal =====================
 
-/** Nummern und Zahlungsbedingungen der Eingangsrechnung als Eingabetexte (#191); dieselben Felder wie in „Dokument bearbeiten“. */
+/** Bar-Belege: nur bei ihnen zeigt der Dialog den Kassenstand. */
+const BAR_KATEGORIEN: BelegKategorie[] = ['KASSE_EINNAHME', 'KASSE_AUSGABE', 'PRIVATENTNAHME', 'PRIVATEINLAGE'];
+
+/** Nummern und Zahlungsbedingungen der Eingangsrechnung als Eingabetexte (#191); dieselben Felder wie in „Dokument bearbeiten". */
 function bedingungenAus(b: Beleg) {
     return {
         bestellnummer: b.eingangsrechnungBestellnummer ?? '',
@@ -56,7 +59,7 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
     onClose: () => void;
     onSaved: (b: Beleg) => void;
     onDeleted: (id: number) => void;
-    /** Die Konten wurden im Fenster „Konten“ (hier am Beleg geöffnet) geändert; die Seite lädt die Liste neu. */
+    /** Die Konten wurden im Fenster „Konten" (hier am Beleg geöffnet) geändert; die Seite lädt die Liste neu. */
     onKontenGeaendert?: () => void;
 }) {
     const toast = useToast();
@@ -179,12 +182,15 @@ export function BelegDetailModal({ beleg, sachkonten, zahlungsarten, onClose, on
     }, [validationHint]);
 
     // Live-Saldo laden, sobald Modal offen — nur fuer Bar-Belege relevant.
+    // Kein Bar-Beleg (mehr): Saldo beim Rendern verwerfen.
+    const istBarBeleg = BAR_KATEGORIEN.includes(form.belegKategorie);
+    const [istBarBelegVorher, setIstBarBelegVorher] = useState(istBarBeleg);
+    if (istBarBeleg !== istBarBelegVorher) {
+        setIstBarBelegVorher(istBarBeleg);
+        if (!istBarBeleg) setSaldoInfo(null);
+    }
     useEffect(() => {
-        const barKategorien: BelegKategorie[] = ['KASSE_EINNAHME', 'KASSE_AUSGABE', 'PRIVATENTNAHME', 'PRIVATEINLAGE'];
-        if (!barKategorien.includes(form.belegKategorie)) {
-            setSaldoInfo(null);
-            return;
-        }
+        if (!BAR_KATEGORIEN.includes(form.belegKategorie)) return;
         fetch('/api/buchhaltung/kasse/saldo')
             .then(r => r.ok ? r.json() : null)
             .then((s) => s && setSaldoInfo(s))

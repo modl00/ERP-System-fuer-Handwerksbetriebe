@@ -24,13 +24,13 @@ interface Props {
     onVorgang: (projektId: number, vorgangId: number) => void;
     /** Erhöht sich nach jeder Änderung an einem Vorgang, damit die Ansicht neu lädt. */
     aktualisierung: number;
-    /** Wird mit dem neu gerechneten Auftrag aufgerufen, wenn ein Vorgang verschoben oder neu zugewiesen wurde (damit die Ansicht „Aufträge“ mitzieht). */
+    /** Wird mit dem neu gerechneten Auftrag aufgerufen, wenn ein Vorgang verschoben oder neu zugewiesen wurde (damit die Ansicht „Aufträge" mitzieht). */
     onAuftrag?: (auftrag: Auftrag) => void;
     /** Arbeitswoche als ISO-Zahlen (1 = Montag); ohne Angabe Montag bis Freitag. */
     arbeitstage?: readonly number[];
     /** Ein Klick auf den Auftrag (Name in der Auftragszeile) öffnet ihn zum Bearbeiten. */
     onAuftragOeffnen?: (projektId: number) => void;
-    /** Die Aufträge der Plantafel: Jeder steht als eigene Zeile in der Gruppe „Allgemein“. */
+    /** Die Aufträge der Plantafel: Jeder steht als eigene Zeile in der Gruppe „Allgemein". */
     auftraege?: readonly Auftrag[];
     /** Bearbeiten-Modus: Nur dann lässt sich ziehen und per Klick auf einen freien Tag ein Termin anlegen (Schutz vor Versehen, auch am Tablet). */
     bearbeiten?: boolean;
@@ -137,7 +137,7 @@ export function Belegung({ onVorgang, aktualisierung, onAuftrag, onAuftragOeffne
         return () => { aktuell = false; };
     }, [start, tage, schluessel]);
 
-    // Die Liste der letzten Änderungen (für „Rückgängig“) lädt mit jeder Änderung neu
+    // Die Liste der letzten Änderungen (für „Rückgängig") lädt mit jeder Änderung neu
     useEffect(() => {
         let aktuell = true;
         ladeAenderungen(10).then(l => { if (aktuell && Array.isArray(l)) setAenderungen(l); }, () => undefined);
@@ -240,7 +240,7 @@ export function Belegung({ onVorgang, aktualisierung, onAuftrag, onAuftragOeffne
     /** Der Stand des Vorgangs, den die Ansicht gerade zeigt (Schutz vor gleichzeitigem Bearbeiten). */
     const vorgangVon = (e: BelegungEintrag) => auftraege.find(a => a.projektId === e.projektId)?.vorgaenge.find(v => v.id === Number(e.id.slice(1)));
 
-    /** Ziehen an einem Rand: links = „frühestens ab“, rechts = Dauer (Wartevorgang) oder Aufwand (Arbeitsvorgang) ändern. Beides mit Vorschau. */
+    /** Ziehen an einem Rand: links = „frühestens ab", rechts = Dauer (Wartevorgang) oder Aufwand (Arbeitsvorgang) ändern. Beides mit Vorschau. */
     const randZiehen = async (e: BelegungEintrag, seite: 'links' | 'rechts', dxTage: number) => {
         const vorgang = vorgangVon(e);
         const nummer = Number(e.id.slice(1));
@@ -253,9 +253,9 @@ export function Belegung({ onVorgang, aktualisierung, onAuftrag, onAuftragOeffne
             if (!vorgang) return;
             const groesse = neueGroesse(vorgang, arbeitstageDelta(e.bis, dxTage, arbeitstage));
             if (!groesse) return;
-            if (!await vorschau.frage(nummer, groesse.probe, `„${e.titel}“: ${groesse.text}.`)) return;
+            if (!await vorschau.frage(nummer, groesse.probe, `„${e.titel}": ${groesse.text}.`)) return;
             onAuftrag?.(await aendereVorgang(nummer, { ...groesse.aenderung, stand: vorgang.stand }));
-            toast.success(`„${e.titel}“: ${groesse.text}.`);
+            toast.success(`„${e.titel}": ${groesse.text}.`);
             setVersion(v => v + 1);
         } catch (fehler) {
             toast.error(fehler instanceof Error ? fehler.message : 'Das Ändern hat nicht geklappt.');
@@ -294,7 +294,7 @@ export function Belegung({ onVorgang, aktualisierung, onAuftrag, onAuftragOeffne
                 if (zuweisung) {
                     const auftrag = await weiseZu(nummer, { ...zuweisung, prioritaet: null }, neuerStart ? undefined : vorgangVon(e)?.stand);
                     onAuftrag?.(auftrag);
-                    toast.success(`„${e.titel}“ steht jetzt in der Zeile ${daten.zeilen.find(z => z.schluessel === ziel)?.name ?? ''}.`);
+                    toast.success(`„${e.titel}" steht jetzt in der Zeile ${daten.zeilen.find(z => z.schluessel === ziel)?.name ?? ''}.`);
                     geaendert = true;
                 }
             } else if (e.quelle === 'TERMIN') {
@@ -305,7 +305,7 @@ export function Belegung({ onVorgang, aktualisierung, onAuftrag, onAuftragOeffne
                     datum: neu?.datum ?? e.von, von: neu ? neu.von : e.vonZeit, bis: neu ? neu.bis : e.bisZeit,
                     vonMitarbeiterId: personWechsel ? Number(quelle.slice(1)) : null, nachMitarbeiterId: personWechsel ? Number(ziel.slice(1)) : null,
                 });
-                toast.success(`„${e.titel}“ ist verschoben.`);
+                toast.success(`„${e.titel}" ist verschoben.`);
                 geaendert = true;
             }
         } catch (fehler) {
@@ -482,7 +482,7 @@ export function Belegung({ onVorgang, aktualisierung, onAuftrag, onAuftragOeffne
             <ul className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500" aria-label="Zeichenerklärung">
                 <li>Nach links und rechts verschieben: Scrollleiste, Mausrad mit Umschalttaste oder die Pfeile oben (es geht endlos weiter)</li>
                 <li>Zeile mit Auftragsnamen: alle Vorgänge eines Auftrags. Raute = Lieferzeit, gestrichelte Linie = Zieltermin</li>
-                <li>Farbiger Balken: Vorgang der Plantafel (Klick zeigt die Einzelheiten; zum Ändern „Bearbeiten“ einschalten)</li>
+                <li>Farbiger Balken: Vorgang der Plantafel (Klick zeigt die Einzelheiten; zum Ändern „Bearbeiten" einschalten)</li>
                 <li>Gelb getönter Tag: Feiertag. Orange: Betriebsurlaub</li>
                 <li>Türkiser Kasten: fällige Wartung, je Objekt zusammengefasst (Klick öffnet die Anlage bzw. die Wartungsübersicht)</li>
                 <li>Pfeile in den Auftragszeilen: Der Vorgang am Pfeilende beginnt nach dem Ende des Vorgangs am Pfeilanfang</li>
@@ -491,9 +491,9 @@ export function Belegung({ onVorgang, aktualisierung, onAuftrag, onAuftragOeffne
                 <li>Grauer Balken: Urlaub, Krank und Ähnliches</li>
                 <li>Warnzeichen: doppelt belegt oder in einer Abwesenheit eingeplant</li>
                 <li>Pin: fester Start</li>
-                <li>Mit eingeschaltetem „Bearbeiten“: Auf einen freien Tag klicken legt einen Termin an, über mehrere Tage ziehen einen Termin über alle gewählten Tage (nicht bei Ressourcen).</li>
-                <li>Mit eingeschaltetem „Bearbeiten“: Am linken Rand eines Vorgangs ziehen = frühestens ab, am rechten Rand ziehen = länger oder kürzer (Aufwand bzw. Dauer). Vor dem Speichern zeigt das Programm, was sich verschiebt; „Rückgängig“ nimmt die letzte Änderung zurück.</li>
-                <li>Mit eingeschaltetem „Bearbeiten“: Einträge mit der Maus ziehen (anderer Tag, andere Uhrzeit oder andere Zeile). Ein gezogener Vorgang beginnt „frühestens“ an dem Tag und rückt mit der Kette nach hinten, wenn Vorgänger später fertig werden.</li>
+                <li>Mit eingeschaltetem „Bearbeiten": Auf einen freien Tag klicken legt einen Termin an, über mehrere Tage ziehen einen Termin über alle gewählten Tage (nicht bei Ressourcen).</li>
+                <li>Mit eingeschaltetem „Bearbeiten": Am linken Rand eines Vorgangs ziehen = frühestens ab, am rechten Rand ziehen = länger oder kürzer (Aufwand bzw. Dauer). Vor dem Speichern zeigt das Programm, was sich verschiebt; „Rückgängig" nimmt die letzte Änderung zurück.</li>
+                <li>Mit eingeschaltetem „Bearbeiten": Einträge mit der Maus ziehen (anderer Tag, andere Uhrzeit oder andere Zeile). Ein gezogener Vorgang beginnt „frühestens" an dem Tag und rückt mit der Kette nach hinten, wenn Vorgänger später fertig werden.</li>
             </ul>
             {vorschau.dialog}
             {terminDialog && (
@@ -642,7 +642,7 @@ function ZeileAnsicht({ zeile, auftrag, start, spalten, heute, mitStunden, arbei
     );
 }
 
-/** Der Griff am linken oder rechten Rand eines Vorgangs: Ziehen ändert den Beginn („frühestens ab“) oder die Größe (Dauer bzw. Aufwand). Ein Klick darauf öffnet nichts. */
+/** Der Griff am linken oder rechten Rand eines Vorgangs: Ziehen ändert den Beginn („frühestens ab") oder die Größe (Dauer bzw. Aufwand). Ein Klick darauf öffnet nichts. */
 function RandGriff({ seite, titel, onFertig }: { seite: 'links' | 'rechts'; titel: string; onFertig: (dxPx: number) => void }) {
     const start = useRef<number | null>(null);
     const [dx, setDx] = useState(0);

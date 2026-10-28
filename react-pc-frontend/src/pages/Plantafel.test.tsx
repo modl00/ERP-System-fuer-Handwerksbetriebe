@@ -32,7 +32,7 @@ let aenderungen: unknown[] = [];
 let offene: unknown[] = [];
 
 const FERTIGUNG = /^Fertigung, Geländer Musterstraße/;
-/** Schaltet „Bearbeiten“ ein und öffnet den Vorgang „Fertigung“ (der erste Treffer steht in der Zeile des Auftrags). */
+/** Schaltet „Bearbeiten" ein und öffnet den Vorgang „Fertigung" (der erste Treffer steht in der Zeile des Auftrags). */
 const oeffneVorgang = async (user: ReturnType<typeof userEvent.setup>) => {
     const treffer = await screen.findAllByRole('button', { name: FERTIGUNG });
     const schalter = screen.getByRole('button', { name: /^Bearbeiten( ist an)?$/ });
@@ -46,7 +46,7 @@ beforeEach(() => {
     liste = [auftrag()];
     offene = [];
     kiFehler = false;
-    aenderungen = [{ id: 5, zeitpunkt: '2026-10-12T08:30:00', benutzer: 'anna.buero', beschreibung: '„Fertigung“ (Geländer Musterstraße): Aufwand von 16 Stunden auf 32 Stunden', vorgangId: 2, projektId: 7, zurueckgenommen: false, rueckgaengigMoeglich: true }];
+    aenderungen = [{ id: 5, zeitpunkt: '2026-10-12T08:30:00', benutzer: 'anna.buero', beschreibung: '„Fertigung" (Geländer Musterstraße): Aufwand von 16 Stunden auf 32 Stunden', vorgangId: 2, projektId: 7, zurueckgenommen: false, rueckgaengigMoeglich: true }];
     fetcher = vi.fn(async (url: string, init?: RequestInit) => {
         const u = String(url);
         if (u.endsWith('/api/plantafel/auftraege') && !init?.method) return json(liste);
@@ -89,7 +89,7 @@ beforeEach(() => {
         if (u.includes('/api/plantafel/ki/auftraege/9/vorgaenge/uebernehmen')) return json({ ...auftrag(), projektId: 9, bezeichnung: 'Tor Hofeinfahrt' });
         if (u.includes('/api/plantafel/ki/auftraege/9/vorgaenge')) {
             return json({
-                quelle: 'ANGEBOT', hinweise: ['Die KI nannte „Lackieren“. Diese Vorgangsart gibt es nicht und sie wurde nicht übernommen.'],
+                quelle: 'ANGEBOT', hinweise: ['Die KI nannte „Lackieren". Diese Vorgangsart gibt es nicht und sie wurde nicht übernommen.'],
                 schritte: [{ typId: 1, typName: 'Planung', farbe: '#6366f1', dauerTage: 1, begruendung: 'Zeichnung prüfen' }, { typId: 2, typName: 'Fertigung', farbe: '#be123c', dauerTage: 6, begruendung: 'Schweißen und Schleifen' }],
             });
         }
@@ -125,7 +125,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(screen.getByTestId('zeile-P7')).toHaveTextContent('Geländer Musterstraße');
     });
 
-    it('im Ansehen-Modus sind die Felder gesperrt; „Bearbeiten“ schaltet den Modus ein', async () => {
+    it('im Ansehen-Modus sind die Felder gesperrt; „Bearbeiten" schaltet den Modus ein', async () => {
         const user = userEvent.setup();
         zeige();
         await user.click((await screen.findAllByRole('button', { name: FERTIGUNG }))[0]);
@@ -139,7 +139,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(screen.getByRole('button', { name: 'Speichern' })).toBeInTheDocument();
     });
 
-    it('Aufträge, die mit „Später“ übersprungen wurden, stehen als „neu, noch nicht eingeplant“ da und lassen sich planen', async () => {
+    it('Aufträge, die mit „Später" übersprungen wurden, stehen als „neu, noch nicht eingeplant" da und lassen sich planen', async () => {
         offene = [{ projektId: 9, bezeichnung: 'Tor Hofeinfahrt', auftragsnummer: 'A-2' }];
         const user = userEvent.setup();
         zeige();
@@ -171,7 +171,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(screen.queryByTestId('auftrag-dialog')).not.toBeInTheDocument();
     });
 
-    it('„Rückgängig“ nimmt die letzte Änderung zurück', async () => {
+    it('„Rückgängig" nimmt die letzte Änderung zurück', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findAllByRole('button', { name: FERTIGUNG });
@@ -190,7 +190,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(await screen.findByRole('button', { name: /Rückgängig/ })).toBeDisabled();
     });
 
-    it('die Liste „Änderungen“ zeigt die letzten Änderungen mit Benutzer', async () => {
+    it('die Liste „Änderungen" zeigt die letzten Änderungen mit Benutzer', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findAllByRole('button', { name: FERTIGUNG });
@@ -221,7 +221,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         const vorher = aufrufe('GET', '/api/plantafel/auftraege').length;
         const bisher = fetcher.getMockImplementation() as (u: string, i?: RequestInit) => Promise<Response>;
         fetcher.mockImplementation(async (url: string, init?: RequestInit) => (String(url).includes('/api/plantafel/vorgaenge/2') && init?.method === 'PUT'
-            ? json({ message: 'Der Vorgang „Fertigung“ wurde inzwischen von jemand anderem geändert.' }, 409)
+            ? json({ message: 'Der Vorgang „Fertigung" wurde inzwischen von jemand anderem geändert.' }, 409)
             : bisher(url, init)));
         const aufwand = await screen.findByLabelText('Aufwand in Stunden');
         await user.clear(aufwand);
@@ -301,7 +301,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(await screen.findByRole('heading', { name: 'Vorgang hinzufügen' })).toBeInTheDocument();
     });
 
-    it('ein unveränderter Aufwand wird nicht als „von Hand“ zurückgeschickt', async () => {
+    it('ein unveränderter Aufwand wird nicht als „von Hand" zurückgeschickt', async () => {
         const user = userEvent.setup();
         zeige();
         await oeffneVorgang(user);
@@ -345,7 +345,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         }
     });
 
-    it('ein Arbeitsvorgang hat keinen Abschnitt „Lieferung“', async () => {
+    it('ein Arbeitsvorgang hat keinen Abschnitt „Lieferung"', async () => {
         const user = userEvent.setup();
         zeige();
         await oeffneVorgang(user);
@@ -379,7 +379,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(aufrufe('POST', '/api/plantafel/neu-berechnen')).toHaveLength(1);
     });
 
-    it('„Frühestens ab“ und die Reihenfolge werden gespeichert, wenn sie sich ändern', async () => {
+    it('„Frühestens ab" und die Reihenfolge werden gespeichert, wenn sie sich ändern', async () => {
         const user = userEvent.setup();
         zeige();
         await oeffneVorgang(user);
@@ -391,7 +391,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(aufrufe('PUT', '/vorgaenge/2/fruehestens')).toHaveLength(0);
     });
 
-    it('„Auftrag aufnehmen“ legt die Standardkette an und zeigt den neuen Auftrag', async () => {
+    it('„Auftrag aufnehmen" legt die Standardkette an und zeigt den neuen Auftrag', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findAllByRole('button', { name: FERTIGUNG });
@@ -407,7 +407,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         await waitFor(() => expect(aufrufe('GET', '/api/plantafel/belegung').length).toBeGreaterThan(vorher));
     });
 
-    it('„Mit KI vorschlagen“ zeigt die Vorschläge mit Begründung; übernommen wird nur, was angehakt ist, mit der geänderten Dauer', async () => {
+    it('„Mit KI vorschlagen" zeigt die Vorschläge mit Begründung; übernommen wird nur, was angehakt ist, mit der geänderten Dauer', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findAllByRole('button', { name: FERTIGUNG });
@@ -447,7 +447,7 @@ describe('Plantafel', { timeout: 30000 }, () => {
         expect(await screen.findByRole('alert')).toHaveTextContent('Für diese Funktion ist kein Schlüssel hinterlegt.');
     });
 
-    it('„Dauern aus dem Angebot vorschlagen“ zeigt Stunden und Rechnung; übernommen wird nur das Gewählte', async () => {
+    it('„Dauern aus dem Angebot vorschlagen" zeigt Stunden und Rechnung; übernommen wird nur das Gewählte', async () => {
         const user = userEvent.setup();
         zeige();
         await oeffneVorgang(user);

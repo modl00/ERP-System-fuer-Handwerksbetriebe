@@ -2,7 +2,7 @@
  * Ein Ereignis aus einem Server-Sent-Events-Strom (SSE).
  */
 export interface SseEreignis {
-    /** Name aus der `event:`-Zeile, ohne sie „message“. */
+    /** Name aus der `event:`-Zeile, ohne sie „message". */
     event: string;
     /** Inhalt der `data:`-Zeilen; mehrere Zeilen sind mit `\n` verbunden. */
     data: string;
@@ -19,7 +19,7 @@ class EreignisSammler {
     /** Verarbeitet eine Zeile; bei einer Leerzeile kommt das fertige Ereignis zurück. */
     zeile(zeile: string): SseEreignis | null {
         if (zeile === '') return this.abschliessen();
-        // Zeilen mit „:“ am Anfang sind Kommentare, z. B. Pings gegen Zeitüberschreitungen.
+        // Zeilen mit „:" am Anfang sind Kommentare, z. B. Pings gegen Zeitüberschreitungen.
         if (zeile.startsWith(':')) return null;
         const doppelpunkt = zeile.indexOf(':');
         const feld = doppelpunkt === -1 ? zeile : zeile.slice(0, doppelpunkt);
@@ -67,7 +67,7 @@ function trenneZeilen(puffer: string, stromZuEnde: boolean): { zeilen: string[];
  *   <li>Kommentarzeilen (`:` am Anfang) fallen weg.</li>
  *   <li>Ein Leerzeichen nach dem Doppelpunkt wird entfernt (`data: x` = `data:x`).</li>
  *   <li>Mehrere `data:`-Zeilen eines Ereignisses werden mit `\n` verbunden.</li>
- *   <li>Ohne `event:`-Zeile heißt das Ereignis „message“; ohne `data:`-Zeile gibt es keins.</li>
+ *   <li>Ohne `event:`-Zeile heißt das Ereignis „message"; ohne `data:`-Zeile gibt es keins.</li>
  * </ul>
  *
  * <p>Anders als `EventSource` geht das letzte Ereignis nicht verloren, wenn

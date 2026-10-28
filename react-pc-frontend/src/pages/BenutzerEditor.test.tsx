@@ -116,7 +116,7 @@ describe('BenutzerEditor – Anlegen und Löschen', () => {
         renderEditor();
         await user.click(await screen.findByText('Max Mustermann'));
         await user.click(screen.getByRole('button', { name: 'Speichern' }));
-        // Die Meldung vom Server statt eines allgemeinen „Fehler beim Speichern.“
+        // Die Meldung vom Server statt eines allgemeinen „Fehler beim Speichern."
         expect(await screen.findByText('Benutzername ist bereits vergeben.')).toBeInTheDocument();
     });
 

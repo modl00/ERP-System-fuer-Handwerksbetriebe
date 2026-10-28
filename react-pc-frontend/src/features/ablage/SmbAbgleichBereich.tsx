@@ -328,7 +328,7 @@ export function SmbAbgleichBereich() {
                         {letzter && (
                             <p className="text-sm text-slate-700" data-testid="smb-letzter">Letzter Abgleich: <strong>{zeitText(letzter.zeit)}</strong>{letzter.text ? ` (${letzter.text})` : ''}</p>
                         )}
-                        <p className="text-sm text-slate-600">Der Abgleich nutzt die <strong>gespeicherten</strong> Angaben. Bitte zuerst speichern und „Abgleich einschalten“ wählen.</p>
+                        <p className="text-sm text-slate-600">Der Abgleich nutzt die <strong>gespeicherten</strong> Angaben. Bitte zuerst speichern und „Abgleich einschalten" wählen.</p>
                         <div className="flex flex-wrap gap-2">
                             <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50" onClick={() => starte(true)} disabled={laeuft != null}>
                                 {laeuft === 'vorschau' ? <Loader2 className="w-4 h-4 animate-spin motion-reduce:animate-none" /> : <Eye className="w-4 h-4" />} Vorschau

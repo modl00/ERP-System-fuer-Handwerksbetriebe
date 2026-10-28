@@ -33,7 +33,7 @@ describe('KiWunschKarte', { timeout: 30000 }, () => {
         expect(screen.getByText(/unverschlüsselt in den Einstellungen/)).toBeVisible();
     });
 
-    it('mit eingerichtetem Server-Schlüssel steht „verschlüsselt gespeichert“ da', async () => {
+    it('mit eingerichtetem Server-Schlüssel steht „verschlüsselt gespeichert" da', async () => {
         aktuell = stand({ verschluesselt: true });
         zeige();
         expect(await screen.findByText(/verschlüsselt gespeichert/)).toBeVisible();

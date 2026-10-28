@@ -28,7 +28,7 @@ type LadeStand = 'laedt' | 'fertig' | 'fehler';
 /** Kleines Vorschaubild: Platzhalter beim Laden, Hinweis bei Fehler. */
 function BildMiniatur({ src, alt }: { src: string; alt: string }) {
     const [stand, setStand] = useState<{ src: string; wert: LadeStand }>({ src, wert: 'laedt' });
-    // Neuer Link → wieder „lädt“, ohne Effekt (Zustand hängt am src).
+    // Neuer Link → wieder „lädt", ohne Effekt (Zustand hängt am src).
     const aktuell: LadeStand = stand.src === src ? stand.wert : 'laedt';
     return (
         <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-lg border border-slate-200 bg-slate-50">

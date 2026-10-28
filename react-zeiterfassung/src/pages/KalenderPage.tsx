@@ -136,7 +136,7 @@ export default function KalenderPage({ token, syncStatus, onSync }: KalenderPage
                     </button>
                 </div>
 
-                {/* Fehlerzustand bleibt sichtbar, auch wenn der Toast längst weg ist – ein leeres Raster sieht sonst aus wie „keine Termine“. */}
+                {/* Fehlerzustand bleibt sichtbar, auch wenn der Toast längst weg ist – ein leeres Raster sieht sonst aus wie „keine Termine". */}
                 {fehler && (
                     <div className="mb-3 flex shrink-0 items-center gap-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
                         <AlertTriangle aria-hidden="true" className="h-5 w-5 shrink-0 text-rose-600" />

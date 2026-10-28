@@ -15,7 +15,7 @@ interface Props { block: DocBlock; onUpdate: (updates: Partial<DocBlock>) => voi
 /**
  * Alternative Kalkulation direkt an einer Position: Bei einer Katalogleistung wird ihre Kalkulation kopiert, bei einem Artikel entsteht eine Leistung mit dem Artikel als Material.
  * Daran lassen sich Material, Arbeit, Maschine und Fremdleistung wie im Leistungseditor ändern, um kurzfristig eine individuelle Leistung zu erstellen; der Preis der Position
- * folgt der Kalkulation. Das Original bleibt unberührt und lässt sich über „Zurück zum Original“ wieder einsetzen. Die Alternative steht nur in diesem Dokument, bis man sie in
+ * folgt der Kalkulation. Das Original bleibt unberührt und lässt sich über „Zurück zum Original" wieder einsetzen. Die Alternative steht nur in diesem Dokument, bis man sie in
  * den Leistungsstamm übernimmt.
  */
 export function AlternativeKalkulation({ block, onUpdate }: Props) {

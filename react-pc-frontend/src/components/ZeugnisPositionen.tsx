@@ -29,7 +29,7 @@ function mengeMitEinheit(position: DokumentPosition): string {
  */
 export function ZeugnisPositionen({ dokumentId }: ZeugnisPositionenProps) {
     const toast = useToast();
-    // Ergebnis gehört immer zu einem Dokument – für ein anderes Dokument gilt „wird geladen“
+    // Ergebnis gehört immer zu einem Dokument – für ein anderes Dokument gilt „wird geladen"
     const [ergebnis, setErgebnis] = useState<{ dokumentId: number; zustand: Zustand } | null>(null);
     const zustand: Zustand = ergebnis?.dokumentId === dokumentId ? ergebnis.zustand : { art: 'laden' };
 

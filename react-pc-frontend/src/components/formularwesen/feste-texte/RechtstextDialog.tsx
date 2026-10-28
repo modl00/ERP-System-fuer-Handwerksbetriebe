@@ -70,7 +70,7 @@ export function RechtstextDialog({ art, bezeichnung, onClose, onAktualisiert }: 
     const [aktion, setAktion] = useState<Aktion | null>(null);
     const [pdfUrl, setPdfUrl] = useState<string | null>(null);
 
-    // Zähler für „Erneut versuchen“ – jede Erhöhung lädt den Teil neu.
+    // Zähler für „Erneut versuchen" – jede Erhöhung lädt den Teil neu.
     const [textVersuch, setTextVersuch] = useState(0);
     const [listenVersuch, setListenVersuch] = useState(0);
 
@@ -228,7 +228,7 @@ export function RechtstextDialog({ art, bezeichnung, onClose, onAktualisiert }: 
     };
 
     const fassungUebernehmen = (fassung: RechtstextFassung) => {
-        // setzeInhalt meldet die Änderung über onChange → Entwurf + „geändert“.
+        // setzeInhalt meldet die Änderung über onChange → Entwurf + „geändert".
         editorRef.current?.setzeInhalt(bereinigeRechtstextHtml(fassung.html), true);
         setAnsicht(null);
         toast.info(`Fassung ${fassung.fassung} steht jetzt im Editor – noch nicht gespeichert.`);
@@ -238,7 +238,7 @@ export function RechtstextDialog({ art, bezeichnung, onClose, onAktualisiert }: 
     const vorschauSchliessen = () => setPdfUrl(null);
 
     const beschaeftigt = aktion !== null;
-    const gesperrtHinweis = ansicht ? 'Erst „Zurück zum Editor“ oder „In den Editor übernehmen“ wählen.' : undefined;
+    const gesperrtHinweis = ansicht ? 'Erst „Zurück zum Editor" oder „In den Editor übernehmen" wählen.' : undefined;
 
     return (
         <Dialog

@@ -10,14 +10,14 @@ interface EinzelversandSchalterProps {
     id: string;
     aktiv: boolean;
     onChange: (aktiv: boolean) => void;
-    /** Anzahl der Empfänger im „An“. */
+    /** Anzahl der Empfänger im „An". */
     anzahlEmpfaenger: number;
     disabled?: boolean;
     className?: string;
 }
 
 /**
- * Schalter „Als Rundmail verschicken“: Jeder Empfänger bekommt eine eigene Mail und
+ * Schalter „Als Rundmail verschicken": Jeder Empfänger bekommt eine eigene Mail und
  * sieht nur sich selbst. Ab {@link EINZELVERSAND_HINWEIS_AB} Empfängern ist er von
  * selbst an (das entscheidet das Formular); ausgeschaltet warnt er, dass sich alle
  * sehen. Über {@link EINZELVERSAND_MAX_EMPFAENGER} sagt er, warum nicht gesendet werden kann.
@@ -64,7 +64,7 @@ export function EinzelversandSchalter({ id, aktiv, onChange, anzahlEmpfaenger, d
                     <p className="mt-1">
                         Jeder Empfänger bekommt eine eigene E-Mail mit demselben Betreff, Text und Anhängen.
                         Die Mails gehen nacheinander über das gewählte Postfach raus und stehen danach einzeln
-                        unter „Gesendet“ – bei einem gewählten Projekt oder einer Anfrage auch dort.
+                        unter „Gesendet" – bei einem gewählten Projekt oder einer Anfrage auch dort.
                     </p>
                     <p className="mt-3 font-semibold text-slate-800">Was bewirkt das?</p>
                     <ul className="mt-1 list-disc space-y-1 pl-4">

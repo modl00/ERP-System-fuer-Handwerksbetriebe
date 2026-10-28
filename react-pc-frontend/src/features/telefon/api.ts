@@ -28,7 +28,7 @@ import { lieferantPfad } from '../../lib/navigationPfade';
 const BASIS = '/api/telefon';
 
 async function meldungAus(res: Response, ersatz: string): Promise<string> {
-    if (res.status === 403) return 'Dafür fehlt Ihnen das Recht „Anrufe & Anrufbeantworter“.';
+    if (res.status === 403) return 'Dafür fehlt Ihnen das Recht „Anrufe & Anrufbeantworter".';
     try {
         const text = await res.text();
         const daten = JSON.parse(text);
@@ -311,7 +311,7 @@ export function schalteTelefonbuch(aktiv: boolean): Promise<TelefonbuchStatus> {
     return holeJson<TelefonbuchStatus>(TELEFONBUCH, 'Die Einstellung konnte nicht gespeichert werden.', jsonInit('PUT', { aktiv }));
 }
 
-/** Startet den Abgleich (bzw. eine offene Löschung) im Hintergrund; Antwort ist der Stand mit „läuft“. */
+/** Startet den Abgleich (bzw. eine offene Löschung) im Hintergrund; Antwort ist der Stand mit „läuft". */
 export function gleicheTelefonbuchAb(): Promise<TelefonbuchStatus> {
     return holeJson<TelefonbuchStatus>(`${TELEFONBUCH}/abgleichen`,
         'Das FRITZ!Box-Telefonbuch konnte nicht abgeglichen werden.', jsonInit('POST'));

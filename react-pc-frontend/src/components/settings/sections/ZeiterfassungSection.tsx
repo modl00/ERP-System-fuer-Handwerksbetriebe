@@ -147,9 +147,9 @@ export function ZeiterfassungSection({ onSaved }: { onSaved?: () => void }) {
                 description={
                     <p>
                         Jeder Mitarbeiter hat einen individuellen Zugangs-Token. Den QR-Code finden
-                        Sie unter <strong>Mitarbeiter</strong> → Mitarbeiter öffnen → Knopf „QR-Code“ oben
-                        rechts. Hat ein Mitarbeiter noch keinen Zugang, steht dort „Token erstellen“ –
-                        danach erscheint „QR-Code“. Der QR-Code enthält den direkten Link zur Zeiterfassung
+                        Sie unter <strong>Mitarbeiter</strong> → Mitarbeiter öffnen → Knopf „QR-Code" oben
+                        rechts. Hat ein Mitarbeiter noch keinen Zugang, steht dort „Token erstellen" –
+                        danach erscheint „QR-Code". Der QR-Code enthält den direkten Link zur Zeiterfassung
                         mit dem persönlichen Token.
                     </p>
                 }

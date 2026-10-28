@@ -10,7 +10,7 @@ interface Props {
 
 /**
  * Erklärt unter der Konto-Auswahl, wofür das gewählte Konto gedacht ist (Art und Beschreibung).
- * Ohne diese Zeile stand im Auswahlfeld nur „4120 Löhne & Gehälter“ und niemand sah, was dort
+ * Ohne diese Zeile stand im Auswahlfeld nur „4120 Löhne & Gehälter" und niemand sah, was dort
  * hingehört. Gibt es gar keine Konten, sagt der Text das, statt ein leeres Feld zu lassen.
  */
 export function SachkontoInfo({ konto, anzahl }: Props) {

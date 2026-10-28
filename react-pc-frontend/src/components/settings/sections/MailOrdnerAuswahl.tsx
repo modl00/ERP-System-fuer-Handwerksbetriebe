@@ -13,7 +13,7 @@ interface Uebersicht { konfiguriert: boolean; ausgewaehlt: Eintrag[]; ordner: Se
 interface Zeile { gewaehlt: boolean; richtung: Richtung; nachladen: boolean; war: boolean }
 
 /**
- * „Welche Ordner liest das Programm?“ Das Programm liest nur: Es verschiebt, löscht und markiert nichts im Postfach.
+ * „Welche Ordner liest das Programm?" Das Programm liest nur: Es verschiebt, löscht und markiert nichts im Postfach.
  * Für neu gewählte Ordner werden nur Mails ab heute geholt; ältere nur auf ausdrücklichen Wunsch.
  */
 export function MailOrdnerAuswahl() {

@@ -44,7 +44,7 @@ export function OrdnerHinweis({ ordner }: { ordner: FolderType }) {
                         <p>Eingehende Mails werden automatisch zugeordnet: einem Lieferanten, wenn die Absender-Domain zu ihm passt, sonst einem Projekt oder einer Anfrage, wenn die Absender-Adresse beim Kunden hinterlegt ist. Passen mehrere, entscheiden Stichwörter im Betreff und die KI.</p>
                     </InfoAbschnitt>
                     <InfoAbschnitt titel="Was bewirkt das?">
-                        <p>Hier landen Mails von bekannten Kunden-Adressen, bei denen das nicht eindeutig ging – z. B. weil ein Kunde mehrere laufende Projekte hat. Mails von unbekannten Absendern bleiben im Posteingang. Ordne sie mit „Zuordnen“ selbst zu.</p>
+                        <p>Hier landen Mails von bekannten Kunden-Adressen, bei denen das nicht eindeutig ging – z. B. weil ein Kunde mehrere laufende Projekte hat. Mails von unbekannten Absendern bleiben im Posteingang. Ordne sie mit „Zuordnen" selbst zu.</p>
                     </InfoAbschnitt>
                 </InfoButton>
             </div>

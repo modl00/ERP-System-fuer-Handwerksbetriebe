@@ -178,7 +178,7 @@ describe('EmailCenter', () => {
             expect(within(liste).queryByText('signatur-logo.png')).not.toBeInTheDocument();
         });
 
-        it('öffnet einen Weiterleitungs-Entwurf mit festem Absender statt „Senden von“', async () => {
+        it('öffnet einen Weiterleitungs-Entwurf mit festem Absender statt „Senden von"', async () => {
             const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime, delay: null });
             const entwurf = {
                 id: 55, recipient: 'kollege@example.org', subject: 'WG: Angebot für Treppe', body: '<p>Bitte ansehen.</p>',
@@ -216,7 +216,7 @@ describe('EmailCenter', () => {
             });
         });
 
-        it('zeigt im Ordner-Kopf neben „Alle gelesen“ ein (i), das „gelesen pro Benutzer“ erklärt', async () => {
+        it('zeigt im Ordner-Kopf neben „Alle gelesen" ein (i), das „gelesen pro Benutzer" erklärt', async () => {
             const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime, delay: null });
             renderEmailCenter();
             const kopf = await screen.findByTestId('email-ungelesen-kopfzeile');
@@ -977,7 +977,7 @@ describe('EmailCenter', () => {
             expect(await screen.findByText('Angebot für Treppe')).toBeInTheDocument();
         });
 
-        it('meldet „n von m“, wenn nur ein Teil eines Verlaufs gelöscht werden konnte', async () => {
+        it('meldet „n von m", wenn nur ein Teil eines Verlaufs gelöscht werden konnte', async () => {
             const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime, delay: null });
             const anfrage = {
                 id: 16, type: 'EMAIL', direction: 'IN' as const, subject: 'Anfrage Terrasse',
@@ -1085,7 +1085,7 @@ describe('EmailCenter – Zuordnen, Entwürfe und Ordner-Hinweise', () => {
         expect(await screen.findByText('Zuordnung wurde aufgehoben.')).toBeInTheDocument();
     });
 
-    it('kennzeichnet fremde Entwürfe mit „von …“ und erklärt die Entwürfe per Info-Knopf', async () => {
+    it('kennzeichnet fremde Entwürfe mit „von …" und erklärt die Entwürfe per Info-Knopf', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime, delay: null });
         anmeldung.wert = { user: { displayName: 'Max Mustermann' }, isAdmin: true };
         vi.stubGlobal('fetch', mockFetchResponses({
@@ -1112,7 +1112,7 @@ describe('EmailCenter – Zuordnen, Entwürfe und Ordner-Hinweise', () => {
         expect(await screen.findByText('E-Mails in diesem Ordner werden nach 30 Tagen automatisch endgültig gelöscht.')).toBeInTheDocument();
     });
 
-    it('zeigt den 30-Tage-Hinweis nicht im Posteingang und erklärt „Nicht zugeordnet“', async () => {
+    it('zeigt den 30-Tage-Hinweis nicht im Posteingang und erklärt „Nicht zugeordnet"', async () => {
         const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime, delay: null });
         vi.stubGlobal('fetch', mockFetchResponses({ '/api/emails/unassigned': [] }));
         renderEmailCenter('inbox');

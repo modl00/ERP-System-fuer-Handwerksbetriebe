@@ -8,7 +8,7 @@ const TEXTE: Record<AnschriftStatus, string> = {
     passt: 'Anschrift sitzt im Fenster',
     zusatzzone: 'Die Anschrift rutscht in die Zeilen für die Rücksendeangabe. Im Fenster ist sie zu sehen, nach DIN 5008 gehört sie aber darunter.',
     'ragt-heraus': 'Die Anschrift ragt aus dem Fenster – im Umschlag wäre sie teilweise verdeckt.',
-    'keine-anschrift': 'Auf Seite 1 gibt es noch keine Anschrift. Fügen Sie links den Baustein „Anschrift“ hinzu – er landet direkt im Fenster.',
+    'keine-anschrift': 'Auf Seite 1 gibt es noch keine Anschrift. Fügen Sie links den Baustein „Anschrift" hinzu – er landet direkt im Fenster.',
 };
 
 interface AnschriftHinweisProps {

@@ -8,14 +8,14 @@ const PUNKT_VERZOEGERUNGEN_MS = [0, 150, 300];
 /**
  * Lade-Blase der KI-Hilfe: zeigt live, wo die KI gerade nachschaut.
  *
- * <p>Vor dem ersten Schritt steht „Denkt nach …“. Danach sind alle Schritte
+ * <p>Vor dem ersten Schritt steht „Denkt nach …". Danach sind alle Schritte
  * bis auf den letzten erledigt (Häkchen); der letzte dreht sich, bis der
  * nächste kommt oder die Antwort da ist. Die Liste ist eine höfliche
  * Live-Region: Screenreader lesen neue Schritte vor, ohne zu unterbrechen.
  * Die Schritttexte sind reiner Text vom Server und werden nur als Text
  * ausgegeben.</p>
  *
- * <p>Der Knopf „Abbrechen“ steht bewusst außerhalb der Live-Region, damit er
+ * <p>Der Knopf „Abbrechen" steht bewusst außerhalb der Live-Region, damit er
  * nicht mit jedem Schritt erneut vorgelesen wird.</p>
  */
 export function KiSchritteLive({ schritte, onAbbrechen }: { schritte: string[]; onAbbrechen: () => void }) {
@@ -69,7 +69,7 @@ export function KiSchritteLive({ schritte, onAbbrechen }: { schritte: string[]; 
 }
 
 /**
- * Zugeklappte Zeile „So habe ich nachgeschaut (n)“ unter einer Antwort.
+ * Zugeklappte Zeile „So habe ich nachgeschaut (n)" unter einer Antwort.
  * Aufgeklappt zeigt sie die gespeicherten Schritte als schlichte Liste.
  * Ohne Schritte (z. B. ältere Nachrichten) erscheint nichts.
  */

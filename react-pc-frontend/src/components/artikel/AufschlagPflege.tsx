@@ -30,12 +30,12 @@ const json = { 'Content-Type': 'application/json' };
 const MAX_PROZENT = 999.99;
 const alsText = (p: number | null) => (p == null ? '' : formatDecimalInput(p));
 
-/** Name der Kategorie, von der der Aufschlag stammt; ohne Namen „Kategorie“. */
+/** Name der Kategorie, von der der Aufschlag stammt; ohne Namen „Kategorie". */
 const vonText = (z: KategorieZeile) => z.wirksamVon || 'Kategorie';
 
 /** Was für die Artikel einer Kategorie gilt, in einem Satz. */
 function wirkung(z: KategorieZeile): string {
-    if (z.wirksamQuelle === 'KATEGORIE') return z.prozent != null ? `${alsText(z.wirksamProzent)} %` : `${alsText(z.wirksamProzent)} % (von „${vonText(z)}“)`;
+    if (z.wirksamQuelle === 'KATEGORIE') return z.prozent != null ? `${alsText(z.wirksamProzent)} %` : `${alsText(z.wirksamProzent)} % (von „${vonText(z)}")`;
     if (z.wirksamQuelle === 'ALLGEMEIN') return `${alsText(z.wirksamProzent)} % (allgemein)`;
     return 'kein Aufschlag';
 }
@@ -43,7 +43,7 @@ function wirkung(z: KategorieZeile): string {
 /**
  * Aufschläge einstellen: ein allgemeiner Aufschlag für alle Artikel und ein eigener je Kategorie. Es gilt immer der genaueste: erst der Aufschlag am Artikel,
  * dann der der Kategorie (sonst der der Oberkategorie), dann der allgemeine. Ist nirgends einer eingestellt, übernimmt das Programm den Einkaufspreis unverändert.
- * Gedacht für ein Fenster in der Artikelübersicht, das nur Benutzer mit dem Recht „Aufschläge ändern“ öffnen können.
+ * Gedacht für ein Fenster in der Artikelübersicht, das nur Benutzer mit dem Recht „Aufschläge ändern" öffnen können.
  */
 export function AufschlagPflege({ onGeaendert }: { onGeaendert?: () => void } = {}) {
     const toast = useToast();

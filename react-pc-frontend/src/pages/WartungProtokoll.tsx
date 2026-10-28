@@ -215,7 +215,7 @@ export default function WartungProtokoll() {
         if ((feld.wert ?? '').trim() !== '') {
             const ja = await confirm({
                 title: 'Datenfeld löschen?',
-                message: `„${feld.label}“ wird samt Eintrag aus diesem Feldeinsatz entfernt. Der Katalog und frühere Prüfungen bleiben unverändert.`,
+                message: `„${feld.label}" wird samt Eintrag aus diesem Feldeinsatz entfernt. Der Katalog und frühere Prüfungen bleiben unverändert.`,
                 confirmLabel: 'Löschen',
                 variant: 'danger',
             });
@@ -419,7 +419,7 @@ export default function WartungProtokoll() {
         if (punkt.ergebnis !== null || (punkt.bemerkung ?? '').trim() !== '') {
             const ja = await confirm({
                 title: 'Prüfpunkt löschen?',
-                message: `„${punkt.label}“ wird samt Ergebnis und Hinweis aus diesem Feldeinsatz entfernt. Der Katalog und frühere Prüfungen bleiben unverändert.`,
+                message: `„${punkt.label}" wird samt Ergebnis und Hinweis aus diesem Feldeinsatz entfernt. Der Katalog und frühere Prüfungen bleiben unverändert.`,
                 confirmLabel: 'Löschen',
                 variant: 'danger',
             });
@@ -732,7 +732,7 @@ export default function WartungProtokoll() {
                             <Select id="kopf-objekt" value={kopf.objektId} disabled={!protokoll.bearbeitbar || !!protokoll.tuer} options={objektOptionen}
                                 onChange={(wert) => setKopf({ ...kopf, objektId: wert })} />
                             {protokoll.tuer && (
-                                <p className="mt-1 text-xs text-slate-500">Das Objekt ergibt sich aus der Wartung „{protokoll.tuer.name}“.</p>
+                                <p className="mt-1 text-xs text-slate-500">Das Objekt ergibt sich aus der Wartung „{protokoll.tuer.name}".</p>
                             )}
                         </div>
                         <div>
@@ -835,7 +835,7 @@ export default function WartungProtokoll() {
                             )}
                         </div>
                         {gruppe.felder.length === 0 ? (
-                            <p className="text-sm text-slate-500">Hier gibt es noch keine Datenfelder. Mit „Feld hinzufügen“ ergänzen Sie eines für diesen Feldeinsatz.</p>
+                            <p className="text-sm text-slate-500">Hier gibt es noch keine Datenfelder. Mit „Feld hinzufügen" ergänzen Sie eines für diesen Feldeinsatz.</p>
                         ) : (
                             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                                 {gruppe.felder.map((feld) => (

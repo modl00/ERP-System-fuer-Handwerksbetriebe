@@ -46,10 +46,10 @@ async function zumLoeschenKnopf(user: ReturnType<typeof userEvent.setup>) {
 describe('Mitarbeiter löschen', { timeout: 30000 }, () => {
     it('nennt den Grund des Servers, zum Beispiel einen zugeordneten Benutzer', async () => {
         const user = userEvent.setup();
-        loeschenAntwort = () => antwort({ message: 'Dieser Mitarbeiter gehört zum Benutzer „Max Mustermann“. Bitte zuerst in der Benutzerverwaltung die Zuordnung lösen.' }, false, 409);
+        loeschenAntwort = () => antwort({ message: 'Dieser Mitarbeiter gehört zum Benutzer „Max Mustermann". Bitte zuerst in der Benutzerverwaltung die Zuordnung lösen.' }, false, 409);
         await zumLoeschenKnopf(user);
 
-        expect(await screen.findByText(/gehört zum Benutzer „Max Mustermann“/)).toBeVisible();
+        expect(await screen.findByText(/gehört zum Benutzer „Max Mustermann"/)).toBeVisible();
         expect(loeschAufrufe()).toHaveLength(1);
     });
 

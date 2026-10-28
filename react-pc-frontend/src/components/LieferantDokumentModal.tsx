@@ -22,7 +22,7 @@ interface LieferantDokumentModalProps {
     lieferantId: number | string;
     onSave?: (updated: LieferantDokument) => void;
     /**
-     * „Zuordnen“ im Warnband „Kein Projekt zugeordnet“: Der Aufrufer öffnet seinen
+     * „Zuordnen" im Warnband „Kein Projekt zugeordnet": Der Aufrufer öffnet seinen
      * Zuordnungs-Dialog und reicht danach das neu geladene Dokument (gleiche ID) herein.
      * Ohne diese Prop gibt es keinen Knopf.
      */
@@ -106,7 +106,7 @@ export default function LieferantDokumentModal({
             ? `${wer} bearbeitet dieses Dokument gerade — Speichern erst nach Übernahme möglich.`
             : lock.status === "error"
                 ? LOCK_FEHLER_TEXT
-                : 'Erst „Bearbeiten“ klicken, um Änderungen zu speichern.';
+                : 'Erst „Bearbeiten" klicken, um Änderungen zu speichern.';
 
     // Grund fuer den deaktivierten Bearbeiten-Knopf in der BearbeitenLeiste
     // (Task 7d: Verdrahtung der in Runde 7-1/Task 7c gebauten, bis hierher
@@ -174,7 +174,10 @@ export default function LieferantDokumentModal({
     // Formular beim Öffnen bzw. bei einem ANDEREN Dokument neu befüllen. Bewusst nicht
     // bei jedem neuen Objekt derselben ID: Lädt der Aufrufer nach dem Zuordnen neu,
     // sollen ungespeicherte Eingaben stehen bleiben.
-    useEffect(() => {
+    const formularFuer = `${isOpen}|${dokument?.id}`;
+    const [formularGefuelltFuer, setFormularGefuelltFuer] = useState<string | null>(null);
+    if (formularGefuelltFuer !== formularFuer) {
+        setFormularGefuelltFuer(formularFuer);
         if (dokument) {
             setFormData({
                 typ: dokument.typ,
@@ -199,22 +202,26 @@ export default function LieferantDokumentModal({
             setError(null);
             setShowPdf(true);
         }
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dokument?.id, isOpen]);
+    }
 
     // Lade PDF als Blob um X-Frame-Options externer URLs zu umgehen.
     // Nur an der ID festgemacht: Ein neu geladenes Objekt desselben Dokuments
     // (z. B. nach dem Zuordnen) lädt die Vorschau nicht erneut.
     const dokumentId = dokument?.id;
+    // Neue Vorschau (anderes Dokument, geöffnet/geschlossen, ein-/ausgeblendet):
+    // alte Vorschau und alten Fehler sofort verwerfen.
+    const vorschauFuer = `${isOpen}|${dokumentId}|${lieferantId}|${showPdf}`;
+    const [vorschauGeladenFuer, setVorschauGeladenFuer] = useState(vorschauFuer);
+    if (vorschauGeladenFuer !== vorschauFuer) {
+        setVorschauGeladenFuer(vorschauFuer);
+        setPdfBlobUrl(null);
+        setPdfFehler(null);
+    }
+
     useEffect(() => {
-        if (!isOpen || dokumentId == null || !showPdf) {
-            setPdfBlobUrl(null);
-            setPdfFehler(null);
-            return;
-        }
+        if (!isOpen || dokumentId == null || !showPdf) return;
         const controller = new AbortController();
         let currentUrl: string | null = null;
-        setPdfFehler(null);
 
         fetch(`/api/lieferanten/${lieferantId}/dokumente/${dokumentId}/download`, { signal: controller.signal })
             .then(res => {

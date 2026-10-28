@@ -15,7 +15,7 @@ import { useWartungAktiv, useLagerAktiv, useModulAktiv } from '../../features/mo
 import { NAVIGATION, ZEITERFASSUNG_KATEGORIE, type NavCategory } from './navigation';
 
 
-const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/benutzer', '/website', '/aktivitaeten', '/rechte-uebersicht', '/abteilung-berechtigungen', '/kostenrechnung']);
+const ADMIN_ONLY_PATHS = new Set(['/firma', '/formulare', '/einstellungen', '/benutzer', '/website', '/aktivitaeten', '/rechte-uebersicht', '/abteilung-berechtigungen', '/kostenrechnung', '/arbeitsgaenge']);
 /** Nur mit dem Abteilungs-Recht „Anrufe & Anrufbeantworter" sichtbar. */
 const TELEFON_PATHS = new Set(['/telefon/anrufe', '/telefon/anrufbeantworter']);
 const WARTUNG_PATHS = new Set(['/wartung']);

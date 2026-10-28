@@ -1,7 +1,8 @@
 package org.example.kalkulationsprogramm.service;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.SerializationFeature;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.SerializationFeature;
+import tools.jackson.databind.json.JsonMapper;
 import org.example.kalkulationsprogramm.domain.DokumentnummerCounter;
 import org.example.kalkulationsprogramm.domain.Dokumenttyp;
 import org.example.kalkulationsprogramm.domain.FormularTemplateAssignment;
@@ -23,6 +24,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
 import org.springframework.web.multipart.MultipartFile;
 import org.springframework.web.server.ResponseStatusException;
+import tools.jackson.core.JacksonException;
 
 import java.io.IOException;
 import java.net.MalformedURLException;
@@ -86,8 +88,7 @@ public class FormularTemplateService {
         this.assetDir = templateDir.resolve("assets");
         this.templatesDir = templateDir.resolve("templates");
         this.templateFile = templateDir.resolve(fileNameProp);
-        this.objectMapper = new ObjectMapper();
-        this.objectMapper.enable(SerializationFeature.INDENT_OUTPUT);
+        this.objectMapper = JsonMapper.builderWithJackson2Defaults().enable(SerializationFeature.INDENT_OUTPUT).build();
         this.assignmentRepository = assignmentRepository;
         this.dokumentnummerCounterRepository = dokumentnummerCounterRepository;
         this.projektRepository = projektRepository;
@@ -296,7 +297,7 @@ public class FormularTemplateService {
     public String loadTemplate() {
         try {
             if (Files.exists(templateFile)) {
-                return Files.readString(templateFile, StandardCharsets.UTF_8);
+                return Files.readString(templateFile);
             }
         } catch (IOException ignored) {
             // Fallback auf Standard, wenn Lesen fehlschlägt
@@ -307,7 +308,7 @@ public class FormularTemplateService {
     public String saveTemplate(String html) {
         validateTemplate(html);
         try {
-            Files.writeString(templateFile, html, StandardCharsets.UTF_8, StandardOpenOption.CREATE,
+            Files.writeString(templateFile, html, StandardOpenOption.CREATE,
                     StandardOpenOption.TRUNCATE_EXISTING);
             return html;
         } catch (IOException e) {
@@ -457,7 +458,7 @@ public class FormularTemplateService {
                     normalizeDokumenttypen(sourceData.get("assignedDokumenttypen")));
 
             return saveNamedTemplate(newName, html, assignedTypes);
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Vorlage konnte nicht kopiert werden.", e);
         }
     }
@@ -508,7 +509,7 @@ public class FormularTemplateService {
                     loadAssignedUserIds(name),
                     (String) templateData.get("created"),
                     (String) templateData.get("modified"));
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Vorlage konnte nicht gespeichert werden.", e);
         }
     }
@@ -529,7 +530,7 @@ public class FormularTemplateService {
             List<String> assigned = resolveAssignments(name, normalizeDokumenttypen(data.get("assignedDokumenttypen")));
             return new NamedTemplateData((String) data.getOrDefault("name", name), html, assigned,
                     loadAssignedUserIds(name), (String) data.get("created"), (String) data.get("modified"));
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Vorlage konnte nicht geladen werden.", e);
         }
     }
@@ -593,7 +594,7 @@ public class FormularTemplateService {
                     loadAssignedUserIds(newName),
                     (String) data.get("created"),
                     (String) data.get("modified"));
-        } catch (IOException e) {
+        } catch (JacksonException | IOException e) {
             throw new IllegalStateException("Vorlage konnte nicht umbenannt werden.", e);
         }
     }
@@ -628,7 +629,7 @@ public class FormularTemplateService {
             String name = (String) data.getOrDefault("name", "Unbenannt");
             return new FormularTemplateListDto(name, (String) data.get("created"), (String) data.get("modified"),
                     resolveAssignments(name, normalizeDokumenttypen(data.get("assignedDokumenttypen"))));
-        } catch (IOException e) {
+        } catch (JacksonException e) {
             return null;
         }
     }

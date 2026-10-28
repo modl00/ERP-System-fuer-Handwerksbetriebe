@@ -22,14 +22,14 @@ describe('TemplateGallery', () => {
         expect(screen.getByText('Geändert am 01.10.2026')).toBeInTheDocument();
         expect(screen.getByText('Noch keinem Dokumenttyp zugeordnet')).toBeInTheDocument();
 
-        await user.click(screen.getByRole('button', { name: 'Vorlage „Briefpapier Musterbetrieb“ bearbeiten' }));
+        await user.click(screen.getByRole('button', { name: 'Vorlage „Briefpapier Musterbetrieb" bearbeiten' }));
         await user.click(screen.getAllByRole('button', { name: /Bearbeiten/ })[1]);
-        await user.click(screen.getByRole('button', { name: 'Vorlage „Mahnung schlicht“ duplizieren' }));
+        await user.click(screen.getByRole('button', { name: 'Vorlage „Mahnung schlicht" duplizieren' }));
         expect(p.onEdit).toHaveBeenNthCalledWith(1, 'Briefpapier Musterbetrieb');
         expect(p.onEdit).toHaveBeenNthCalledWith(2, 'Mahnung schlicht');
         expect(p.onDuplicate).toHaveBeenCalledWith('Mahnung schlicht');
 
-        await user.click(screen.getByRole('button', { name: 'Vorlage „Mahnung schlicht“ löschen' }));
+        await user.click(screen.getByRole('button', { name: 'Vorlage „Mahnung schlicht" löschen' }));
         await user.click(await screen.findByRole('button', { name: 'Löschen' }));
         expect(p.onDelete).toHaveBeenCalledWith('Mahnung schlicht');
     });

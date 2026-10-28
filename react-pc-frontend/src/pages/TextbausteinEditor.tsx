@@ -227,7 +227,7 @@ function TemplateCard({
             className="p-1 rounded text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
             onClick={(event) => { event.stopPropagation(); onEdit(); }}
             title="Bearbeiten"
-            aria-label={`Vorlage „${template.name || 'Unbenannt'}“ bearbeiten`}
+            aria-label={`Vorlage „${template.name || 'Unbenannt'}" bearbeiten`}
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
@@ -236,7 +236,7 @@ function TemplateCard({
             className="p-1 rounded text-slate-400 hover:text-red-600 hover:bg-red-50 transition-colors"
             onClick={(event) => { event.stopPropagation(); onDelete(); }}
             title="Löschen"
-            aria-label={`Vorlage „${template.name || 'Unbenannt'}“ löschen`}
+            aria-label={`Vorlage „${template.name || 'Unbenannt'}" löschen`}
           >
             <Trash2 className="w-3.5 h-3.5" />
           </button>
@@ -417,7 +417,7 @@ function TemplateView({
   const docTypes = template.docTypes || [];
   const [kundenPanelOpen, setKundenPanelOpen] = useState(true);
   // React 19 setzt innerHTML bei jedem neuen __html-Objekt neu. Stabil halten, sonst
-  // ersetzt jeder Render (z. B. „Kopiert!“) die Vorschau und hebt die Textauswahl auf.
+  // ersetzt jeder Render (z. B. „Kopiert!") die Vorschau und hebt die Textauswahl auf.
   const vorschauHtml = useMemo(() => ({ __html: preview || '' }), [preview]);
 
   return (
@@ -681,7 +681,7 @@ export default function TextbausteinEditor() {
     // (ON DELETE CASCADE); erstellte Dokumente speichern ihren Text selbst.
     const bestaetigt = await confirm({
       title: 'Textvorlage löschen?',
-      message: `„${template.name || 'Unbenannt'}“ wird endgültig gelöscht. Ist sie in einer Formularvorlage als Standard-Text hinterlegt, fällt sie dort ebenfalls weg. Bereits erstellte Dokumente behalten ihren Text.`,
+      message: `„${template.name || 'Unbenannt'}" wird endgültig gelöscht. Ist sie in einer Formularvorlage als Standard-Text hinterlegt, fällt sie dort ebenfalls weg. Bereits erstellte Dokumente behalten ihren Text.`,
       confirmLabel: 'Löschen',
       cancelLabel: 'Abbrechen',
       variant: 'danger',

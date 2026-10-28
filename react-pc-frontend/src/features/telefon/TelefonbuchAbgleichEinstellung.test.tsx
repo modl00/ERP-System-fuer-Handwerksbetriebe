@@ -51,7 +51,7 @@ function stubbe(stand: Partial<TelefonbuchStatus> = {}, optionen: { ergebnis?: T
                     ? { ...aktuell, laeuftGerade: false, letztesErgebnis: ergebnis, anzahlEintraege: ergebnis.eintraege,
                         letzterFehler: ergebnis.erfolgreich ? null : ergebnis.meldung }
                     : { ...aktuell, laeuftGerade: false, loeschungOffen: false, anzahlEintraege: 0,
-                        letztesErgebnis: { ...ergebnis, meldung: 'Das Telefonbuch „ERP-Kontakte“ ist aus der FRITZ!Box gelöscht.' } };
+                        letztesErgebnis: { ...ergebnis, meldung: 'Das Telefonbuch „ERP-Kontakte" ist aus der FRITZ!Box gelöscht.' } };
             }
             return antwort(aktuell);
         },
@@ -124,7 +124,7 @@ describe('TelefonbuchAbgleichEinstellung', () => {
         fireEvent.click(await screen.findByRole('checkbox', { name: /Kontakte ins FRITZ!Box-Telefonbuch übertragen/ }));
 
         const dialog = await screen.findByRole('dialog');
-        expect(dialog).toHaveTextContent('Das Telefonbuch „ERP-Kontakte“ wird dabei aus der FRITZ!Box gelöscht.');
+        expect(dialog).toHaveTextContent('Das Telefonbuch „ERP-Kontakte" wird dabei aus der FRITZ!Box gelöscht.');
         fireEvent.click(screen.getByRole('button', { name: 'Ausschalten und löschen' }));
 
         await waitFor(() => expect(aufrufe(fetchMock, PFAD, 'PUT')).toHaveLength(1));
@@ -132,7 +132,7 @@ describe('TelefonbuchAbgleichEinstellung', () => {
         expect(await screen.findByRole('button', { name: /Wird gelöscht/ })).toBeDisabled();
 
         await naechsteAbfrage();
-        expect(await screen.findByText('Das Telefonbuch „ERP-Kontakte“ ist aus der FRITZ!Box gelöscht.')).toBeInTheDocument();
+        expect(await screen.findByText('Das Telefonbuch „ERP-Kontakte" ist aus der FRITZ!Box gelöscht.')).toBeInTheDocument();
         expect(screen.getByRole('checkbox', { name: /Kontakte ins FRITZ!Box-Telefonbuch übertragen/ })).not.toBeChecked();
     });
 
@@ -148,7 +148,7 @@ describe('TelefonbuchAbgleichEinstellung', () => {
         expect(schalter).toBeChecked();
     });
 
-    it('offene Löschung: Hinweis und „Löschen jetzt nachholen“', async () => {
+    it('offene Löschung: Hinweis und „Löschen jetzt nachholen"', async () => {
         const fetchMock = stubbe({ aktiv: false, loeschungOffen: true, letzterFehler: 'FRITZ!Box nicht erreichbar' });
         zeige();
         expect(await screen.findByText(/ist noch nicht aus der FRITZ!Box gelöscht/)).toBeInTheDocument();
@@ -158,11 +158,11 @@ describe('TelefonbuchAbgleichEinstellung', () => {
         await waitFor(() => expect(aufrufe(fetchMock, `${PFAD}/abgleichen`, 'POST')).toHaveLength(1));
         await screen.findByRole('button', { name: /Wird gelöscht/ });
         await naechsteAbfrage();
-        expect(await screen.findByText('Das Telefonbuch „ERP-Kontakte“ ist aus der FRITZ!Box gelöscht.')).toBeInTheDocument();
+        expect(await screen.findByText('Das Telefonbuch „ERP-Kontakte" ist aus der FRITZ!Box gelöscht.')).toBeInTheDocument();
         expect(screen.queryByText(/ist noch nicht aus der FRITZ!Box gelöscht/)).not.toBeInTheDocument();
     });
 
-    it('„Jetzt abgleichen“ fragt den Stand ab, bis der Lauf fertig ist', async () => {
+    it('„Jetzt abgleichen" fragt den Stand ab, bis der Lauf fertig ist', async () => {
         const fetchMock = stubbe({}, { abfragenBisFertig: 2 });
         zeige();
         fireEvent.click(await screen.findByRole('button', { name: /Jetzt abgleichen/ }));
@@ -227,7 +227,7 @@ describe('TelefonbuchAbgleichEinstellung', () => {
         await waitFor(() => expect(schalter).not.toBeChecked());
     });
 
-    it('zeigt einen Ladefehler mit „Erneut laden“', async () => {
+    it('zeigt einen Ladefehler mit „Erneut laden"', async () => {
         stubbeFetch(() => antwort({ message: 'Keine Verbindung zum Server.' }, 500));
         zeige();
         expect(await screen.findByRole('button', { name: 'Erneut laden' })).toBeInTheDocument();

@@ -57,8 +57,8 @@ export function AnsprechpartnerBereich({ kundeId, onAnzahl }: AnsprechpartnerBer
         const ja = await confirm({
             title: 'Ansprechpartner löschen?',
             message: a.haupt && (liste?.length ?? 0) > 1
-                ? `„${a.name}“ wird gelöscht. Der nächste Ansprechpartner wird dann zum Hauptansprechpartner.`
-                : `„${a.name}“ wird gelöscht.`,
+                ? `„${a.name}" wird gelöscht. Der nächste Ansprechpartner wird dann zum Hauptansprechpartner.`
+                : `„${a.name}" wird gelöscht.`,
             confirmLabel: 'Löschen',
             variant: 'danger',
         });

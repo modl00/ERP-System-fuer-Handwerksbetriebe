@@ -39,7 +39,7 @@ export interface ProjektBearbeiten {
  * Baut aus dem geladenen Projekt die Vorbelegung für den Bearbeiten-Dialog.
  *
  * Eine Stelle für beide Aufrufer (Detailansicht und Liste): Fehlte hier früher
- * die Projektart, schlug der Dialog „Pauschalpreis“ vor – und Speichern machte
+ * die Projektart, schlug der Dialog „Pauschalpreis" vor – und Speichern machte
  * aus Regie-, Internen und Garantie-Projekten still ein Pauschal-Projekt.
  */
 export function projektZumBearbeiten(projekt: ProjektDetail): ProjektBearbeiten {

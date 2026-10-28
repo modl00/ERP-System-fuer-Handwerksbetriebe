@@ -85,7 +85,7 @@ export function GlobaleFelderEditor() {
             <div>
                 <h3 className="text-base font-semibold text-slate-900">Gemeinsame Datenfelder</h3>
                 <p className="mt-0.5 text-sm text-slate-500">
-                    Diese Felder stehen in jeder Wartung unter „Angaben“, egal welche Module gewählt sind. Änderungen gelten nur für neue Wartungen.
+                    Diese Felder stehen in jeder Wartung unter „Angaben", egal welche Module gewählt sind. Änderungen gelten nur für neue Wartungen.
                 </p>
             </div>
             {felder.length === 0 && <p className="text-sm text-slate-500">Noch keine gemeinsamen Datenfelder.</p>}

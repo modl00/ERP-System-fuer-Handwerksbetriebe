@@ -1,5 +1,5 @@
 /**
- * Vitest-Suite fuer den Dialog „Als neue Leistung speichern“.
+ * Vitest-Suite fuer den Dialog „Als neue Leistung speichern".
  *
  * Ordnerbaum (gemockter fetch):
  *   Geländer (1)  ─┬─ Edelstahl (12, unterste Ebene)  ← Ordner der Ursprungs-Leistung

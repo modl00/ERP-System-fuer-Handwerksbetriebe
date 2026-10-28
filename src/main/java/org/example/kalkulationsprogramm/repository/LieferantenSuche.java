@@ -81,7 +81,7 @@ public final class LieferantenSuche {
 
     private static Specification<Lieferanten> feld(String feld, String wert) {
         if (!StringUtils.hasText(wert)) {
-            return null;
+            return Specification.unrestricted();
         }
         final String muster = muster(wert);
         return (root, cq, cb) -> cb.like(cb.lower(root.get(feld)), muster);

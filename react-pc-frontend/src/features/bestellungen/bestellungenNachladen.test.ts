@@ -126,7 +126,7 @@ describe('ladeStand', () => {
 });
 
 describe('ausblendenOptimistisch', () => {
-    it('verschiebt Ketten nach „Ausgeblendet“ und zieht die Zähler mit', () => {
+    it('verschiebt Ketten nach „Ausgeblendet" und zieht die Zähler mit', () => {
         const aktuell = kette('a1');
         const alt = kette('a2', '2025-01-01');
         const erledigt = kette('z1');
@@ -166,7 +166,7 @@ describe('ausblendenOptimistisch', () => {
 });
 
 describe('einblendenOptimistisch', () => {
-    it('nimmt die Kette aus „Ausgeblendet“ und senkt den Zähler', () => {
+    it('nimmt die Kette aus „Ausgeblendet" und senkt den Zähler', () => {
         const x = kette('x1');
         const d = daten({ ausgeblendet: [x, kette('x2')], gesamt: { offeneAnfragen: 0, offeneAnfragenAktuell: 0, laufendeBestellungen: 0, laufendeBestellungenAktuell: 0, abgeschlossen: 0, zugeordnet: 0, ausgeblendet: 30 } });
         const neu = einblendenOptimistisch(d, x, HEUTE);

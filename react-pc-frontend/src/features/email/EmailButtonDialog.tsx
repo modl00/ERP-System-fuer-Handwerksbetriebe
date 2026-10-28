@@ -154,7 +154,7 @@ export function EmailButtonDialog({ offen, vorhanden, onSchliessen, onUebernehme
             </div>
           ) : (
             <p className="text-xs text-slate-500">
-              Den Bewertungs-Link hinterlegen Sie unter Firma › „Bewertungs-Link (Google)“. Ist dort keiner eingetragen,
+              Den Bewertungs-Link hinterlegen Sie unter Firma › „Bewertungs-Link (Google)". Ist dort keiner eingetragen,
               wird der Button beim Versand weggelassen.
             </p>
           )}

@@ -1,6 +1,6 @@
 /**
  * Programmfarbe: aus EINER Hauptfarbe (Stufe 600) werden die übrigen Stufen berechnet, die das Programm unter dem
- * Namen „rose“ verwendet (siehe tailwind.config.js). Hell wird zur Hauptfarbe hin mit Weiß gemischt, dunkel mit Schwarz.
+ * Namen „rose" verwendet (siehe tailwind.config.js). Hell wird zur Hauptfarbe hin mit Weiß gemischt, dunkel mit Schwarz.
  * Das Standard-Rosé bleibt unberührt, solange keine Farbe gewählt ist.
  */
 

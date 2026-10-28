@@ -24,7 +24,7 @@ function renderKopf(email: EmailItem) {
 }
 
 describe('EmailDetailHeader – Zuordnung', () => {
-    it('zeigt „Gehört zu:“ mit Link ins Projekt samt Auftragsnummer', () => {
+    it('zeigt „Gehört zu:" mit Link ins Projekt samt Auftragsnummer', () => {
         renderKopf({
             ...basis, zuordnungTyp: 'PROJEKT', projektId: 41, projektName: 'Garagentor Mustermann',
             projektAuftragsnummer: '2026-041',

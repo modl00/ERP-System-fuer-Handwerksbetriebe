@@ -45,7 +45,7 @@ export function WartungEinstellungenTab() {
         try {
             await setzeModulAktiv(m.id, !m.aktiv);
             setModule((alt) => alt && alt.map((x) => (x.id === m.id ? { ...x, aktiv: !m.aktiv } : x)));
-            toast.success(m.aktiv ? `„${m.name}“ ist deaktiviert und steht bei neuen Wartungen nicht mehr zur Wahl.` : `„${m.name}“ ist wieder aktiv.`);
+            toast.success(m.aktiv ? `„${m.name}" ist deaktiviert und steht bei neuen Wartungen nicht mehr zur Wahl.` : `„${m.name}" ist wieder aktiv.`);
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Das Modul konnte nicht geändert werden.');
         } finally {
@@ -56,7 +56,7 @@ export function WartungEinstellungenTab() {
     const loeschen = async (m: ModulUebersicht) => {
         const ja = await confirm({
             title: 'Modul löschen?',
-            message: `„${m.name}“ mit allen Bauarten, Prüfpunkten und Datenfeldern wird gelöscht. Das lässt sich nicht rückgängig machen.`,
+            message: `„${m.name}" mit allen Bauarten, Prüfpunkten und Datenfeldern wird gelöscht. Das lässt sich nicht rückgängig machen.`,
             confirmLabel: 'Löschen',
             variant: 'danger',
         });
@@ -65,7 +65,7 @@ export function WartungEinstellungenTab() {
         try {
             await loescheModul(m.id);
             setModule((alt) => alt && alt.filter((x) => x.id !== m.id));
-            toast.success(`„${m.name}“ wurde gelöscht.`);
+            toast.success(`„${m.name}" wurde gelöscht.`);
         } catch (e) {
             toast.error(e instanceof Error ? e.message : 'Das Modul konnte nicht gelöscht werden.');
         } finally {
@@ -97,7 +97,7 @@ export function WartungEinstellungenTab() {
                     <div className="max-w-2xl">
                         <h2 className="text-lg font-semibold text-slate-900">Module</h2>
                         <p className="mt-0.5 text-sm text-slate-500">
-                            Ein Modul ist ein Baustein der Checkliste, zum Beispiel „Brandschutztür“ oder „Feststellanlage“. Beim Anlegen einer Wartung
+                            Ein Modul ist ein Baustein der Checkliste, zum Beispiel „Brandschutztür" oder „Feststellanlage". Beim Anlegen einer Wartung
                             wird der Inhalt <strong className="font-semibold text-slate-700">kopiert</strong>: Änderungen hier gelten nur für neue Wartungen, bestehende Protokolle bleiben unverändert.
                         </p>
                     </div>

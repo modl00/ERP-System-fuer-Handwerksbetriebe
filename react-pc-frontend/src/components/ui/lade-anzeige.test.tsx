@@ -16,7 +16,7 @@ describe('LadeAnzeige', () => {
         expect(screen.queryByRole('button')).not.toBeInTheDocument();
     });
 
-    it('meldet nach der Wartezeit die langsame Verbindung mit „Erneut versuchen“', async () => {
+    it('meldet nach der Wartezeit die langsame Verbindung mit „Erneut versuchen"', async () => {
         vi.useFakeTimers();
         const erneut = vi.fn();
         render(<LadeAnzeige text="Seite wird geladen …" onErneut={erneut} />);

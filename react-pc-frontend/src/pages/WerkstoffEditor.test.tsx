@@ -82,13 +82,13 @@ describe('Werkstoffe pflegen', { timeout: 30000 }, () => {
         expect(screen.getByLabelText('Name (technisch) *')).toHaveValue('S235JR');
         expect(screen.getByLabelText('Dichte (g/cm³)')).toHaveValue('7,85');
         expect(screen.getByLabelText('Feuerverzinken geht')).toBeChecked();
-        serverFehler = { status: 409, message: 'Einen Werkstoff mit dem Namen „S355“ gibt es schon.' };
+        serverFehler = { status: 409, message: 'Einen Werkstoff mit dem Namen „S355" gibt es schon.' };
         const name = screen.getByLabelText('Name (technisch) *');
         await user.clear(name);
         await user.type(name, 'S355');
         await user.click(screen.getByRole('button', { name: 'Speichern' }));
 
-        expect(await screen.findByRole('alert')).toHaveTextContent('Einen Werkstoff mit dem Namen „S355“ gibt es schon.');
+        expect(await screen.findByRole('alert')).toHaveTextContent('Einen Werkstoff mit dem Namen „S355" gibt es schon.');
         expect(gesendet[0]).toMatchObject({ methode: 'PUT', url: '/api/werkstoffe/1' });
         expect(screen.getByTestId('werkstoff-formular')).toBeVisible();
     });

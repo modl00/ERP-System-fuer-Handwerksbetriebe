@@ -30,7 +30,7 @@ function pixel(daten: Uint8ClampedArray, x: number, y: number): number[] {
 }
 
 describe('wendeScanFilterAn', () => {
-    it('„Dokument“ macht das Papier trotz Schatten gleichmäßig weiß', () => {
+    it('„Dokument" macht das Papier trotz Schatten gleichmäßig weiß', () => {
         const aus = wendeScanFilterAn(blattMitSchatten(), 'dokument')
         for (const x of [5, 60, 120, 230]) {
             const [r, g, b, a] = pixel(aus, x, 40)
@@ -39,19 +39,19 @@ describe('wendeScanFilterAn', () => {
         }
     })
 
-    it('„Dokument“ lässt Schrift dunkel – auch im Schatten', () => {
+    it('„Dokument" lässt Schrift dunkel – auch im Schatten', () => {
         const aus = wendeScanFilterAn(blattMitSchatten(), 'dokument')
         expect(pixel(aus, 2, 152)[0]).toBeLessThan(80)
         expect(pixel(aus, 230, 152)[0]).toBeLessThan(40)
     })
 
-    it('„Dokument“ entfernt einen Farbstich vom Licht', () => {
+    it('„Dokument" entfernt einen Farbstich vom Licht', () => {
         const aus = wendeScanFilterAn(blattMitSchatten([1, 0.92, 0.75]), 'dokument')
         const [r, g, b] = pixel(aus, 120, 40)
         expect(Math.max(r, g, b) - Math.min(r, g, b)).toBeLessThanOrEqual(6)
     })
 
-    it('„Dokument“ hellt große dunkle Flächen (Fotos) nicht zu Weiß auf', () => {
+    it('„Dokument" hellt große dunkle Flächen (Fotos) nicht zu Weiß auf', () => {
         const bild = blattMitSchatten()
         for (let y = 200; y < H; y++) {
             for (let x = 0; x < B; x++) {
@@ -63,7 +63,7 @@ describe('wendeScanFilterAn', () => {
         expect(pixel(aus, 120, 290)[0]).toBeLessThan(140)
     })
 
-    it('„Schwarz-Weiß“ liefert Graustufen mit klarem Kontrast', () => {
+    it('„Schwarz-Weiß" liefert Graustufen mit klarem Kontrast', () => {
         const aus = wendeScanFilterAn(blattMitSchatten([1, 0.9, 0.8]), 'schwarzweiss')
         const papier = pixel(aus, 60, 40)
         const schrift = pixel(aus, 60, 152)
@@ -73,7 +73,7 @@ describe('wendeScanFilterAn', () => {
         expect(schrift[0]).toBeLessThan(15)
     })
 
-    it('„Original“ liefert eine unveränderte Kopie', () => {
+    it('„Original" liefert eine unveränderte Kopie', () => {
         const bild = blattMitSchatten()
         const aus = wendeScanFilterAn(bild, 'original')
         expect(aus).not.toBe(bild.data)
@@ -96,7 +96,7 @@ describe('wendeScanFilterAn', () => {
 })
 
 describe('Filterliste', () => {
-    it('bietet drei Filter an, „Dokument“ ist voreingestellt', () => {
+    it('bietet drei Filter an, „Dokument" ist voreingestellt', () => {
         expect(SCAN_FILTER.map(f => f.wert)).toEqual(['dokument', 'schwarzweiss', 'original'])
         expect(STANDARD_SCAN_FILTER).toBe('dokument')
     })

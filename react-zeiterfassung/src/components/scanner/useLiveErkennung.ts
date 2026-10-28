@@ -34,7 +34,7 @@ export interface LiveErkennungOptionen {
     onAusloesen: (ecken: Point[], quelle: { breite: number; hoehe: number }) => boolean | Promise<boolean>
 }
 
-/** „laedt“ = Erkennung wird geladen, „fehlt“ = konnte nicht geladen werden (nur Auslöser von Hand). */
+/** „laedt" = Erkennung wird geladen, „fehlt" = konnte nicht geladen werden (nur Auslöser von Hand). */
 export type ErkennungsStand = 'laedt' | 'bereit' | 'fehlt'
 
 export interface LiveErkennung {

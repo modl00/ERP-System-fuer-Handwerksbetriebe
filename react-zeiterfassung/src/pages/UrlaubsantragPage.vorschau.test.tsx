@@ -50,7 +50,7 @@ describe('UrlaubsantragPage – genaue Urlaubstage vom Server', () => {
         expect(screen.getByText(/Nicht genügend Urlaubstage/)).toBeInTheDocument()
         expect(screen.queryByText(/ungefähr/)).not.toBeInTheDocument()
         expect(screen.getByRole('button', { name: 'Antrag senden' })).toBeDisabled()
-        // Entprellt: ein Aufruf für den fertigen Zeitraum, nicht schon für „von“ allein.
+        // Entprellt: ein Aufruf für den fertigen Zeitraum, nicht schon für „von" allein.
         expect(vorschauAufrufe()).toEqual([`/api/urlaub/vorschau?mitarbeiterId=1&von=${iso(10)}&bis=${iso(16)}`])
     })
 
@@ -63,7 +63,7 @@ describe('UrlaubsantragPage – genaue Urlaubstage vom Server', () => {
         expect(screen.getByRole('button', { name: 'Antrag senden' })).toBeEnabled()
     })
 
-    it.each(['offline', 'fehler'] as const)('fällt %s auf die Schätzung zurück, schreibt „ungefähr“ und sperrt nicht', async fall => {
+    it.each(['offline', 'fehler'] as const)('fällt %s auf die Schätzung zurück, schreibt „ungefähr" und sperrt nicht', async fall => {
         stubFetch(fall, { verbleibend: 0 })
         await zeitraumWaehlen()
         await waitFor(() => expect(vorschauAufrufe()).toHaveLength(1))

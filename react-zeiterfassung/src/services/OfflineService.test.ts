@@ -915,7 +915,7 @@ describe('OfflineService', () => {
             expect(gesendet).toEqual(['/api/zeiterfassung/stop', '/api/zeiterfassung/start'])
         })
 
-        it('istVoruebergehenderFehler trennt „später nochmal“ von echten Ablehnungen', () => {
+        it('istVoruebergehenderFehler trennt „später nochmal" von echten Ablehnungen', () => {
             expect([408, 425, 429, 500, 502, 503].every(istVoruebergehenderFehler)).toBe(true)
             expect([400, 401, 403, 404, 409, 422].some(istVoruebergehenderFehler)).toBe(false)
         })
@@ -1144,7 +1144,7 @@ describe('OfflineService', () => {
             expect(abgleich).toMatchObject({ synced: 0, failed: 0, wartetAufDirektSendung: true })
             expect(posts).toEqual(['op-feierabend'])
 
-            // Während der Sendung tippt der Handwerker schon „Start“: das reiht sich ein.
+            // Während der Sendung tippt der Handwerker schon „Start": das reiht sich ein.
             await sendeBuchung('start', { token: 'max-mustermann' }, {
                 originalTime: '2026-10-17T16:01:00Z', operationId: 'op-start', ablehnungInReparaturListe: true,
             })

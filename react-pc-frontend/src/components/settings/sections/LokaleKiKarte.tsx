@@ -85,7 +85,7 @@ export function LokaleKiKarte() {
             uebernehmen(await res.json() as Konfiguration);
             setTest(null);
             toast.success('Die Einstellungen der lokalen KI wurden gespeichert.');
-            // Anmeldedaten neu holen, damit „kiAktiv“ app-weit sofort stimmt (KI-Hilfe in
+            // Anmeldedaten neu holen, damit „kiAktiv" app-weit sofort stimmt (KI-Hilfe in
             // der Menüleiste, KI-Knöpfe) – auch wenn die lokale KI statt Gemini aktiv wird.
             await auth?.refreshMe();
         } catch (e) {

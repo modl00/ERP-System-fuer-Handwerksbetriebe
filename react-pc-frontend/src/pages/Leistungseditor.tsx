@@ -770,7 +770,7 @@ export const Leistungseditor: React.FC = () => {
             </Button>
           </div>
           <NeueKategorieDialog open={neueKategorieOffen} onOpenChange={setNeueKategorieOffen} folders={folders} elternId={selectedFolderId}
-            onAngelegt={async (neu) => { await loadFolders(String(neu.id)); setNeueKategorieOffen(false); toast.success(`Kategorie „${neu.bezeichnung}“ angelegt.`); }} />
+            onAngelegt={async (neu) => { await loadFolders(String(neu.id)); setNeueKategorieOffen(false); toast.success(`Kategorie „${neu.bezeichnung}" angelegt.`); }} />
           {loadingFolders ? (
             <div className="flex items-center gap-2 text-slate-500 text-sm py-6">
               <Loader2 className="w-4 h-4 animate-spin" /> Wird geladen…
@@ -851,7 +851,7 @@ export const Leistungseditor: React.FC = () => {
               isCreating={isCreating}
               onSave={handleSaveService}
               onCancel={() => { setEditingService(null); setIsCreating(false); }}
-              onKategorieAngelegt={async (neu) => { await loadFolders(String(neu.id)); toast.success(`Kategorie „${neu.bezeichnung}“ angelegt.`); }}
+              onKategorieAngelegt={async (neu) => { await loadFolders(String(neu.id)); toast.success(`Kategorie „${neu.bezeichnung}" angelegt.`); }}
               onKalkulationGespeichert={(id, price, kalkuliert) =>
                 setServices((prev) => prev.map((s) => (s.id === id ? { ...s, price, kalkuliert } : s)))}
             />

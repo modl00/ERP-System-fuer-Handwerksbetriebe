@@ -75,12 +75,12 @@ describe('Benutzerverwaltung (#241)', { timeout: 30000 }, () => {
 
     it('zeigt die Meldung des Servers, zum Beispiel wenn der Mitarbeiter schon einen Benutzer hat', async () => {
         const user = userEvent.setup();
-        speichernAntwort = () => antwort({ message: 'Der Mitarbeiter „Erika Muster“ gehört schon zum Benutzer „Anna“.' }, false, 400);
+        speichernAntwort = () => antwort({ message: 'Der Mitarbeiter „Erika Muster" gehört schon zum Benutzer „Anna".' }, false, 400);
         zeige();
         await neuerBenutzer(user);
         await user.click(screen.getByRole('button', { name: 'Erstellen' }));
 
-        expect(await screen.findByText('Der Mitarbeiter „Erika Muster“ gehört schon zum Benutzer „Anna“.')).toBeVisible();
+        expect(await screen.findByText('Der Mitarbeiter „Erika Muster" gehört schon zum Benutzer „Anna".')).toBeVisible();
     });
 
     it('ein zu kurzes Passwort wird erklärt, statt einen toten Knopf zu zeigen', async () => {

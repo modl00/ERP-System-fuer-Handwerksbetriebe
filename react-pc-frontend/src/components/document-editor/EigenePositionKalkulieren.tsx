@@ -11,7 +11,7 @@ const EINHEIT_AUS_KUERZEL: Record<string, string> = Object.fromEntries(Object.en
 
 /**
  * Eine einmalige Position kalkulieren (#55, #205): Beim ersten Mal entsteht im Hintergrund eine temporäre Leistung (nicht im Katalog), an der Material, Arbeit, Maschine
- * und Fremdleistung wie im Leistungseditor kalkuliert werden. Der Preis der Position folgt der gespeicherten Kalkulation; die Aufstellung steht danach „nur intern“ an der
+ * und Fremdleistung wie im Leistungseditor kalkuliert werden. Der Preis der Position folgt der gespeicherten Kalkulation; die Aufstellung steht danach „nur intern" an der
  * Position. Die temporäre Leistung lässt sich später samt Kalkulation in den Leistungsstamm übernehmen.
  */
 export function EigenePositionKalkulieren({ block, onUpdate }: { block: DocBlock; onUpdate: (updates: Partial<DocBlock>) => void }) {

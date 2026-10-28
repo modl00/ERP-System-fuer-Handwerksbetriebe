@@ -28,8 +28,8 @@ export default function LoginPage() {
     const [registerUsername, setRegisterUsername] = useState('');
     const [registerPassword, setRegisterPassword] = useState('');
     /**
-     * „Konto anlegen“ geht nur, solange es noch keinen Benutzer mit Anmeldung gibt
-     * (erster Admin). Bis die Antwort da ist – oder wenn sie ausbleibt –, nur „Anmelden“.
+     * „Konto anlegen" geht nur, solange es noch keinen Benutzer mit Anmeldung gibt
+     * (erster Admin). Bis die Antwort da ist – oder wenn sie ausbleibt –, nur „Anmelden".
      */
     const [kontoAnlegenMoeglich, setKontoAnlegenMoeglich] = useState(false);
 

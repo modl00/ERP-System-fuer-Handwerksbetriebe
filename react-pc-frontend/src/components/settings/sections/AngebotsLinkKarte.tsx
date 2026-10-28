@@ -18,7 +18,7 @@ const BASIS = '/api/settings/angebots-link';
 const json = { 'Content-Type': 'application/json' };
 
 /**
- * Link „Angebot ansehen und annehmen“ in Angebots-E-Mails: Schalter, öffentliche Adresse und Standard-Gültigkeit (#88).
+ * Link „Angebot ansehen und annehmen" in Angebots-E-Mails: Schalter, öffentliche Adresse und Standard-Gültigkeit (#88).
  * Ohne Adresse oder bei ausgeschaltetem Schalter geht die E-Mail ohne Link raus, statt einen toten Link zu verschicken.
  */
 export function AngebotsLinkKarte() {
@@ -31,7 +31,7 @@ export function AngebotsLinkKarte() {
     const [speichert, setSpeichert] = useState(false);
 
     const uebernehmen = useCallback((roh: Partial<Konfiguration>) => {
-        // Fehlende Felder (zum Beispiel bei einem unvollständigen Server-Stand) gelten als „aus“.
+        // Fehlende Felder (zum Beispiel bei einem unvollständigen Server-Stand) gelten als „aus".
         const k: Konfiguration = {
             aktiv: !!roh.aktiv, adresse: roh.adresse ?? '', adresseAusKonfiguration: !!roh.adresseAusKonfiguration,
             moeglich: !!roh.moeglich, gueltigkeitTage: roh.gueltigkeitTage ?? 14,
@@ -84,7 +84,7 @@ export function AngebotsLinkKarte() {
             title="Online-Annahme von Angeboten"
             description={
                 <p>
-                    Angebots-E-Mails können einen Knopf „Jetzt ansehen und annehmen“ enthalten. Der Kunde sieht das Angebot online und nimmt es mit einem Klick an.
+                    Angebots-E-Mails können einen Knopf „Jetzt ansehen und annehmen" enthalten. Der Kunde sieht das Angebot online und nimmt es mit einem Klick an.
                     Das funktioniert nur, wenn Ihr Programm für Kunden <strong>aus dem Internet</strong> erreichbar ist.
                 </p>
             }

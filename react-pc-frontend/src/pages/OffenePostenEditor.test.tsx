@@ -134,7 +134,7 @@ const stubServer = (patchAntwort?: () => Partial<Response>) => {
     return fetchMock;
 };
 
-it('zeigt bezahlte Rechnungen erst mit „Bezahlte anzeigen“ und rechnet sie nicht in die offene Summe', async () => {
+it('zeigt bezahlte Rechnungen erst mit „Bezahlte anzeigen" und rechnet sie nicht in die offene Summe', async () => {
     const fetchMock = stubServer();
     zeigeSeite();
 
@@ -155,7 +155,7 @@ it('zeigt bezahlte Rechnungen erst mit „Bezahlte anzeigen“ und rechnet sie n
     await waitFor(() => expect(screen.queryByText('RE-2026-002')).not.toBeInTheDocument());
 });
 
-it('nimmt den Haken „Bezahlt“ zurück: die Rechnung ist wieder offen', async () => {
+it('nimmt den Haken „Bezahlt" zurück: die Rechnung ist wieder offen', async () => {
     const fetchMock = stubServer();
     zeigeSeite();
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Bezahlte anzeigen' }));
@@ -173,7 +173,7 @@ it('bestätigt das Abhaken und sagt, wo man es zurücknimmt', async () => {
     stubServer();
     zeigeSeite();
     fireEvent.click(await screen.findByRole('checkbox', { name: 'Bezahlt' }));
-    expect(await screen.findByText('Als bezahlt markiert. Über „Bezahlte anzeigen“ können Sie den Haken wieder herausnehmen.')).toBeInTheDocument();
+    expect(await screen.findByText('Als bezahlt markiert. Über „Bezahlte anzeigen" können Sie den Haken wieder herausnehmen.')).toBeInTheDocument();
     await waitFor(() => expect(screen.queryByText('RE-2026-001')).not.toBeInTheDocument());
 });
 
@@ -187,7 +187,7 @@ it('zeigt die Meldung vom Server, wenn das Zurücknehmen abgelehnt wird', async 
     expect(screen.queryByText('Die Rechnung ist wieder offen.')).not.toBeInTheDocument();
 });
 
-it('erklärt „Bezahlte anzeigen“ per Info-Knopf', async () => {
+it('erklärt „Bezahlte anzeigen" per Info-Knopf', async () => {
     stubServer();
     zeigeSeite();
     fireEvent.click(await screen.findByRole('button', { name: 'Mehr zu: Bezahlte anzeigen' }));

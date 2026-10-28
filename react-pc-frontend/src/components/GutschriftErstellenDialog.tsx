@@ -30,7 +30,7 @@ interface GutschriftErstellenDialogProps {
  * Beides lesen; HTML-Fehlerseiten oder leere Antworten ergeben den Ersatztext.
  */
 async function leseMeldung(res: Response, ersatz: string): Promise<string> {
-    let text = '';
+    let text: string;
     try {
         text = (await res.text()).trim();
     } catch {
@@ -76,15 +76,23 @@ export function GutschriftErstellenDialog({ rechnung, onClose, onErstellt, proje
 
     const rechnungId = rechnung?.id;
 
+    // Andere Rechnung: Eingaben und Ladezustand beim Rendern zurücksetzen.
+    const [rechnungIdVorher, setRechnungIdVorher] = useState(rechnungId);
+    if (rechnungId !== rechnungIdVorher) {
+        setRechnungIdVorher(rechnungId);
+        if (rechnungId != null) {
+            setRahmen(null);
+            setLadeFehler(null);
+            setUmfang('GANZ');
+            setBetrag('');
+            setGrund('');
+            setFehler({});
+        }
+    }
+
     useEffect(() => {
         if (rechnungId == null) return;
         let abgebrochen = false;
-        setRahmen(null);
-        setLadeFehler(null);
-        setUmfang('GANZ');
-        setBetrag('');
-        setGrund('');
-        setFehler({});
         (async () => {
             try {
                 const res = await fetch(`/api/ausgangs-dokumente/${encodeURIComponent(rechnungId)}/gutschrift-rahmen`);
@@ -102,9 +110,7 @@ export function GutschriftErstellenDialog({ rechnung, onClose, onErstellt, proje
             }
         })();
         return () => { abgebrochen = true; };
-        // toast ist stabil genug; nur bei einer anderen Rechnung neu laden.
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [rechnungId]);
+    }, [rechnungId, toast]);
 
     if (!rechnung) return null;
 
@@ -133,7 +139,7 @@ export function GutschriftErstellenDialog({ rechnung, onClose, onErstellt, proje
             neu.betrag = `Höchstens ${formatEur(rahmen.hoechstensNetto)} netto sind noch möglich.`;
         }
         const grundText = grund.trim();
-        if (!grundText) neu.grund = 'Bitte einen Grund eingeben, z. B. „Preisnachlass wegen Kratzer am Geländer“.';
+        if (!grundText) neu.grund = 'Bitte einen Grund eingeben, z. B. „Preisnachlass wegen Kratzer am Geländer".';
         else if (grundText.length > GUTSCHRIFT_GRUND_MAX) neu.grund = `Der Grund darf höchstens ${GUTSCHRIFT_GRUND_MAX} Zeichen lang sein.`;
         setFehler(neu);
         if (neu.betrag || neu.grund || wert === null) {

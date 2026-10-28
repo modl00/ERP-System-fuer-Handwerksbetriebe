@@ -124,7 +124,7 @@ describe('Wartung dem Projekt zuordnen', () => {
         const dialog = await screen.findByRole('dialog');
         expect(await within(dialog).findByText('Lüftung')).toBeVisible();
         expect(within(dialog).getByText('Brandschutztür')).toBeVisible();
-        expect(within(dialog).getByText(/gehört zu „2026-002 – Umbau Lager“/)).toBeVisible();
+        expect(within(dialog).getByText(/gehört zu „2026-002 – Umbau Lager"/)).toBeVisible();
         expect(within(dialog).queryByText('Heizungsanlage')).toBeNull();
         expect(within(dialog).queryByText('Altes Tor')).toBeNull();
     });

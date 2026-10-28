@@ -38,7 +38,7 @@ const KOPF_TITEL: Record<Schritt, string> = {
 /**
  * Dokumentenscanner wie in der Apple-Scanner-App: Die Kamera bleibt offen,
  * erkennt ein Blatt und nimmt es automatisch auf, sobald es ruhig liegt.
- * Jede Seite wird im Hintergrund zugeschnitten und verbessert. „Fertig“
+ * Jede Seite wird im Hintergrund zugeschnitten und verbessert. „Fertig"
  * macht aus allen Seiten ein PDF.
  */
 export default function ScannerModal({ onClose, onSave }: ScannerModalProps) {
@@ -220,7 +220,7 @@ export default function ScannerModal({ onClose, onSave }: ScannerModalProps) {
             onClose()
         } catch (err) {
             console.error('[Scanner] PDF konnte nicht erstellt werden', err)
-            toast.error('Scan konnte nicht gespeichert werden. Bitte noch einmal auf „Fertig“ tippen.')
+            toast.error('Scan konnte nicht gespeichert werden. Bitte noch einmal auf „Fertig" tippen.')
         } finally {
             setErstelltPdf(false)
         }

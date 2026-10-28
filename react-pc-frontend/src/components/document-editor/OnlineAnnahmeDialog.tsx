@@ -5,7 +5,7 @@ import { InfoAbschnitt, InfoButton } from '../ui/info-button';
 
 interface OnlineAnnahmeDialogProps {
     isOpen: boolean;
-    /** „Angebot“ oder „Nachtragsangebot“ – erscheint im Text. */
+    /** „Angebot" oder „Nachtragsangebot" – erscheint im Text. */
     dokumentBezeichnung: string;
     onClose: () => void;
     /** `true` = mit Online-Link verschicken, `false` = nur das PDF. */
@@ -14,8 +14,8 @@ interface OnlineAnnahmeDialogProps {
 
 /**
  * Fragt vor dem Versand eines Angebots, ob der Kunde es online annehmen können soll.
- * „Ja“ hängt einen Link zum Annehmen an die Mail (danach folgt die Frage nach der
- * Gültigkeit), „Nein“ verschickt nur das PDF.
+ * „Ja" hängt einen Link zum Annehmen an die Mail (danach folgt die Frage nach der
+ * Gültigkeit), „Nein" verschickt nur das PDF.
  */
 export function OnlineAnnahmeDialog({ isOpen, dokumentBezeichnung, onClose, onWahl }: OnlineAnnahmeDialogProps) {
     const titelId = useId();
@@ -30,14 +30,14 @@ export function OnlineAnnahmeDialog({ isOpen, dokumentBezeichnung, onClose, onWa
                         <InfoButton titel="Online annehmen">
                             <InfoAbschnitt titel="Was passiert im Hintergrund?">
                                 <p>
-                                    Bei „Ja“ steht in der E-Mail ein Link. Darüber sieht der Kunde das {dokumentBezeichnung}
+                                    Bei „Ja" steht in der E-Mail ein Link. Darüber sieht der Kunde das {dokumentBezeichnung}
                                     {' '}im Internet und kann es mit einem Bestätigungscode verbindlich annehmen.
                                     Danach legt das Programm die Auftragsbestätigung automatisch an.
                                 </p>
                             </InfoAbschnitt>
                             <InfoAbschnitt titel="Was bewirkt das?">
                                 <p>
-                                    Bei „Nein“ bekommt der Kunde nur das PDF. Er sagt Ihnen dann wie gewohnt per Mail
+                                    Bei „Nein" bekommt der Kunde nur das PDF. Er sagt Ihnen dann wie gewohnt per Mail
                                     oder Telefon zu. Das PDF ist in beiden Fällen dasselbe.
                                 </p>
                             </InfoAbschnitt>

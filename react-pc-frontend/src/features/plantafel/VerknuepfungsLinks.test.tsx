@@ -11,7 +11,7 @@ describe('VerknuepfungsLinks', () => {
         expect(screen.getByRole('link', { name: /Kunde: Muster GmbH/ })).toHaveAttribute('href', '/kunden?kundeId=12');
     });
 
-    it('zeigt ohne Namen „Projekt öffnen“, funktioniert auch ohne Router und fehlt ohne Angaben', () => {
+    it('zeigt ohne Namen „Projekt öffnen", funktioniert auch ohne Router und fehlt ohne Angaben', () => {
         const { container, rerender } = render(<VerknuepfungsLinks projektId={7} />);
         expect(screen.getByRole('link', { name: /Projekt öffnen/ })).toHaveAttribute('href', '/projekte?projektId=7');
         expect(screen.queryByRole('link', { name: /Kunde/ })).not.toBeInTheDocument();

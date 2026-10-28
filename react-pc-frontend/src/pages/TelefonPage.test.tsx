@@ -129,12 +129,12 @@ describe('TelefonPage', () => {
         expect(screen.getByText(/Telefon an diesem Rechner:/)).toHaveTextContent('Telefon an diesem Rechner: DECT: Mobilteil Büro');
         expect(window.localStorage.getItem('telefon.waehlTelefon')).toBe('DECT: Mobilteil Büro');
         expect(screen.getByRole('button', { name: 'Telefon an diesem Rechner ändern' })).toHaveTextContent('Ändern');
-        // Keine zweite Hauptaktion: „Jetzt abholen“ bleibt der einzige gefüllte Knopf.
+        // Keine zweite Hauptaktion: „Jetzt abholen" bleibt der einzige gefüllte Knopf.
         expect(screen.getByRole('button', { name: 'Telefon an diesem Rechner ändern' })).not.toHaveClass('bg-rose-600');
         window.localStorage.clear();
     });
 
-    it('bietet „Zurückrufen“ nur bei Anrufen mit Nummer an', async () => {
+    it('bietet „Zurückrufen" nur bei Anrufen mit Nummer an', async () => {
         stubbeTelefon({
             anrufe: [
                 anruf({ id: 1, art: 'VERPASST', kontakt: KUNDE_MAX }),
@@ -317,7 +317,7 @@ describe('TelefonPage', () => {
             await waitFor(() => expect(anrufParams(fetchMock).get('tag')).toBe(heuteIso()));
         });
 
-        it('sperrt den Tagesfilter bei „Rückruf offen“ und schickt keinen Tag mit', async () => {
+        it('sperrt den Tagesfilter bei „Rückruf offen" und schickt keinen Tag mit', async () => {
             const fetchMock = stubbeTelefon();
             zeige('/telefon/anrufe?offen=1&tag=2026-09-28');
             await screen.findByRole('table');
@@ -368,7 +368,7 @@ describe('TelefonPage', () => {
             await waitFor(() => expect(anrufParams(fetchMock).has('kontaktart')).toBe(false));
         });
 
-        it('sperrt die Kontaktart bei „Unbekannt“ und schickt sie nicht mit', async () => {
+        it('sperrt die Kontaktart bei „Unbekannt" und schickt sie nicht mit', async () => {
             const fetchMock = stubbeTelefon();
             zeige('/telefon/anrufe?unbekannt=1&kontakt=KUNDE');
             await screen.findByRole('table');

@@ -27,7 +27,7 @@ const VARIANTEN: Record<InfoButtonVariante, { ruhe: string; offen: string }> = {
 };
 
 export interface InfoButtonProps {
-    /** Worum es geht – Überschrift im Popover und Teil des Knopf-Namens („Mehr zu: …“). */
+    /** Worum es geht – Überschrift im Popover und Teil des Knopf-Namens („Mehr zu: …"). */
     titel: string;
     children: ReactNode;
     className?: string;
@@ -158,7 +158,7 @@ export function InfoButton({ titel, children, className, variante = 'standard' }
     );
 }
 
-/** Ein Absatz im Info-Popover, z. B. „Was passiert im Hintergrund?“ oder „Was bewirkt das?“. */
+/** Ein Absatz im Info-Popover, z. B. „Was passiert im Hintergrund?" oder „Was bewirkt das?". */
 export function InfoAbschnitt({ titel, children }: { titel: string; children: ReactNode }) {
     return (
         <div>

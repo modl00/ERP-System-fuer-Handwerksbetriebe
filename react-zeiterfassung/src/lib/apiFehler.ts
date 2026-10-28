@@ -4,7 +4,7 @@
  * Neuere Endpunkte liefern `{ status, message }` (zentraler RestExceptionHandler),
  * ältere `{ error }`. `message` hat Vorrang. Ohne lesbare Meldung kommt der
  * Ersatztext zurück – auch bei Springs Standardform `{ timestamp, status, error, path }`,
- * denn dort ist `error` nur der englische HTTP-Statustext („Internal Server Error“).
+ * denn dort ist `error` nur der englische HTTP-Statustext („Internal Server Error").
  */
 export async function leseFehlermeldung(res: Response, ersatz: string): Promise<string> {
     try {

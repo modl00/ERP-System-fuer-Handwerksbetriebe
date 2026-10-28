@@ -19,7 +19,7 @@ interface Props {
     onGespeichert: () => Promise<void>;
 }
 
-/** Reiter „Preise & Lieferanten“: Preise direkt in der Zeile ändern, weitere Lieferanten eintragen, Verlauf ansehen. */
+/** Reiter „Preise & Lieferanten": Preise direkt in der Zeile ändern, weitere Lieferanten eintragen, Verlauf ansehen. */
 export function PreiseReiter({ daten, onGespeichert }: Props) {
     const { artikel, lieferanten } = daten;
     return (

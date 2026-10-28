@@ -724,7 +724,7 @@ describe('DashboardPage – Tätigkeit wählen mit Projektwechsel', () => {
         vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => antwortMitZeitkontoStatus(input)))
     })
 
-    it('startet die neue Buchung auf dem über „Ändern“ gewählten Projekt', async () => {
+    it('startet die neue Buchung auf dem über „Ändern" gewählten Projekt', async () => {
         const serverStart = new Date().toISOString()
         sendeBuchungAntwortet({ stop: { art: 'ok', daten: { status: 'gestoppt' } }, start: { art: 'ok', daten: { id: 999, startZeit: serverStart } } })
 

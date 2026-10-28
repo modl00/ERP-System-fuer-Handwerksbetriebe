@@ -36,7 +36,7 @@ describe('Mein Tagesverlauf', { timeout: 30000 }, () => {
         expect(fetcher.mock.calls[0][0]).toBe(`/api/aktivitaet/mein?datum=${heute()}`);
     });
 
-    it('Tag zurück und wieder vor; „Nächster Tag“ ist heute gesperrt, „Heute“ führt zurück', async () => {
+    it('Tag zurück und wieder vor; „Nächster Tag" ist heute gesperrt, „Heute" führt zurück', async () => {
         const user = userEvent.setup();
         render(<MeinTagesverlauf />);
         await screen.findAllByRole('listitem');
@@ -61,7 +61,7 @@ describe('Mein Tagesverlauf', { timeout: 30000 }, () => {
         expect(screen.getByText(/Aufbewahrung: unbegrenzt/)).toBeInTheDocument();
     });
 
-    it('aktiver Verlauf ohne Einträge: „Für diesen Tag gibt es keine Einträge.“; Fehler: Meldung mit dem Satz des Servers', async () => {
+    it('aktiver Verlauf ohne Einträge: „Für diesen Tag gibt es keine Einträge."; Fehler: Meldung mit dem Satz des Servers', async () => {
         fetcher.mockImplementation(async (url: string) => antwort(tag(new URL(url, 'http://x').searchParams.get('datum') as string, { ereignisse: [] })));
         const { unmount } = render(<MeinTagesverlauf />);
         expect(await screen.findByText('Für diesen Tag gibt es keine Einträge.')).toBeInTheDocument();

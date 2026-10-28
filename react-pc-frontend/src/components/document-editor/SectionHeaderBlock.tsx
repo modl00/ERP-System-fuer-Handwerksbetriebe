@@ -41,7 +41,7 @@ interface SectionHeaderBlockProps {
     verlaufsModus?: boolean;
     /** Ob eine Leistung des Bauabschnitts als neue Leistung gespeichert werden kann (siehe ServiceBlock). */
     kannAlsNeueLeistungSpeichern?: (child: DocBlock) => boolean;
-    /** Oeffnet den Dialog „Als neue Leistung speichern“ fuer eine Leistung des Bauabschnitts. */
+    /** Oeffnet den Dialog „Als neue Leistung speichern" fuer eine Leistung des Bauabschnitts. */
     onAlsNeueLeistungSpeichern?: (childId: string) => void;
 }
 

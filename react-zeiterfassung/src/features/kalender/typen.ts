@@ -85,7 +85,7 @@ export interface KalenderTermin {
     terminId: number | null
     art: EintragArt
     titel: string
-    /** Kurze Einordnung unter dem Titel, z. B. „Urlaub“ oder der Projektname. */
+    /** Kurze Einordnung unter dem Titel, z. B. „Urlaub" oder der Projektname. */
     untertitel: string
     datum: string
     startZeit: string | null

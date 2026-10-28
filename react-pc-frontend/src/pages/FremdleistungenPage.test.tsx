@@ -24,7 +24,7 @@ beforeEach(() => {
         const m = init?.method ?? 'GET';
         if (String(url).startsWith('/api/lieferanten')) return antwort({ lieferanten: [{ id: 1, lieferantenname: 'Verzinkerei Muster A' }, { id: 2, lieferantenname: 'Pulverbeschichtung Muster' }] });
         if (m === 'POST' || m === 'PUT') return antwort(fl({ ...JSON.parse(init!.body as string) }));
-        if (m === 'DELETE') return String(url).endsWith('/31') ? antwort({ message: '„Feuerverzinken“ kommt in 2 Kalkulationszeilen vor und lässt sich nicht löschen. Bitte stattdessen ausschalten.' }, false, 409) : antwort({}, true, 204);
+        if (m === 'DELETE') return String(url).endsWith('/31') ? antwort({ message: '„Feuerverzinken" kommt in 2 Kalkulationszeilen vor und lässt sich nicht löschen. Bitte stattdessen ausschalten.' }, false, 409) : antwort({}, true, 204);
         return antwort(liste);
     });
     vi.stubGlobal('fetch', fetcher);

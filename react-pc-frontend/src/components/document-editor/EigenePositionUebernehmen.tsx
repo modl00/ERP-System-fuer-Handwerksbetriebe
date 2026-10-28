@@ -15,7 +15,7 @@ const EINHEIT_AUS_KUERZEL: Record<string, string> = Object.fromEntries(Object.en
 
 interface Kategorie { id: number; bezeichnung?: string; pfad?: string; parentId?: number | null }
 
-/** „Rohre / Geländer / Pfosten“ aus der Kategorie und ihren Eltern. */
+/** „Rohre / Geländer / Pfosten" aus der Kategorie und ihren Eltern. */
 function pfade(liste: Kategorie[]): { value: string; label: string }[] {
     const nachId = new Map(liste.map(k => [k.id, k]));
     const pfad = (k: Kategorie): string => {
@@ -75,7 +75,7 @@ export function EigenePositionUebernehmen({ block, onUebernommen }: { block: Doc
             });
             const d = await res.json().catch(() => ({})) as { id?: number; message?: string };
             if (!res.ok || d.id == null) { setMeldung(d.message ?? 'Die Leistung konnte nicht gespeichert werden.'); return; }
-            toast.success(`„${name.trim()}“ steht jetzt im Leistungsstamm. Die Position verweist darauf; Preis und Text im Angebot bleiben unverändert.`);
+            toast.success(`„${name.trim()}" steht jetzt im Leistungsstamm. Die Position verweist darauf; Preis und Text im Angebot bleiben unverändert.`);
             setOffen(false);
             onUebernommen(d.id, Number(kategorie));
         } catch {

@@ -58,7 +58,7 @@ function Inhalt({ auftrag, onSchliessen, onAuftrag }: Props) {
                 <div className="space-y-1.5">
                     <Label htmlFor="termin-ziel">Zieltermin (versprochener Liefertermin)</Label>
                     <DatePicker id="termin-ziel" value={ziel} onChange={setZiel} placeholder="Kein Zieltermin" aria-label="Zieltermin" />
-                    <p className="text-xs text-slate-500">Daran misst sich die Ampel: „Knapp“ heißt weniger als 2 Arbeitstage Luft, „Verspätet“ heißt, die errechnete Lieferzeit liegt danach.</p>
+                    <p className="text-xs text-slate-500">Daran misst sich die Ampel: „Knapp" heißt weniger als 2 Arbeitstage Luft, „Verspätet" heißt, die errechnete Lieferzeit liegt danach.</p>
                 </div>
             </div>
             <DialogFooter>

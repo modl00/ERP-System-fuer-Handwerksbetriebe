@@ -199,7 +199,7 @@ export function WahlpositionMenu({
                 aria-haspopup="menu"
                 aria-expanded={offen}
                 title={modus === 'alternativ'
-                    ? `Variante der Auswahl „${block.alternativGruppe}“ — der Kunde wählt genau eine`
+                    ? `Variante der Auswahl „${block.alternativGruppe}" — der Kunde wählt genau eine`
                     : modus === 'optional'
                         ? 'Optional: der Kunde kann diese Position dazubuchen (zählt nicht in die Summe)'
                         : 'Festlegen, ob der Kunde diese Leistung wählen darf'}

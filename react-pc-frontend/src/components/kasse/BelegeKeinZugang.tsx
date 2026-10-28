@@ -15,12 +15,12 @@ interface Rechte {
 }
 
 interface Props {
-    /** Wird aufgerufen, sobald der Zugang frei ist (zum Beispiel nach „Mich als Mitarbeiter anlegen“). */
+    /** Wird aufgerufen, sobald der Zugang frei ist (zum Beispiel nach „Mich als Mitarbeiter anlegen"). */
     onFreigeschaltet: () => void;
 }
 
 /**
- * Erklärt, warum „Belege und Kasse“ gesperrt ist, und nennt den einen Schritt, der
+ * Erklärt, warum „Belege und Kasse" gesperrt ist, und nennt den einen Schritt, der
  * fehlt (#85). Der Server liefert den Grund; Administratoren ohne Mitarbeiter können
  * sich hier mit einem Klick einen anlegen.
  */
@@ -122,14 +122,14 @@ export function BelegeKeinZugang({ onFreigeschaltet }: Props) {
                 <p className="text-sm mt-2 text-amber-800 max-w-md mx-auto">
                     <strong>Keine Ihrer Abteilungen darf Belege sehen.</strong> Ein Administrator schaltet sie unter{' '}
                     <Link to="/abteilung-berechtigungen" className={linkKlasse}>Rechte der Abteilungen</Link> in der Zeile
-                    „Belege &amp; Kasse“ frei.
+                    „Belege &amp; Kasse" frei.
                 </p>
             )}
 
             {!grund && (
                 <p className="text-sm mt-2 text-amber-800 max-w-md mx-auto">
                     Ihr Benutzer braucht einen Mitarbeiter mit einer Abteilung, die Belege sehen darf (Administration → Wer darf was? →
-                    Rechte der Abteilungen, Zeile „Belege &amp; Kasse“). Administratoren sind nach der Zuordnung zu einem
+                    Rechte der Abteilungen, Zeile „Belege &amp; Kasse"). Administratoren sind nach der Zuordnung zu einem
                     Mitarbeiter automatisch freigeschaltet.
                 </p>
             )}

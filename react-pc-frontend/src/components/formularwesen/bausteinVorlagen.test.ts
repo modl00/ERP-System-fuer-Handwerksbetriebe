@@ -7,7 +7,7 @@ import { anschriftImFenster, pruefeAnschrift } from './normMasse';
 const vorhanden: FormBlock[] = [{ id: 'a', type: 'text', page: 1, x: 0, y: 0, z: 7, width: 10, height: 10 }];
 
 describe('neuerBaustein', () => {
-    it.each(['A', 'B'] as const)('„Anschrift“ landet bei Form %s direkt im Fenster', form => {
+    it.each(['A', 'B'] as const)('„Anschrift" landet bei Form %s direkt im Fenster', form => {
         const b = neuerBaustein('anschrift', { seite: 1, items: vorhanden, form });
         expect(b.type).toBe('text');
         expect(b.content).toBe('{{KUNDENADRESSE}}');

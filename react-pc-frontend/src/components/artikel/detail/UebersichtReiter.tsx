@@ -21,7 +21,7 @@ interface Props {
 }
 
 /**
- * Reiter „Übersicht“: das Wichtigste auf einen Blick - Bild, Kerndaten, bester
+ * Reiter „Übersicht": das Wichtigste auf einen Blick - Bild, Kerndaten, bester
  * Preis und die Preise je Lieferant. Preise lassen sich hier direkt ändern,
  * ohne erst den Reiter zu wechseln.
  */
@@ -113,7 +113,7 @@ export function UebersichtReiter({ daten, onGespeichert, onZuReiter, onBearbeite
                 </div>
                 {lieferanten.length === 0 ? (
                     <p className="text-sm text-slate-500 py-4 text-center">
-                        Noch kein Lieferantenpreis hinterlegt. Im Reiter „Preise &amp; Lieferanten“ kannst du einen eintragen.
+                        Noch kein Lieferantenpreis hinterlegt. Im Reiter „Preise &amp; Lieferanten" kannst du einen eintragen.
                     </p>
                 ) : (
                     <LieferantenPreise kompakt artikelId={artikel.id} lieferanten={lieferanten} onGespeichert={onGespeichert} />

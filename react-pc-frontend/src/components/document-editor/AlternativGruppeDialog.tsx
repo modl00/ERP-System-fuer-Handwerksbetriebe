@@ -145,7 +145,7 @@ export function AlternativGruppeDialog({
                         nameVergeben ? "text-rose-600 font-medium" : "text-slate-400"
                     )}>
                         {nameVergeben
-                            ? `„${nameGetrimmt}“ gibt es in diesem Dokument schon — bitte einen anderen Namen wählen.`
+                            ? `„${nameGetrimmt}" gibt es in diesem Dokument schon — bitte einen anderen Namen wählen.`
                             : 'Diesen Text sieht der Kunde über den Varianten.'}
                     </p>
                 </div>
@@ -205,7 +205,7 @@ export function AlternativGruppeDialog({
                                                 <span className="block text-[10px] text-amber-600">
                                                     {istAnker
                                                         ? 'Ausgangsposition — immer dabei'
-                                                        : `Kommt aus „${kandidat.alternativGruppe}“ — bleibt dort nur, wenn du sie hier nicht ankreuzt`}
+                                                        : `Kommt aus „${kandidat.alternativGruppe}" — bleibt dort nur, wenn du sie hier nicht ankreuzt`}
                                                 </span>
                                             )}
                                         </span>

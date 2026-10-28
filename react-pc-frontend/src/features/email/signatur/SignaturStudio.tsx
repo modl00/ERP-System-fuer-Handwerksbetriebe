@@ -333,7 +333,7 @@ export function SignaturStudio({ signatur, firmenVorlagen = [], firmenVorlagenFe
 
     const pruefe = (): string | null => {
         const n = name.trim();
-        if (!n) return 'Bitte der Signatur einen Namen geben, z. B. „Standard“.';
+        if (!n) return 'Bitte der Signatur einen Namen geben, z. B. „Standard".';
         if (n.length > MAX_NAME_LAENGE) return `Der Name der Signatur ist zu lang (höchstens ${MAX_NAME_LAENGE} Zeichen).`;
         const leer = modus === 'formular'
             ? !hatInhalt(daten)
@@ -442,7 +442,7 @@ export function SignaturStudio({ signatur, firmenVorlagen = [], firmenVorlagenFe
                                             </InfoAbschnitt>
                                             <InfoAbschnitt titel="Was bewirkt das?">
                                                 <p>
-                                                    Normale Benutzer sehen nur ihre eigenen Signaturen. Bei „Niemand“ sehen
+                                                    Normale Benutzer sehen nur ihre eigenen Signaturen. Bei „Niemand" sehen
                                                     sie nur Admins – praktisch z. B. für die System-Signatur.
                                                 </p>
                                                 <p>
@@ -529,7 +529,7 @@ export function SignaturStudio({ signatur, firmenVorlagen = [], firmenVorlagenFe
                                         </div>
                                     ) : (
                                         <p className="text-sm text-slate-700">
-                                            Aussehen und Firmenangaben kommen aus der Vorlage <span className="font-semibold text-slate-900">„{firmenVorlage.name}“</span>.
+                                            Aussehen und Firmenangaben kommen aus der Vorlage <span className="font-semibold text-slate-900">„{firmenVorlage.name}"</span>.
                                         </p>
                                     )}
                                 </Abschnitt>
@@ -599,7 +599,7 @@ export function SignaturStudio({ signatur, firmenVorlagen = [], firmenVorlagenFe
                                         </>
                                     )}
                                     {((!info.bilder.foto && daten.fotoUrl) || (!info.bilder.logo && daten.logoUrl) || (!info.bilder.banner && daten.bannerUrl)) && (
-                                        <p className="text-xs text-slate-500">Die Vorlage „{info.titel}“ zeigt nicht alle Bilder. Ihre Bilder bleiben aber gespeichert.</p>
+                                        <p className="text-xs text-slate-500">Die Vorlage „{info.titel}" zeigt nicht alle Bilder. Ihre Bilder bleiben aber gespeichert.</p>
                                     )}
                                 </div>
                             </Abschnitt>

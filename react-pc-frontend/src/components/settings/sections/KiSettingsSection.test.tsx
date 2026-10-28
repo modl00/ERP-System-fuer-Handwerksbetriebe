@@ -37,7 +37,7 @@ function zeige() {
 afterEach(() => vi.unstubAllGlobals());
 
 describe('KiSettingsSection – Statuskasten', () => {
-    it('sagt ohne Schlüssel ruhig „KI-Funktionen sind aus“ und was wegfällt', async () => {
+    it('sagt ohne Schlüssel ruhig „KI-Funktionen sind aus" und was wegfällt', async () => {
         stubbeServer(false);
         zeige();
 
@@ -54,7 +54,7 @@ describe('KiSettingsSection – Statuskasten', () => {
         expect(screen.getByText('Freiwillig.')).toBeInTheDocument();
     });
 
-    it('zeigt mit Schlüssel einen grünen Kasten „KI-Funktionen sind an“', async () => {
+    it('zeigt mit Schlüssel einen grünen Kasten „KI-Funktionen sind an"', async () => {
         stubbeServer(true);
         zeige();
 
@@ -79,7 +79,7 @@ describe('KiSettingsSection – Statuskasten', () => {
 });
 
 describe('KiSettingsSection – Speichern', () => {
-    it('lädt nach dem Speichern die Anmeldung neu, damit „KI an“ sofort überall gilt', async () => {
+    it('lädt nach dem Speichern die Anmeldung neu, damit „KI an" sofort überall gilt', async () => {
         const mock = stubbeServer(false);
         const user = userEvent.setup();
         zeige();
@@ -111,7 +111,7 @@ describe('KiSettingsSection – Speichern', () => {
 });
 
 describe('KiSettingsSection – Schlüssel entfernen', () => {
-    it('zeigt „Schlüssel entfernen“ nur mit gespeichertem Schlüssel', async () => {
+    it('zeigt „Schlüssel entfernen" nur mit gespeichertem Schlüssel', async () => {
         stubbeServer(false);
         zeige();
         await screen.findByRole('heading', { name: 'KI-Funktionen sind aus' });
@@ -170,7 +170,7 @@ describe('KiSettingsSection – Schlüssel entfernen', () => {
 });
 
 describe('KiSettingsSection – Wortwahl und Spam-Filter', () => {
-    it('spricht von „KI-Schlüssel“ statt „API Key“', async () => {
+    it('spricht von „KI-Schlüssel" statt „API Key"', async () => {
         stubbeServer(false);
         zeige();
 
@@ -188,7 +188,7 @@ describe('KiSettingsSection – Wortwahl und Spam-Filter', () => {
         expect(beschreibung).toHaveTextContent('Dafür braucht es keinen Gemini-Schlüssel');
         // Ehrlich zum tatsächlichen Ablauf: gespeichert und bestätigt wird immer, geprüft erst danach.
         expect(beschreibung).toHaveTextContent('Die Anfrage wird trotzdem immer gespeichert');
-        expect(beschreibung).toHaveTextContent('löschen Sie von Hand unter „Anfragen“');
+        expect(beschreibung).toHaveTextContent('löschen Sie von Hand unter „Anfragen"');
         expect(screen.queryByText(/nicht gesendet werden konnte|blockiert/)).not.toBeInTheDocument();
     });
 });

@@ -55,7 +55,7 @@ export function DatenfeldDialog({ open, onOpenChange, protokollId, gruppen, vorb
 
     const speichern = async () => {
         if (label.trim() === '') {
-            setFehler({ feld: 'label', text: 'Bitte das Datenfeld benennen, zum Beispiel „Baujahr“.' });
+            setFehler({ feld: 'label', text: 'Bitte das Datenfeld benennen, zum Beispiel „Baujahr".' });
             return;
         }
         const optionen = optionenAusText(optionenText);

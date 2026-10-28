@@ -155,7 +155,7 @@ describe('Abschnitte und Bauarten im Editor', () => {
     it('meldet einen Prüfpunkt, der auf eine entfernte Bauart verweist', () => {
         const m = modul();
         m.untertypen = [m.untertypen[0]];
-        expect(fehlerImModul(m)).toBe('Der Prüfpunkt „Zweiter Flügel“ gilt für eine Bauart, die es nicht mehr gibt.');
+        expect(fehlerImModul(m)).toBe('Der Prüfpunkt „Zweiter Flügel" gilt für eine Bauart, die es nicht mehr gibt.');
     });
 
     it('vergibt Schlüssel, ohne vorhandene zu ändern', () => {

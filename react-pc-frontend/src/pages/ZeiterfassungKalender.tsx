@@ -98,9 +98,8 @@ function istVollstaendigerJahresSaldo(data: unknown): data is { gesamt: object; 
 
 export default function ZeiterfassungKalender() {
     const bestaetige = useConfirm();
+    // useToast() liefert eine stabile API – kein Ref auf den neuesten Wert nötig.
     const toast = useToast();
-    const toastRef = useRef(toast);
-    toastRef.current = toast;
     const [searchParams, setSearchParams] = useSearchParams();
     const [mitarbeiter, setMitarbeiter] = useState<Mitarbeiter[]>([]);
     const heute = new Date();
@@ -129,7 +128,7 @@ export default function ZeiterfassungKalender() {
     const aktuellerMitarbeiter = mitarbeiter.find(m => m.id === selectedMitarbeiter);
     const istGeschaeftsfuehrer = !!aktuellerMitarbeiter?.istGeschaeftsfuehrer;
     // „Monatsabschluss zurücksetzen" nur anbieten, wenn der Server es auch erlaubt – sonst endet der Klick in einem 403.
-    // null = wird noch geprüft: dann weder Knopf noch „Recht fehlt“ zeigen.
+    // null = wird noch geprüft: dann weder Knopf noch „Recht fehlt" zeigen.
     const abschlussRecht = useMonatsabschlussBerechtigung();
     const darfMonatAbschliessen = abschlussRecht === true;
     const isMonatFestgeschrieben = !istGeschaeftsfuehrer && !!aktuellerAbschluss?.festgeschrieben;
@@ -160,7 +159,7 @@ export default function ZeiterfassungKalender() {
                 const errData = await res.json().catch(() => ({}));
                 throw new Error(errData.message || 'Monatsabschluss konnte nicht zurückgesetzt werden.');
             }
-            toastRef.current.success('Monatsabschluss wurde zurückgesetzt. Zeiten können wieder bearbeitet werden.');
+            toast.success('Monatsabschluss wurde zurückgesetzt. Zeiten können wieder bearbeitet werden.');
             window.dispatchEvent(new Event('notifications:refresh'));
             setAbschlussRevision(v => v + 1);
             await loadKalender();
@@ -171,24 +170,33 @@ export default function ZeiterfassungKalender() {
                 setPendingDayForModal(null);
             }
         } catch (err) {
-            toastRef.current.error(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Monatsabschlusses.');
+            toast.error(err instanceof Error ? err.message : 'Fehler beim Zurücksetzen des Monatsabschlusses.');
         } finally {
             setResettingAbschluss(false);
         }
     };
 
+    // Anderer Mitarbeiter/Monat oder neu geladen: Ladeanzeige an und alten Fehler weg,
+    // bevor der Effekt unten den Monatsabschluss holt.
+    const abschlussAnlass = `${auswahlKey}#${abschlussRevision}`;
+    const [geladenerAbschlussAnlass, setGeladenerAbschlussAnlass] = useState<string | null>(null);
+    if (geladenerAbschlussAnlass !== abschlussAnlass) {
+        setGeladenerAbschlussAnlass(abschlussAnlass);
+        if (selectedMitarbeiter) {
+            setAbschlussLaedt(true);
+            setAbschlussFehler(null);
+        }
+    }
     useEffect(() => {
         if (!selectedMitarbeiter) return;
         const controller = new AbortController();
-        setAbschlussLaedt(true);
-        setAbschlussFehler(null);
         fetch(`/api/zeitverwaltung/monatsabschluesse/${auswahlKey}`, { signal: controller.signal })
             .then(async res => { if (!res.ok) throw new Error('Monatsabschluss konnte nicht geladen werden.'); return res.json(); })
             .then(data => { if (!controller.signal.aborted) setAbschluss(data); })
-            .catch(err => { if (!controller.signal.aborted) { setAbschlussFehler(err.message); toastRef.current.error(err.message); } })
+            .catch(err => { if (!controller.signal.aborted) { setAbschlussFehler(err.message); toast.error(err.message); } })
             .finally(() => { if (!controller.signal.aborted) setAbschlussLaedt(false); });
         return () => controller.abort();
-    }, [auswahlKey, selectedMitarbeiter, abschlussRevision]);
+    }, [auswahlKey, selectedMitarbeiter, abschlussRevision, toast]);
     const [kalenderData, setKalenderData] = useState<KalenderData | null>(null);
     const [loading, setLoading] = useState(false);
 
@@ -1312,12 +1320,15 @@ function ZeitausgleichBuchenModal({
     const [submitting, setSubmitting] = useState(false);
     const [localError, setLocalError] = useState('');
 
-    useEffect(() => {
+    // Beim Öffnen (oder geänderter Vorgabe) mit den Soll-Stunden neu beginnen.
+    const [vorgabe, setVorgabe] = useState({ open, defaultHours });
+    if (vorgabe.open !== open || vorgabe.defaultHours !== defaultHours) {
+        setVorgabe({ open, defaultHours });
         if (open) {
             setStundenDraft(formatDecimalInput(defaultHours));
             setLocalError('');
         }
-    }, [open, defaultHours]);
+    }
 
     const handleConfirm = async () => {
         const val = validateDecimalInput(stundenDraft, { label: 'Stunden', min: 0.1, max: 24, required: true });
@@ -1868,7 +1879,7 @@ function DayEditorModal({
                 }
                 return { ok: true };
             }
-            // Konkrete Meldung des Servers (z. B. „keinem Mitarbeiter zugeordnet“).
+            // Konkrete Meldung des Servers (z. B. „keinem Mitarbeiter zugeordnet").
             return { ok: false, meldung: await leseFehlermeldung(res, 'Buchung konnte nicht gespeichert werden.') };
         } catch (e) {
             console.error(e);
@@ -2059,7 +2070,7 @@ function DayEditorModal({
         }));
     };
 
-    /** Schließen über X oder „Schließen“: bei ungespeicherten Änderungen erst nachfragen. */
+    /** Schließen über X oder „Schließen": bei ungespeicherten Änderungen erst nachfragen. */
     const requestClose = async () => {
         if (hatUngespeicherteAenderungen()) {
             const verwerfen = await confirmDialog({
@@ -2251,7 +2262,7 @@ function DayEditorModal({
                                                             aria-label={`Tätigkeit Buchung ${index + 1}`}
                                                             value={b.arbeitsgangId ? b.arbeitsgangId.toString() : ''}
                                                             onChange={val => handleUpdateBooking(b.id, { arbeitsgangId: Number(val) })}
-                                                            options={arbeitsgaenge.filter(a => !a.archiviert || a.id === b.arbeitsgangId).map(a => ({ value: a.id.toString(), label: a.beschreibung }))}
+                                                            options={arbeitsgaenge.map(a => ({ value: a.id.toString(), label: a.beschreibung }))}
                                                             placeholder="Tätigkeit wählen…"
                                                             className="w-full"
                                                             disabled={readOnly}

@@ -64,7 +64,7 @@ interface BuchungVerlaufDialogProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     buchungId: number | null;
-    /** Kurzbeschreibung der Buchung für die Unterzeile, z. B. „08:00–12:00“. */
+    /** Kurzbeschreibung der Buchung für die Unterzeile, z. B. „08:00–12:00". */
     beschreibung?: string;
 }
 

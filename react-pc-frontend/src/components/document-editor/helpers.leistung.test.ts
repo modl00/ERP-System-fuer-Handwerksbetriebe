@@ -1,5 +1,5 @@
 /**
- * Vitest-Suite fuer „Als neue Leistung speichern“: Abweichung einer Position
+ * Vitest-Suite fuer „Als neue Leistung speichern": Abweichung einer Position
  * von ihrer Ursprungs-Leistung und Rueckweg der Einheit auf den Enum-Namen.
  *
  * DSGVO: ausschliesslich Dummy-Daten.

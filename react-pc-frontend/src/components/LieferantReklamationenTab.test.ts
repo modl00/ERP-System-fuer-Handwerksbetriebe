@@ -120,7 +120,7 @@ describe('reklamationStatusText', () => {
         ['IN_BEARBEITUNG', 'In Bearbeitung'],
         ['ABGESCHLOSSEN', 'Abgeschlossen'],
         ['STORNIERT', 'Storniert'],
-    ])('zeigt %s als „%s“', (status, text) => {
+    ])('zeigt %s als „%s"', (status, text) => {
         expect(reklamationStatusText(status)).toBe(text);
     });
 

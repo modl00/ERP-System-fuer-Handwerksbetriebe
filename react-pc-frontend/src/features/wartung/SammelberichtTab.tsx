@@ -168,7 +168,7 @@ export function SammelberichtTab() {
                         <Button variant="outline" onClick={zuruecksetzen} disabled={!filterGeaendert} className="w-full xl:w-auto">Zurücksetzen</Button>
                     </div>
                 </div>
-                {datumFalsch && <p role="alert" className="mt-2 text-sm text-rose-700">Das Datum „von“ liegt nach dem Datum „bis“.</p>}
+                {datumFalsch && <p role="alert" className="mt-2 text-sm text-rose-700">Das Datum „von" liegt nach dem Datum „bis".</p>}
             </Card>
 
             <div className="grid grid-cols-1 gap-6 xl:grid-cols-[minmax(0,1fr)_22rem]">

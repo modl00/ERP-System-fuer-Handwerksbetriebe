@@ -107,16 +107,16 @@ describe('ArtikelStammdatenForm', () => {
         expect(onGespeichert).not.toHaveBeenCalled();
     });
 
-    it('zeigt bei geänderter Einheit keine Meldung zu Lager oder Leistungen, die es hier nicht gibt', async () => {
+    it('warnt bei geänderter Einheit, dass Mengen nicht umgerechnet werden', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByLabelText('Produktname *');
+        expect(screen.queryByRole('note')).toBeNull();
 
         await user.click(screen.getAllByRole('combobox')[0]);
         await user.click(await screen.findByRole('option', { name: 'Kilogramm' }));
 
-        expect(screen.queryByRole('note')).toBeNull();
-        expect(screen.queryByText(/Lager|Leistungen/)).toBeNull();
+        expect(await screen.findByRole('note')).toHaveTextContent('nicht umgerechnet');
     });
 
     it('übernimmt die gewählte Kategorie und lässt sie entfernen', async () => {
@@ -184,7 +184,7 @@ describe('ArtikelStammdatenForm', () => {
         expect(await screen.findByLabelText('Beschreibung (intern)')).toHaveAttribute('maxlength', '255');
     });
 
-    it('Verzinken und Pulvern: Standard ist „vom Werkstoff übernehmen” (mit dessen Wert), gesendet wird dann nichts Eigenes', async () => {
+    it('Verzinken und Pulvern: Standard ist „vom Werkstoff übernehmen" (mit dessen Wert), und gesendet wird dann nichts Eigenes', async () => {
         const user = userEvent.setup();
         zeige();
         await screen.findByLabelText('Produktname *');

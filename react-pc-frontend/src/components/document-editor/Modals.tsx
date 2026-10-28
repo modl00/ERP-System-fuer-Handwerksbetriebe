@@ -1,4 +1,4 @@
-import { AlertTriangle, Search, Wrench, Clock, X, Printer, Folder, FolderOpen, ChevronDown, ChevronRight, Loader2, Eye, FileText, Check, Pencil } from 'lucide-react';
+import { AlertTriangle, Search, Wrench, Clock, X, Printer, Folder, FolderOpen, ChevronDown, ChevronRight, Loader2, Eye, FileText, Pencil, Check } from 'lucide-react';
 import { Button } from '../ui/button';
 import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import type { LeistungApiDto, ArbeitszeitartApiDto } from './types';

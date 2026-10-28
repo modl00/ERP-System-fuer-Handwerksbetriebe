@@ -54,7 +54,7 @@ describe('Gantt', () => {
         expect(screen.getByRole('button', { name: /Konflikt: Die Vorgänger sind erst nach dem festen Start fertig/ })).toBeInTheDocument();
     });
 
-    it('Klicks auf Balken, Namen, „Vorgang hinzufügen“ und „Termine“ melden den richtigen Auftrag und Vorgang', () => {
+    it('Klicks auf Balken, Namen, „Vorgang hinzufügen" und „Termine" melden den richtigen Auftrag und Vorgang', () => {
         const onVorgang = vi.fn();
         const onNeu = vi.fn();
         const onTermine = vi.fn();

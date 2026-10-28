@@ -1,18 +1,18 @@
 import { parseRecipientList } from '../../lib/emailAddress';
 
 /**
- * Regeln für den Einzelversand („Rundmail“): Jeder
+ * Regeln für den Einzelversand („Rundmail"): Jeder
  * Empfänger bekommt eine eigene Mail und sieht nur sich selbst.
  *
  * <p>Die Grenzen spiegeln den API-Vertrag (Spec Abschnitt 1.5) – das Backend
  * prüft dieselben Werte und antwortet sonst mit 400.</p>
  */
 
-/** Mehr Empfänger lehnt das Backend ab („Höchstens 50 Empfänger pro Sammel-Mail.“). */
+/** Mehr Empfänger lehnt das Backend ab („Höchstens 50 Empfänger pro Sammel-Mail."). */
 export const EINZELVERSAND_MAX_EMPFAENGER = 50;
 
 /**
- * Ab so vielen Empfängern im „An“ schaltet sich die Rundmail von selbst ein – und wer sie
+ * Ab so vielen Empfängern im „An" schaltet sich die Rundmail von selbst ein – und wer sie
  * ausschaltet, bekommt den Hinweis, dass sich alle gegenseitig sehen.
  */
 export const EINZELVERSAND_HINWEIS_AB = 2;
@@ -32,7 +32,7 @@ export interface EinzelversandErgebnis {
     nichtGespeichert: string[];
 }
 
-/** Die einzelnen Empfänger aus dem „An“-Feld (Komma oder Semikolon getrennt). */
+/** Die einzelnen Empfänger aus dem „An"-Feld (Komma oder Semikolon getrennt). */
 export function einzelneEmpfaenger(an: string): string[] {
     return parseRecipientList(an).map(eintrag => eintrag.raw);
 }
@@ -60,7 +60,7 @@ export function brauchtAufmerksamkeit(ergebnis: EinzelversandErgebnis): boolean 
     return ergebnis.fehlgeschlagen.length > 0 || ergebnis.nichtGespeichert.length > 0;
 }
 
-/** Kurzfassung für Toast und Ergebnis-Kasten, z. B. „28 verschickt, 2 nicht: a@…, b@…“. */
+/** Kurzfassung für Toast und Ergebnis-Kasten, z. B. „28 verschickt, 2 nicht: a@…, b@…". */
 export function formatEinzelversandErgebnis(ergebnis: EinzelversandErgebnis): string {
     const anzahlFehler = ergebnis.fehlgeschlagen.length;
     let text = `${ergebnis.verschickt} verschickt`;

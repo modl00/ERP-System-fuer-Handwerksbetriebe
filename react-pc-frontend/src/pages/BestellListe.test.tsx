@@ -88,7 +88,7 @@ describe('Bestellübersicht', { timeout: 30000 }, () => {
         expect(screen.getByText('Dazu gibt es keine Bestellung.')).toBeInTheDocument();
     });
 
-    it('Klick auf eine Zeile öffnet die Bestellung, „Neue Bestellung“ den leeren Entwurf', async () => {
+    it('Klick auf eine Zeile öffnet die Bestellung, „Neue Bestellung" den leeren Entwurf', async () => {
         const user = userEvent.setup();
         zeige();
 
@@ -96,7 +96,7 @@ describe('Bestellübersicht', { timeout: 30000 }, () => {
         expect(screen.getByTestId('ort')).toHaveTextContent('/bestellungen/bestellung/3');
     });
 
-    it('„Neue Bestellung“ führt zum leeren Entwurf, ohne Anlegen-Recht gibt es den Knopf nicht', async () => {
+    it('„Neue Bestellung" führt zum leeren Entwurf, ohne Anlegen-Recht gibt es den Knopf nicht', async () => {
         const user = userEvent.setup();
         const { unmount } = zeige();
         await user.click(await screen.findByRole('button', { name: /Neue Bestellung/ }));

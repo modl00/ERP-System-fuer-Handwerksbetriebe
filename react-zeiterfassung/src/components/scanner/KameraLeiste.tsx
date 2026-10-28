@@ -13,7 +13,7 @@ interface KameraLeisteProps {
 /**
  * Untere Leiste der Kamera wie in der Apple-Scanner-App: links die zuletzt
  * gescannte Seite (öffnet die Seitenübersicht), Mitte der Auslöser von Hand,
- * rechts „Fertig“.
+ * rechts „Fertig".
  */
 export default function KameraLeiste({ seiten, onAufnehmen, onSeitenOeffnen, onFertig, erstelltPdf }: KameraLeisteProps) {
     const letzte = seiten.at(-1)

@@ -1,18 +1,16 @@
 import { useState, useEffect, useId, type ReactNode } from 'react';
 import { PdfCanvasViewer } from './ui/PdfCanvasViewer';
 import { Button } from './ui/button';
-import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks, RotateCcw } from 'lucide-react';
+import { RefreshCw, FileText, X, Download, Plus, Trash2, Percent, Euro, Save, Briefcase, Package, ListChecks } from 'lucide-react';
 import { ProjektSearchModal } from './ProjektSearchModal';
 import { KostenstelleSelectModal } from './KostenstelleSelectModal';
 import { useToast } from './ui/toast';
 import { toSafeResourceUrl } from '../lib/htmlSanitizer';
 import { PositionsAufteilung, type AufteilungsZiel } from './zuordnung/PositionsAufteilung';
 import { usePositionsAufteilung } from './zuordnung/usePositionsAufteilung';
-import { LagerBuchungPanel } from './zuordnung/LagerBuchungPanel';
 import { zieleAusPositionen, zielSchluessel } from './zuordnung/positionen';
 import { PositionsZielZeile } from './zuordnung/PositionsZielZeile';
 import { freierFarbIndex, zielFarbe } from './zuordnung/zielFarben';
-import { ladeOrte, type Lagerort } from '../features/lager/lagerApi';
 
 // ========== Types ==========
 interface GeschaeftsdatenDto {
@@ -33,14 +31,12 @@ interface ProjektAnteil {
     projektName?: string;
     kostenstelleId?: number;
     kostenstelleName?: string;
-    /** Typ der Kostenstelle, z. B. 'LAGER' – nur gesetzt wenn in dieser Sitzung hinzugefügt. */
-    kostenstellenTyp?: string;
     betrag: number;
     prozentanteil: number | null;
     beschreibung: string;
     // Über wie viele Jahre die Kosten verteilt werden (nur Kostenstellen). 1 = keine Aufteilung.
     streckungJahre?: number;
-    // Fest vergebene Kennfarbe im Modus „Nach Positionen” (siehe zuordnung/zielFarben.ts).
+    // Fest vergebene Kennfarbe im Modus „Nach Positionen" (siehe zuordnung/zielFarben.ts).
     farbIndex?: number;
 }
 
@@ -72,44 +68,36 @@ export interface ZuordnungModalProps {
      * bleibt der Dialog offen (z. B. weil er zur nächsten Rechnung springt).
      */
     onSuccess: () => void | 'offen-lassen' | Promise<void>;
-    /**
-     * Wenn gesetzt, ist keine Lager-Buchung möglich (kein LAGER-Typ in der
-     * Kostenstellen-Auswahl, kein Lager-Panel). Gilt für AB/Lieferschein-Zuordnung.
-     */
-    keineLagerBuchung?: boolean;
 }
 
-export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, lieferantName, pdfUrl, previewMimeType, rechnungsLeiste, onClose, onSuccess, keineLagerBuchung }: ZuordnungModalProps) {
+export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, lieferantName, pdfUrl, previewMimeType, rechnungsLeiste, onClose, onSuccess }: ZuordnungModalProps) {
     const toast = useToast();
     const titelId = useId();
     const isBelegZuordnung = belegId != null;
     const [geschaeftsdaten, setGeschaeftsdaten] = useState<GeschaeftsdatenDto | null>(null);
-    const [loading, setLoading] = useState(true);
+    const ladeZielId = isBelegZuordnung ? belegId : geschaeftsdokumentId;
+    const [loading, setLoading] = useState(ladeZielId != null);
     const [saving, setSaving] = useState(false);
     const [modus, setModus] = useState<'prozent' | 'absolut' | 'positionen'>('prozent');
     const [anteile, setAnteile] = useState<ProjektAnteil[]>([]);
     const [showProjectModal, setShowProjectModal] = useState(false);
     const [showKostenstelleModal, setShowKostenstelleModal] = useState(false);
-    // Lager-Buchung: aktiv wenn eine LAGER-Kostenstelle gewählt wurde (nur für Lieferanten-Dokumente)
-    const [lagerOrtId, setLagerOrtId] = useState<number | null>(null);
-    // Anzahl erkannter Lager-Positionen (null = noch nicht geladen, 0 = keine)
-    const [lagerPositionenAnzahl, setLagerPositionenAnzahl] = useState<number | null>(null);
-    const [hatGespeicherteZuordnung, setHatGespeicherteZuordnung] = useState(false);
-    const [lagerorte, setLagerorte] = useState<Lagerort[]>([]);
-    // Explizit zugeordnete Artikel für unbekannte Positionen (aus CreateArticleModal)
-    const [artikelZuordnungen, setArtikelZuordnungen] = useState<Array<{ positionId: number; artikelId: number }>>([]);
     // Aufteilung nach Positionen – nur für Lieferanten-Dokumente, nicht für Kassenbelege.
     const positionsAufteilung = usePositionsAufteilung(isBelegZuordnung ? null : geschaeftsdokumentId, modus === 'positionen');
     const nachPositionen = modus === 'positionen';
 
+    // Anderes Dokument: Ladezustand sofort passend setzen, bevor der Effekt neu lädt.
+    const ladeSchluessel = `${isBelegZuordnung ? 'beleg' : 'dokument'}:${ladeZielId ?? ''}`;
+    const [geladenFuer, setGeladenFuer] = useState(ladeSchluessel);
+    if (geladenFuer !== ladeSchluessel) {
+        setGeladenFuer(ladeSchluessel);
+        setLoading(ladeZielId != null);
+    }
+
     // Geschäftsdaten + bestehende Zuordnungen laden
     useEffect(() => {
         const targetId = isBelegZuordnung ? belegId : geschaeftsdokumentId;
-        if (targetId == null) {
-            setLoading(false);
-            return;
-        }
-        setLoading(true);
+        if (targetId == null) return;
         const datenUrl = isBelegZuordnung
             ? `/api/bestellungen-uebersicht/belegdaten/${targetId}`
             : `/api/bestellungen-uebersicht/geschaeftsdaten/${targetId}`;
@@ -141,7 +129,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                     if (enthaeltAbsoluteZuordnung) {
                         setModus('absolut');
                     }
-                    geladeneAnteile = zuordnungen.map((z: { projektId?: number; projektName?: string; kostenstelleId?: number; kostenstelleName?: string; kostenstellenTyp?: string; betrag?: number; prozentanteil?: number | null; beschreibung?: string; streckungJahre?: number }) => {
+                    geladeneAnteile = zuordnungen.map((z: { projektId?: number; projektName?: string; kostenstelleId?: number; kostenstelleName?: string; betrag?: number; prozentanteil?: number | null; beschreibung?: string; streckungJahre?: number }) => {
                         const hatProzent = z.prozentanteil != null;
                         const pct: number | null = hatProzent
                             ? (z.prozentanteil ?? 0)
@@ -155,7 +143,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                             projektName: z.projektName,
                             kostenstelleId: z.kostenstelleId,
                             kostenstelleName: z.kostenstelleName,
-                            kostenstellenTyp: z.kostenstellenTyp,
                             betrag,
                             prozentanteil: pct,
                             beschreibung: z.beschreibung || '',
@@ -175,7 +162,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 }
                 // Kennfarben in Listenreihenfolge fest vergeben
                 setAnteile(geladeneAnteile.map((a, idx) => ({ ...a, farbIndex: idx })));
-                setHatGespeicherteZuordnung(geladeneAnteile.length > 0);
             })
             .catch(() => toast.error('Fehler beim Laden der Zuordnungsdaten'))
             .finally(() => setLoading(false));
@@ -212,7 +198,7 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     };
 
     // Kostenstelle hinzufügen (vom Modal aufgerufen)
-    const addKostenstelle = (k: { id: number; bezeichnung: string; typ: string }) => {
+    const addKostenstelle = (k: { id: number; bezeichnung: string }) => {
         if (anteile.find(a => a.kostenstelleId === k.id)) {
             setShowKostenstelleModal(false);
             return;
@@ -223,16 +209,11 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
             farbIndex: freierFarbIndex(anteile.map(a => a.farbIndex)),
             kostenstelleId: k.id,
             kostenstelleName: k.bezeichnung,
-            kostenstellenTyp: k.typ,
             prozentanteil: defaultAnteil,
             betrag: modus === 'prozent' ? (betragNetto * defaultAnteil / 100) : 0,
             beschreibung: '',
             streckungJahre: 1
         }]);
-        // LAGER-Kostenstelle: Lagerorte für die Buchung laden
-        if (k.typ === 'LAGER' && !isBelegZuordnung && lagerorte.length === 0) {
-            ladeOrte().then(orte => setLagerorte(orte.filter(o => o.aktiv && !o.archiviert))).catch(() => {});
-        }
         setShowKostenstelleModal(false);
     };
 
@@ -325,9 +306,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
     }, 0);
     const rest = Number((betragNetto - sumBetrag).toFixed(2));
 
-    // LAGER-Buchung: aktiv wenn in dieser Sitzung eine LAGER-Kostenstelle hinzugefügt wurde (nicht bei AB/Lieferschein)
-    const lagerKsBuchen = !isBelegZuordnung && !keineLagerBuchung && anteile.some(a => a.kostenstellenTyp === 'LAGER');
-
     // Speichern - mit berechneten Werten für den letzten Eintrag
     const speichernNachPositionen = async () => {
         setSaving(true);
@@ -338,30 +316,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 beschreibung: a.beschreibung,
                 streckungJahre: a.kostenstelleId != null ? (a.streckungJahre && a.streckungJahre > 1 ? a.streckungJahre : 1) : undefined,
             })));
-            // Lager-Buchung nach dem Speichern der Positionen auslösen (alle Positionen werden gebucht)
-            if (lagerKsBuchen && lagerOrtId != null && geschaeftsdokumentId != null) {
-                const lagerRes = await fetch(`/api/bestellungen-uebersicht/${geschaeftsdokumentId}/ins-lager-buchen`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lagerortId: lagerOrtId, artikelZuordnungen: artikelZuordnungen })
-                });
-                if (lagerRes.ok) {
-                    const erg: { gebucht: number; neuAngelegt: number; meldungen: string[] } = await lagerRes.json();
-                    const info = [
-                        erg.gebucht > 0 ? `${erg.gebucht} Artikel ins Lager gebucht` : null,
-                        erg.neuAngelegt > 0 ? `${erg.neuAngelegt} neu angelegt` : null,
-                    ].filter(Boolean).join(', ');
-                    if (info) toast.success(info + '.');
-                    erg.meldungen.forEach(m => toast.error(m));
-                    if (erg.gebucht === 0 && erg.meldungen.length > 0) {
-                        return; // Lagerbuchung fehlgeschlagen – nicht schließen
-                    }
-                } else {
-                    const body = await lagerRes.json().catch(() => ({}));
-                    toast.error((body as { error?: string }).error || 'Lager-Buchung fehlgeschlagen.');
-                    return; // Lagerbuchung fehlgeschlagen – nicht schließen
-                }
-            }
             abschliessen();
         } catch (err) {
             toast.error(err instanceof Error && err.message !== 'Failed to fetch' ? err.message : 'Die Aufteilung konnte nicht gespeichert werden.');
@@ -383,34 +337,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
         }
         setSaving(true);
         try {
-            // Lager-Buchung vor dem Speichern der Zuordnung (wenn LAGER-KS gewählt und Lagerort gesetzt)
-            if (lagerKsBuchen && lagerOrtId != null && geschaeftsdokumentId != null) {
-                const lagerRes = await fetch(`/api/bestellungen-uebersicht/${geschaeftsdokumentId}/ins-lager-buchen`, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ lagerortId: lagerOrtId, artikelZuordnungen: artikelZuordnungen })
-                });
-                if (lagerRes.ok) {
-                    const erg: { gebucht: number; neuAngelegt: number; meldungen: string[] } = await lagerRes.json();
-                    const info = [
-                        erg.gebucht > 0 ? `${erg.gebucht} Artikel ins Lager gebucht` : null,
-                        erg.neuAngelegt > 0 ? `${erg.neuAngelegt} neu angelegt` : null,
-                    ].filter(Boolean).join(', ');
-                    if (info) toast.success(info + '.');
-                    erg.meldungen.forEach(m => toast.error(m));
-                    // Wenn nichts gebucht wurde und Fehler vorliegen, Dialog offen lassen – Nutzer soll Problem beheben
-                    if (erg.gebucht === 0 && erg.meldungen.length > 0) {
-                        setSaving(false);
-                        return;
-                    }
-                } else {
-                    const body = await lagerRes.json().catch(() => ({}));
-                    toast.error((body as { error?: string }).error || 'Lager-Buchung fehlgeschlagen.');
-                    setSaving(false);
-                    return;
-                }
-            }
-
             // Für den letzten Eintrag die berechneten Werte verwenden
             const anteileZumSpeichern = anteile.map((a, idx) => {
                 const isLast = idx === anteile.length - 1 && anteile.length >= 2;
@@ -438,19 +364,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                 })
             });
             if (res.ok) {
-                // Erfolgs-Toast für Projektzuordnung (damit der Nutzer weiß, wo er es findet)
-                const hatProjektAnteil = anteileZumSpeichern.some(a => a.projektId != null);
-                if (hatProjektAnteil) {
-                    const projektnamen = anteile
-                        .filter(a => a.projektId != null && a.projektName)
-                        .map(a => a.projektName!)
-                        .filter((n, i, arr) => arr.indexOf(n) === i);
-                    if (projektnamen.length > 0) {
-                        toast.success(`Rechnung dem Projekt „${projektnamen.join(', ')}" zugeordnet – sichtbar unter Projekte → Material.`);
-                    } else {
-                        toast.success('Rechnung dem Projekt zugeordnet – sichtbar unter Projekte → Material.');
-                    }
-                }
                 abschliessen();
             } else {
                 toast.error('Fehler beim Speichern');
@@ -475,24 +388,9 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
         return () => window.removeEventListener('keydown', handleEsc);
     }, [onClose, showProjectModal, showKostenstelleModal]);
 
-    const hebeZuordnungAuf = async () => {
-        if (!geschaeftsdokumentId) return;
-        if (!window.confirm('Zuordnung aufheben?\nDie Kostenstellen-/Projektzuordnung wird entfernt. Eine bereits gebuchte Lagerbuchung bleibt erhalten und muss bei Bedarf im Lager manuell storniert werden.')) return;
-        const res = await fetch(`/api/bestellungen-uebersicht/zuordnung/${geschaeftsdokumentId}`, { method: 'DELETE' });
-        if (res.ok) {
-            toast.success('Zuordnung aufgehoben.');
-            await onSuccess();
-            onClose();
-        } else {
-            toast.error('Zuordnung konnte nicht aufgehoben werden.');
-        }
-    };
-
     // Warum Speichern (noch) nicht geht – steht im Tooltip und im Positionsmodus auch links im Fuß.
     const speichernGesperrtGrund = (() => {
         if (anteile.length === 0) return isBelegZuordnung ? 'Erst eine Kostenstelle hinzufügen.' : 'Erst ein Projekt oder eine Kostenstelle hinzufügen.';
-        if (lagerKsBuchen && lagerOrtId == null) return 'Bitte einen Lagerort wählen (oder Lagerbuchung weglassen).';
-        if (lagerKsBuchen && lagerPositionenAnzahl === 0) return 'Keine Artikel erkannt – bitte erst Positionen auslesen (Modus „Nach Positionen" → Auslesen).';
         if (!nachPositionen) return null;
         if (positionsAufteilung.positionen.length === 0) return 'Erst die Positionen auslesen.';
         const offen = positionsAufteilung.anzahlOffen;
@@ -659,7 +557,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                                     <KostenstelleSelectModal
                                         onSelect={addKostenstelle}
                                         onClose={() => setShowKostenstelleModal(false)}
-                                        ausschliessenTypen={keineLagerBuchung ? ['LAGER'] : undefined}
                                     />
                                 )}
 
@@ -775,18 +672,6 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
                                     />
                                 )}
 
-                                {/* LAGER-Buchung Panel */}
-                                {lagerKsBuchen && geschaeftsdokumentId != null && (
-                                    <LagerBuchungPanel
-                                        geschaeftsdokumentId={geschaeftsdokumentId}
-                                        lagerOrtId={lagerOrtId}
-                                        lagerorte={lagerorte}
-                                        onLagerOrtChange={setLagerOrtId}
-                                        onArtikelZuordnungenChange={setArtikelZuordnungen}
-                                        onPositionenGeladen={setLagerPositionenAnzahl}
-                                    />
-                                )}
-
                                 {/* Zusammenfassung */}
                                 {!nachPositionen && anteile.length > 0 && (
                                     <div className={`rounded-xl p-4 ${Math.abs(rest) < 0.01 ? 'bg-green-50 border border-green-200' : 'bg-amber-50 border border-amber-200'}`}>
@@ -813,18 +698,8 @@ export function ZuordnungModal({ geschaeftsdokumentId, belegId, dokumentNummer, 
 
                 {/* Footer */}
                 <div className="flex items-center justify-end gap-3 px-6 py-4 border-t border-slate-200 bg-slate-50">
-                    {speichernGesperrtGrund && (
+                    {nachPositionen && speichernGesperrtGrund && (
                         <p className="mr-auto text-sm text-amber-700">{speichernGesperrtGrund}</p>
-                    )}
-                    {hatGespeicherteZuordnung && !isBelegZuordnung && (
-                        <Button
-                            variant="outline"
-                            className="mr-auto border-slate-300 text-slate-600 hover:bg-slate-100 hover:text-slate-800"
-                            onClick={hebeZuordnungAuf}
-                        >
-                            <RotateCcw className="w-4 h-4 mr-2" aria-hidden="true" />
-                            Zuordnung aufheben
-                        </Button>
                     )}
                     <Button variant="outline" onClick={onClose}>Abbrechen</Button>
                     <span title={speichernGesperrtGrund ?? undefined}>

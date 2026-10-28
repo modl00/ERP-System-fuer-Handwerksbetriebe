@@ -15,7 +15,7 @@ vi.mock('./ui/PdfCanvasViewer', () => ({
 }));
 
 /**
- * Lieferanten-Reiter „Dokumente“: Typ-Filter Werkstoffzeugnis und die
+ * Lieferanten-Reiter „Dokumente": Typ-Filter Werkstoffzeugnis und die
  * Positionssuche (Material, Charge …) zusätzlich zur Suche im Browser.
  * DSGVO: nur Fantasie-Daten (Musterstahl GmbH).
  */
@@ -264,7 +264,7 @@ describe('LieferantDokumenteTab – Dokument einer Kette zuordnen', () => {
 
     const aufrufe = (teil: string) => fetchMock.mock.calls.filter(([url]) => String(url).includes(teil));
 
-    it('bietet „Zu Kette zuordnen“ an Einzeldokumenten, nicht bei Sonstigem', () => {
+    it('bietet „Zu Kette zuordnen" an Einzeldokumenten, nicht bei Sonstigem', () => {
         rendere([...DOKUMENTE, dokument(4, 'SONSTIG', 'SO-4004')]);
         expect(screen.getByRole('button', { name: 'Werkstoffzeugnis WZ-2002 zu Kette zuordnen' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Lieferschein LS-1001 zu Kette zuordnen' })).toBeInTheDocument();

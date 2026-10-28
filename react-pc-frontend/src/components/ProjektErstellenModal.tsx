@@ -75,7 +75,6 @@ const LEERES_FORMULAR: ProjektErstellenPayload = {
     projektArt: 'PAUSCHAL',
 };
 
-/** Formular ohne Verknüpfung zu einer Anfrage (Kopie, das Original bleibt unverändert). */
 function ohneAnfrage(form: ProjektErstellenPayload): ProjektErstellenPayload {
     const kopie = { ...form };
     delete kopie.anfrageIds;
@@ -201,6 +200,9 @@ const KundenAuswahlView: React.FC<{
     );
 };
 
+/** Auftragsnummer im Format YYYY/MM/XXXXX (Prefix und Zähler als Gruppen). */
+const AUFTRAGSNUMMER_MUSTER = /^(\d{4}\/\d{2}\/)(\d+)$/;
+
 export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
     isOpen,
     onClose,
@@ -249,7 +251,7 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
     // Laufende Nummer des jüngsten Vorschlag-Requests — ältere Antworten werden verworfen.
     const letzteNummernAnfrage = useRef(0);
     // Zuletzt vorgeschlagener Zähler: weicht das Feld davon ab, passt der Hinweis nicht mehr.
-    const vorgeschlagenerZaehler = useRef<string | null>(null);
+    const [vorgeschlagenerZaehler, setVorgeschlagenerZaehler] = useState<string | null>(null);
 
     // Manuelle Auftragsnummervergabe: Prefix editierbar
     const [manuelleAuftragsnummer, setManuelleAuftragsnummer] = useState(false);
@@ -267,32 +269,32 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
     // Bewusst ohne Dependencies: die Funktion hängt am Reset-Effect, der bei einer
     // instabilen Referenz das halb ausgefüllte Formular leeren würde. Kunde und Name
     // kommen deshalb als Argumente herein statt aus dem State.
-    const loadNaechsteAuftragsnummer = useCallback(async (kundeId?: number | string | null, kundeName?: string) => {
+    const loadNaechsteAuftragsnummer = useCallback((kundeId?: number | string | null, kundeName?: string) => {
         // Beim Öffnen aus einer Anfrage laufen zwei Ladevorgänge fast gleichzeitig los (einmal
         // ohne, einmal mit Kunde). Ohne Reihenfolge-Schutz könnte die kundenlose Antwort zuletzt
         // eintreffen und die Kunden-Nummer samt Hinweis wieder überschreiben.
         const meineAnfrage = ++letzteNummernAnfrage.current;
-        try {
-            const today = new Date().toISOString().split('T')[0];
-            const params = new URLSearchParams({ datum: today });
-            if (kundeId) params.append('kundeId', String(kundeId));
-            const res = await fetch(`/api/projekte/naechste-auftragsnummer?${params.toString()}`);
-            if (meineAnfrage !== letzteNummernAnfrage.current) return;
-            if (res.ok) {
+        const today = new Date().toISOString().split('T')[0];
+        const params = new URLSearchParams({ datum: today });
+        if (kundeId) params.append('kundeId', String(kundeId));
+        return fetch(`/api/projekte/naechste-auftragsnummer?${params.toString()}`)
+            .then(async (res) => {
+                if (meineAnfrage !== letzteNummernAnfrage.current) return;
+                if (!res.ok) return;
                 const data: NaechsteAuftragsnummerResponse = await res.json();
                 if (meineAnfrage !== letzteNummernAnfrage.current) return;
                 const zaehler = String(data.zaehler).padStart(5, '0');
                 setAuftragsnummerPrefix(data.prefix);
                 setAuftragsnummerZaehler(zaehler);
-                vorgeschlagenerZaehler.current = zaehler;
+                setVorgeschlagenerZaehler(zaehler);
                 setAuftragsnummerHinweis(baueAuftragsnummerHinweis(data, kundeName));
-            }
-        } catch (err) {
-            console.error('Fehler beim Laden der Auftragsnummer:', err);
-            if (meineAnfrage === letzteNummernAnfrage.current) {
-                setAuftragsnummerHinweis(null);
-            }
-        }
+            })
+            .catch((err: unknown) => {
+                console.error('Fehler beim Laden der Auftragsnummer:', err);
+                if (meineAnfrage === letzteNummernAnfrage.current) {
+                    setAuftragsnummerHinweis(null);
+                }
+            });
     }, []);
 
     // Auftragsnummer validieren
@@ -396,7 +398,7 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
             setAuftragsnummerZaehler('');
             setAuftragsnummerError(null);
             setAuftragsnummerHinweis(null);
-            vorgeschlagenerZaehler.current = null;
+            setVorgeschlagenerZaehler(null);
             setManuelleAuftragsnummer(false);
             setPrefixJahr('');
             setPrefixMonat('');
@@ -430,14 +432,11 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
             }
 
             // Auftragsnummer parsen (YYYY/MM/XXXXX)
-            const existingNummer = editProjekt.auftragsnummer || '';
-            const match = existingNummer.match(/^(\d{4}\/\d{2}\/)(\d+)$/);
+            // (nicht im erwarteten Format: der Effekt unten lädt die nächste Nummer)
+            const match = (editProjekt.auftragsnummer || '').match(AUFTRAGSNUMMER_MUSTER);
             if (match) {
                 setAuftragsnummerPrefix(match[1]);
                 setAuftragsnummerZaehler(match[2]);
-            } else {
-                // Falls nicht im erwarteten Format, nächste laden
-                loadNaechsteAuftragsnummer();
             }
 
             setFormData({
@@ -475,10 +474,14 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
             }
 
             setError(null);
-        } else if (isOpen) {
-            // Neues Projekt: Nächste Auftragsnummer laden
-            loadNaechsteAuftragsnummer();
         }
+    }, [isOpen, editProjekt, loadNaechsteAuftragsnummer]);
+
+    // Neues Projekt (oder Bestandsnummer in fremdem Format): nächste Auftragsnummer laden.
+    useEffect(() => {
+        if (!isOpen) return;
+        if (editProjekt && AUFTRAGSNUMMER_MUSTER.test(editProjekt.auftragsnummer || '')) return;
+        void loadNaechsteAuftragsnummer();
     }, [isOpen, editProjekt, loadNaechsteAuftragsnummer]);
 
     // Sobald der Kunde feststeht (direkt gewählt oder über eine Anfrage), die Nummer nach der
@@ -486,11 +489,18 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
     // zählt hinten hoch, ein neuer Kunde bekommt die nächste freie Kundennummer.
     // Im Edit-Modus bleibt die vergebene Nummer unangetastet (GoBD), bei manueller Vergabe
     // ebenso — dort hat der Benutzer die Nummer bewusst selbst in der Hand.
+    const nummerNachKundeFuer = isOpen && !isEditMode && !manuelleAuftragsnummer && selectedKunde?.id
+        ? `${selectedKunde.id}|${selectedKunde.name}`
+        : null;
+    const [letzteNummerNachKundeFuer, setLetzteNummerNachKundeFuer] = useState<string | null>(null);
+    if (nummerNachKundeFuer !== letzteNummerNachKundeFuer) {
+        setLetzteNummerNachKundeFuer(nummerNachKundeFuer);
+        if (nummerNachKundeFuer) setAuftragsnummerError(null);
+    }
     useEffect(() => {
         if (!isOpen || isEditMode || manuelleAuftragsnummer) return;
         if (!selectedKunde?.id) return;
-        loadNaechsteAuftragsnummer(selectedKunde.id, selectedKunde.name);
-        setAuftragsnummerError(null);
+        void loadNaechsteAuftragsnummer(selectedKunde.id, selectedKunde.name);
     }, [isOpen, isEditMode, manuelleAuftragsnummer, selectedKunde?.id, selectedKunde?.name, loadNaechsteAuftragsnummer]);
 
     // Beim Auswählen einer Anfrage: Produktkategorien aus AB/Angebot vorschlagen
@@ -523,9 +533,42 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
         return () => { cancelled = true; };
     }, [selectedAnfrage, isEditMode]);
 
-    // When Anfrage is selected, prefill form including Kunde
+    // When Anfrage is selected, prefill form including Kunde.
+    // Formular beim Rendern vorausfüllen; den vollständigen Kunden lädt der Effekt darunter.
+    const [vorausgefuelltFuer, setVorausgefuelltFuer] = useState(selectedAnfrage);
+    if (vorausgefuelltFuer !== selectedAnfrage) {
+        setVorausgefuelltFuer(selectedAnfrage);
+        if (selectedAnfrage) {
+            if (!selectedAnfrage.kundenId) {
+                setSelectedKunde({
+                    id: 0,
+                    name: selectedAnfrage.kundenName || '',
+                    kundennummer: selectedAnfrage.kundennummer || '',
+                });
+            }
+            // Projektadresse aus Anfrage vorausfüllen, wenn dort eine Objektadresse
+            // hinterlegt ist (anfrage.projektStrasse/Plz/Ort). So muss der Nutzer
+            // sie nicht erneut eintippen oder die "Kundenadresse übernehmen"-Checkbox
+            // aktivieren — sie hat sich bei der Anfrageaufnahme schon aufgemacht.
+            const hatAnfrageAdresse = !!(selectedAnfrage.projektStrasse
+                || selectedAnfrage.projektPlz
+                || selectedAnfrage.projektOrt);
+            setFormData({
+                bauvorhaben: selectedAnfrage.bauvorhaben || '',
+                kunde: selectedAnfrage.kundenName || '',
+                kundennummer: selectedAnfrage.kundennummer || '',
+                kundenId: selectedAnfrage.kundenId,
+                auftragsnummer: '',
+                strasse: hatAnfrageAdresse ? (selectedAnfrage.projektStrasse || '') : '',
+                plz: hatAnfrageAdresse ? (selectedAnfrage.projektPlz || '') : '',
+                ort: hatAnfrageAdresse ? (selectedAnfrage.projektOrt || '') : '',
+                anfrageIds: [selectedAnfrage.id],
+            });
+        }
+    }
+
     useEffect(() => {
-        // Wechselt der Benutzer vor der Antwort auf „Ohne Anfrage anlegen“, darf der
+        // Wechselt der Benutzer vor der Antwort auf „Ohne Anfrage anlegen", darf der
         // nachgeladene Kunde der verworfenen Anfrage nicht mehr im Formular landen.
         let verworfen = false;
         if (selectedAnfrage) {
@@ -554,36 +597,12 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
                             kundennummer: selectedAnfrage.kundennummer || '',
                         });
                     });
-            } else {
-                setSelectedKunde({
-                    id: 0,
-                    name: selectedAnfrage.kundenName || '',
-                    kundennummer: selectedAnfrage.kundennummer || '',
-                });
             }
-            // Projektadresse aus Anfrage vorausfüllen, wenn dort eine Objektadresse
-            // hinterlegt ist (anfrage.projektStrasse/Plz/Ort). So muss der Nutzer
-            // sie nicht erneut eintippen oder die "Kundenadresse übernehmen"-Checkbox
-            // aktivieren — sie hat sich bei der Anfrageaufnahme schon aufgemacht.
-            const hatAnfrageAdresse = !!(selectedAnfrage.projektStrasse
-                || selectedAnfrage.projektPlz
-                || selectedAnfrage.projektOrt);
-            setFormData({
-                bauvorhaben: selectedAnfrage.bauvorhaben || '',
-                kunde: selectedAnfrage.kundenName || '',
-                kundennummer: selectedAnfrage.kundennummer || '',
-                kundenId: selectedAnfrage.kundenId,
-                auftragsnummer: '',
-                strasse: hatAnfrageAdresse ? (selectedAnfrage.projektStrasse || '') : '',
-                plz: hatAnfrageAdresse ? (selectedAnfrage.projektPlz || '') : '',
-                ort: hatAnfrageAdresse ? (selectedAnfrage.projektOrt || '') : '',
-                anfrageIds: [selectedAnfrage.id],
-            });
         }
         return () => { verworfen = true; };
     }, [selectedAnfrage]);
 
-    // „Ohne Anfrage anlegen“: Alles, was aus der gewählten Anfrage stammt, wieder leeren.
+    // „Ohne Anfrage anlegen": Alles, was aus der gewählten Anfrage stammt, wieder leeren.
     // Sonst bliebe die Anfrage im Formular hängen, und das Projekt würde sie beim Speichern
     // doch übernehmen – sie verschwände dann aus der Anfragenliste.
     const wechsleZuOhneAnfrage = () => {
@@ -1022,7 +1041,7 @@ export const ProjektErstellenModal: React.FC<ProjektErstellenModalProps> = ({
                                     {/* Erklärt die vorgeschlagene Nummer, solange sie nicht von Hand
                                         vergeben wird und keine Fehlermeldung im Weg steht. */}
                                     {auftragsnummerHinweis && !auftragsnummerError && !manuelleAuftragsnummer
-                                        && auftragsnummerZaehler === vorgeschlagenerZaehler.current && (
+                                        && auftragsnummerZaehler === vorgeschlagenerZaehler && (
                                             <p className="flex items-start gap-1.5 text-xs text-rose-700 bg-rose-50 border border-rose-100 rounded-lg px-2.5 py-2 mt-1.5">
                                                 <Info className="w-4 h-4 mt-px shrink-0" />
                                                 <span>{auftragsnummerHinweis}</span>

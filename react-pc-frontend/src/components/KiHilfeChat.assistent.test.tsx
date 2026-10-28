@@ -89,7 +89,7 @@ describe('KI-Assistent im Chat', () => {
         expect(screen.getByTestId('ki-quelle')).toHaveTextContent('Lokale KI (Ollama u. a.) · qwen2.5:7b · Daten bleiben im Haus');
     });
 
-    it('schickt mit, auf welcher Seite man gerade ist, damit die KI „Was bedeutet das hier?“ beantworten kann', async () => {
+    it('schickt mit, auf welcher Seite man gerade ist, damit die KI „Was bedeutet das hier?" beantworten kann', async () => {
         const user = await oeffne();
         await frage(user, 'Was bedeutet das hier?');
         await screen.findByText('12 m');
@@ -107,19 +107,19 @@ describe('KI-Assistent im Chat', () => {
 
     it('zeigt die Fehlermeldung des Servers, zum Beispiel wegen des Datenschutzes', async () => {
         fetcher.mockImplementation(async (url: string) => (url === '/api/ki-assistent/chat'
-            ? antwort({ error: 'Für „KI-Assistent“ sind nur lokale KI-Anbieter erlaubt (Datenschutz).' }, false, 503) : antwort(status)));
+            ? antwort({ error: 'Für „KI-Assistent" sind nur lokale KI-Anbieter erlaubt (Datenschutz).' }, false, 503) : antwort(status)));
         const user = await oeffne();
         await frage(user, 'Hallo');
         expect(await screen.findByText(/nur lokale KI-Anbieter erlaubt/)).toBeVisible();
     });
 
-    it('ein Vorschlag wird erst nach „Ja, ausführen“ ausgeführt', async () => {
-        chatAntwort = { ...chatAntwort, text: 'Bitte bestätigen Sie.', vorschlaege: [{ id: 'v1', werkzeug: 'artikel_anlegen', beschreibung: 'Artikel „Schraube M8“ anlegen', parameter: {} }] };
+    it('ein Vorschlag wird erst nach „Ja, ausführen" ausgeführt', async () => {
+        chatAntwort = { ...chatAntwort, text: 'Bitte bestätigen Sie.', vorschlaege: [{ id: 'v1', werkzeug: 'artikel_anlegen', beschreibung: 'Artikel „Schraube M8" anlegen', parameter: {} }] };
         const user = await oeffne();
         await frage(user, 'Lege Schraube M8 an');
 
         const karte = await screen.findByTestId('vorschlag-v1');
-        expect(within(karte).getByText('Artikel „Schraube M8“ anlegen')).toBeVisible();
+        expect(within(karte).getByText('Artikel „Schraube M8" anlegen')).toBeVisible();
         expect(within(karte).getByText('Es wird nichts geändert, bevor Sie bestätigen.')).toBeVisible();
         expect(aufrufe('/vorschlaege/')).toHaveLength(0);
 
@@ -131,7 +131,7 @@ describe('KI-Assistent im Chat', () => {
     });
 
     it('verwerfen ändert nichts und meldet das', async () => {
-        chatAntwort = { ...chatAntwort, vorschlaege: [{ id: 'v2', werkzeug: 'artikel_anlegen', beschreibung: 'Artikel „X“ anlegen', parameter: {} }] };
+        chatAntwort = { ...chatAntwort, vorschlaege: [{ id: 'v2', werkzeug: 'artikel_anlegen', beschreibung: 'Artikel „X" anlegen', parameter: {} }] };
         const user = await oeffne();
         await frage(user, 'Lege X an');
 
@@ -142,7 +142,7 @@ describe('KI-Assistent im Chat', () => {
     });
 
     it('meldet, wenn der Vorschlag nicht mehr gilt, und lässt kein zweites Bestätigen zu', async () => {
-        chatAntwort = { ...chatAntwort, vorschlaege: [{ id: 'v3', werkzeug: 'artikel_anlegen', beschreibung: 'Artikel „Y“ anlegen', parameter: {} }] };
+        chatAntwort = { ...chatAntwort, vorschlaege: [{ id: 'v3', werkzeug: 'artikel_anlegen', beschreibung: 'Artikel „Y" anlegen', parameter: {} }] };
         bestaetigung = { ok: false, status: 409, meldung: 'Diesen Vorschlag gibt es nicht mehr. Er ist abgelaufen oder wurde schon bestätigt oder verworfen.' };
         const user = await oeffne();
         await frage(user, 'Lege Y an');
@@ -197,7 +197,7 @@ describe('KI-Assistent im Chat', () => {
             expect(body.dokument.name).toBe('angebot.pdf');
         });
 
-        it('„Als Beleg ablegen“ wertet die Datei sofort mit dem gewohnten Beleg-Ablauf aus', async () => {
+        it('„Als Beleg ablegen" wertet die Datei sofort mit dem gewohnten Beleg-Ablauf aus', async () => {
             await oeffne();
             await hineinziehen(datei());
             const user = userEvent.setup();
@@ -219,7 +219,7 @@ describe('KI-Assistent im Chat', () => {
 
         it('zeigt die Ablehnung des Servers und entfernt das Dokument auf Wunsch', async () => {
             dokumentOk = false;
-            dokumentAntwort = { message: 'Nach der Einstellung „Wie weit darf die KI gehen?“ darf ein Dokument nicht an diesen KI-Anbieter gehen.' };
+            dokumentAntwort = { message: 'Nach der Einstellung „Wie weit darf die KI gehen?" darf ein Dokument nicht an diesen KI-Anbieter gehen.' };
             await oeffne();
             await hineinziehen(datei());
             expect(await screen.findByText(/darf ein Dokument nicht an diesen KI-Anbieter/)).toBeVisible();
@@ -263,7 +263,7 @@ describe('KI-Assistent im Chat', () => {
 });
 
 describe('KI-Chat: E-Mail aus dem E-Mail-Center', () => {
-    it('eine auf das Chatfenster gezogene Mail wird angehängt und bietet „Kunde prüfen und Anfrage anlegen“', async () => {
+    it('eine auf das Chatfenster gezogene Mail wird angehängt und bietet „Kunde prüfen und Anfrage anlegen"', async () => {
         fetcher.mockImplementation(async (url: string) => {
             if (url === '/api/ki-assistent/status') return antwort(status);
             if (url === '/api/ki-assistent/dokument/email/10') return antwort({ name: 'E-Mail: Anfrage Geländer', text: 'E-Mail-Nr. im Programm: 10\nVon: max@mustermann.example', gekuerzt: false, seiten: 1, hinweis: null });
@@ -367,7 +367,7 @@ describe('KI-Chat: Fenster verschieben und in der Größe ändern (#251)', () =>
 });
 
 describe('KI-Chat: Information aus einer E-Mail notieren', () => {
-    it('„Beim Lieferanten notieren“ bittet die KI, die Information als Notiz beim passenden Lieferanten zu speichern', async () => {
+    it('„Beim Lieferanten notieren" bittet die KI, die Information als Notiz beim passenden Lieferanten zu speichern', async () => {
         fetcher.mockImplementation(async (url: string) => {
             if (url === '/api/ki-assistent/status') return antwort(status);
             if (url === '/api/ki-assistent/dokument/email/10') return antwort({ name: 'E-Mail: Preisliste', text: 'E-Mail-Nr. im Programm: 10', gekuerzt: false, seiten: 1, hinweis: null });

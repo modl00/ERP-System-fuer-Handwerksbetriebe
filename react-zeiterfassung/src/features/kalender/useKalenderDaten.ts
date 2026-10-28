@@ -65,7 +65,7 @@ function ohne(menge: Set<string>, key: string): Set<string> {
  *   ändert und den Effekt erneut anstößt) keine zweite Anfrage für einen noch
  *   offenen Monat auslöst.
  * - `neuLaden` zählt eine Epoche hoch; Antworten aus einer alten Epoche werden
- *   verworfen, damit „Aktualisieren“ während des Ladens wirklich frische Daten bringt.
+ *   verworfen, damit „Aktualisieren" während des Ladens wirklich frische Daten bringt.
  * - Fehlschläge werden je Monat/Jahr gemerkt: `fehler` gilt nur, wenn der gerade
  *   sichtbare Bereich betroffen ist.
  *
@@ -158,7 +158,7 @@ export function useKalenderDaten(token: string | null, bereich: Bereich): Kalend
 
         Promise.allSettled([...monateZuLaden.map(ladeMonat), ...jahreZuLaden.map(ladeJahr)]).then(ergebnisse => {
             const fehlgeschlagen = ergebnisse.filter(e => e.status === 'rejected')
-            // Nur die Fehlerobjekte („HTTP 500“), keine URLs – die trügen das Token.
+            // Nur die Fehlerobjekte („HTTP 500"), keine URLs – die trügen das Token.
             if (fehlgeschlagen.length > 0 && nochAktuell()) console.error('Kalender konnte nicht geladen werden:', fehlgeschlagen.map(e => e.reason))
         })
     }, [token, fehlendeMonateKey, fehlendeJahreKey])

@@ -7,7 +7,7 @@ import { EmailComposeForm, anredeEnumToText, formatFileSize, MAX_ATTACHMENT_BYTE
 
 /**
  * Lückentests für das Schreiben-Fenster: Anrede, Vorgangs-Daten, KI-Formulierung,
- * Anhänge, Projekt-Dateien und die Rückfrage „Adresse speichern?“.
+ * Anhänge, Projekt-Dateien und die Rückfrage „Adresse speichern?".
  * Alle Daten sind Dummy-Daten (DSGVO).
  */
 
@@ -341,7 +341,7 @@ describe('EmailComposeForm – Adresse speichern', () => {
 });
 
 describe('EmailComposeForm – Entwurf laden', () => {
-    it('bietet bei Ladefehlern „Erneut laden“ und „Schließen“', async () => {
+    it('bietet bei Ladefehlern „Erneut laden" und „Schließen"', async () => {
         let versuche = 0;
         routen['/api/emails/drafts/55'] = () => (++versuche === 1
             ? { status: 500, body: {} }

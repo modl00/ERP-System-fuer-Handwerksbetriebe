@@ -11,7 +11,7 @@ interface Props {
 }
 export function ArbeitszeitFelder({ value, onChange, zeitfenster = ZEITFENSTER_LABELS, optionalHinweis = false, kompakt = false }: Props) {
     const labelClass = kompakt ? 'text-xs font-medium text-slate-700' : 'text-sm font-medium text-slate-700';
-    // Nur noch das Ende: „Frühester Start“ wurde entfernt (Issue #270). Der Beginn
+    // Nur noch das Ende: „Frühester Start" wurde entfernt (Issue #270). Der Beginn
     // bleibt im Entwurf und wird beim Speichern unverändert durchgereicht.
     const endeLabel = `${zeitfenster.ende}${optionalHinweis ? ' – optional' : ''}`;
     return <>

@@ -174,7 +174,7 @@ export interface TelefonEinstellungen {
 
 /** Stand der Übertragung ins FRITZ!Box-Telefonbuch (nur Administratoren). */
 export interface TelefonbuchStatus {
-    /** Schalter „Kontakte ins FRITZ!Box-Telefonbuch übertragen“. */
+    /** Schalter „Kontakte ins FRITZ!Box-Telefonbuch übertragen". */
     aktiv: boolean;
     /** Nur wenn auch die Telefon-Anbindung an ist, wird wirklich übertragen. */
     telefonAnbindungAktiv: boolean;

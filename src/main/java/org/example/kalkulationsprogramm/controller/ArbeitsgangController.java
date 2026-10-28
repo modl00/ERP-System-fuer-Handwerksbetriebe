@@ -1,14 +1,11 @@
 package org.example.kalkulationsprogramm.controller;
 
 import lombok.AllArgsConstructor;
-import org.example.kalkulationsprogramm.domain.Abteilung;
 import org.example.kalkulationsprogramm.domain.Arbeitsgang;
-import org.example.kalkulationsprogramm.dto.Abteilung.AbteilungResponseDto;
 import org.example.kalkulationsprogramm.dto.Arbeitsgang.ArbeitsgangErstellenDto;
 import org.example.kalkulationsprogramm.dto.Arbeitsgang.ArbeitsgangResponseDto;
 import org.example.kalkulationsprogramm.dto.Arbeitsgang.ArbeitsgangStundensatzDto;
 import org.example.kalkulationsprogramm.mapper.ArbeitsgangMapper;
-import org.example.kalkulationsprogramm.repository.AbteilungRepository;
 import org.example.kalkulationsprogramm.service.ArbeitsgangManagementService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -25,24 +22,6 @@ import java.util.stream.Collectors;
 public class ArbeitsgangController {
     private final ArbeitsgangManagementService arbeitsgangManagementService;
     private final ArbeitsgangMapper arbeitsgangMapper;
-    private final AbteilungRepository abteilungRepository;
-
-    // ==================== Abteilung Endpoints ====================
-
-    @GetMapping("/abteilungen")
-    public ResponseEntity<List<AbteilungResponseDto>> getAlleAbteilungen() {
-        List<AbteilungResponseDto> dtos = abteilungRepository.findAll().stream()
-                .map(this::toAbteilungDto)
-                .collect(Collectors.toList());
-        return ResponseEntity.ok(dtos);
-    }
-
-    private AbteilungResponseDto toAbteilungDto(Abteilung abteilung) {
-        AbteilungResponseDto dto = new AbteilungResponseDto();
-        dto.setId(abteilung.getId());
-        dto.setName(abteilung.getName());
-        return dto;
-    }
 
     // ==================== Arbeitsgang Endpoints ====================
 

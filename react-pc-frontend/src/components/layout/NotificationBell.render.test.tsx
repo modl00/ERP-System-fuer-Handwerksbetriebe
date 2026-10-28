@@ -95,7 +95,7 @@ describe('NotificationBell – nur noch Zahl und Weg zur Seite', () => {
         await waitFor(() => expect(summaryAbrufe()).toEqual(['/api/notifications/summary?mitarbeiterId=7']));
     });
 
-    it('zeigt ab 100 Meldungen „99+“', async () => {
+    it('zeigt ab 100 Meldungen „99+"', async () => {
         stubbeApi([stand(1234)]);
         renderBell();
 
@@ -112,7 +112,7 @@ describe('NotificationBell – nur noch Zahl und Weg zur Seite', () => {
         expect(glocke().textContent).toBe('');
     });
 
-    it('Klick öffnet die Seite „Benachrichtigungen“ statt eines Aufklapp-Fensters', async () => {
+    it('Klick öffnet die Seite „Benachrichtigungen" statt eines Aufklapp-Fensters', async () => {
         stubbeApi([stand(2)]);
         renderBell();
         await waitFor(() => expect(glocke()).toHaveTextContent('2'));
@@ -124,7 +124,7 @@ describe('NotificationBell – nur noch Zahl und Weg zur Seite', () => {
         expect(screen.queryByText('Bevorstehende Termine')).toBeNull();
     });
 
-    it('ist auf der Seite „Benachrichtigungen“ als aktiv markiert', async () => {
+    it('ist auf der Seite „Benachrichtigungen" als aktiv markiert', async () => {
         stubbeApi([stand(1)]);
         renderBell('/benachrichtigungen');
 
@@ -141,7 +141,7 @@ describe('NotificationBell – nur noch Zahl und Weg zur Seite', () => {
         expect(glocke()).not.toHaveAttribute('aria-current');
     });
 
-    it('lädt bei „notifications:refresh“ sofort neu und wackelt, wenn die Zahl steigt', async () => {
+    it('lädt bei „notifications:refresh" sofort neu und wackelt, wenn die Zahl steigt', async () => {
         stubbeApi([stand(2), stand(5)]);
         renderBell();
         await waitFor(() => expect(glocke()).toHaveTextContent('2'));

@@ -14,7 +14,7 @@ interface ImageViewerProps {
 
 /**
  * Dateiname für den Download: der mitgegebene Name, sonst der letzte Teil der
- * Adresse (ohne Abfrage), sonst „Bild“.
+ * Adresse (ohne Abfrage), sonst „Bild".
  */
 function downloadName(url: string, name?: string): string {
     const vorgegeben = name?.trim();

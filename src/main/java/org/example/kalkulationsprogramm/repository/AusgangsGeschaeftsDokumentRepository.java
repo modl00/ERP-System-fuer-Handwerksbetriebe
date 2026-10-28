@@ -193,4 +193,17 @@ public interface AusgangsGeschaeftsDokumentRepository extends JpaRepository<Ausg
 
     @org.springframework.data.jpa.repository.Query("select d.dokumentNummer from AusgangsGeschaeftsDokument d where d.typ = :typ")
     java.util.List<String> findeNummernDerArt(@org.springframework.data.repository.query.Param("typ") AusgangsGeschaeftsDokumentTyp typ);
+
+    /**
+     * Grobe Vorauswahl über den Positionstext, z. B. {@code %"leistungId":12%} in drei Schreibweisen
+     * (kompakt, mit Leerzeichen, ID als Text). Die genaue Prüfung macht der Aufrufer, weil die
+     * Muster auch 120 oder 1234 treffen. Neueste zuerst.
+     */
+    @Query("SELECT d FROM AusgangsGeschaeftsDokument d LEFT JOIN FETCH d.projekt "
+            + "WHERE CAST(d.positionenJson AS String) LIKE :kompakt "
+            + "OR CAST(d.positionenJson AS String) LIKE :mitLeerzeichen "
+            + "OR CAST(d.positionenJson AS String) LIKE :alsText "
+            + "ORDER BY d.datum DESC NULLS LAST, d.id DESC")
+    List<AusgangsGeschaeftsDokument> findeMitLeistungInPositionen(@Param("kompakt") String kompakt,
+            @Param("mitLeerzeichen") String mitLeerzeichen, @Param("alsText") String alsText);
 }

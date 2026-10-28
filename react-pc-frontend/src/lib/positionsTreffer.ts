@@ -1,6 +1,6 @@
 /**
  * Positionssuche in Lieferantendokumenten: kleine reine Helfer für
- * „Flachstahl findet Zeugnis, Lieferschein und Rechnung“.
+ * „Flachstahl findet Zeugnis, Lieferschein und Rechnung".
  *
  * - Ob die Suche im Backend überhaupt losgeschickt wird (ab 2 Zeichen).
  * - Antwort der Positionssuche in eine Nachschlage-Tabelle je Dokument umbauen.
@@ -48,9 +48,9 @@ const ZIFFER = /\p{Nd}/u;
 
 /**
  * Normalisiert wie `PositionsSuchtext.normalisiere` im Backend und merkt sich je
- * Zeichen, wo es im Original stand: klein, „ד/„*“ → „x“, kein Leerraum um ein
- * „x“ zwischen Ziffern („50 x 5“ → „50x5“), Leerraum zusammengefasst und außen
- * entfernt. `null`, wenn Kleinschreiben die Länge eines Zeichens ändert (z. B. „İ“)
+ * Zeichen, wo es im Original stand: klein, „ד/„*" → „x", kein Leerraum um ein
+ * „x" zwischen Ziffern („50 x 5" → „50x5"), Leerraum zusammengefasst und außen
+ * entfernt. `null`, wenn Kleinschreiben die Länge eines Zeichens ändert (z. B. „İ")
  * – dann passten die Positionen nicht mehr zum Original.
  */
 function normalisiereMitHerkunft(text: string): NormalZeichen[] | null {
@@ -61,7 +61,7 @@ function normalisiereMitHerkunft(text: string): NormalZeichen[] | null {
         zeichen.push({ zeichen: klein === '×' || klein === '*' ? 'x' : klein, von: i, bis: i + 1 });
     }
 
-    // Leerraum um ein „x“ zwischen zwei Ziffern fällt weg (auch in Ketten wie „2000 x 1000 x 3“)
+    // Leerraum um ein „x" zwischen zwei Ziffern fällt weg (auch in Ketten wie „2000 x 1000 x 3")
     const weg = new Set<number>();
     zeichen.forEach((z, k) => {
         if (z.zeichen !== 'x') return;
@@ -144,7 +144,7 @@ export function vereinigeTreffer<T extends { id: number }>(
     return alle.filter(dokument => istBrowserTreffer(dokument) || positionsTreffer.has(dokument.id));
 }
 
-/** „und 1 weitere“ / „und 3 weitere“ – leer, wenn es keine weiteren Treffer gibt. */
+/** „und 1 weitere" / „und 3 weitere" – leer, wenn es keine weiteren Treffer gibt. */
 export function weitereTrefferText(anzahl: number | null | undefined): string {
     if (anzahl == null || !Number.isFinite(anzahl) || anzahl <= 0) return '';
     return `und ${Math.floor(anzahl)} weitere`;
@@ -152,7 +152,7 @@ export function weitereTrefferText(anzahl: number | null | undefined): string {
 
 /**
  * Zerlegt `text` in Stücke, in denen jedes Suchwort markiert ist. Verglichen wird
- * normalisiert wie im Backend – „50x5“ markiert also auch „50 × 5“ und „50 x 5“.
+ * normalisiert wie im Backend – „50x5" markiert also auch „50 × 5" und „50 x 5".
  * Überlappende oder aneinanderstoßende Fundstellen werden zusammengelegt. Ohne
  * Suchwort oder ohne Fundstelle: ein einziges Stück.
  */

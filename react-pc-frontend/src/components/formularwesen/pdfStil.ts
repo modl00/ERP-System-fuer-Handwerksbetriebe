@@ -3,7 +3,7 @@ import type { FormBlock, FormBlockStyles } from '../../types';
 /**
  * Schrift eines Bausteins so, wie sie der PDF-Dienst druckt
  * (RechnungPdfService.parseBlockFont): ohne Stil 10 pt normal in Textfarbe,
- * Farbe nur als Hex, fett bei „700”/„bold”, Betreff immer Montserrat 11 pt.
+ * Farbe nur als Hex, fett bei „700"/„bold", Betreff immer Montserrat 11 pt.
  */
 export const PDF_TEXTFARBE = '#44403c';
 export const PDF_SCHRIFTGROESSE = 10;

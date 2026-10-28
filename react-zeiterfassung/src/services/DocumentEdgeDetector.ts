@@ -65,7 +65,7 @@ async function lade(): Promise<void> {
     const scanic = await import('scanic')
     const scanFn = scanic.scanDocument as ScanFn
     await starteKi(scanFn)
-    // Erst jetzt „bereit“: vorher liefe nur die klassische Erkennung.
+    // Erst jetzt „bereit": vorher liefe nur die klassische Erkennung.
     scan = scanFn
 }
 

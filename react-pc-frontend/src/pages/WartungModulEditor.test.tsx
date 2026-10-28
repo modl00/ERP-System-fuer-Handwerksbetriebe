@@ -102,7 +102,7 @@ describe('WartungModulEditor: bestehendes Modul', () => {
         await userEvent.type(screen.getByLabelText('Prüfpunkt 3 in Prüfpunkt-Abschnitt 1'), 'Dichtungen prüfen');
         await userEvent.click(speichernKnoepfe()[0]);
 
-        expect(await screen.findByText('„Brandschutztür T30“ gespeichert. Es gilt für neue Wartungen.')).toBeVisible();
+        expect(await screen.findByText('„Brandschutztür T30" gespeichert. Es gilt für neue Wartungen.')).toBeVisible();
         const body = s.gesendet('PUT', '/api/wartung/admin/module/1')!;
         expect(body).toMatchObject({ id: 1, version: 3, name: 'Brandschutztür T30', kategorie: 'BASIS', aktiv: true, standardIntervallMonate: 12 });
         expect(body.abschnitte[0].pruefpunkte.map((p) => [p.id, p.label, p.nurBeiUntertyp])).toEqual([
@@ -139,7 +139,7 @@ describe('WartungModulEditor: bestehendes Modul', () => {
         await screen.findByDisplayValue('Hersteller');
         await waehle(screen.getByRole('combobox', { name: 'Art von Datenfeld 1 in Datenfeld-Abschnitt 1' }), 'Auswahl aus Liste');
         await userEvent.click(speichernKnoepfe()[0]);
-        expect((await screen.findAllByText('Beim Datenfeld „Hersteller“ fehlen die Auswahlmöglichkeiten.')).length).toBeGreaterThan(0);
+        expect((await screen.findAllByText('Beim Datenfeld „Hersteller" fehlen die Auswahlmöglichkeiten.')).length).toBeGreaterThan(0);
         expect(s.gesendet('PUT', '/api/wartung/admin/module/1')).toBeNull();
 
         await userEvent.type(screen.getByLabelText('Möglichkeiten von Datenfeld 1 in Datenfeld-Abschnitt 1'), 'Hörmann{Enter}Teckentrup{Enter}{Enter}');
@@ -267,7 +267,7 @@ describe('WartungModulEditor: neues Modul', () => {
         await userEvent.type(screen.getByLabelText('Prüfpunkt 1 in Prüfpunkt-Abschnitt 1'), 'Antrieb läuft ruhig');
         await userEvent.click(speichernKnoepfe()[0]);
 
-        expect(await screen.findByText('„Rolltor“ gespeichert. Es gilt für neue Wartungen.')).toBeVisible();
+        expect(await screen.findByText('„Rolltor" gespeichert. Es gilt für neue Wartungen.')).toBeVisible();
         const body = s.gesendet('POST', '/api/wartung/admin/module')!;
         expect(body).toMatchObject({ id: null, version: null, name: 'Rolltor', kategorie: 'BASIS', aktiv: true });
         expect(body.untertypen).toEqual([expect.objectContaining({ id: null, schluessel: null, label: 'Einflügelig' })]);

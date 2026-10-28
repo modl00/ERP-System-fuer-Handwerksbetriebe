@@ -82,7 +82,7 @@ describe('Werkstoffe pflegen', { timeout: 30000 }, () => {
         expect(screen.getByLabelText('Name (technisch) *')).toHaveValue('S235JR');
         expect(screen.getByLabelText('Dichte (kg/dm³)')).toHaveValue('7,85');
         expect(screen.getByLabelText('Feuerverzinken geht')).toBeChecked();
-        serverFehler = { status: 409, message: 'Einen Werkstoff mit dem Namen „S355“ gibt es schon.' };
+        serverFehler = { status: 409, message: 'Einen Werkstoff mit dem Namen „S355" gibt es schon.' };
         const name = screen.getByLabelText('Name (technisch) *');
         await user.clear(name);
         await user.type(name, 'S355');
@@ -91,7 +91,7 @@ describe('Werkstoffe pflegen', { timeout: 30000 }, () => {
         // Der Grund steht im Formular und zusätzlich als Meldung oben rechts
         const meldungen = await screen.findAllByRole('alert');
         expect(meldungen.length).toBeGreaterThanOrEqual(2);
-        meldungen.forEach(m => expect(m).toHaveTextContent('Einen Werkstoff mit dem Namen „S355“ gibt es schon.'));
+        meldungen.forEach(m => expect(m).toHaveTextContent('Einen Werkstoff mit dem Namen „S355" gibt es schon.'));
         expect(gesendet[0]).toMatchObject({ methode: 'PUT', url: '/api/werkstoffe/1' });
         expect(screen.getByTestId('werkstoff-formular')).toBeVisible();
     });
@@ -195,7 +195,7 @@ describe('Werkstoffe pflegen', { timeout: 30000 }, () => {
         await user.click(await screen.findByRole('button', { name: 'Neuer Werkstoff' }));
         await user.click(screen.getByRole('button', { name: /Mehr zu: Eignung für die Oberfläche/ }));
 
-        expect(await screen.findByText(/Filtern „verzinkbar“ und „pulverbeschichtbar“/)).toBeVisible();
+        expect(await screen.findByText(/Filtern „verzinkbar" und „pulverbeschichtbar"/)).toBeVisible();
     });
 
     it('eine unmögliche Dichte erscheint auch als Meldung oben rechts', async () => {

@@ -58,7 +58,7 @@ Gut zu wissen:
 
 ## Aufschläge einstellen
 
-In **Vorlagen & Stammdaten → Artikel** gibt es den Knopf **„Aufschläge“**. Ihn sehen nur Benutzer, deren Abteilung das Recht „Aufschläge ändern“ hat (Einstellungen → Berechtigungen) sowie Administratoren. Das Fenster zeigt:
+In **Vorlagen & Stammdaten → Artikel** gibt es den Knopf **„Aufschläge“**. Ihn sehen nur Benutzer, deren Abteilung das Recht „Aufschläge ändern“ hat (Einstellungen → Abteilungen & Rechte) sowie Administratoren. Das Fenster zeigt:
 
 - **„Allgemeiner Aufschlag“:** Prozent auf den Einkaufspreis für alle Artikel, die weder einen eigenen noch eine Kategorie mit Aufschlag haben. Leer lassen heißt: kein allgemeiner Aufschlag.
 - **„Aufschlag je Kategorie“:** je Kategorie ein eigener Aufschlag. Leer lassen heißt: kein eigener. Die Spalte „Es gilt“ zeigt, was für die Artikel der Kategorie am Ende gilt, z. B. „25 % (von „Stahl“)“.
@@ -85,7 +85,7 @@ Der „Werkstoff“ am Artikel kommt aus einer eigenen Liste. Sie lässt sich in
 
 In **Vorlagen & Stammdaten → Artikel** öffnet „Kategorien anlegen“ das Fenster „Kategorien verwalten“. Links steht die Ordnerstruktur. Ohne Auswahl entsteht mit „Hauptkategorie anlegen“ ein neuer Hauptordner; ist links ein Ordner gewählt, entsteht mit „Unterkategorie anlegen“ ein Unterordner darin. Umbenennen oder löschen lassen sich Ordner nicht.
 
-Der Menüpunkt **Vorlagen & Stammdaten → Projekt-Kategorien** ist etwas anderes: Dort stehen die Gewerke (Produktkategorien), die man Projekten und Leistungen zuordnet.
+Der Menüpunkt **Dokumente → Leistungen & Kategorien** ist etwas anderes: Dort stehen die Ordner Ihrer Leistungen. Dieselben Ordner sind die Gewerke (Kategorien), nach denen Projekte eingeordnet und ausgewertet werden.
 
 ## Was zeigt ein Artikel?
 

@@ -13,7 +13,7 @@ interface Props {
     onGespeichert: () => void;
 }
 
-/** Reiter „Angaben zum Teil“: Merkmale, Maße, Normen und Oberfläche - und hier wird der Artikel bearbeitet. */
+/** Reiter „Angaben zum Teil": Merkmale, Maße, Normen und Oberfläche - und hier wird der Artikel bearbeitet. */
 export function AngabenReiter({ artikel, bearbeiten, onBearbeiten, onAbbrechen, onGespeichert }: Props) {
     if (bearbeiten) {
         return (

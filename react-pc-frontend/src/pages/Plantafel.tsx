@@ -43,7 +43,7 @@ export default function Plantafel() {
     const [aenderungen, setAenderungen] = useState(0);
     /** Bearbeiten-Modus: Nur dann lässt sich ziehen und ein Termin per Klick anlegen; sonst zeigt ein Klick auf einen Vorgang seine Einzelheiten. */
     const [bearbeiten, setBearbeiten] = useState(false);
-    /** Aufträge, deren Planung mit „Später“ übersprungen wurde: neu, noch nicht eingeplant. */
+    /** Aufträge, deren Planung mit „Später" übersprungen wurde: neu, noch nicht eingeplant. */
     const [offene, setOffene] = useState<OffenerAuftrag[]>([]);
 
     const uebernehmen = useCallback((a: Auftrag[], t: Vorgangstyp[]) => {
@@ -81,7 +81,7 @@ export default function Plantafel() {
         return () => window.removeEventListener(KONFLIKT_EREIGNIS, neuLaden);
     }, [laden]);
 
-    // Arbeitswoche aus den Einstellungen „Planung“ (graue Streifen, Springen auf den nächsten Arbeitstag); ohne Antwort gilt Montag bis Freitag
+    // Arbeitswoche aus den Einstellungen „Planung" (graue Streifen, Springen auf den nächsten Arbeitstag); ohne Antwort gilt Montag bis Freitag
     const [arbeitstage, setArbeitstage] = useState<number[] | undefined>(undefined);
     useEffect(() => {
         let aktuell = true;
@@ -151,7 +151,7 @@ export default function Plantafel() {
                 <div className="rounded-xl border border-dashed border-slate-300 bg-white p-8 text-center" data-testid="plantafel-leer">
                     <CalendarRange className="mx-auto mb-3 h-8 w-8 text-slate-400" aria-hidden="true" />
                     <p className="font-medium text-slate-900">Noch kein Auftrag in der Plantafel.</p>
-                    <p className="mx-auto mt-1 max-w-xl text-sm text-slate-600">Mit „Auftrag aufnehmen“ legt das Programm die Vorgänge nacheinander an, mit geschätzten Dauern. Danach lassen sich Dauer, Reihenfolge und feste Termine anpassen.</p>
+                    <p className="mx-auto mt-1 max-w-xl text-sm text-slate-600">Mit „Auftrag aufnehmen" legt das Programm die Vorgänge nacheinander an, mit geschätzten Dauern. Danach lassen sich Dauer, Reihenfolge und feste Termine anpassen.</p>
                 </div>
             )}
 

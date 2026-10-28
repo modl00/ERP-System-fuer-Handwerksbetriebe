@@ -8,7 +8,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { EINHEITEN, legeKategorieAn, type NeueKategorie } from './kategorieApi';
 import type { LeistungsFolder } from '../../types';
 
-/** Der Pfad „Haupt / Unter“ einer Kategorie für die Auswahl. */
+/** Der Pfad „Haupt / Unter" einer Kategorie für die Auswahl. */
 function pfad(f: LeistungsFolder, alle: LeistungsFolder[]): string {
     const eltern = alle.find(x => x.id === f.parentId);
     return eltern ? `${pfad(eltern, alle)} / ${f.name}` : f.name;

@@ -276,7 +276,7 @@ describe('Kundeneditor – Kunde bearbeiten', () => {
         expect(aktenAbrufe.length).toBeGreaterThanOrEqual(2);
     });
 
-    it('„Diesen verwenden“ beim Doppel-Eintrag öffnet den vorhandenen Kunden', async () => {
+    it('„Diesen verwenden" beim Doppel-Eintrag öffnet den vorhandenen Kunden', async () => {
         const user = userEvent.setup();
         render(
             <ToastProvider>

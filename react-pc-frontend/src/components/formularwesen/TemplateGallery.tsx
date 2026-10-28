@@ -186,7 +186,7 @@ function TemplateCard({ template, onEdit, onDuplicate, onDelete }: TemplateCardP
             <button
                 type="button"
                 onClick={onEdit}
-                aria-label={`Vorlage „${template.name}“ bearbeiten`}
+                aria-label={`Vorlage „${template.name}" bearbeiten`}
                 className="flex h-44 items-center justify-center bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-500"
             >
                 <MiniBrief />
@@ -213,16 +213,16 @@ function TemplateCard({ template, onEdit, onDuplicate, onDelete }: TemplateCardP
                 <Button size="sm" variant="ghost" onClick={onEdit} className="h-8">
                     <Pencil aria-hidden="true" className="mr-1.5 h-3.5 w-3.5" />Bearbeiten
                 </Button>
-                <button type="button" onClick={onDuplicate} aria-label={`Vorlage „${template.name}“ duplizieren`} title="Duplizieren" className={`${aktion} ml-auto hover:bg-slate-100 hover:text-slate-800`}>
+                <button type="button" onClick={onDuplicate} aria-label={`Vorlage „${template.name}" duplizieren`} title="Duplizieren" className={`${aktion} ml-auto hover:bg-slate-100 hover:text-slate-800`}>
                     <Copy aria-hidden="true" className="h-4 w-4" />
                 </button>
                 <button
                     type="button"
-                    aria-label={`Vorlage „${template.name}“ löschen`}
+                    aria-label={`Vorlage „${template.name}" löschen`}
                     title="Löschen"
                     className={`${aktion} hover:bg-red-50 hover:text-red-600`}
                     onClick={async () => {
-                        if (await confirmDialog({ title: 'Vorlage löschen', message: `Vorlage „${template.name}“ wirklich löschen? Das lässt sich nicht rückgängig machen.`, variant: 'danger', confirmLabel: 'Löschen' })) onDelete();
+                        if (await confirmDialog({ title: 'Vorlage löschen', message: `Vorlage „${template.name}" wirklich löschen? Das lässt sich nicht rückgängig machen.`, variant: 'danger', confirmLabel: 'Löschen' })) onDelete();
                     }}
                 >
                     <Trash2 aria-hidden="true" className="h-4 w-4" />

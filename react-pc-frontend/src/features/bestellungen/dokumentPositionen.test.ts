@@ -37,7 +37,7 @@ describe('ladeDokumentPositionen', () => {
         expect(vi.mocked(fetch).mock.calls[0][0]).toBe('/api/bestellungen-uebersicht/positionen/7');
     });
 
-    it('wertet 404 und fehlende Liste als „keine Positionen“ und merkt sich leere Ergebnisse nicht', async () => {
+    it('wertet 404 und fehlende Liste als „keine Positionen" und merkt sich leere Ergebnisse nicht', async () => {
         vi.mocked(fetch).mockResolvedValueOnce(antwort({}, 404)).mockResolvedValueOnce(antwort({ positionen: 'kaputt' }));
         expect(await ladeDokumentPositionen(8)).toEqual([]);
         expect(gemerktePositionen(8)).toBeUndefined();

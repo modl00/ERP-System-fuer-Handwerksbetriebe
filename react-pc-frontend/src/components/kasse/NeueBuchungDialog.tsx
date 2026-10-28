@@ -65,7 +65,7 @@ export function NeueBuchungDialog({ offen, sachkonten, onClose, onGebucht }: { o
         const geld = validateMoneyDraft(formular.betrag);
         if (pflichtfehler) { setFehler(pflichtfehler); return; }
         if (!geld.valid || geld.value <= 0) { setFehler(!geld.valid ? geld.message : 'Bitte trag einen positiven Betrag ein.'); return; }
-        if (art === 'GELD_AUSGEGEBEN' && !formular.keinBelegVorhanden && !datei) { setFehler('Bitte häng einen Beleg an oder wähle „Kein Beleg vorhanden“.'); return; }
+        if (art === 'GELD_AUSGEGEBEN' && !formular.keinBelegVorhanden && !datei) { setFehler('Bitte häng einen Beleg an oder wähle „Kein Beleg vorhanden".'); return; }
         setSaving(true); setFehler(null); setHinweis(null);
         try {
             const daten = new FormData();

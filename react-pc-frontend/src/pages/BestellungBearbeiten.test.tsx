@@ -211,7 +211,7 @@ describe('Bestellung bearbeiten', { timeout: 30000 }, () => {
         expect(await within(mail).findByRole('alert')).toHaveTextContent('E-Mail-Einstellungen');
     });
 
-    it('„Schon bestellt“ (telefonisch) bestellt ohne E-Mail', async () => {
+    it('„Schon bestellt" (telefonisch) bestellt ohne E-Mail', async () => {
         const user = userEvent.setup();
         zeige('/bestellungen/bestellung/9');
         await screen.findByLabelText('Menge Artikel 1');
@@ -226,7 +226,7 @@ describe('Bestellung bearbeiten', { timeout: 30000 }, () => {
         expect(screen.getByText(/telefonisch oder auf anderem Weg/)).toBeInTheDocument();
     });
 
-    it('bestellte Bestellung: nicht mehr änderbar, Lieferung abhaken und „Alles geliefert“', async () => {
+    it('bestellte Bestellung: nicht mehr änderbar, Lieferung abhaken und „Alles geliefert"', async () => {
         aktuelle = bestellung({ status: 'BESTELLT', lieferstand: 'BESTELLT', bestellnummer: 'B-2026-10-0007', bestelltAm: '2026-10-05T09:00:00', bestelltPer: 'EMAIL' });
         const user = userEvent.setup();
         zeige('/bestellungen/bestellung/9');

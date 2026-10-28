@@ -86,7 +86,7 @@ describe('Artikel: Gewicht und Fläche eindeutig', { timeout: 30000 }, () => {
         expect(b).toMatchObject({ kgJeStueck: 2.5, m2JeStueck: 0.3, kgProMeter: null, kgProQm: null, gewichtHerkunft: 'HAND' });
     });
 
-    it('beim Blech rechnet „Aus Dicke und Dichte berechnen“ und merkt sich Herkunft und Dichte', async () => {
+    it('beim Blech rechnet „Aus Dicke und Dichte berechnen" und merkt sich Herkunft und Dichte', async () => {
         const user = userEvent.setup();
         zeige(blech);
         await user.click(await screen.findByRole('button', { name: 'Aus Dicke und Dichte berechnen' }));

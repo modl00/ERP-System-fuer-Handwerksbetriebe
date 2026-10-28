@@ -7,7 +7,7 @@ import { cn } from '../../../lib/utils';
 import { FARB_PRESETS, STANDARD_FARBE, kontrastZuWeiss, normalisiereFarbe } from '../../../features/darstellung/farbpalette';
 import { ladeDarstellung, merkeFarbe, speichereFarbe, wendeFarbeAn } from '../../../features/darstellung/darstellung';
 
-/** Programmfarbe der ganzen Firma wählen. Die Auswahl wirkt sofort als Vorschau, gilt aber erst nach „Speichern“. */
+/** Programmfarbe der ganzen Firma wählen. Die Auswahl wirkt sofort als Vorschau, gilt aber erst nach „Speichern". */
 export function DarstellungSection() {
     const toast = useToast();
     /** Was auf dem Server steht ({@code null} = Standard-Rosé); {@code undefined} solange es geladen wird. */

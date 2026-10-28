@@ -67,7 +67,7 @@ describe('Alternative Kalkulation an einer Position', () => {
         expect(onUpdate).toHaveBeenCalledWith({ price: 950 });
     });
 
-    it('„Zurück zum Original“ setzt Leistung und Preis wieder ein', async () => {
+    it('„Zurück zum Original" setzt Leistung und Preis wieder ein', async () => {
         const user = userEvent.setup();
         const { onUpdate } = zeige(block({ leistungId: 91, temporaereLeistung: true, price: 950, alternativeVon: { leistungId: 5, preis: 180 } }));
         expect(screen.getByTestId('alternative-aktiv')).toBeInTheDocument();

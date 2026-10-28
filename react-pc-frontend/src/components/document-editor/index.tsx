@@ -413,7 +413,8 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     // Preview State
     const [showPreview] = useState(true);
     const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-    const [previewLoading, setPreviewLoading] = useState(false);
+    // Startet mit true: die Vorschau ist von Anfang an offen und wird beim Öffnen sofort erzeugt.
+    const [previewLoading, setPreviewLoading] = useState(showPreview);
     const [previewStale, setPreviewStale] = useState(false);
     // Wird nach jedem erfolgreichen Speichern hochgezaehlt und stoesst ein
     // sofortiges Neu-Rendern der Vorschau an. Noetig fuer Kopfdaten wie die
@@ -422,9 +423,6 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     const [previewRefreshToken, setPreviewRefreshToken] = useState(0);
     // Laufende Nummer der jeweils juengsten Preview-Anfrage (siehe handlePreview).
     const previewRequestIdRef = useRef(0);
-    // Synchroner Spiegel von `previewStale`, weil der Token-Effect ihn im
-    // selben Commit lesen muss, in dem der Stale-Marker ihn setzt.
-    const previewStaleRef = useRef(false);
     // Spiegelt die aktuell angezeigte Blob-URL, damit sie beim Schliessen des
     // Editors freigegeben werden kann, ohne den Effect an `previewUrl` zu binden.
     const previewUrlRef = useRef<string | null>(null);
@@ -564,7 +562,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     const [showFormatDialog, setShowFormatDialog] = useState(false);
     const [showValidityDialog, setShowValidityDialog] = useState(false);
     const [pendingFormat, setPendingFormat] = useState<PdfFormat | null>(null);
-    /** Angebotsversand: Frage „Soll der Kunde online annehmen können?“ */
+    /** Angebotsversand: Frage „Soll der Kunde online annehmen können?" */
     const [showOnlineAnnahmeDialog, setShowOnlineAnnahmeDialog] = useState(false);
     /**
      * Angebotsversand: Der Anwender hat bestätigt, dass offene Online-Links anderer
@@ -572,7 +570,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
      */
     const [freigabenAbloesenFuerDokumentId, setFreigabenAbloesenFuerDokumentId] = useState<number | null>(null);
     /**
-     * Rechnungsversand: Gebucht wird erst beim Klick auf „E-Mail senden“. Bis dahin
+     * Rechnungsversand: Gebucht wird erst beim Klick auf „E-Mail senden". Bis dahin
      * liegt das PDF nur hier; gespeichert (Offene Posten) wird es nach dem Buchen.
      */
     const [buchungBeimSenden, setBuchungBeimSenden] = useState(false);
@@ -1076,6 +1074,11 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [projektId, anfrageId]);
 
+    // Frisch umgewandeltes Dokument: Standard-Textbausteine des neuen Typs einmalig
+    // nachladen (Erklärung bei „Auto-Load Standard-Textbausteine je Dokumenttyp").
+    // Vor „Load Document" deklariert, weil das Laden das Flag setzt.
+    const [standardTexteErneuern, setStandardTexteErneuern] = useState(false);
+
     // --- Load Document ---
     useEffect(() => {
         const loadDokument = async () => {
@@ -1388,7 +1391,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     // positionenJson — dann (und nur dann) laedt der Editor die fuer den neuen
     // Typ konfigurierten Defaults einmalig nach. Beim ersten Speichern wird das
     // Flag automatisch verworfen (Save-Payload baut das JSON neu auf).
-    const [standardTexteErneuern, setStandardTexteErneuern] = useState(false);
+    // (State dazu: standardTexteErneuern, deklariert vor „Load Document", das ihn setzt.)
     const lastAppliedDefaultsTypRef = useRef<string | null>(null);
     /** Typ, fuer den gerade ein Defaults-Fetch laeuft (verhindert Doppel-Fetches). */
     const defaultsInFlightTypRef = useRef<string | null>(null);
@@ -1930,14 +1933,22 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [handleSave, isLocked, saving]);
 
+    // Gesperrt: offene Editoren, Picker und Dialoge beim Rendern schließen.
+    const [warGesperrt, setWarGesperrt] = useState(isLocked);
+    if (isLocked !== warGesperrt) {
+        setWarGesperrt(isLocked);
+        if (isLocked) {
+            setActiveEditor(null);
+            setShowTextbausteinPicker(false);
+            setShowLeistungPicker(false);
+            setShowStundensatzPicker(false);
+            setShowAddTypeDialog(false);
+            setNeueLeistungBlockId(null);
+        }
+    }
+
     useEffect(() => {
         if (!isLocked) return;
-        setActiveEditor(null);
-        setShowTextbausteinPicker(false);
-        setShowLeistungPicker(false);
-        setShowStundensatzPicker(false);
-        setShowAddTypeDialog(false);
-        setNeueLeistungBlockId(null);
         // Defense-in-Depth: bei Lock-Uebernahme alle UI-Anker zuruecksetzen,
         // damit beim Entsperren kein stale Anker aus einem abgebrochenen
         // Picker-Flow im Ref haengen bleibt.
@@ -2002,10 +2013,8 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     // Verschwindet die Position (Rueckgaengig, Loeschen) oder die Ursprungs-
     // Leistung, waehrend die Id gesetzt ist, die Id verwerfen. Sonst bliebe ein
     // unsichtbarer "offener Dialog" haengen und spaeteres Wiederauftauchen
-    // oeffnete das Fenster ungefragt.
-    useEffect(() => {
-        if (neueLeistungBlockId !== null && !neueLeistungDialogOffen) setNeueLeistungBlockId(null);
-    }, [neueLeistungBlockId, neueLeistungDialogOffen]);
+    // oeffnete das Fenster ungefragt. (Zustand beim Rendern anpassen.)
+    if (neueLeistungBlockId !== null && !neueLeistungDialogOffen) setNeueLeistungBlockId(null);
 
 
     const einDialogOffen = showExportWarning || showExportFormatDialog || showPrintOptions
@@ -2490,7 +2499,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                 : { blockId: block.id },
         });
         setPendingLeistungInsert(null);
-        toast.info(`Leistung „${name}“ ohne Kategorie eingefügt`);
+        toast.info(`Leistung „${name}" ohne Kategorie eingefügt`);
     };
 
     /**
@@ -2645,7 +2654,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
         // der Editor zeigt weiter zwei Kaesten, das Backend sieht eine Gruppe —
         // der Kunde waehlt zweimal und kann das Angebot danach nicht annehmen.
         if (gruppenNameVergeben(blocksRef.current, neu, alt)) {
-            toast.error(`„${neu}“ ist in diesem Dokument schon vergeben. Bitte einen anderen Namen wählen.`);
+            toast.error(`„${neu}" ist in diesem Dokument schon vergeben. Bitte einen anderen Namen wählen.`);
             return;
         }
         verlauf.aendern({
@@ -2689,125 +2698,8 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                 ziel: sectionId ? { blockId: id, sectionId } : { blockId: id },
             });
         }
-        toast.success(`Neue Leistung „${neu.name}“ im Ordner „${ordner.pfad}“ gespeichert`);
+        toast.success(`Neue Leistung „${neu.name}" im Ordner „${ordner.pfad}" gespeichert`);
     };
-
-    // --- Preview & Export ---
-    const handlePreview = useCallback(async () => {
-        // Laufende Nummer je Anfrage: bei zwei ueberlappenden Renderings darf
-        // nicht die zuerst gestartete, aber spaeter eintreffende Antwort
-        // gewinnen — sonst springt die Vorschau auf einen aelteren Stand
-        // zurueck (z.B. auf die Adresse von vor dem Speichern).
-        const requestId = ++previewRequestIdRef.current;
-        setPreviewLoading(true);
-        try {
-            const request = await createPdfRequest(true);
-            const response = await fetch('/api/dokument-generator/preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(request)
-            });
-            if (response.ok) {
-                const blob = await response.blob();
-                if (requestId !== previewRequestIdRef.current) return;
-                const url = URL.createObjectURL(blob);
-                // Vorgaenger ueber das Ref freigeben statt ueber den State: der
-                // Wert aus der Closure koennte veraltet sein, und ein State-
-                // Updater mit Seiteneffekt liefe im StrictMode doppelt.
-                const alteUrl = previewUrlRef.current;
-                previewUrlRef.current = url;
-                setPreviewUrl(url);
-                if (alteUrl) URL.revokeObjectURL(alteUrl);
-                previewStaleRef.current = false;
-                setPreviewStale(false);
-            }
-        } catch (error) {
-            console.error('Fehler bei Vorschau:', error);
-        } finally {
-            if (requestId === previewRequestIdRef.current) setPreviewLoading(false);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blocks, datum, betreff, dokumentTyp, kontextDaten, dokumentNummer]);
-
-    // Mark preview as stale when content changes.
-    // `kontextDaten` steht als ganzes Objekt drin, nicht nur die Adresse: auch
-    // Zahlungsziel & Co. landen ueber `createPdfRequest` im PDF und gehoeren
-    // damit zum Vorschau-Inhalt. Die Objekt-Identitaet aendert sich nur bei
-    // `setKontextDaten`, loest also keine Endlosschleife aus.
-    // `dokumentNummer` ebenfalls: sie wird erst beim ersten Speichern vom
-    // Server vergeben, vorher steht "VORSCHAU" im PDF.
-    useEffect(() => {
-        if (showPreview && previewUrl) {
-            previewStaleRef.current = true;
-            setPreviewStale(true);
-        }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blocks, datum, betreff, dokumentTyp, kontextDaten, dokumentNummer]);
-
-    // Debounced auto-preview: refresh 2s after last change when preview panel is open
-    const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
-    useEffect(() => {
-        if (!showPreview) return;
-        if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-        previewTimerRef.current = setTimeout(() => {
-            handlePreview();
-        }, 2000);
-        return () => {
-            if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
-        };
-    // Muss dieselben Abhaengigkeiten haben wie der Stale-Marker oben, sonst
-    // bliebe die Vorschau nach einer Adressaenderung dauerhaft als veraltet
-    // markiert (und damit hinter dem Lade-Skelett verborgen).
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [blocks, datum, betreff, dokumentTyp, showPreview, kontextDaten, dokumentNummer]);
-
-    // Nach jedem erfolgreichen Speichern die Vorschau sofort neu rendern.
-    // Damit landet z.B. eine geaenderte Rechnungsadresse direkt im Vorschau-PDF,
-    // ohne dass der User zusaetzlich einen Block anfassen muss.
-    useEffect(() => {
-        // Token 0 = Erstmontage, noch kein Speichern passiert. Der Guard haelt
-        // ausserdem den StrictMode-Doppelmount raus — bitte nicht "aufraeumen".
-        if (previewRefreshToken === 0) return;
-        // Nur rendern, wenn die Vorschau den gespeicherten Stand noch nicht
-        // zeigt. `handleSave` haengt an neun Aufrufern (Auto-Save, Export,
-        // Druck, Buchen, Mail); ohne diesen Guard liefe parallel zu jedem
-        // davon eine zweite, ueberfluessige PDF-Generierung.
-        // Ueber das Ref lesen, nicht ueber den State: der Stale-Marker oben
-        // laeuft im selben Commit wie dieser Effect, sein `setPreviewStale`
-        // waere hier also noch nicht sichtbar (z.B. wenn das erste Speichern
-        // gleichzeitig die Dokumentnummer setzt).
-        if (!previewStaleRef.current) return;
-        // Ein laufender Debounce-Timer wuerde sonst kurz darauf ein zweites,
-        // identisches Preview-Rendering ausloesen.
-        if (previewTimerRef.current) {
-            clearTimeout(previewTimerRef.current);
-            previewTimerRef.current = null;
-        }
-        handlePreview();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [previewRefreshToken]);
-
-    // Letzte Blob-URL beim Schliessen des Editors freigeben, sonst haelt der
-    // Browser das komplette Vorschau-PDF bis zum Reload im Speicher.
-    useEffect(() => {
-        previewUrlRef.current = previewUrl;
-    }, [previewUrl]);
-    useEffect(() => () => {
-        // Hochzaehlen entwertet eine noch laufende Anfrage: ihre Antwort legt
-        // sonst nach dem Unmount eine Blob-URL an, die niemand mehr freigibt.
-        previewRequestIdRef.current++;
-        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
-    }, []);
-
-    // When preview panel is shown for the first time, trigger an immediate preview
-    const prevShowPreview = useRef(false);
-    useEffect(() => {
-        if (showPreview && !prevShowPreview.current) {
-            handlePreview();
-        }
-        prevShowPreview.current = showPreview;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [showPreview]);
 
     /** Hilfsfunktion: Dokument buchen und State sofort aktualisieren (GoBD). */
     const buchenUndSperren = async (): Promise<boolean> => (await bucheDokument()) !== null;
@@ -3126,7 +3018,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
         }
         // Bei Angeboten wird vor dem finalen Versand gefragt, ob der Kunde online
         // annehmen können soll — aber nur, wenn überhaupt ein Link entstehen kann
-        // (siehe brauchtAnnahmeLinkAbfrage). Bei „Ja“ folgt die Gültigkeit.
+        // (siehe brauchtAnnahmeLinkAbfrage). Bei „Ja" folgt die Gültigkeit.
         if (brauchtAnnahmeLinkAbfrage(dokumentTyp, draftSendMode, dokument?.digitalAngenommen)) {
             setPendingFormat(format);
             setShowFormatDialog(false);
@@ -3170,7 +3062,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
     };
 
     /**
-     * Läuft nach dem Klick auf „E-Mail senden“ und vor dem Versand: Rechnung buchen.
+     * Läuft nach dem Klick auf „E-Mail senden" und vor dem Versand: Rechnung buchen.
      * Scheitert das, geht keine Mail raus (die Meldung zeigt buchenUndSperren). Danach
      * wird das PDF für die Offenen Posten gespeichert – erst jetzt gibt es den Eintrag.
      */
@@ -3239,7 +3131,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
             }
 
             // 2. Rechnungstypen werden NICHT hier gebucht, sondern erst beim Klick auf
-            //    „E-Mail senden“ (bucheVorDemSenden). Schließt der Anwender das
+            //    „E-Mail senden" (bucheVorDemSenden). Schließt der Anwender das
             //    Mailfenster ohne Senden, bleibt die Rechnung offen. Das PDF passt
             //    trotzdem zur gebuchten Fassung: Datum und Nummer stehen nach dem
             //    Speichern oben fest, das Buchen ändert daran nichts.
@@ -3688,6 +3580,145 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
             tabellenSchriftgroesse,
         };
     };
+
+    // Vorschau-Block steht hinter createPdfRequest, weil handlePreview es aufruft.
+    // --- Preview & Export ---
+    // Erzeugt die Vorschau. Die Ladeanzeige zu Beginn setzt der Aufrufer
+    // (handlePreview, Startwert beim Öffnen, Render-Anpassung nach dem Speichern),
+    // damit in den Effekten unten kein setState synchron läuft.
+    const erzeugeVorschau = useCallback(() => {
+        // Laufende Nummer je Anfrage: bei zwei ueberlappenden Renderings darf
+        // nicht die zuerst gestartete, aber spaeter eintreffende Antwort
+        // gewinnen — sonst springt die Vorschau auf einen aelteren Stand
+        // zurueck (z.B. auf die Adresse von vor dem Speichern).
+        const requestId = ++previewRequestIdRef.current;
+        return createPdfRequest(true)
+            .then(request => fetch('/api/dokument-generator/preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(request)
+            }))
+            .then(async response => {
+                if (!response.ok) return;
+                const blob = await response.blob();
+                if (requestId !== previewRequestIdRef.current) return;
+                const url = URL.createObjectURL(blob);
+                // Vorgaenger ueber das Ref freigeben statt ueber den State: der
+                // Wert aus der Closure koennte veraltet sein, und ein State-
+                // Updater mit Seiteneffekt liefe im StrictMode doppelt.
+                const alteUrl = previewUrlRef.current;
+                previewUrlRef.current = url;
+                setPreviewUrl(url);
+                if (alteUrl) URL.revokeObjectURL(alteUrl);
+                setPreviewStale(false);
+            })
+            .catch(error => {
+                console.error('Fehler bei Vorschau:', error);
+            })
+            .finally(() => {
+                if (requestId === previewRequestIdRef.current) setPreviewLoading(false);
+            });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [blocks, datum, betreff, dokumentTyp, kontextDaten, dokumentNummer]);
+
+    /** Vorschau neu erzeugen, mit Ladeanzeige (Knopf, Debounce-Timer). */
+    const handlePreview = useCallback(() => {
+        setPreviewLoading(true);
+        return erzeugeVorschau();
+    }, [erzeugeVorschau]);
+
+    // Mark preview as stale when content changes.
+    // `kontextDaten` steht als ganzes Objekt drin, nicht nur die Adresse: auch
+    // Zahlungsziel & Co. landen ueber `createPdfRequest` im PDF und gehoeren
+    // damit zum Vorschau-Inhalt. Die Objekt-Identitaet aendert sich nur bei
+    // `setKontextDaten`, loest also keine Endlosschleife aus.
+    // `dokumentNummer` ebenfalls: sie wird erst beim ersten Speichern vom
+    // Server vergeben, vorher steht "VORSCHAU" im PDF.
+    // (Zustand beim Rendern anpassen: so sieht der Token-Effekt unten den Marker
+    // schon im selben Commit.)
+    const [vorschauInhaltVorher, setVorschauInhaltVorher] = useState({ blocks, datum, betreff, dokumentTyp, kontextDaten, dokumentNummer });
+    const vorschauInhaltGeaendert = vorschauInhaltVorher.blocks !== blocks || vorschauInhaltVorher.datum !== datum
+        || vorschauInhaltVorher.betreff !== betreff || vorschauInhaltVorher.dokumentTyp !== dokumentTyp
+        || vorschauInhaltVorher.kontextDaten !== kontextDaten || vorschauInhaltVorher.dokumentNummer !== dokumentNummer;
+    if (vorschauInhaltGeaendert) {
+        setVorschauInhaltVorher({ blocks, datum, betreff, dokumentTyp, kontextDaten, dokumentNummer });
+        if (showPreview && previewUrl) setPreviewStale(true);
+    }
+
+    // Nach dem Speichern (Token, siehe Effekt unten) die Ladeanzeige beim Rendern
+    // einschalten – unter derselben Bedingung, unter der der Effekt neu rendert.
+    // Ein in diesem Durchlauf gerade gesetzter Stale-Marker zählt mit.
+    const vorschauVeraltet = previewStale || (vorschauInhaltGeaendert && showPreview && !!previewUrl);
+    const [refreshTokenVorher, setRefreshTokenVorher] = useState(previewRefreshToken);
+    if (previewRefreshToken !== refreshTokenVorher) {
+        setRefreshTokenVorher(previewRefreshToken);
+        if (previewRefreshToken !== 0 && vorschauVeraltet) setPreviewLoading(true);
+    }
+
+    // Debounced auto-preview: refresh 2s after last change when preview panel is open
+    const previewTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    useEffect(() => {
+        if (!showPreview) return;
+        if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+        previewTimerRef.current = setTimeout(() => {
+            handlePreview();
+        }, 2000);
+        return () => {
+            if (previewTimerRef.current) clearTimeout(previewTimerRef.current);
+        };
+    // Muss dieselben Abhaengigkeiten haben wie der Stale-Marker oben, sonst
+    // bliebe die Vorschau nach einer Adressaenderung dauerhaft als veraltet
+    // markiert (und damit hinter dem Lade-Skelett verborgen).
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [blocks, datum, betreff, dokumentTyp, showPreview, kontextDaten, dokumentNummer]);
+
+    // Nach jedem erfolgreichen Speichern die Vorschau sofort neu rendern.
+    // Damit landet z.B. eine geaenderte Rechnungsadresse direkt im Vorschau-PDF,
+    // ohne dass der User zusaetzlich einen Block anfassen muss.
+    useEffect(() => {
+        // Token 0 = Erstmontage, noch kein Speichern passiert. Der Guard haelt
+        // ausserdem den StrictMode-Doppelmount raus — bitte nicht "aufraeumen".
+        if (previewRefreshToken === 0) return;
+        // Nur rendern, wenn die Vorschau den gespeicherten Stand noch nicht
+        // zeigt. `handleSave` haengt an neun Aufrufern (Auto-Save, Export,
+        // Druck, Buchen, Mail); ohne diesen Guard liefe parallel zu jedem
+        // davon eine zweite, ueberfluessige PDF-Generierung.
+        // Der Stale-Marker oben wird beim Rendern gesetzt und ist deshalb hier
+        // schon sichtbar, auch wenn das erste Speichern gleichzeitig die
+        // Dokumentnummer setzt.
+        if (!previewStale) return;
+        // Ein laufender Debounce-Timer wuerde sonst kurz darauf ein zweites,
+        // identisches Preview-Rendering ausloesen.
+        if (previewTimerRef.current) {
+            clearTimeout(previewTimerRef.current);
+            previewTimerRef.current = null;
+        }
+        void erzeugeVorschau();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [previewRefreshToken]);
+
+    // Letzte Blob-URL beim Schliessen des Editors freigeben, sonst haelt der
+    // Browser das komplette Vorschau-PDF bis zum Reload im Speicher.
+    useEffect(() => {
+        previewUrlRef.current = previewUrl;
+    }, [previewUrl]);
+    useEffect(() => () => {
+        // Hochzaehlen entwertet eine noch laufende Anfrage: ihre Antwort legt
+        // sonst nach dem Unmount eine Blob-URL an, die niemand mehr freigibt.
+        previewRequestIdRef.current++;
+        if (previewUrlRef.current) URL.revokeObjectURL(previewUrlRef.current);
+    }, []);
+
+    // When preview panel is shown for the first time, trigger an immediate preview
+    const prevShowPreview = useRef(false);
+    useEffect(() => {
+        if (showPreview && !prevShowPreview.current) {
+            // Ladeanzeige: Startwert von previewLoading (Vorschau ist von Anfang an offen).
+            void erzeugeVorschau();
+        }
+        prevShowPreview.current = showPreview;
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [showPreview]);
 
     // --- Computed values ---
     const blockNettosumme = calculateNetto(blocks);
@@ -4210,7 +4241,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                             fett: extractBoldFromHtml(resolvedContent) || extractBoldFromHtml(htmlContent),
                         });
                         setShowTextbausteinPicker(false);
-                        toast.success(`Textbaustein „${tb.name}“ eingefügt`);
+                        toast.success(`Textbaustein „${tb.name}" eingefügt`);
                     }}
                     onClose={() => {
                         pendingAnchorRef.current = DEFAULT_ANCHOR;
@@ -4236,7 +4267,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                         }, 'Leistung eingefügt');
                         setShowLeistungPicker(false);
                         if (!hasKategorie) {
-                            toast.success(`Leistung „${l.name}“ eingefügt`);
+                            toast.success(`Leistung „${l.name}" eingefügt`);
                         }
                     }}
                     onClose={() => {
@@ -4267,7 +4298,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                             fett: extractBoldFromHtml(descHtml),
                         }, 'Stundensatz eingefügt');
                         setShowStundensatzPicker(false);
-                        toast.success(`Stundensatz „${az.bezeichnung}“ eingefügt`);
+                        toast.success(`Stundensatz „${az.bezeichnung}" eingefügt`);
                     }}
                     onClose={() => {
                         pendingAnchorRef.current = DEFAULT_ANCHOR;
@@ -4392,7 +4423,7 @@ const DocumentEditor = forwardRef<DocumentEditorHandle, DocumentEditorProps>(fun
                 entwurfSpeichern={!buchungBeimSenden && freigabenAbloesenFuerDokumentId === null}
                 freigabenAbloesenFuerDokumentId={freigabenAbloesenFuerDokumentId ?? undefined}
                 onSuccess={async () => {
-                    // Versanddatum setzen (gebucht wurde beim Klick auf „Senden“, siehe bucheVorDemSenden).
+                    // Versanddatum setzen (gebucht wurde beim Klick auf „Senden", siehe bucheVorDemSenden).
                     // Bei Entwurfs-Versand wird der Endpoint NICHT aufgerufen, damit
                     // emailVersandDatum nicht fälschlich gesetzt wird – der eigentliche
                     // finale Versand kommt später separat.

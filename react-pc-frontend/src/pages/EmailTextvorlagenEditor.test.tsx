@@ -60,7 +60,7 @@ describe('EmailTextvorlagenEditor – Mailtexte für Dokumente', () => {
         vi.unstubAllGlobals();
     });
 
-    it('heißt „Mailtexte für Dokumente“ und erklärt sich per Info-Knopf', async () => {
+    it('heißt „Mailtexte für Dokumente" und erklärt sich per Info-Knopf', async () => {
         const user = userEvent.setup();
         rendere();
 

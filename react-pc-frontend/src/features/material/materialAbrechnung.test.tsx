@@ -41,7 +41,7 @@ afterEach(() => { vi.unstubAllGlobals(); });
 const zeige = (onGeaendert = vi.fn()) => { render(<ToastProvider><MaterialAbrechnungPanel projektId={7} onGeaendert={onGeaendert} /></ToastProvider>); return onGeaendert; };
 
 describe('Material: Plan und Rechnung', { timeout: 30000 }, () => {
-    it('zeigt offene Positionen, bezahlte mit Rechnungsnummer und Markierung der Abweichung, Rest je Rechnung und den Hinweis „Rechnung fehlt“', async () => {
+    it('zeigt offene Positionen, bezahlte mit Rechnungsnummer und Markierung der Abweichung, Rest je Rechnung und den Hinweis „Rechnung fehlt"', async () => {
         zeige();
 
         expect(await screen.findByText(/Material erwartet, Rechnung fehlt noch: 2 Positionen/)).toBeInTheDocument();
@@ -138,7 +138,7 @@ describe('Material: Plan und Rechnung', { timeout: 30000 }, () => {
         expect(screen.getByRole('dialog')).toBeInTheDocument();
     });
 
-    it('bereits zugeordnete Rechnung: Dialog zeigt die gespeicherten Beträge zum Ändern, „alles zugeordnet“ erscheint ohne Rest', async () => {
+    it('bereits zugeordnete Rechnung: Dialog zeigt die gespeicherten Beträge zum Ändern, „alles zugeordnet" erscheint ohne Rest', async () => {
         const user = userEvent.setup();
         fetcher.mockImplementation(async () => antwort({ ...DATEN, rechnungen: [{ ...DATEN.rechnungen[0], anteil: 345, rest: 0 }] }));
         zeige();

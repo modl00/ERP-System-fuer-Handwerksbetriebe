@@ -58,7 +58,7 @@ export function vergissDokumentPositionen(dokumentId?: number): void {
     zuhoerer.forEach(melde => melde());
 }
 
-/** Lädt die Positionen eines Dokuments; 404 heißt „keine Positionen“. Gleichzeitige Anfragen teilen sich einen Abruf. */
+/** Lädt die Positionen eines Dokuments; 404 heißt „keine Positionen". Gleichzeitige Anfragen teilen sich einen Abruf. */
 export function ladeDokumentPositionen(dokumentId: number): Promise<DokumentPosition[]> {
     const vorhanden = gemerkt.get(dokumentId);
     if (vorhanden) return Promise.resolve(vorhanden);
@@ -89,7 +89,7 @@ export function kannPositionenHaben(typ: string | null | undefined): boolean {
     return typ !== 'SONSTIG';
 }
 
-/** Enthält die Position alle Suchwörter (normalisiert wie im Backend, z. B. „50x5“ = „50 x 5“)? */
+/** Enthält die Position alle Suchwörter (normalisiert wie im Backend, z. B. „50x5" = „50 x 5")? */
 export function positionTrifftSuche(position: DokumentPosition, suchbegriff: string | null | undefined): boolean {
     const woerter = suchwoerter(suchbegriff);
     if (woerter.length === 0) return false;

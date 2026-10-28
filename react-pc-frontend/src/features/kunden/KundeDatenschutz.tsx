@@ -12,7 +12,7 @@ import type { KundeDetail } from '../../types';
 const GRUND_MAX_LAENGE = 500;
 
 /**
- * ISO-Datum („2034-12-31“) oder ISO-Zeitpunkt als deutsches Datum. Ein reines
+ * ISO-Datum („2034-12-31") oder ISO-Zeitpunkt als deutsches Datum. Ein reines
  * Datum wird ohne Zeitzonen-Umrechnung gelesen, damit aus dem 31.12. nicht
  * der 30.12. wird.
  */
@@ -56,7 +56,7 @@ const GesperrtInfo: React.FC = () => (
 const AnonymisierenInfo: React.FC = () => (
     <InfoButton titel="Kunde anonymisieren">
         <InfoAbschnitt titel="Was passiert im Hintergrund?">
-            <p>Der Name wird durch „Gelöschter Kunde“ und die Kundennummer ersetzt, Anrede und Anschrift werden geleert. Bei seinen Projekten und Anfragen wird die Baustellen-Anschrift geleert, die Bezeichnung bleibt. In Freigabe-Links wird der Name entfernt, die E-Mail-Adresse bei nicht angenommenen Links ebenfalls. Online angenommene Angebote behalten E-Mail-Adresse und Unterschrift als Auftragsnachweis. Der Vorgang wird mit Datum und Person protokolliert, ohne Kundendaten.</p>
+            <p>Der Name wird durch „Gelöschter Kunde" und die Kundennummer ersetzt, Anrede und Anschrift werden geleert. Bei seinen Projekten und Anfragen wird die Baustellen-Anschrift geleert, die Bezeichnung bleibt. In Freigabe-Links wird der Name entfernt, die E-Mail-Adresse bei nicht angenommenen Links ebenfalls. Online angenommene Angebote behalten E-Mail-Adresse und Unterschrift als Auftragsnachweis. Der Vorgang wird mit Datum und Person protokolliert, ohne Kundendaten.</p>
         </InfoAbschnitt>
         <InfoAbschnitt titel="Was bewirkt das?">
             <p>Der Kunde ist in den Stammdaten nicht mehr zu erkennen. Das lässt sich nicht rückgängig machen. Rechnungen, Angebote und E-Mails bleiben unverändert erhalten, in diesen alten Unterlagen stehen Name und Anschrift weiterhin. Kundennummer, Projekte und Beträge bleiben, damit die Buchhaltung stimmt.</p>
@@ -74,7 +74,7 @@ interface GesperrtBandProps {
 
 /**
  * Ruhiges Band oben in der Akte eines gesperrten Kunden. Ist die
- * Aufbewahrungsfrist abgelaufen, bekommt ein Admin hier „Anonymisieren…“
+ * Aufbewahrungsfrist abgelaufen, bekommt ein Admin hier „Anonymisieren…"
  * (das Backend befüllt `loeschPruefung` nur für Admins).
  */
 export const KundeGesperrtBand: React.FC<GesperrtBandProps> = ({ kunde, onAnonymisiert }) => {
@@ -181,7 +181,7 @@ const KundeAnonymisierenDialog: React.FC<AnonymisierenDialogProps> = ({ kunde, o
                     <div>
                         <p className="font-semibold text-slate-900">Das passiert</p>
                         <ul className="mt-1 list-disc space-y-0.5 pl-5">
-                            <li>Der Name wird zu „Gelöschter Kunde {kunde.kundennummer}“, Anrede und Anschrift werden geleert.</li>
+                            <li>Der Name wird zu „Gelöschter Kunde {kunde.kundennummer}", Anrede und Anschrift werden geleert.</li>
                             <li>Die Baustellen-Anschrift seiner Projekte und Anfragen wird geleert, die Bezeichnung bleibt.</li>
                             <li>Name in Freigabe-Links wird entfernt (angenommene Angebote behalten den Auftragsnachweis).</li>
                         </ul>
@@ -342,7 +342,7 @@ const KundeDatenschutzDialog: React.FC<DatenschutzDialogProps> = ({ kunde, open,
     );
 };
 
-// ==================== KNOPF „LÖSCHEN…“ ====================
+// ==================== KNOPF „LÖSCHEN…" ====================
 
 interface KundeLoeschenKnopfProps {
     kunde: KundeDetail;
@@ -353,7 +353,7 @@ interface KundeLoeschenKnopfProps {
 }
 
 /**
- * „Löschen…“ in der Kopfkarte der Kundenakte (nur für Admins einbinden).
+ * „Löschen…" in der Kopfkarte der Kundenakte (nur für Admins einbinden).
  * Ohne aufzubewahrende Unterlagen wird nach Rückfrage gelöscht, sonst öffnet
  * sich der Datenschutz-Dialog, der den Kunden sperrt.
  */

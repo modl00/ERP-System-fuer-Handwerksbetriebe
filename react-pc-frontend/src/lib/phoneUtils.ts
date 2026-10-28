@@ -31,8 +31,8 @@ export function sanitizePhoneInput(input: string): string {
 const MINDEST_ZIFFERN = 7;
 
 /**
- * Wert zum Speichern: getrimmt; eine reine Vorwahl („0931 “, „+49 931“) wird leer.
- * Kurze Ortsnummern ohne Vorwahl („12345“) bleiben stehen – wie im Backend
+ * Wert zum Speichern: getrimmt; eine reine Vorwahl („0931 ", „+49 931") wird leer.
+ * Kurze Ortsnummern ohne Vorwahl („12345") bleiben stehen – wie im Backend
  * (`Telefonnummer.ohneReineVorwahl`).
  */
 export function ohneReineVorwahl(input: string | null | undefined): string {

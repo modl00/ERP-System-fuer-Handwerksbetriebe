@@ -112,12 +112,12 @@ describe('fehlendeAngaben', () => {
 
     it('verlangt die Bauart für Module mit Bauarten', () => {
         const fehlt = fehlendeAngaben(KATALOG, [{ modulId: 1, untertypSchluessel: null }]);
-        expect(fehlt).toEqual(['Bitte die Bauart für „Brandschutztür“ wählen.']);
+        expect(fehlt).toEqual(['Bitte die Bauart für „Brandschutztür" wählen.']);
     });
 
     it('verlangt die Bauart auch für das Zusatzmodul', () => {
         const fehlt = fehlendeAngaben(KATALOG, [{ modulId: 1, untertypSchluessel: 'einflg' }, { modulId: 3, untertypSchluessel: null }]);
-        expect(fehlt).toEqual(['Bitte die Bauart für „Feststellanlage“ wählen.']);
+        expect(fehlt).toEqual(['Bitte die Bauart für „Feststellanlage" wählen.']);
     });
 
     it('lehnt eine Bauart ab, die es für das Modul nicht gibt', () => {

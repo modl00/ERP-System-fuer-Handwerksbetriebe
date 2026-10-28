@@ -122,15 +122,14 @@ export function DateiOrdnerSection({ onSaved }: { onSaved?: () => void }) {
             description={
                 windows ? (
                     <p>
-                        In diesen Ordner legt das Programm Zeichnungen aus HiCAD (.sza) und Tenado (.tcd) sowie
-                        Tabellen (Excel, CSV, OpenOffice), die Sie an Projekten hochladen. Ein lokaler Ordner
+                        Dieser Ordner ist der gemeinsame Ablageort für HiCAD- und Tenado-Zeichnungen,
+                        Excel-Dateien und alles, was das Team teilt. Ein lokaler Ordner
                         (C:\Zeichnungen), ein Netzlaufwerk (Z:\Zeichnungen) oder eine Netzwerk-Adresse
                         (\\server\zeichnungen) funktionieren.
                     </p>
                 ) : (
                     <p>
-                        In diesen Ordner legt das Programm Zeichnungen aus HiCAD (.sza) und Tenado (.tcd) sowie
-                        Tabellen (Excel, CSV, OpenOffice), die Sie an Projekten hochladen.
+                        Dieser Ordner ist der gemeinsame Ablageort für HiCAD- und Tenado-Zeichnungen, Excel-Dateien und alles, was das Team teilt.
                         Das Programm läuft hier im Docker-Container: Die Dateien liegen im <strong>Datenordner auf dem Gerät</strong> (zum Beispiel Ihrer Synology) und werden mit dem Gerät gesichert.
                         Die Windows-Rechner erreichen sie über die <strong>Netzwerk-Adresse</strong> unten.
                     </p>
@@ -201,7 +200,7 @@ export function DateiOrdnerSection({ onSaved }: { onSaved?: () => void }) {
                 onClick={() => setAnleitungOffen((prev) => !prev)}
             >
                 {anleitungOffen ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
-                {windows ? 'So geben Sie den Ordner im Netzwerk frei' : 'So gibst du den Datenordner am NAS frei'}
+                {windows ? 'So gibst du den Ordner im Netzwerk frei' : 'So gibst du den Datenordner am NAS frei'}
             </button>
             {anleitungOffen && !windows && (
                 <div className="mt-2 p-4 rounded-lg bg-slate-50 text-sm text-slate-700 space-y-2" data-testid="nas-anleitung">
@@ -215,7 +214,7 @@ export function DateiOrdnerSection({ onSaved }: { onSaved?: () => void }) {
                 <div className="mt-2 p-4 rounded-lg bg-slate-50 text-sm text-slate-700 space-y-2">
                     <p>1. Im Windows-Explorer mit der rechten Maustaste auf den Ordner klicken → <strong>Eigenschaften</strong>.</p>
                     <p>2. Reiter <strong>Freigabe</strong> → <strong>Freigeben...</strong> → Kollegen oder „Jeder" hinzufügen → <strong>Freigeben</strong>.</p>
-                    <p>3. Die angezeigte Adresse (z. B. \\BUERO-PC\Zeichnungen) oben als Netzwerk-Adresse eintragen.</p>
+                    <p>3. Die angezeigte Adresse (z. B. \\DEIN-PC\Zeichnungen) oben als Netzwerk-Adresse eintragen.</p>
                     <div className="pt-2">
                         <Button variant="outline" onClick={handleFreigeben} disabled={freigebend || !pfad.trim()}>
                             {freigebend ? <Loader2 className="w-4 h-4 animate-spin" /> : <Share2 className="w-4 h-4" />}
@@ -279,7 +278,7 @@ function SmbHilfe({ adresse, onAdresse, benutzer, onBenutzer, version, onVersion
                         <li>Bei <strong>Additional paths</strong> die Datei <span className="font-mono">docker-compose.netzwerk.yml</span> hinzufügen.</li>
                         <li>Unter <strong>Environment variables</strong> die vier Zeilen eintragen und bei <span className="font-mono">ERP_SMB_PASSWORT</span> Ihr Passwort einsetzen.</li>
                         <li><strong>Update the stack</strong> wählen und warten, bis das Programm neu gestartet ist.</li>
-                        <li>Hier oben auf <strong>„Ordner prüfen“</strong> klicken: Das Programm legt eine Testdatei an. Klappt es nicht, steht dort der Grund (zum Beispiel falsches Passwort oder Adresse nicht erreichbar).</li>
+                        <li>Hier oben auf <strong>„Ordner prüfen"</strong> klicken: Das Programm legt eine Testdatei an. Klappt es nicht, steht dort der Grund (zum Beispiel falsches Passwort oder Adresse nicht erreichbar).</li>
                     </ol>
                 </div>
             )}

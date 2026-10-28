@@ -42,7 +42,7 @@ export function PostfachSpiegelSchalter() {
                     <p>Wenn Sie im E-Mail-Center etwas ändern, kann das Programm dasselbe im Postfach beim Provider tun, damit es dort nicht anders aussieht:</p>
                     <ul className="list-disc pl-5">
                         <li><strong>Löschen</strong> im Programm: Die Mail wird im Postfach in den <strong>Papierkorb</strong> verschoben (nicht endgültig gelöscht).</li>
-                        <li><strong>Zuordnen</strong> zu einem Projekt oder einer Anfrage: Die Mail bekommt im Postfach eine <strong>Markierung</strong> mit der Nummer (zum Beispiel „ERP_2026-0412“). Sie bleibt im Posteingang.</li>
+                        <li><strong>Zuordnen</strong> zu einem Projekt oder einer Anfrage: Die Mail bekommt im Postfach eine <strong>Markierung</strong> mit der Nummer (zum Beispiel „ERP_2026-0412"). Sie bleibt im Posteingang.</li>
                     </ul>
                     <p>Das gilt für das Haupt-Postfach und nur für Mails, die das Programm vom Server geholt hat. Ist der Provider gerade nicht erreichbar, bleibt die Aktion im Programm trotzdem gültig. Standardmäßig ist das aus, weil das Postfach verändert wird.</p>
                 </>

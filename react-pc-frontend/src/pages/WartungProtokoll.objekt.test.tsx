@@ -118,7 +118,7 @@ describe('Objekt im Feldeinsatz zuordnen', () => {
         const feld = await screen.findByRole('combobox', { name: 'Objekt' });
 
         expect(feld).toBeDisabled();
-        expect(screen.getByText(/ergibt sich aus der Wartung „Tür 1.01“/)).toBeVisible();
+        expect(screen.getByText(/ergibt sich aus der Wartung „Tür 1.01"/)).toBeVisible();
         expect(screen.queryByRole('button', { name: /Neues Objekt/ })).toBeNull();
 
         await userEvent.type(screen.getByLabelText('Bemerkungen'), 'neu');

@@ -1,7 +1,7 @@
 import { InfoAbschnitt, InfoButton } from '../../ui/info-button';
 import type { InfoText } from './rechtstextTexte';
 
-/** Info-Button mit den beiden Pflichtteilen „Hintergrund“ und „Bewirkt“. */
+/** Info-Button mit den beiden Pflichtteilen „Hintergrund" und „Bewirkt". */
 export function ErklaerInfo({ titel, info }: { titel: string; info: InfoText }) {
     return (
         <InfoButton titel={titel}>

@@ -20,9 +20,9 @@ export function pruefeBilddateien(dateien: File[]): PruefErgebnis {
     const abgelehnt: string[] = [];
     for (const datei of dateien) {
         if (!ERLAUBTE_BILDTYPEN.includes(datei.type)) {
-            abgelehnt.push(`„${datei.name}“ ist kein Bild im Format JPG, PNG oder WebP.`);
+            abgelehnt.push(`„${datei.name}" ist kein Bild im Format JPG, PNG oder WebP.`);
         } else if (datei.size > MAX_DATEIGROESSE) {
-            abgelehnt.push(`„${datei.name}“ ist größer als ${MAX_DATEIGROESSE_MB} MB.`);
+            abgelehnt.push(`„${datei.name}" ist größer als ${MAX_DATEIGROESSE_MB} MB.`);
         } else {
             gueltig.push(datei);
         }

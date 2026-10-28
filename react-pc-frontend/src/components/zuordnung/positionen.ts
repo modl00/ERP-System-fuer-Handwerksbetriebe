@@ -1,6 +1,6 @@
 /**
  * Typen und kleine reine Helfer für die Aufteilung einer Lieferanten-Rechnung
- * nach ihren Positionen (Bestellübersicht → „Projekt zuordnen“ → „Nach Positionen“).
+ * nach ihren Positionen (Bestellübersicht → „Projekt zuordnen" → „Nach Positionen").
  *
  * Die Beträge rechnet das Backend aus; hier wird nur zusammengestellt, welche
  * Warenposition zu welchem Projekt bzw. welcher Kostenstelle gehört.
@@ -23,11 +23,11 @@ export interface DokumentPosition {
     projektName: string | null;
     kostenstelleId: number | null;
     kostenstelleName: string | null;
-    /** Werkstoff, z. B. „S235JR“ – vor allem bei Werkstoffzeugnissen. */
+    /** Werkstoff, z. B. „S235JR" – vor allem bei Werkstoffzeugnissen. */
     werkstoff?: string | null;
     /** Charge bzw. Schmelze */
     charge?: string | null;
-    /** Abmessung, z. B. „50 x 5“ */
+    /** Abmessung, z. B. „50 x 5" */
     abmessung?: string | null;
     /**
      * Nur bei Nebenkosten und Rabatten: IDs der Warenpositionen, zu denen der
@@ -115,7 +115,7 @@ export function zielSchluessel(ziel: ZielRef): ZielSchluessel {
     return '';
 }
 
-/** Umkehrung von {@link zielSchluessel}; unbekannte Schlüssel ergeben „kein Ziel“. */
+/** Umkehrung von {@link zielSchluessel}; unbekannte Schlüssel ergeben „kein Ziel". */
 export function zielAusSchluessel(schluessel: ZielSchluessel): { projektId?: number; kostenstelleId?: number } {
     const treffer = /^([pk]):(\d+)$/.exec(schluessel);
     if (!treffer) return {};
@@ -180,7 +180,7 @@ export function bezuegeAusPositionen(positionen: DokumentPosition[]): Bezuege {
 }
 
 /**
- * Request-Teil „positionen“: jede Warenposition mit ihrem Ziel (oder ohne = offen),
+ * Request-Teil „positionen": jede Warenposition mit ihrem Ziel (oder ohne = offen),
  * jede Nebenkosten-/Rabattzeile mit ihrem aktuellen Bezug (immer ausdrücklich).
  */
 export function baueAufteilung(positionen: DokumentPosition[], zuweisungen: Record<number, ZielSchluessel>, bezuege: Bezuege = {}): PositionsZiel[] {
@@ -193,7 +193,7 @@ export function baueAufteilung(positionen: DokumentPosition[], zuweisungen: Reco
 }
 
 /**
- * Text hinter „Gilt für:“ – „alle Positionen“ oder „Pos. 3, 5“ (nach Positionsnummer
+ * Text hinter „Gilt für:" – „alle Positionen" oder „Pos. 3, 5" (nach Positionsnummer
  * sortiert). IDs, die es nicht als Warenposition gibt, werden übergangen.
  */
 export function gueltigFuerText(bezug: readonly number[] | null | undefined, positionen: DokumentPosition[]): string {
@@ -257,7 +257,7 @@ export function zieleAusPositionen(positionen: DokumentPosition[]): PositionsZie
 
 // ---------------------------------------------------------------- Ziehen & Ablegen
 
-/** Präfix der Ablageflächen-IDs; `ablage:` ohne Ziel = „Nicht zugeordnet“. */
+/** Präfix der Ablageflächen-IDs; `ablage:` ohne Ziel = „Nicht zugeordnet". */
 const ABLAGE_PRAEFIX = 'ablage:';
 
 export function ablageId(ziel: ZielSchluessel): string {

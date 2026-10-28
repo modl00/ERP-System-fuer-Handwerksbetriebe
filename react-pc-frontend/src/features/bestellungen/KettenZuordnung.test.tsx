@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { KettenZuordnung, type KettenZuordnungDokument } from './KettenZuordnung';
 
 /**
- * „Projekten zuordnen“ für eine Bestellung mit mehreren Rechnungen: Leiste
+ * „Projekten zuordnen" für eine Bestellung mit mehreren Rechnungen: Leiste
  * oben, Wechsel per Klick, nach dem Speichern weiter zur nächsten offenen.
  * Nur Dummy-Daten (DSGVO).
  */

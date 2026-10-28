@@ -2,7 +2,7 @@ import createDOMPurify from 'dompurify';
 import { leseFehlermeldung } from '../../../lib/apiFehler';
 
 /**
- * Typen, Aufrufe und Hilfen für „Feste Texte“ (Widerrufsbelehrung & Co.).
+ * Typen, Aufrufe und Hilfen für „Feste Texte" (Widerrufsbelehrung & Co.).
  * Alle Aufrufe gehen an /api/formulare/rechtstexte. Den CSRF-Kopf setzt der
  * globale Interceptor in main.tsx, hier bewusst nicht.
  */
@@ -18,7 +18,7 @@ export interface RechtstextUebersicht {
     bezeichnung: string;
     /** 0 = noch nie gespeichert, es gilt der mitgelieferte Standardtext. */
     fassung: number;
-    /** ISO-Datum, z. B. „2026-10-13“. */
+    /** ISO-Datum, z. B. „2026-10-13". */
     stand: string;
     standardtext: boolean;
     /** ISO-Datum-Uhrzeit oder null, solange nie gespeichert. */
@@ -140,14 +140,14 @@ export const RECHTSTEXT_TYPO = [
     '[&_strong]:font-semibold [&_b]:font-semibold',
 ].join(' ');
 
-/** „2026-10-13“ → „13.10.2026“. Ohne Date-Objekt, damit keine Zeitzone verrutscht. */
+/** „2026-10-13" → „13.10.2026". Ohne Date-Objekt, damit keine Zeitzone verrutscht. */
 export function formatiereDatum(iso: string | null | undefined): string {
     const treffer = /^(\d{4})-(\d{2})-(\d{2})/.exec(iso ?? '');
     if (!treffer) return '';
     return `${treffer[3]}.${treffer[2]}.${treffer[1]}`;
 }
 
-/** „2026-10-13T14:05:00“ → „13.10.2026, 14:05 Uhr“. */
+/** „2026-10-13T14:05:00" → „13.10.2026, 14:05 Uhr". */
 export function formatiereZeitpunkt(iso: string | null | undefined): string {
     const datum = formatiereDatum(iso);
     if (!datum) return '';
@@ -156,7 +156,7 @@ export function formatiereZeitpunkt(iso: string | null | undefined): string {
 }
 
 /**
- * Untertitel einer Karte bzw. des Dialogkopfs, z. B. „Stand 13.10.2026 · Fassung 3“.
+ * Untertitel einer Karte bzw. des Dialogkopfs, z. B. „Stand 13.10.2026 · Fassung 3".
  * Fassung 0 heißt: noch nie gespeichert, es gilt der mitgelieferte Standardtext.
  */
 export function beschreibeStand(text: Pick<RechtstextUebersicht, 'fassung' | 'stand'>): string {

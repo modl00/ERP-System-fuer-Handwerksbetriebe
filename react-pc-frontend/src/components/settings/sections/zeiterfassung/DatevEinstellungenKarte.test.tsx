@@ -119,7 +119,7 @@ describe('DatevEinstellungenKarte', () => {
         expect(puts[0].personalnummern).toEqual([]);
     });
 
-    it('übernimmt Lohnarten je Art und lässt „Nicht exportieren“ ohne Lohnart', async () => {
+    it('übernimmt Lohnarten je Art und lässt „Nicht exportieren" ohne Lohnart', async () => {
         await zeige();
         await waehle('Export für Urlaub', 'Lohnart zuordnen');
         fireEvent.change(screen.getByRole('textbox', { name: 'Lohnart für Urlaub' }), { target: { value: '0300' } });
@@ -200,7 +200,7 @@ describe('DatevEinstellungenKarte', () => {
         expect(gets).toHaveLength(1);
     });
 
-    it('erklärt DATEV, Soll/Ist, „Nicht exportieren“ und Personalnummer per Info-Knopf an Ort und Stelle', async () => {
+    it('erklärt DATEV, Soll/Ist, „Nicht exportieren" und Personalnummer per Info-Knopf an Ort und Stelle', async () => {
         await zeige();
         await screen.findByRole('textbox', { name: 'Personalnummer für Max Mustermann' });
         const oeffne = (name: string, index = 0) => {
@@ -213,7 +213,7 @@ describe('DatevEinstellungenKarte', () => {
         expect(screen.getAllByRole('button', { name: 'Mehr zu: Stunden ans Steuerbüro' })).toHaveLength(2);
         const stunden = oeffne('Stunden ans Steuerbüro', 1);
         expect(stunden).toHaveTextContent('nichts wird doppelt gezählt');
-        expect(stunden).toHaveTextContent('Mitarbeiter ohne Soll (z. B. Aushilfen) auf „Ist“ stellen');
+        expect(stunden).toHaveTextContent('Mitarbeiter ohne Soll (z. B. Aushilfen) auf „Ist" stellen');
         fireEvent.keyDown(stunden, { key: 'Escape' });
         expect(oeffne('Nicht exportieren')).toHaveTextContent('müssen dort bewusst bestätigt werden');
         fireEvent.keyDown(screen.getByRole('dialog', { name: 'Nicht exportieren' }), { key: 'Escape' });
@@ -221,7 +221,7 @@ describe('DatevEinstellungenKarte', () => {
         expect(puts).toHaveLength(0);
     });
 
-    it('zeigt einen Ladefehler der Einstellungen mit „Erneut laden“', async () => {
+    it('zeigt einen Ladefehler der Einstellungen mit „Erneut laden"', async () => {
         vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => String(input) === '/api/mitarbeiter'
             ? json(MITARBEITER)
             : json({ message: 'Diese Einstellungen dürfen nur Admins ändern.' }, 403)));

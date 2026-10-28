@@ -12,7 +12,7 @@ import { setzeMenueStand, ausgeblendetAus, useMenue } from '../../features/menue
 interface Eintrag {
     name: string;
     href: string;
-    /** Weitere Adressen, die zu dieser Funktion gehören (für „hier bin ich gerade“). */
+    /** Weitere Adressen, die zu dieser Funktion gehören (für „hier bin ich gerade"). */
     auch?: string[];
     icon: React.ComponentType<{ className?: string }>;
 }
@@ -30,7 +30,7 @@ interface Props {
     istAdmin: boolean;
 }
 
-/** „Alle Funktionen“: jede Funktion mit Haken, ob sie im Hauptmenü stehen soll. Ausgeblendetes bleibt hier erreichbar. */
+/** „Alle Funktionen": jede Funktion mit Haken, ob sie im Hauptmenü stehen soll. Ausgeblendetes bleibt hier erreichbar. */
 export function AlleFunktionenDialog({ offen, onSchliessen, ...rest }: Props) {
     const titelId = useId();
     return (

@@ -58,7 +58,7 @@ describe('MeinePostfaecherDialog', () => {
         expect(await screen.findByTestId('postfach-liste')).toBeInTheDocument();
     });
 
-    it('beim Ändern bleibt das Passwort leer und wird als „unverändert“ gemeldet; Testen nimmt das gespeicherte', async () => {
+    it('beim Ändern bleibt das Passwort leer und wird als „unverändert" gemeldet; Testen nimmt das gespeicherte', async () => {
         const u = userEvent.setup();
         zeige();
         await u.click(await screen.findByRole('button', { name: 'Mein Büro bearbeiten' }));

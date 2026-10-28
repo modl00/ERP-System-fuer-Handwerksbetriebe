@@ -106,7 +106,7 @@ function aufrufe(methode: string, url: string) {
 }
 
 describe('Kundeneditor – Kunde löschen (Datenschutz)', () => {
-    it('zeigt „Löschen…“ nur für Admins', async () => {
+    it('zeigt „Löschen…" nur für Admins', async () => {
         auth = { isAdmin: false };
         renderAkte();
         expect(await screen.findByRole('button', { name: /Bearbeiten/ })).toBeInTheDocument();

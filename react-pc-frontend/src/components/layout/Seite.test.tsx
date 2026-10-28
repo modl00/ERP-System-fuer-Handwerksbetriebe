@@ -21,7 +21,7 @@ describe('Seite', () => {
         expect(screen.getByRole('status')).toHaveTextContent('Seite wird geladen');
     });
 
-    it('meldet eine nicht ladbare Seitendatei verständlich mit „Erneut versuchen“', async () => {
+    it('meldet eine nicht ladbare Seitendatei verständlich mit „Erneut versuchen"', async () => {
         vi.spyOn(console, 'error').mockImplementation(() => { });
         const Kaputt = lazy(() => Promise.reject(new TypeError('Failed to fetch dynamically imported module: /assets/Kunden-abc.js')));
         render(<Seite><Kaputt /></Seite>);
@@ -46,7 +46,7 @@ describe('istLadefehlerEinerSeite', () => {
         'Importing a module script failed.', // Safari
         'error loading dynamically imported module', // Firefox
         'Unable to preload CSS for /assets/a.css', // Vite
-    ])('erkennt „%s“', (meldung) => {
+    ])('erkennt „%s"', (meldung) => {
         expect(istLadefehlerEinerSeite(new TypeError(meldung))).toBe(true);
     });
 

@@ -477,7 +477,7 @@ describe('EmailComposeForm – Sichtbarkeit der Postfächer (Etappe 2)', () => {
 });
 
 describe('EmailComposeForm – auslaufendes Postfach', () => {
-    it('meldet 400 „läuft aus“ als Toast und lässt das Formular offen', async () => {
+    it('meldet 400 „läuft aus" als Toast und lässt das Formular offen', async () => {
         sendeAntwort = { status: 400, body: { message: 'Dieses Postfach läuft aus. Bitte ein anderes Postfach wählen.' } };
         stubFetch();
         const onClose = vi.fn();

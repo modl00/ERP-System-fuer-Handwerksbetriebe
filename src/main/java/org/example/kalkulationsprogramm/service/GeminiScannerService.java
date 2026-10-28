@@ -48,6 +48,7 @@ public class GeminiScannerService {
                     List.of(new Nutzer("Generate a filename.", List.of(new Anhang("image/jpeg", imageBytes)))),
                     List.of(), 0.0, 200);
             String text = kiAnbieterService.waehle(KiFunktion.SCANNER).chat(anfrage).text().trim();
+
             text = text.replace(" ", "_").replaceAll("[^a-zA-Z0-9_\\-]", "");
             return text.isEmpty() ? "Scan_" + System.currentTimeMillis() : text;
         } catch (KiAnbieterFehler e) {

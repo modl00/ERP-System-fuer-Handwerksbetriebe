@@ -218,7 +218,7 @@ export default function BelegPositionenAuswahlPage() {
                     <p className="font-medium text-slate-700">Keine Einzel-Positionen erkannt</p>
                     <p className="text-xs max-w-xs">
                         Der Bon hatte vermutlich nur eine Gesamtsumme. Bitte am PC manuell aufteilen
-                        oder den Beleg als „Ganz für Firma“ buchen.
+                        oder den Beleg als „Ganz für Firma" buchen.
                     </p>
                     <button
                         onClick={() => navigate('/belege')}

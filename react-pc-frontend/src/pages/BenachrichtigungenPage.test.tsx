@@ -121,8 +121,8 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
-describe('Seite „Benachrichtigungen“ – Aufbau', () => {
-    it('fragt alle Einträge ab und zeigt die Themen, „Sicherung & Updates“ ganz oben', async () => {
+describe('Seite „Benachrichtigungen" – Aufbau', () => {
+    it('fragt alle Einträge ab und zeigt die Themen, „Sicherung & Updates" ganz oben', async () => {
         stubbeApi([VOLL]);
         renderSeite();
 
@@ -151,7 +151,7 @@ describe('Seite „Benachrichtigungen“ – Aufbau', () => {
         expect(screen.queryByRole('group', { name: 'Nach Thema filtern' })).toBeNull();
     });
 
-    it('zeigt einen Fehler mit „Neu laden“ und lädt auf Klick erneut', async () => {
+    it('zeigt einen Fehler mit „Neu laden" und lädt auf Klick erneut', async () => {
         stubbeApi([500, VOLL]);
         renderSeite();
 
@@ -178,7 +178,7 @@ describe('Seite „Benachrichtigungen“ – Aufbau', () => {
 });
 
 describe('Sicherung & Updates', () => {
-    it('zeigt den mehrzeiligen Text vollständig und ohne „Öffnen“', async () => {
+    it('zeigt den mehrzeiligen Text vollständig und ohne „Öffnen"', async () => {
         stubbeApi([VOLL]);
         renderSeite();
 
@@ -207,11 +207,11 @@ describe('Sicherung & Updates', () => {
         expect(info).toHaveTextContent(/Jede Nacht \(standardmäßig um 2 Uhr\) sichert das ERP die komplette Datenbank/);
         expect(info).toHaveTextContent(/Danach \(standardmäßig um 3 Uhr\) schaut das ERP nach einer neuen Version\./);
         expect(info).toHaveTextContent('Was bewirkt das?');
-        expect(info).toHaveTextContent(/„Erledigt“ blendet nur die Meldung aus, das Problem bleibt/);
+        expect(info).toHaveTextContent(/„Erledigt" blendet nur die Meldung aus, das Problem bleibt/);
         expect(info).toHaveTextContent('Diese Meldungen sehen nur Admins.');
     });
 
-    it('„Alle erledigt“ meldet beide Kategorien und sagt der Glocke Bescheid', async () => {
+    it('„Alle erledigt" meldet beide Kategorien und sagt der Glocke Bescheid', async () => {
         const glocke = vi.fn();
         window.addEventListener('notifications:refresh', glocke);
         const emails = vi.fn();
@@ -241,7 +241,7 @@ describe('Sicherung & Updates', () => {
 });
 
 describe('Erledigt und Öffnen', () => {
-    it('„Erledigt“ schickt die id, blendet den Eintrag aus und lädt die Glocke neu', async () => {
+    it('„Erledigt" schickt die id, blendet den Eintrag aus und lädt die Glocke neu', async () => {
         const glocke = vi.fn();
         window.addEventListener('notifications:refresh', glocke);
         const nachher: NotificationSummary = {
@@ -277,7 +277,7 @@ describe('Erledigt und Öffnen', () => {
         expect(await screen.findByText('Aufmaß Bad')).toBeInTheDocument();
     });
 
-    it('„Öffnen“ meldet erledigt und springt zum Eintrag', async () => {
+    it('„Öffnen" meldet erledigt und springt zum Eintrag', async () => {
         stubbeApi([VOLL]);
         renderSeite();
 
@@ -289,7 +289,7 @@ describe('Erledigt und Öffnen', () => {
         ]));
     });
 
-    it('„Öffnen“ einer E-Mail lässt danach das E-Mail-Center neu laden', async () => {
+    it('„Öffnen" einer E-Mail lässt danach das E-Mail-Center neu laden', async () => {
         const emails = vi.fn();
         window.addEventListener('emails:refresh', emails);
         stubbeApi([VOLL]);
@@ -303,7 +303,7 @@ describe('Erledigt und Öffnen', () => {
         window.removeEventListener('emails:refresh', emails);
     });
 
-    it('„Alle erledigt“ der Posteingänge schickt die Mail-Kategorien und lädt das E-Mail-Center neu', async () => {
+    it('„Alle erledigt" der Posteingänge schickt die Mail-Kategorien und lädt das E-Mail-Center neu', async () => {
         const emails = vi.fn();
         window.addEventListener('emails:refresh', emails);
         stubbeApi([VOLL], 200);
@@ -320,7 +320,7 @@ describe('Erledigt und Öffnen', () => {
         window.removeEventListener('emails:refresh', emails);
     });
 
-    it('„Alle erledigt“ ohne Kategorien schickt die ids der Einträge', async () => {
+    it('„Alle erledigt" ohne Kategorien schickt die ids der Einträge', async () => {
         stubbeApi([{ totalCount: 0, categories: [], recentItems: [TERMIN] }]);
         renderSeite();
 
@@ -395,7 +395,7 @@ describe('Inhalte vom Server', () => {
         expect(document.querySelector('main script, section script')).toBeNull();
     });
 
-    it('„und X weitere“ unter der Liste führt zur passenden Übersicht', async () => {
+    it('„und X weitere" unter der Liste führt zur passenden Übersicht', async () => {
         stubbeApi([VOLL]);
         renderSeite();
 
@@ -431,7 +431,7 @@ describe('Inhalte vom Server', () => {
         expect(within(bereich).queryByRole('button', { name: /zur Übersicht/ })).toBeNull();
     });
 
-    it('lädt neu, wenn eine andere Stelle „notifications:refresh“ meldet', async () => {
+    it('lädt neu, wenn eine andere Stelle „notifications:refresh" meldet', async () => {
         stubbeApi([VOLL, LEER]);
         renderSeite();
         await screen.findByRole('heading', { name: 'Termine' });
@@ -441,7 +441,7 @@ describe('Inhalte vom Server', () => {
         expect(await screen.findByText('Keine neuen Benachrichtigungen – alles erledigt.')).toBeInTheDocument();
     });
 
-    it('„Neu laden“ oben holt den Stand vom Server und meldet Fehler', async () => {
+    it('„Neu laden" oben holt den Stand vom Server und meldet Fehler', async () => {
         stubbeApi([VOLL, 503]);
         renderSeite();
         await screen.findByRole('heading', { name: 'Termine' });

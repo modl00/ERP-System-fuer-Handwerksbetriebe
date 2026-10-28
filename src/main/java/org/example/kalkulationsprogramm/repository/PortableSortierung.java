@@ -2,7 +2,7 @@ package org.example.kalkulationsprogramm.repository;
 
 import java.util.List;
 
-import org.hibernate.query.NullPrecedence;
+import jakarta.persistence.criteria.Nulls;
 import org.hibernate.query.criteria.JpaOrder;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -73,11 +73,11 @@ public final class PortableSortierung {
     }
 
     /** Ausdrueckliche Angabe am Sort.Order geht vor, sonst wie bisher: leer ist der kleinste Wert. */
-    static NullPrecedence leerwerte(Sort.Order order) {
+    static Nulls leerwerte(Sort.Order order) {
         return switch (order.getNullHandling()) {
-            case NULLS_FIRST -> NullPrecedence.FIRST;
-            case NULLS_LAST -> NullPrecedence.LAST;
-            case NATIVE -> order.isAscending() ? NullPrecedence.FIRST : NullPrecedence.LAST;
+            case NULLS_FIRST -> Nulls.FIRST;
+            case NULLS_LAST -> Nulls.LAST;
+            case NATIVE -> order.isAscending() ? Nulls.FIRST : Nulls.LAST;
         };
     }
 

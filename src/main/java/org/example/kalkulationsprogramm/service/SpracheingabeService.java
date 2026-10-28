@@ -206,11 +206,11 @@ public class SpracheingabeService {
         HttpResponse<String> antwort;
         try {
             antwort = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new IllegalStateException("Die Spracherkennung ist nicht erreichbar.", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Der Aufruf der Spracherkennung wurde unterbrochen.", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Die Spracherkennung ist nicht erreichbar.", e);
         }
 
         if (antwort.statusCode() >= 400) {

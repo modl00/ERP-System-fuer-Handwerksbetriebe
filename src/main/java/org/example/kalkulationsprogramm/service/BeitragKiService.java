@@ -361,11 +361,11 @@ public class BeitragKiService {
         HttpResponse<String> antwort;
         try {
             antwort = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new IllegalStateException("Die KI ist nicht erreichbar.", e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new IllegalStateException("Der Aufruf der KI wurde unterbrochen.", e);
+        } catch (Exception e) {
+            throw new IllegalStateException("Die KI ist nicht erreichbar.", e);
         }
 
         if (antwort.statusCode() >= 400) {

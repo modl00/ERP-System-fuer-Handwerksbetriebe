@@ -206,11 +206,11 @@ public class LokalerKiService {
             return new Testergebnis(true, "OK", "Die lokale KI antwortet (Modell " + k.modell() + "): " + kurz(antwort));
         } catch (LokaleKiFehler e) {
             return new Testergebnis(false, art(e.getMessage()), e.getMessage());
-        } catch (Exception e) {
-            return new Testergebnis(false, "FEHLER", "Die lokale KI konnte nicht befragt werden.");
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return new Testergebnis(false, "FEHLER", "Der Test wurde unterbrochen.");
+        } catch (Exception e) {
+            return new Testergebnis(false, "FEHLER", "Die lokale KI konnte nicht befragt werden.");
         }
     }
 

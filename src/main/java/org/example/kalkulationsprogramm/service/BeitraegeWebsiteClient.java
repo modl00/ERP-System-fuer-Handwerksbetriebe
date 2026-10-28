@@ -219,11 +219,11 @@ public class BeitraegeWebsiteClient {
         HttpResponse<byte[]> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofByteArray());
-        } catch (Exception e) {
-            throw new BeitraegeWebsiteException("Netzwerkfehler beim Laden des Bildes: " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BeitraegeWebsiteException("Laden des Bildes wurde unterbrochen.", e);
+        } catch (Exception e) {
+            throw new BeitraegeWebsiteException("Netzwerkfehler beim Laden des Bildes: " + e.getMessage(), e);
         }
 
         if (response.statusCode() >= 400) {
@@ -354,11 +354,11 @@ public class BeitraegeWebsiteClient {
         HttpResponse<String> response;
         try {
             response = httpClient.send(request, HttpResponse.BodyHandlers.ofString(StandardCharsets.UTF_8));
-        } catch (Exception e) {
-            throw new BeitraegeWebsiteException("Netzwerkfehler beim Aufruf der Website-API: " + e.getMessage(), e);
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             throw new BeitraegeWebsiteException("Aufruf der Website-API wurde unterbrochen.", e);
+        } catch (Exception e) {
+            throw new BeitraegeWebsiteException("Netzwerkfehler beim Aufruf der Website-API: " + e.getMessage(), e);
         }
 
         if (response.statusCode() >= 400) {

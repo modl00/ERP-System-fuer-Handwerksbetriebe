@@ -58,7 +58,7 @@ public final class ArbeitsgangFormeln {
             try {
                 felder = JSON.readValue(g.getFormelFelderJson(), new TypeReference<List<Feld>>() {
                 });
-            } catch (java.io.IOException e) {
+            } catch (Exception e) {
                 felder = List.of();
             }
         }
@@ -133,7 +133,7 @@ public final class ArbeitsgangFormeln {
     public static String felderAlsJson(List<Feld> felder) {
         try {
             return felder == null || felder.isEmpty() ? null : JSON.writeValueAsString(felder);
-        } catch (java.io.IOException e) {
+        } catch (Exception e) {
             throw new FormelException("Die Eingabefelder konnten nicht gespeichert werden.");
         }
     }
@@ -179,7 +179,7 @@ public final class ArbeitsgangFormeln {
     public static String werteAlsJson(Map<String, BigDecimal> werte) {
         try {
             return JSON.writeValueAsString(new LinkedHashMap<>(werte));
-        } catch (java.io.IOException e) {
+        } catch (Exception e) {
             throw new FormelException("Die Werte konnten nicht gespeichert werden.");
         }
     }
@@ -191,7 +191,7 @@ public final class ArbeitsgangFormeln {
         try {
             return JSON.readValue(json, new TypeReference<LinkedHashMap<String, BigDecimal>>() {
             });
-        } catch (java.io.IOException e) {
+        } catch (Exception e) {
             return null;
         }
     }

@@ -60,7 +60,7 @@ public final class ArtikelFormeln {
             try {
                 felder = JSON.readValue(a.getFormelFelderJson(), new TypeReference<List<Feld>>() {
                 });
-            } catch (java.io.IOException e) {
+            } catch (Exception e) {
                 felder = List.of();
             }
         }

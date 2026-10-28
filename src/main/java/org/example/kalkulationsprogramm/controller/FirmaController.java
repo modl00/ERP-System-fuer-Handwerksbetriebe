@@ -107,7 +107,7 @@ public class FirmaController {
             return ResponseEntity.ok(dto);
         } catch (IllegalArgumentException e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
-        } catch (java.io.IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.internalServerError().body(Map.of("message", "Speichern fehlgeschlagen"));
         }
     }

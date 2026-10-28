@@ -95,7 +95,7 @@ public class AnfrageController {
             ZugferdDaten daten = zugferdExtractorService.extract(temp.toString(), datei.getOriginalFilename());
             Files.deleteIfExists(temp);
             return ResponseEntity.ok(daten);
-        } catch (java.io.IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -130,7 +130,7 @@ public class AnfrageController {
 
             Files.deleteIfExists(temp);
             return ResponseEntity.ok(daten);
-        } catch (java.io.IOException e) {
+        } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST).build();
         }
     }
@@ -230,7 +230,7 @@ public class AnfrageController {
         }
         try {
             Files.deleteIfExists(datei);
-        } catch (java.io.IOException ignored) {
+        } catch (Exception ignored) {
             // Temp-Aufräumen darf die Antwort nicht kippen
         }
     }

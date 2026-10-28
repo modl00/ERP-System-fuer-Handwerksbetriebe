@@ -540,7 +540,7 @@ public class ProjektController {
         }
         try {
             Files.deleteIfExists(datei);
-        } catch (java.io.IOException ignored) {
+        } catch (Exception ignored) {
             // Temp-Aufräumen darf die Antwort nicht kippen
         }
     }

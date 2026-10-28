@@ -1895,7 +1895,7 @@ public class GeminiDokumentAnalyseService {
         try {
             return new NachleseVorlage(Files.readAllBytes(validiereAnalyseDateiPfad(dateiPfad, false)),
                     getMimeType(dokument));
-        } catch (java.io.IOException | IllegalArgumentException | SecurityException e) {
+        } catch (Exception e) {
             // Keine Details nach außen: IO-Fehler nennen den Serverpfad.
             throw new PositionenNichtLesbarException("Datei zum Dokument nicht lesbar");
         }

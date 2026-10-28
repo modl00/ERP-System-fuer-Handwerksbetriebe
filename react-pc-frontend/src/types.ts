@@ -504,6 +504,8 @@ export interface Fertigungsunterlage {
   dateigroesseBytes?: number;
   erstelltAm?: string;
   url: string;
+  /** ID des Ursprungsartikels, wenn diese Unterlage aus einem anderen Artikel vorgeschlagen wird. */
+  quellId?: number;
 }
 
 // ==================== Artikel Bilder & Unterlagen ====================

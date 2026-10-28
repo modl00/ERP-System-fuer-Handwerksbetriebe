@@ -152,7 +152,7 @@ public class BetriebsstatusService {
                 return Optional.empty();
             }
             return Optional.ofNullable(objectMapper.readValue(datei.toFile(), StatusDatei.class));
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             // Halb geschriebene oder fremde Datei: lieber keine Meldung als eine kaputte Glocke.
             log.debug("Statusdatei {} nicht lesbar: {}", dateiname, e.getMessage());
             return Optional.empty();

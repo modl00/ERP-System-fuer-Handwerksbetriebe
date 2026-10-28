@@ -77,7 +77,7 @@ public final class PdfSchriften {
                 return null;
             }
             return BaseFont.createFont(datei, BaseFont.CP1252, BaseFont.EMBEDDED, true, in.readAllBytes(), null);
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             log.warn("Schrift {} konnte nicht geladen werden - Times als Ersatz: {}", pfad, e.getMessage());
             return null;
         }

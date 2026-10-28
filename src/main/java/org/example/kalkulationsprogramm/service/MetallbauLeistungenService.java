@@ -135,7 +135,7 @@ public class MetallbauLeistungenService {
                         l.hasNonNull("losgroesse") ? new BigDecimal(l.path("losgroesse").asText()) : BigDecimal.ONE, zahl(l, "zuschlag"), l.path("beschreibung").asText(""), List.copyOf(pos)));
             }
             return new Katalog(w.path("hinweis").asText(""), List.copyOf(kategorien), List.copyOf(maschinen), List.copyOf(fremd), List.copyOf(leistungen));
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             throw new IllegalStateException("Der Katalog der Leistungen ist nicht lesbar: " + e.getMessage(), e);
         }
     }

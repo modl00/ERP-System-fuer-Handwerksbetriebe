@@ -107,7 +107,7 @@ public class PlanungsKi {
         try {
             JsonNode wurzel = JSON.readTree(antwort == null ? "" : antwort);
             liste = wurzel.isArray() ? wurzel : wurzel.get("vorgaenge");
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             throw new IllegalArgumentException("Die Antwort der KI war nicht lesbar. Bitte noch einmal versuchen.");
         }
         if (liste == null || !liste.isArray()) {

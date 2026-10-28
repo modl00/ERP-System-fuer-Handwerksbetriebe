@@ -44,7 +44,7 @@ public class SmbjAbgleichSpeicher implements AbgleichSpeicher {
             this.freigabe = (DiskShare) sitzung.connectShare(e.freigabe().trim());
             this.basis = e.unterordnerSauber().replace('/', '\\');
             legeOrdnerAn(basis);
-        } catch (IOException | RuntimeException ex) {
+        } catch (Exception ex) {
             client.close();
             throw ex;
         }

@@ -676,7 +676,7 @@ public class BelegKiKostenkontoService {
                 return userTurn(text);
             }
             return userTurnMitBild(text, datei, mimeType);
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             // Keine Dateipfade oder Datei-Inhalte im Log: der Text-Prompt bleibt nutzbar.
             log.warn("KI-Agent Beleg {}: Datei konnte nicht gelesen werden ({}) — nur Text",
                     beleg.getId(), e.getClass().getSimpleName());

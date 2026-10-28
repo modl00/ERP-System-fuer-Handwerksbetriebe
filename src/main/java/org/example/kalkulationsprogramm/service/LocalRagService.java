@@ -304,7 +304,7 @@ public class LocalRagService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return null;
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             log.warn("    Bedeutungssuche ausgefallen ({}), Wortsuche allein", e.getClass().getSimpleName());
             return null;
         }

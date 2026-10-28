@@ -426,7 +426,7 @@ public class BildVorschauService {
                     is.skipNBytes(laenge - 2);
                 }
             }
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             return normaleLage;
         }
     }

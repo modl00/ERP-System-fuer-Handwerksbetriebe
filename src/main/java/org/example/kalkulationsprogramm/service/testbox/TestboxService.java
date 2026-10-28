@@ -160,7 +160,7 @@ public class TestboxService {
         } catch (InterruptedException e) {
             Thread.currentThread().interrupt();
             return new Vorschlag(wahl, text, false, "Die Anfrage an die KI wurde abgebrochen. Ihr Text bleibt, wie er ist.");
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             log.warn("[Testbox] KI nicht verfügbar: {}", e.getMessage());
             return new Vorschlag(wahl, text, false, "Die KI ist nicht erreichbar oder nicht eingerichtet. Ihr Text bleibt, wie er ist.");
         }

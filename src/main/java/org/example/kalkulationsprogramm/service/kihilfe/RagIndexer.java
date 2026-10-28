@@ -402,7 +402,7 @@ public final class RagIndexer {
                 Thread.currentThread().interrupt();
                 fehler = "Abgebrochen";
                 break;
-            } catch (IOException | RuntimeException e) {
+            } catch (Exception e) {
                 fehler = e.getMessage();
                 log.warn("RAG: Einbetten abgebrochen nach {} neuen Abschnitten: {}", neu, fehler);
                 break;
@@ -502,7 +502,7 @@ public final class RagIndexer {
                 json.writeEndObject();
             }
             Files.move(temp, ziel, StandardCopyOption.REPLACE_EXISTING, StandardCopyOption.ATOMIC_MOVE);
-        } catch (IOException | RuntimeException e) {
+        } catch (Exception e) {
             // Keine halbe 25-MB-Datei liegen lassen
             Files.deleteIfExists(temp);
             // Jackson 3 meldet Schreibfehler (volle Platte) ungeprueft - die Aufrufer fangen IOException

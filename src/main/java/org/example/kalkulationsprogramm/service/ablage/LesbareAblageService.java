@@ -347,7 +347,7 @@ public class LesbareAblageService {
                     Files.copy(e.quelle(), ziel, StandardCopyOption.COPY_ATTRIBUTES);
                     kopiert++;
                 }
-            } catch (IOException | RuntimeException ex) {
+            } catch (Exception ex) {
                 fehler.add(e.relativ() + ": " + ex.getMessage());
                 log.warn("Lesbare Ablage: {} konnte nicht angelegt werden", e.relativ(), ex);
             }

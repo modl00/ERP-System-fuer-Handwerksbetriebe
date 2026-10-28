@@ -109,7 +109,7 @@ public class SmbAbgleichService {
         pruefeGeraet(e);
         try {
             return durchsucher.freigaben(e);
-        } catch (IOException | RuntimeException ex) {
+        } catch (Exception ex) {
             throw new IllegalStateException(klartext(ex), ex);
         }
     }
@@ -125,7 +125,7 @@ public class SmbAbgleichService {
         }
         try {
             return durchsucher.ordner(e, freigabe, pfad);
-        } catch (IOException | RuntimeException ex) {
+        } catch (Exception ex) {
             throw new IllegalStateException(klartext(ex), ex);
         }
     }
@@ -152,7 +152,7 @@ public class SmbAbgleichService {
                 throw new IllegalStateException("Die Probedatei kam verändert zurück.");
             }
             return "Verbindung steht: Anmelden, Schreiben und Lesen funktionieren.";
-        } catch (IOException | RuntimeException ex) {
+        } catch (Exception ex) {
             throw new IllegalStateException(klartext(ex), ex);
         }
     }
@@ -198,7 +198,7 @@ public class SmbAbgleichService {
                 einstellungen.merkeLauf(java.time.LocalDateTime.now(uhr), kurz(ergebnis));
             }
             return ergebnis;
-        } catch (IOException | RuntimeException ex) {
+        } catch (Exception ex) {
             if (ex instanceof ResponseStatusException rse && rse.getStatusCode() == HttpStatus.CONFLICT) {
                 throw rse;
             }
@@ -298,7 +298,7 @@ public class SmbAbgleichService {
                         hinweise.add("Auf beiden Seiten geändert (nicht abgeglichen): " + e.relativ());
                     }
                 }
-            } catch (IOException | RuntimeException ex) {
+            } catch (Exception ex) {
                 fehler.add(e.relativ() + ": " + ex.getMessage());
                 log.warn("SMB-Abgleich: {} konnte nicht abgeglichen werden", e.relativ(), ex);
             }
@@ -337,7 +337,7 @@ public class SmbAbgleichService {
                 if (!probelauf) {
                     uebernehmeNeu(s, d, projekte, stand, en.getKey());
                 }
-            } catch (IOException | RuntimeException ex) {
+            } catch (Exception ex) {
                 fehler.add(d.relativ() + ": " + ex.getMessage());
                 log.warn("SMB-Abgleich: {} konnte nicht übernommen werden", d.relativ(), ex);
             }
@@ -466,7 +466,7 @@ public class SmbAbgleichService {
         String typ;
         try {
             typ = Files.probeContentType(Path.of(sauber));
-        } catch (IOException | RuntimeException ex) {
+        } catch (Exception ex) {
             typ = null;
         }
         dateiSpeicherService.speichereErzeugteDatei(inhalt, sauber, projekt.getId(), gruppe, typ == null ? "application/octet-stream" : typ);

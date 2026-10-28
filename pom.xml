@@ -208,18 +208,11 @@
             </exclusions>
         </dependency>
         <!-- OpenPDF 3.x hat API-Breaking-Changes (PdfPCell, PdfContentByte, BaseFont entfernt).
-             RechnungPdfService nutzt noch die 1.x-API – Migration als eigenes Issue. -->
+             18 PDF-Services nutzen noch die 1.x-API (com.lowagie.text) – Migration als eigenes Issue. -->
         <dependency>
             <groupId>com.github.librepdf</groupId>
             <artifactId>openpdf</artifactId>
-            <version>3.0.5</version>
-            <!-- brotli4j samt nativer Bibliothek: OpenPDF nutzt es nicht, also nicht ins JAR -->
-            <exclusions>
-                <exclusion>
-                    <groupId>com.aayushatharva.brotli4j</groupId>
-                    <artifactId>*</artifactId>
-                </exclusion>
-            </exclusions>
+            <version>1.3.30</version>
         </dependency>
         <dependency>
             <groupId>org.apache.commons</groupId>

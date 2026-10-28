@@ -355,7 +355,7 @@ public class KiAnbieterService {
     }
 
     /** Liest {@code data[].id} (Anzeigename aus {@code anzeigeFeld}, sonst die Kennung), sortiert, ohne Doppelte. */
-    private static List<Modell> modelleAusAntwort(com.fasterxml.jackson.databind.JsonNode root, String anzeigeFeld) {
+    private static List<Modell> modelleAusAntwort(tools.jackson.databind.JsonNode root, String anzeigeFeld) {
         java.util.TreeMap<String, Modell> sortiert = new java.util.TreeMap<>();
         for (var m : root.path("data")) {
             String id = m.path("id").asText("").strip();

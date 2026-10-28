@@ -97,7 +97,7 @@ public class PlanungsEinstellungen {
         schreibe(AMPEL_SCHWELLE, String.valueOf(ampelSchwelleTage));
         try {
             schreibe(BETRIEBSURLAUB, mapper.writeValueAsString(urlaub.stream().map(u -> new UrlaubJson(u.von().toString(), u.bis().toString(), u.bezeichnung())).toList()));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Der Betriebsurlaub konnte nicht gespeichert werden.", e);
         }
         return lesen();
@@ -143,7 +143,7 @@ public class PlanungsEinstellungen {
                 try {
                     return mapper.readValue(json, new TypeReference<List<UrlaubJson>>() { }).stream()
                             .map(u -> new Urlaub(LocalDate.parse(u.von()), LocalDate.parse(u.bis()), u.bezeichnung() == null ? "" : u.bezeichnung())).toList();
-                } catch (JsonProcessingException | java.time.format.DateTimeParseException e) {
+                } catch (JacksonException | java.time.format.DateTimeParseException e) {
                     return List.<Urlaub>of();
                 }
             }).orElse(List.of());
@@ -196,7 +196,7 @@ public class PlanungsEinstellungen {
                             tage.put(Long.valueOf(id), menge);
                         }
                     });
-                } catch (JsonProcessingException | NumberFormatException e) {
+                } catch (JacksonException | NumberFormatException e) {
                     // kaputter Eintrag: es gilt, als gäbe es keine Bürotage
                 }
             });
@@ -229,7 +229,7 @@ public class PlanungsEinstellungen {
         schreibe(ARBEITSTAG_STUNDEN, arbeitstagStunden.stripTrailingZeros().toPlainString());
         try {
             schreibe(BUEROTAGE, mapper.writeValueAsString(json));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Die Bürotage konnten nicht gespeichert werden.", e);
         }
         return rhythmusLesen();

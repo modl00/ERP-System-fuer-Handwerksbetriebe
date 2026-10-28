@@ -3305,6 +3305,10 @@ public class AusgangsGeschaeftsDokumentService {
         return new PositionsTexte(quelle, zeilen);
     }
 
+    private void extractLeistungMengenFromPositionenJson(String positionenJson, Map<Long, BigDecimal> mengen) {
+        LeistungsPositionen.sammleMengen(positionenJson, mengen, new java.util.HashMap<>());
+    }
+
     private void sammlePositionsTexte(String positionenJson, List<String> zeilen) {
         if (positionenJson == null || positionenJson.isBlank()) return;
         try {

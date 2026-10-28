@@ -83,7 +83,7 @@ public class PlanungsHistorie {
         }
         try {
             speichere(v, "„" + v.getBezeichnung() + "“ (" + auftrag(v) + "): " + text, mapper.writeValueAsString(vorher));
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalStateException("Die Änderung konnte nicht festgehalten werden.", e);
         }
     }
@@ -168,7 +168,7 @@ public class PlanungsHistorie {
         Map<String, Object> z;
         try {
             z = mapper.readValue(a.getVorher(), MAP);
-        } catch (JsonProcessingException e) {
+        } catch (JacksonException e) {
             throw new IllegalArgumentException("Der alte Zustand ist nicht lesbar.", e);
         }
         Long typId = zahl(z.get("typId"));

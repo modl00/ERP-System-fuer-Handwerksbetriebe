@@ -424,8 +424,7 @@ public final class WartungImportAnalyse {
 
     private static Map<Long, List<JsonNode>> gruppiere(JsonNode liste) {
         Map<Long, List<JsonNode>> r = new HashMap<>();
-        for (Iterator<JsonNode> it = liste.elements(); it.hasNext();) {
-            JsonNode n = it.next();
+        for (JsonNode n : liste) {
             r.computeIfAbsent(n.path("wartung_id").asLong(), k -> new ArrayList<>()).add(n);
         }
         return r;

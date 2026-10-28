@@ -12,8 +12,8 @@ import java.util.Set;
 import org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe;
 import org.example.kalkulationsprogramm.service.formel.ArbeitsgangFormeln.Feld;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Zuschnitt-Formeln am Artikel (#228): Für Teile mit wechselnden Maßen (Blechzuschnitt, Abschnitt von Meterware) gibt es bis zu {@value ArbeitsgangFormeln#MAX_FELDER}

@@ -1,6 +1,6 @@
 package org.example.kalkulationsprogramm.service.ki.assistent;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Ein Werkzeug, das die KI nutzen darf. Die KI wählt nur aus und füllt die Angaben aus; ausgeführt wird es vom Programm, mit den Rechten des Benutzers.

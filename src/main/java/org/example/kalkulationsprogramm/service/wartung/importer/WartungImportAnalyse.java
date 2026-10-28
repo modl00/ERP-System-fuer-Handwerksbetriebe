@@ -22,7 +22,7 @@ import org.example.kalkulationsprogramm.dto.wartung.WartungImportDto.Zusammenfas
 import org.example.kalkulationsprogramm.service.wartung.importer.WartungImportAbbildung.Ergebnis;
 import org.example.kalkulationsprogramm.service.wartung.importer.WartungImportAbbildung.Fluegel;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 /**
  * Die Analyse für die Vorschau der Übernahme aus HandwerkPro: liest die Exportdatei und den Katalog des ERP und berechnet, was der Import tun würde. Reine Berechnung

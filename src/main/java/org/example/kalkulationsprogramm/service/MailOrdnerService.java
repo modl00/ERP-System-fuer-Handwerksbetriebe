@@ -10,8 +10,8 @@ import java.util.Properties;
 import org.example.email.MailSicherheit;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 import com.sun.mail.imap.IMAPFolder;
 
 import jakarta.mail.Folder;

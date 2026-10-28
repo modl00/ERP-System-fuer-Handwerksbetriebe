@@ -12,8 +12,8 @@ import java.nio.charset.StandardCharsets;
 import java.time.Duration;
 import java.util.Map;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Gemeinsame HTTP-Hilfe der Anbieter: JSON senden, Fehler in Klartext übersetzen. */
 final class HttpHilfe {

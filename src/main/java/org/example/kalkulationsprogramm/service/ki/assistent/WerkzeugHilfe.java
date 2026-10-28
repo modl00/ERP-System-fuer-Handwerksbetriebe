@@ -1,7 +1,7 @@
 package org.example.kalkulationsprogramm.service.ki.assistent;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Kleine Hilfen für Werkzeuge: Schema bauen, Angaben lesen und begrenzen. */
 final class WerkzeugHilfe {

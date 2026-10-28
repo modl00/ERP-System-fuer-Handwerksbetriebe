@@ -17,9 +17,9 @@ import org.example.kalkulationsprogramm.service.ki.KiTypen.KiWerkzeugAufruf;
 import org.example.kalkulationsprogramm.service.ki.KiTypen.Nutzer;
 import org.example.kalkulationsprogramm.service.ki.KiTypen.Werkzeugergebnis;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /**
  * Anbieter im OpenAI-Format ({@code /chat/completions}): die lokale KI (Ollama, LM Studio, vLLM, llama.cpp) und Mistral. Beide sprechen dasselbe Format

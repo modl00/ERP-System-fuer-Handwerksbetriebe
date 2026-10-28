@@ -18,8 +18,8 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Verbindung zur GraphQL-Schnittstelle von Hero Handwerkersoftware (Issue #76, Stufe 1: Verbindung und Erkundung). <b>Nur lesen:</b> Es werden nur Abfragen geschickt,

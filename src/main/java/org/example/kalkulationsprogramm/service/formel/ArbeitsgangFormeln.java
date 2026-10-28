@@ -14,8 +14,8 @@ import java.util.regex.Pattern;
 
 import org.example.kalkulationsprogramm.domain.Arbeitsgang;
 
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.core.type.TypeReference;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Arbeitsgang mit Formel (#216): bis zu {@value #MAX_FELDER} Eingabefelder (zum Beispiel Durchmesser, Länge, Vorschub) mit Standardwert und eine Formel für die Bearbeitungszeit

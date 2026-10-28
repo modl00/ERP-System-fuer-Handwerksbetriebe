@@ -11,7 +11,7 @@ import org.example.kalkulationsprogramm.service.LagerService;
 import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import lombok.RequiredArgsConstructor;
 

@@ -14,9 +14,9 @@ import org.example.kalkulationsprogramm.service.ki.KiTypen.KiWerkzeugAufruf;
 import org.example.kalkulationsprogramm.service.ki.KiTypen.Nutzer;
 import org.example.kalkulationsprogramm.service.ki.KiTypen.Werkzeugergebnis;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 
 /** Claude (Anthropic) über die Messages-Schnittstelle, mit Werkzeugaufrufen ({@code tool_use} und {@code tool_result}). */
 public final class ClaudeAnbieter implements KiAnbieter {

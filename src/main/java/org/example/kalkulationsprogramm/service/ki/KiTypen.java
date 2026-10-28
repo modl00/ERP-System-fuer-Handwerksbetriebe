@@ -2,7 +2,7 @@ package org.example.kalkulationsprogramm.service.ki;
 
 import java.util.List;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 /** Die gemeinsamen Datentypen für alle KI-Anbieter. Sie sind bewusst unabhängig vom Format eines Anbieters. */
 public final class KiTypen {

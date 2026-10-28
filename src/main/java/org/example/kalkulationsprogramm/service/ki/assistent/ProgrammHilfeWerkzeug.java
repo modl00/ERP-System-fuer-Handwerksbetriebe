@@ -3,7 +3,7 @@ package org.example.kalkulationsprogramm.service.ki.assistent;
 import org.example.kalkulationsprogramm.service.KiWissenService;
 import org.springframework.stereotype.Component;
 
-import com.fasterxml.jackson.databind.JsonNode;
+import tools.jackson.databind.JsonNode;
 
 import lombok.RequiredArgsConstructor;
 

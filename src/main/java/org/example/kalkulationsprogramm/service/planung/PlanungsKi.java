@@ -17,8 +17,8 @@ import org.example.kalkulationsprogramm.service.planung.PlanungsService.AuftragD
 import org.example.kalkulationsprogramm.service.planung.PlanungsService.VorgangDto;
 import org.springframework.stereotype.Service;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

@@ -10,7 +10,14 @@ import { useToast } from './ui/toast';
 
 interface CreateArticleModalProps {
     onClose: () => void;
-    onSave: () => void;
+    onSave: (artikel: { id: number; produktname: string }) => void;
+    vorausfuellung?: {
+        name?: string;
+        externeNummer?: string;
+        einkaufspreis?: number;
+        lieferantId?: number;
+        lieferantName?: string;
+    };
 }
 
 const VERRECHNUNGSEINHEITEN = [
@@ -20,13 +27,13 @@ const VERRECHNUNGSEINHEITEN = [
     { value: "STUECK", label: "Stück" }
 ];
 
-export function CreateArticleModal({ onClose, onSave }: CreateArticleModalProps) {
+export function CreateArticleModal({ onClose, onSave, vorausfuellung }: CreateArticleModalProps) {
     const toast = useToast();
     const [formData, setFormData] = useState({
-        produktname: "",
+        produktname: vorausfuellung?.name ?? "",
         produktlinie: "",
         produkttext: "",
-        externeArtikelnummer: "",
+        externeArtikelnummer: vorausfuellung?.externeNummer ?? "",
         verpackungseinheit: 1,
         preiseinheit: "1",
         verrechnungseinheit: "STUECK",
@@ -34,9 +41,9 @@ export function CreateArticleModal({ onClose, onSave }: CreateArticleModalProps)
         kategorieName: "",
         werkstoffId: 0 as number | null,
         werkstoffName: "",
-        preis: 0,
-        lieferantId: 0,
-        lieferantName: ""
+        preis: vorausfuellung?.einkaufspreis ?? 0,
+        lieferantId: vorausfuellung?.lieferantId ?? 0,
+        lieferantName: vorausfuellung?.lieferantName ?? ""
     });
 
     // Werkstoffe mit ID, weil der Artikel die ID braucht - nicht nur den Namen.
@@ -90,7 +97,8 @@ export function CreateArticleModal({ onClose, onSave }: CreateArticleModalProps)
             });
 
             if (!res.ok) throw new Error("Fehler beim Speichern");
-            onSave();
+            const artikel = await res.json() as { id: number; produktname: string };
+            onSave(artikel);
             onClose();
         } catch (err) {
             toast.error("Artikel konnte nicht angelegt werden.");

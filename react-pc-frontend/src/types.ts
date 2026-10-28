@@ -285,6 +285,7 @@ export interface LieferantDetail extends Lieferant {
   notizenAnzahl?: number;
   emails?: ProjektEmail[]; // Unified email structure for EmailsTab
   notizen?: LieferantNotiz[];
+  archiviert?: boolean;
 }
 
 
@@ -390,23 +391,18 @@ export interface Artikel {
   werkstoffId?: number;
   werkstoffName?: string;
   kgProMeter?: number;
-  werkstoffId?: number;
-  /** Strichcode, nur bei einem Teil der Artikel vorhanden. */
-  ean?: string;
-  version?: number;
-  stegdicke?: number;
-  flanschdicke?: number;
   flaecheJeQm?: number;
   kgJeStueck?: number;
   m2JeStueck?: number;
   /** TABELLE, BERECHNET oder HAND; leer bei älteren Artikeln. */
   gewichtHerkunft?: string;
   gewichtVeraltet?: boolean;
-  /** Nur für diesen Artikel festgelegt (leer = vom Werkstoff übernommen) */
-  verzinkungsgeeignetEigen?: boolean | null;
-  pulverbeschichtungsgeeignetEigen?: boolean | null;
   werkstoffVerzinkungsgeeignet?: boolean | null;
   werkstoffPulverbeschichtungsgeeignet?: boolean | null;
+  /** Ausgeblendet (#235): erscheint nicht mehr in der Auswahl; Bestehendes bleibt. */
+  archiviert?: boolean;
+  handelseinheitBezeichnung?: string | null;
+  handelseinheitMeter?: number | null;
 
   // Guenstigster Preis - die Suche liefert eine Zeile je Artikel
   guenstigsterPreis?: number;
@@ -499,6 +495,15 @@ export interface ArtikelDetail {
   artikel: Artikel;
   lieferanten: ArtikelLieferantEintrag[];
   preisverlauf: ArtikelPreisstand[];
+}
+
+/** Fertigungsunterlage (DXF, STEP, DWG, STP, DXB, PDF) am Artikelstamm. */
+export interface Fertigungsunterlage {
+  id: number;
+  originalDateiname: string;
+  dateigroesseBytes?: number;
+  erstelltAm?: string;
+  url: string;
 }
 
 // ==================== Artikel Bilder & Unterlagen ====================
@@ -886,6 +891,8 @@ export interface ArtikelInProjekt {
   ausLager?: boolean;
   /** false heisst "muss noch bestellt werden" - siehe offene Bestellliste. */
   bestellt?: boolean;
+  lieferantId?: number;
+  reserviert?: number;
 }
 
 export interface ProjektDetail extends Projekt {

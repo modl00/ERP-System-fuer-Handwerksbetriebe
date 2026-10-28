@@ -86,6 +86,8 @@ export function KiHilfeChat() {
     const [geoLocation, setGeoLocation] = useState<{ latitude: number; longitude: number } | null>(null);
     const messagesEndRef = useRef<HTMLDivElement>(null);
     const inputRef = useRef<HTMLTextAreaElement>(null);
+    const laufendeAnfrageRef = useRef<AbortController | null>(null);
+    const offeneFrageRef = useRef<string | null>(null);
 
     // Detect user profile changes (login/switch)
     useEffect(() => {
@@ -105,15 +107,6 @@ export function KiHilfeChat() {
         };
     }, [userId]);
 
-    /** Bricht eine laufende Frage still ab – ohne Fehlermeldung. */
-    const anfrageAbbrechen = useCallback(() => {
-        laufendeAnfrageRef.current?.abort();
-        laufendeAnfrageRef.current = null;
-        offeneFrageRef.current = null;
-        setLoading(false);
-        setLiveSchritte([]);
-    }, []);
-
     // Anderer Benutzer: Chat-Zustand beim Rendern aus dessen Speicher übernehmen.
     const [chatFuerBenutzer, setChatFuerBenutzer] = useState(userId);
     if (chatFuerBenutzer !== userId) {
@@ -124,7 +117,6 @@ export function KiHilfeChat() {
         setError(null);
         setInput('');
         setLoading(false);
-        setLiveSchritte([]);
     }
 
     // Beim Benutzerwechsel und beim Verlassen der Seite keine Antwort mehr abwarten:

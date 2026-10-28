@@ -6,16 +6,15 @@ import { PostfachSchild } from '../features/email/PostfachSchild';
 import { useAbsenderPostfaecher } from '../features/email/useAbsenderPostfaecher';
 import { ermittleEmailZuordnung } from '../features/email/emailZuordnung';
 import { EmailFolderSidebar } from '../features/email/EmailFolderSidebar';
-import { UngelesenKopfzeile } from '../features/email/UngelesenKopfzeile';
 import { AssignModal, type ZuordnungsZiel } from '../features/email/EmailAssignmentDialog';
 import { KiAbgleichDialog } from '../features/email/KiAbgleichDialog';
 import { OrdnerHinweis } from '../features/email/OrdnerHinweis';
 import { useOptionalAuth } from '../auth/AuthContext';
 import { useEmailPaneWidth } from '../features/email/useEmailPaneWidth';
 import {
-    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, filtereEntwuerfe, fremderEntwurfVon,
+    buildEmailListUrl, buildForwardSubject, buildReplyAddressing, buildReplySubject, emailListCacheKey, fremderEntwurfVon,
     getSenderName, getDisplayName, groupEmailThreads, hasFurtherRecipients, isImageAttachment, loeschFehlerMeldung, nutztServerFilterUngelesen,
-    type DraftItem, type EmailItem, type EmailThreadRow, type FolderType, type ReadFilter, type ReplyMode,
+    type EmailItem, type EmailThreadRow, type FolderType, type ReadFilter, type ReplyMode,
 } from '../features/email/emailCenterModel';
 import React, { useState, useEffect, useContext, useCallback, useLayoutEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams, UNSAFE_DataRouterContext } from 'react-router-dom';
@@ -335,7 +334,7 @@ export default function EmailCenter() {
     const [forwardEmail, setForwardEmail] = useState<EmailItem | null>(null);
 
     // Drafts
-    interface DraftItem { id: number; recipient?: string; cc?: string; subject?: string; body?: string; fromAddress?: string; replyEmailId?: number; weitergeleitetVonEmailId?: number | null; projektId?: number; anfrageId?: number; updatedAt?: string; }
+    interface DraftItem { id: number; recipient?: string; cc?: string; subject?: string; body?: string; fromAddress?: string; replyEmailId?: number; weitergeleitetVonEmailId?: number | null; projektId?: number; anfrageId?: number; updatedAt?: string; erstelltVon?: string | null; }
     const [drafts, setDrafts] = useState<DraftItem[]>([]);
     const [activeDraftId, setActiveDraftId] = useState<number | undefined>(undefined);
     const [activeDraft, setActiveDraft] = useState<DraftItem | null>(null);
@@ -2322,7 +2321,7 @@ export default function EmailCenter() {
                 open={kiAbgleichIds !== null}
                 emailIds={kiAbgleichIds ?? []}
                 onOpenChange={(offen) => { if (!offen) setKiAbgleichIds(null); }}
-                onUebernommen={() => { setSelectedIds(new Set()); setSelectedEmail(null); void loadEmails(); }}
+                onUebernommen={() => { setSelectedIds(new Set()); setSelectedEmail(null); void ladeEmails(listKey, undefined); }}
             />
 
             {/* Standard ImageViewer for Images */}

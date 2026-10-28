@@ -361,10 +361,10 @@ export function formatPreis(wert: number): string {
 }
 
 const KURZ: Record<VerrechnungseinheitName, string> = {
-    LAUFENDE_METER: 'm', QUADRATMETER: 'm²', KILOGRAMM: 'kg', STUECK: 'Stk',
+    LAUFENDE_METER: 'm', QUADRATMETER: 'm²', KILOGRAMM: 'kg', STUECK: 'Stk', LITER: 'l',
 };
 const JE: Record<VerrechnungseinheitName, string> = {
-    LAUFENDE_METER: 'Meter', QUADRATMETER: 'm²', KILOGRAMM: 'kg', STUECK: 'Stück',
+    LAUFENDE_METER: 'Meter', QUADRATMETER: 'm²', KILOGRAMM: 'kg', STUECK: 'Stück', LITER: 'Liter',
 };
 
 /** Kurzform der Einheit, z. B. „m". Nimmt Enum- oder Anzeigename. */

@@ -39,7 +39,7 @@ export default function Eingangskorb() {
     const [eintraege, setEintraege] = useState<EingangEintrag[]>([]);
     const [laden, setLaden] = useState(true);
     const [aktuellerEintrag, setAktuellerEintrag] = useState<EingangEintrag | null>(null);
-    const { toast } = useToast();
+    const toast = useToast();
 
     const ladeEintraege = useCallback(async () => {
         setLaden(true);

@@ -1,4 +1,4 @@
-import { BarChart3, Briefcase, Building2, Calculator, Calendar, CalendarDays, ClipboardCheck, Clock, Euro, Factory, FileCheck, FileJson, FileText, Globe, History, Home, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShoppingBag, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet, Warehouse } from 'lucide-react';
+import { BarChart3, Briefcase, Building2, Calculator, Calendar, CalendarDays, ClipboardCheck, Clock, Euro, Factory, FileCheck, FileJson, FileText, Globe, History, Home, Inbox, Layers, List, Mail, MailPlus, Package, Phone, Plane, Receipt, Settings, Settings2, ShoppingBag, ShoppingCart, Stethoscope, Truck, User, Voicemail, Wallet, Warehouse } from 'lucide-react';
 import type { ComponentType } from 'react';
 
 // Navigation structure with subgroups for better organization
@@ -76,6 +76,7 @@ export const NAVIGATION: NavCategory[] = [
             {
                 label: 'Dokumente',
                 items: [
+                    { name: 'Eingangskorb', href: '/eingangskorb', icon: Inbox },
                     { name: 'Dokumente', href: '/dokumentuebersicht', icon: FileText },
                 ]
             },

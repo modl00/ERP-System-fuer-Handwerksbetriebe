@@ -1,15 +1,16 @@
 package org.example.kalkulationsprogramm.service.wartung;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.Image;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
+import org.example.kalkulationsprogramm.util.PdfWriterFabrik;
+import org.openpdf.text.Document;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.Element;
+import org.openpdf.text.Font;
+import org.openpdf.text.Image;
+import org.openpdf.text.PageSize;
+import org.openpdf.text.Paragraph;
+import org.openpdf.text.Rectangle;
+import org.openpdf.text.pdf.PdfPCell;
+import org.openpdf.text.pdf.PdfPTable;
 import lombok.AllArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.pdfbox.io.RandomAccessReadBuffer;
@@ -164,7 +165,7 @@ public class WartungSammelberichtService {
         ByteArrayOutputStream ausgabe = new ByteArrayOutputStream();
         Document dokument = new Document(PageSize.A4, 40, 40, 40, 50);
         try {
-            PdfWriter.getInstance(dokument, ausgabe);
+            PdfWriterFabrik.writer(dokument, ausgabe);
             dokument.open();
             dokument.addTitle(titel != null ? titel : "Sammelbericht");
             dokument.addCreator("Handwerkerprogramm");
@@ -239,9 +240,9 @@ public class WartungSammelberichtService {
 
     private static void angabe(PdfPTable tabelle, String label, String wert) {
         PdfPCell l = zelle(label, schrift(8, Font.BOLD, GRAU), Element.ALIGN_LEFT, LINIE);
-        l.setBorder(com.lowagie.text.Rectangle.BOTTOM);
+        l.setBorder(Rectangle.BOTTOM);
         PdfPCell w = zelle(wert, schrift(9, Font.NORMAL, GRUNDFARBE), Element.ALIGN_LEFT, LINIE);
-        w.setBorder(com.lowagie.text.Rectangle.BOTTOM);
+        w.setBorder(Rectangle.BOTTOM);
         tabelle.addCell(l);
         tabelle.addCell(w);
     }

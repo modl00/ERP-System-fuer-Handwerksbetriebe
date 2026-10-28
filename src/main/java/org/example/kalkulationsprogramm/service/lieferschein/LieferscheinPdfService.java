@@ -20,20 +20,20 @@ import org.example.kalkulationsprogramm.service.wartung.WartungUnterschriftPruef
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.DocumentException;
-import com.lowagie.text.Element;
-import com.lowagie.text.Font;
-import com.lowagie.text.FontFactory;
-import com.lowagie.text.Image;
-import com.lowagie.text.PageSize;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.Phrase;
-import com.lowagie.text.Rectangle;
-import com.lowagie.text.pdf.BaseFont;
-import com.lowagie.text.pdf.PdfPCell;
-import com.lowagie.text.pdf.PdfPTable;
-import com.lowagie.text.pdf.PdfWriter;
+import org.example.kalkulationsprogramm.util.PdfWriterFabrik;
+import org.openpdf.text.Document;
+import org.openpdf.text.DocumentException;
+import org.openpdf.text.Element;
+import org.openpdf.text.Font;
+import org.openpdf.text.FontFactory;
+import org.openpdf.text.Image;
+import org.openpdf.text.PageSize;
+import org.openpdf.text.Paragraph;
+import org.openpdf.text.Phrase;
+import org.openpdf.text.Rectangle;
+import org.openpdf.text.pdf.BaseFont;
+import org.openpdf.text.pdf.PdfPCell;
+import org.openpdf.text.pdf.PdfPTable;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -66,7 +66,7 @@ public class LieferscheinPdfService {
         ByteArrayOutputStream ausgabe = new ByteArrayOutputStream();
         Document dokument = new Document(PageSize.A4, 40, 40, 40, 60);
         try {
-            PdfWriter.getInstance(dokument, ausgabe);
+            PdfWriterFabrik.writer(dokument, ausgabe);
             dokument.open();
             dokument.addTitle("Lieferschein " + l.getNummer());
             dokument.addCreator("Handwerkerprogramm");

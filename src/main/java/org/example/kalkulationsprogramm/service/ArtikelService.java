@@ -409,7 +409,7 @@ public class ArtikelService implements ArtikelServiceContract {
                     java.math.BigDecimal val = new java.math.BigDecimal(v.trim());
                     if (val.signum() <= 0) throw stammdatenUngueltig("Jede Längen-Variante muss größer als 0 sein.");
                 } catch (NumberFormatException e) {
-                    throw stammdatenUngueltig("Ungültige Längen-Variante: „" + v.trim() + "". Bitte Punkt als Dezimaltrennzeichen verwenden (z. B. 6.0,12.0).");
+                    throw stammdatenUngueltig("Ungültige Längen-Variante: \"" + v.trim() + "\". Bitte Punkt als Dezimaltrennzeichen verwenden (z. B. 6.0,12.0).");
                 }
             }
         }

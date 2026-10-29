@@ -105,6 +105,8 @@ export interface EmailComposeFormProps {
     };
     /** Customer ID for saving new email addresses */
     kundeId?: number;
+    /** Supplier ID – verknüpft die Mail im Backend mit dem Lieferanten. */
+    lieferantId?: number;
     initialRecipient?: string;
     /** CC-Empfänger, z. B. bei "Allen antworten" */
     initialCc?: string[];
@@ -238,6 +240,7 @@ export function EmailComposeForm({
     anfrageId,
     anfrage,
     kundeId,
+    lieferantId,
     initialRecipient = '',
     initialCc,
     initialSubject = '',
@@ -1044,6 +1047,7 @@ export function EmailComposeForm({
                 // Include entity assignment in the DTO
                 projektId: !isAnfrageContext && entityId ? entityId : null,
                 anfrageId: isAnfrageContext && entityId ? entityId : null,
+                lieferantId: lieferantId ?? null,
                 // Entscheidet serverseitig, ob das Postfach für
                 // Geschäftsdokumente statt des Standard-Postfachs greift.
                 geschaeftsdokument,

@@ -109,8 +109,8 @@ interface DokumentPositionenListeProps {
     className?: string;
 }
 
-/** Zeigt "Keine Positionen erkannt" mit einem KI-Button zum erneuten Auslesen. */
-function PositionenAuslesen({ id, dokumentId, className = '' }: { id?: string; dokumentId: number; className?: string }) {
+/** Zeigt "Keine Positionen erkannt" (oder einen kleinen Erneut-Knopf) mit KI-Auslese-Button. */
+function PositionenAuslesen({ id, dokumentId, className = '', erneut = false }: { id?: string; dokumentId: number; className?: string; erneut?: boolean }) {
     const toast = useToast();
     const [laeuft, setLaeuft] = useState(false);
 
@@ -132,6 +132,24 @@ function PositionenAuslesen({ id, dokumentId, className = '' }: { id?: string; d
             setLaeuft(false);
         }
     };
+
+    if (erneut) {
+        return (
+            <button
+                type="button"
+                onClick={auslesen}
+                disabled={laeuft}
+                className="inline-flex items-center gap-1 rounded px-2 py-0.5 text-xs font-medium text-slate-500 hover:text-rose-700 hover:bg-rose-50 disabled:opacity-50 disabled:cursor-not-allowed focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-rose-500 transition-colors"
+                title="Positionen per KI erneut aus dem Dokument auslesen"
+                aria-label="Positionen per KI erneut auslesen"
+            >
+                {laeuft
+                    ? <Loader2 className="w-3 h-3 animate-spin" aria-hidden="true" />
+                    : <Gem className="w-3 h-3" aria-hidden="true" />}
+                {laeuft ? 'Wird ausgelesen …' : 'Erneut auslesen'}
+            </button>
+        );
+    }
 
     return (
         <div id={id} className={`flex items-center gap-2 ${className}`}>
@@ -223,6 +241,13 @@ export function DokumentPositionenListe({ dokumentId, suchbegriff, id, kompakt =
                         );
                     })}
                 </tbody>
+                <tfoot>
+                    <tr>
+                        <td colSpan={kompakt ? 5 : 6} className="pt-1.5 pb-0.5">
+                            <PositionenAuslesen dokumentId={dokumentId} erneut />
+                        </td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     );

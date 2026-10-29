@@ -173,39 +173,6 @@ public class AbteilungBerechtigungController {
     }
 
     /**
-     * Legt eine neue Abteilung an.
-     */
-    @PostMapping
-    @Transactional
-    public ResponseEntity<AbteilungBerechtigungDto.Response> abteilungAnlegen(@RequestBody Map<String, String> body) {
-        String name = body == null ? null : body.get("name");
-        if (name == null || name.isBlank()) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Bitte einen Namen angeben.");
-        }
-        Abteilung neu = new Abteilung();
-        neu.setName(name.trim());
-        Abteilung gespeichert = abteilungRepository.save(neu);
-        return ResponseEntity.status(HttpStatus.CREATED).body(baueAntwort(gespeichert));
-    }
-
-    /**
-     * Löscht eine Abteilung. Abteilungen mit zugeordneten Arbeitsgängen können nicht gelöscht werden (409).
-     */
-    @DeleteMapping("/{id}")
-    @Transactional
-    public ResponseEntity<Void> abteilungLoeschen(@PathVariable Long id) {
-        Abteilung abteilung = abteilungRepository.findById(id)
-                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Abteilung nicht gefunden."));
-        if (!abteilung.getArbeitsgaenge().isEmpty()) {
-            throw new ResponseStatusException(HttpStatus.CONFLICT,
-                    "„" + abteilung.getName() + "“ hat noch Arbeitsgänge und kann nicht gelöscht werden.");
-        }
-        berechtigungRepository.deleteAll(berechtigungRepository.findByAbteilungId(id));
-        abteilungRepository.delete(abteilung);
-        return ResponseEntity.noContent().build();
-    }
-
-    /**
      * Gibt alle verfügbaren Dokumenttypen zurück.
      */
     @GetMapping("/dokumenttypen")

@@ -60,7 +60,7 @@ public class ZeiterfassungLagerController {
 
     @PostMapping("/buchung")
     public LagerBestandDto buche(@RequestBody BuchungDto b) {
-        return service.buche(b.token(), new LagerBuchungEingabe(b.art(), b.artikelId(), b.lagerortId(), b.menge(), b.projektId(), b.notiz()));
+        return service.buche(b.token(), new LagerBuchungEingabe(b.art(), b.artikelId(), b.lagerortId(), b.menge(), b.projektId(), b.notiz(), null, null));
     }
 
     @PostMapping("/umbuchung")

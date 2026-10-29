@@ -106,7 +106,7 @@ public class LagerBuchenWerkzeug implements KiWerkzeug {
         } catch (ResponseStatusException e) {
             throw new KiWerkzeugFehler(e.getStatusCode() == HttpStatus.NOT_FOUND ? "Den Artikel mit dieser ID gibt es nicht." : e.getReason());
         }
-        return new Eingabe(new LagerBuchungEingabe(art, artikelId, passend.get(0).id(), menge, projektId, notiz), bestand, passend.get(0));
+        return new Eingabe(new LagerBuchungEingabe(art, artikelId, passend.get(0).id(), menge, projektId, notiz, null, null), bestand, passend.get(0));
     }
 
     @Override

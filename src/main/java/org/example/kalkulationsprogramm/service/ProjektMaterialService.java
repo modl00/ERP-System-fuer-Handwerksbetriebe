@@ -48,7 +48,7 @@ public class ProjektMaterialService {
         Long artikelId = pos.getArtikel().getId();
         Long projektId = pos.getProjekt().getId();
 
-        lagerService.buche(new LagerBuchungEingabe("ABGANG", artikelId, lagerortId, menge, projektId, null));
+        lagerService.buche(new LagerBuchungEingabe("ABGANG", artikelId, lagerortId, menge, projektId, null, null, null));
 
         pos.setAusLager(true);
         pos.setBestellt(true);

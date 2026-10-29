@@ -192,7 +192,7 @@ public class LieferscheinScanService {
                         ? eingabe.notiz()
                         : "Lieferschein-Scan";
                 lagerService.buche(
-                        new LagerBuchungEingabe("ZUGANG", artikelId, eingabe.lagerortId(), pos.menge(), null, notiz),
+                        new LagerBuchungEingabe("ZUGANG", artikelId, eingabe.lagerortId(), pos.menge(), null, notiz, null, null),
                         benutzer);
                 gebucht++;
             } catch (Exception e) {

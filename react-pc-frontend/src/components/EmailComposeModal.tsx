@@ -63,6 +63,8 @@ interface EmailComposeModalProps {
     };
     /** Customer ID for saving new email addresses */
     kundeId?: number;
+    /** Supplier ID – verknüpft die Mail mit dem Lieferanten. */
+    lieferantId?: number;
     /** Pre-attached files (e.g. generated PDF from DocumentEditor) */
     initialAttachments?: File[];
     /**
@@ -100,6 +102,7 @@ export default function EmailComposeModal({
     anfrageId,
     anfrage,
     kundeId,
+    lieferantId,
     initialAttachments,
     geschaeftsdokument,
     initialRecipient,
@@ -131,6 +134,7 @@ export default function EmailComposeModal({
                     anfrageId={anfrageId}
                     anfrage={anfrage}
                     kundeId={kundeId}
+                    lieferantId={lieferantId}
                     initialAttachments={initialAttachments}
                     geschaeftsdokument={geschaeftsdokument}
                     initialRecipient={initialRecipient}

@@ -14,7 +14,7 @@ import { useDarf } from '../features/funktionsrechte/useFunktionsrechte';
 import { LagerArtikelWahl, type GewaehlterArtikel } from '../features/lager/LagerArtikelWahl';
 import { LieferscheinScanDialog } from '../features/lager/LieferscheinScanDialog';
 import { ladeOrte, type Lagerort } from '../features/lager/lagerApi';
-import { BestellMailDialog } from '../features/bestellwesen/BestellMailDialog';
+import EmailComposeModal from '../components/EmailComposeModal';
 import { BestellPositionAnhaenge } from '../features/bestellwesen/BestellPositionAnhaenge';
 import { LieferantWahl } from '../features/bestellwesen/LieferantWahl';
 import { VorschlaegeDialog } from '../features/bestellwesen/VorschlaegeDialog';
@@ -71,6 +71,8 @@ const BestellungBearbeiten = () => {
     const [projektWahl, setProjektWahl] = useState(false);
     const [bestellenOffen, setBestellenOffen] = useState(false);
     const [mailOffen, setMailOffen] = useState(false);
+    const [mailAnhaenge, setMailAnhaenge] = useState<File[]>([]);
+    const [laedeMailAnhaenge, setLaedeMailAnhaenge] = useState(false);
     const [stornoOffen, setStornoOffen] = useState(false);
     const [stornoGrund, setStornoGrund] = useState('');
     const [artikelMenge, setArtikelMenge] = useState('1');
@@ -190,7 +192,7 @@ const BestellungBearbeiten = () => {
             const b = await bestelle(gespeichert.id, per);
             uebernimm(b);
             toast.success(`Bestellt: ${b.bestellnummer}`);
-            if (per === 'EMAIL') setMailOffen(true);
+            if (per === 'EMAIL') void oeffneMailDialog(b);
         } catch (e) {
             setFehler(e instanceof BestellFehler ? e.message : 'Das Bestellen hat nicht geklappt.');
         } finally {
@@ -220,6 +222,39 @@ const BestellungBearbeiten = () => {
             navigate('/bestellungen/liste');
         } catch (e) {
             setFehler(e instanceof BestellFehler ? e.message : 'Das Löschen hat nicht geklappt.');
+        }
+    };
+
+    const oeffneMailDialog = async (b: typeof bestellung) => {
+        if (!b) return;
+        setLaedeMailAnhaenge(true);
+        try {
+            const files: File[] = [];
+            const pdfRes = await fetch(pdfAdresse(b.id));
+            if (pdfRes.ok) {
+                const blob = await pdfRes.blob();
+                files.push(new File([blob], `Bestellung_${(b.bestellnummer ?? String(b.id)).replace(/[^A-Za-z0-9._-]/g, '_')}.pdf`, { type: 'application/pdf' }));
+            } else {
+                toast.error('Das Bestellformular konnte nicht geladen werden.');
+            }
+            const posAnhaenge = b.positionen.flatMap(p => p.anhaenge ?? []);
+            let anhaengeFehlgeschlagen = 0;
+            await Promise.all(posAnhaenge.map(async (a) => {
+                try {
+                    const r = await fetch(a.url);
+                    if (r.ok) files.push(new File([await r.blob()], a.originalDateiname.replace(/\.\./g, '_')));
+                    else anhaengeFehlgeschlagen++;
+                } catch {
+                    anhaengeFehlgeschlagen++;
+                }
+            }));
+            if (anhaengeFehlgeschlagen > 0) toast.warning(`${anhaengeFehlgeschlagen} Anhang${anhaengeFehlgeschlagen > 1 ? 'e konnten' : ' konnte'} nicht geladen werden.`);
+            setMailAnhaenge(files);
+        } catch {
+            setMailAnhaenge([]);
+        } finally {
+            setLaedeMailAnhaenge(false);
+            setMailOffen(true);
         }
     };
 
@@ -390,14 +425,24 @@ const BestellungBearbeiten = () => {
                 </Card>
 
                 {/* ---- Fertigungsunterlagen je Position ---- */}
-                {bestellung && bestellung.positionen.length > 0 && (
-                    <BestellPositionAnhaenge
-                        bestellung={bestellung}
-                        onGeaendert={() => {
-                            ladeBestellung(bestellung.id).then(uebernimm).catch(() => undefined);
-                        }}
-                    />
-                )}
+                {bestellung
+                    ? bestellung.positionen.length > 0 && (
+                        <BestellPositionAnhaenge
+                            bestellung={bestellung}
+                            onGeaendert={() => {
+                                ladeBestellung(bestellung.id).then(uebernimm).catch(() => undefined);
+                            }}
+                        />
+                    )
+                    : zeilen.length > 0 && (
+                        <Card className="p-4">
+                            <div className="flex items-center gap-2 text-slate-500">
+                                <Paperclip className="h-4 w-4 shrink-0" aria-hidden />
+                                <p className="text-sm">Fertigungsunterlagen (DXF, STEP, PDF) – erst nach dem Speichern verfügbar.</p>
+                            </div>
+                        </Card>
+                    )
+                }
 
                 {/* ---- Lieferschein einbuchen ---- */}
                 {bestellung && bestellung.status === 'BESTELLT' && (
@@ -471,7 +516,9 @@ const BestellungBearbeiten = () => {
                     )}
                     {bestellung?.status === 'BESTELLT' && (
                         <>
-                            <Button variant="outline" onClick={() => setMailOffen(true)}><Mail className="h-4 w-4" /> {bestellung.bestelltPer === 'EMAIL' ? 'E-Mail erneut senden' : 'Per E-Mail senden'}</Button>
+                            <Button variant="outline" onClick={() => void oeffneMailDialog(bestellung)} disabled={laedeMailAnhaenge}>
+                                {laedeMailAnhaenge ? <Loader2 className="h-4 w-4 animate-spin" /> : <Mail className="h-4 w-4" />} {bestellung.bestelltPer === 'EMAIL' ? 'E-Mail erneut senden' : 'Per E-Mail senden'}
+                            </Button>
                             {bestellung.anzahlGeliefert < bestellung.anzahlPositionen && darfAnlegen && (
                                 <Button variant="outline" onClick={() => void aktion(() => alleGeliefert(bestellung.id), 'Alles als geliefert eingetragen.')} disabled={beschaeftigt}><CheckCheck className="h-4 w-4" /> Alles geliefert</Button>
                             )}
@@ -488,9 +535,17 @@ const BestellungBearbeiten = () => {
                 <VorschlaegeDialog titel={vorschlag.titel} beschreibung={vorschlag.beschreibung} vorschlaege={vorschlag.liste} lieferantId={lieferant?.id ?? null}
                     onUebernehmen={fuegeVorschlaegeHinzu} onSchliessen={() => setVorschlag(null)} />
             )}
-            {mailOffen && bestellung && (
-                <BestellMailDialog bestellung={bestellung} onSchliessen={() => setMailOffen(false)} onGesendet={() => { setMailOffen(false); toast.success('Die E-Mail an den Lieferanten ist gesendet.'); }} />
-            )}
+            <EmailComposeModal
+                isOpen={mailOffen}
+                onClose={() => { setMailOffen(false); setMailAnhaenge([]); }}
+                lieferantId={bestellung?.lieferantId}
+                initialRecipient={bestellung?.lieferantEmails[0] ?? ''}
+                initialSubject={`Bestellung ${bestellung?.bestellnummer ?? ''}`}
+                initialBody={`<p>Guten Tag,</p><p>anbei unsere Bestellung ${bestellung?.bestellnummer ?? ''}.</p><p>Bitte bestätigen Sie uns die Bestellung mit dem Liefertermin und nennen Sie die Bestellnummer auf Auftragsbestätigung, Lieferschein und Rechnung.</p><p>Vielen Dank und freundliche Grüße</p>`}
+                initialAttachments={mailAnhaenge}
+                onSuccess={() => { setMailOffen(false); setMailAnhaenge([]); toast.success('Die E-Mail an den Lieferanten ist gesendet.'); }}
+                erfolgsMeldung="Die E-Mail an den Lieferanten ist gesendet."
+            />
             <Dialog open={bestellenOffen} onOpenChange={setBestellenOffen} aria-label="Wie wird bestellt?">
                 <DialogContent className="sm:max-w-[480px]">
                     <DialogHeader>

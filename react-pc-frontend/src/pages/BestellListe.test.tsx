@@ -41,8 +41,21 @@ beforeEach(() => {
 afterEach(() => { vi.unstubAllGlobals(); });
 
 describe('Bestellübersicht', { timeout: 30000 }, () => {
-    it('zeigt Nummer, Lieferant, Projekte, Stand und markiert Überfälliges', async () => {
+    it('Entwürfe-Tab: zeigt Entwurf-Link und Lieferantname im Versandbereit-Abschnitt', async () => {
         zeige();
+        await screen.findByRole('link', { name: 'Bestellung Entwurf öffnen' });
+        // Lieferantname steht im Gruppenheader (nicht im Link selbst)
+        expect(screen.getByText('Schrauben Muster')).toBeInTheDocument();
+        // Bestellt-Tab-Inhalt noch nicht sichtbar
+        expect(screen.queryByRole('link', { name: 'Bestellung B-2026-10-0003 öffnen' })).not.toBeInTheDocument();
+    });
+
+    it('Bestellt-Tab: zeigt Nummer, Lieferant, Projekte, Stand und markiert Überfälliges', async () => {
+        const user = userEvent.setup();
+        zeige();
+        // warten bis geladen, dann in Bestellt-Tab wechseln
+        await screen.findByRole('link', { name: 'Bestellung Entwurf öffnen' });
+        await user.click(screen.getByRole('tab', { name: /^Bestellt/ }));
 
         const zeile = await screen.findByRole('link', { name: 'Bestellung B-2026-09-0002 öffnen' });
         expect(zeile).toHaveTextContent('Rohre Muster');
@@ -50,37 +63,51 @@ describe('Bestellübersicht', { timeout: 30000 }, () => {
         expect(zeile).toHaveTextContent('1 von 2');
         expect(zeile).toHaveTextContent('Teilweise geliefert');
         expect(zeile).toHaveTextContent('seit 15 Tagen');
-        expect(screen.getByRole('link', { name: 'Bestellung Entwurf öffnen' })).toHaveTextContent('Schrauben Muster');
         expect(screen.getByRole('link', { name: 'Bestellung B-2026-10-0003 öffnen' })).not.toHaveTextContent('seit');
     });
 
-    it('Filter: Entwürfe, wartet auf Ware, geliefert, überfällig und Storno; die Zähler stimmen', async () => {
+    it('Tabs: Tab-Zähler, Abgeschlossen und Storno zeigen richtige Einträge', async () => {
         const user = userEvent.setup();
         zeige();
-        await screen.findByRole('link', { name: 'Bestellung B-2026-09-0002 öffnen' });
+        await screen.findByRole('link', { name: 'Bestellung Entwurf öffnen' });
 
-        expect(screen.getByRole('button', { name: /^Alle 5/ })).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: /^Entwürfe 1/ }));
-        expect(screen.getAllByRole('link')).toHaveLength(1);
-        await user.click(screen.getByRole('button', { name: /^Bestellt, Ware kommt noch 1/ }));
-        expect(screen.getByRole('link', { name: 'Bestellung B-2026-10-0003 öffnen' })).toBeInTheDocument();
-        expect(screen.getAllByRole('link')).toHaveLength(1);
-        await user.click(screen.getByRole('button', { name: /^Überfällig 1/ }));
-        expect(screen.getByRole('link', { name: 'Bestellung B-2026-09-0002 öffnen' })).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: /^Geliefert 1/ }));
-        expect(screen.getByRole('link', { name: 'Bestellung B-2026-09-0001 öffnen' })).toBeInTheDocument();
-        await user.click(screen.getByRole('button', { name: /^Storniert 1/ }));
-        expect(screen.getByRole('link', { name: 'Bestellung B-2026-09-0003 öffnen' })).toBeInTheDocument();
+        // Zähler prüfen
+        expect(screen.getByRole('tab', { name: /^Entwürfe/ })).toHaveTextContent('1');
+        expect(screen.getByRole('tab', { name: /^Bestellt/ })).toHaveTextContent('2');
+        expect(screen.getByRole('tab', { name: /^Abgeschlossen/ })).toHaveTextContent('1');
+        expect(screen.getByRole('tab', { name: /^Storno/ })).toHaveTextContent('1');
+
+        // Abgeschlossen
+        await user.click(screen.getByRole('tab', { name: /^Abgeschlossen/ }));
+        expect(await screen.findByRole('link', { name: 'Bestellung B-2026-09-0001 öffnen' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Bestellung B-2026-09-0002 öffnen' })).not.toBeInTheDocument();
+
+        // Storno
+        await user.click(screen.getByRole('tab', { name: /^Storno/ }));
+        expect(await screen.findByRole('link', { name: 'Bestellung B-2026-09-0003 öffnen' })).toBeInTheDocument();
     });
 
-    it('Suche findet nach Nummer, Lieferant und Projekt; ohne Treffer ein Satz', async () => {
+    it('Bestellt-Tab: Unterfilter Überfällig schränkt auf überfällige ein', async () => {
         const user = userEvent.setup();
         zeige();
+        await screen.findByRole('link', { name: 'Bestellung Entwurf öffnen' });
+        await user.click(screen.getByRole('tab', { name: /^Bestellt/ }));
         await screen.findByRole('link', { name: 'Bestellung B-2026-09-0002 öffnen' });
+
+        await user.click(screen.getByRole('button', { name: /Überfällig/ }));
+        expect(screen.getByRole('link', { name: 'Bestellung B-2026-09-0002 öffnen' })).toBeInTheDocument();
+        expect(screen.queryByRole('link', { name: 'Bestellung B-2026-10-0003 öffnen' })).not.toBeInTheDocument();
+    });
+
+    it('Suche findet tabübergreifend nach Nummer, Lieferant und Projekt; ohne Treffer ein Satz', async () => {
+        const user = userEvent.setup();
+        zeige();
+        await screen.findByRole('link', { name: 'Bestellung Entwurf öffnen' });
 
         await user.type(screen.getByLabelText('Bestellungen durchsuchen'), 'geländer');
         expect(screen.getAllByRole('link')).toHaveLength(1);
         await user.clear(screen.getByLabelText('Bestellungen durchsuchen'));
+        // "0003" trifft B-2026-10-0003 (Bestellt) und B-2026-09-0003 (Storno)
         await user.type(screen.getByLabelText('Bestellungen durchsuchen'), '0003');
         expect(screen.getAllByRole('link')).toHaveLength(2);
         await user.clear(screen.getByLabelText('Bestellungen durchsuchen'));
@@ -91,6 +118,8 @@ describe('Bestellübersicht', { timeout: 30000 }, () => {
     it('Klick auf eine Zeile öffnet die Bestellung, „Neue Bestellung" den leeren Entwurf', async () => {
         const user = userEvent.setup();
         zeige();
+        await screen.findByRole('link', { name: 'Bestellung Entwurf öffnen' });
+        await user.click(screen.getByRole('tab', { name: /^Bestellt/ }));
 
         await user.click(await screen.findByRole('link', { name: 'Bestellung B-2026-10-0003 öffnen' }));
         expect(screen.getByTestId('ort')).toHaveTextContent('/bestellungen/bestellung/3');
@@ -105,7 +134,7 @@ describe('Bestellübersicht', { timeout: 30000 }, () => {
 
         darfAnlegen = false;
         zeige();
-        await screen.findByRole('link', { name: 'Bestellung B-2026-10-0003 öffnen' });
+        await screen.findByRole('link', { name: 'Bestellung Entwurf öffnen' });
         expect(screen.queryByRole('button', { name: /Neue Bestellung/ })).not.toBeInTheDocument();
     });
 

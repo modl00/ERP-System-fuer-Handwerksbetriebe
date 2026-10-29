@@ -699,12 +699,18 @@ public class ProjektController {
                     var gd = dok.getGeschaeftsdaten();
                     dto.geschaeftsdokumentId = gd.getId();
                     dto.dokumentNummer = gd.getDokumentNummer();
-                    dto.gesamtbetrag = gd.getBetragNetto();
-                    // berechneterBetrag dynamisch aus Netto neu berechnen – korrigiert brutto-basierte Altdaten
-                    if (gd.getBetragNetto() != null && anteil.getProzent() != null) {
-                        dto.berechneterBetrag = gd.getBetragNetto()
+                    // Gesamtbetrag: Netto bevorzugt, Brutto als Fallback
+                    BigDecimal gesamtNetto = gd.getBetragNetto();
+                    BigDecimal gesamtBrutto = gd.getBetragBrutto();
+                    dto.gesamtbetrag = gesamtNetto != null ? gesamtNetto : gesamtBrutto;
+                    // berechneterBetrag dynamisch berechnen (korrigiert Altdaten)
+                    BigDecimal basis = gesamtNetto != null ? gesamtNetto : gesamtBrutto;
+                    if (basis != null && anteil.getProzent() != null) {
+                        dto.berechneterBetrag = basis
                                 .multiply(BigDecimal.valueOf(anteil.getProzent()))
                                 .divide(BigDecimal.valueOf(100), 2, RoundingMode.HALF_UP);
+                    } else if (dto.berechneterBetrag == null && anteil.getAbsoluterBetrag() != null) {
+                        dto.berechneterBetrag = anteil.getAbsoluterBetrag();
                     }
                     if (gd.getDokumentDatum() != null) {
                         dto.dokumentDatum = gd.getDokumentDatum();

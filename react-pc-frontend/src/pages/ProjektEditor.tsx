@@ -2128,18 +2128,30 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                                 <span className="text-sm font-semibold text-slate-700">{formatCurrency(eingangsrechnungenSum)}</span>
                             </div>
                             {eingangsrechnungen.map((er) => (
-                                <div key={er.id} className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-slate-100">
-                                    <div className="min-w-0 flex-1">
-                                        <p className="font-medium text-slate-900 break-words">
-                                            {er.lieferantName || er.dateiname}
-                                            {er.dokumentNummer && <span className="ml-2 text-xs text-slate-500">Nr. {er.dokumentNummer}</span>}
-                                        </p>
-                                        {er.beschreibung && <p className="text-xs text-slate-500 break-words">{er.beschreibung}</p>}
-                                        {er.prozent < 100 && (
-                                            <p className="text-xs text-slate-500">{er.prozent}% des Rechnungsbetrags ({formatCurrency(er.gesamtbetrag)})</p>
-                                        )}
+                                <div key={er.id} className="p-3 bg-white rounded-lg border border-slate-100">
+                                    <div className="flex items-start justify-between gap-3">
+                                        <div className="min-w-0 flex-1">
+                                            <p className="font-medium text-slate-900 break-words">
+                                                {er.lieferantName || er.dateiname}
+                                                {er.dokumentNummer && <span className="ml-2 text-xs text-slate-500">Nr. {er.dokumentNummer}</span>}
+                                            </p>
+                                            {er.beschreibung && <p className="text-xs text-slate-500 break-words">{er.beschreibung}</p>}
+                                            {er.prozent < 100 && (
+                                                <p className="text-xs text-slate-500">{er.prozent}% des Rechnungsbetrags ({formatCurrency(er.gesamtbetrag)})</p>
+                                            )}
+                                        </div>
+                                        <p className="font-semibold text-slate-900 shrink-0">{formatCurrency(er.berechneterBetrag)}</p>
                                     </div>
-                                    <p className="font-semibold text-slate-900 shrink-0">{formatCurrency(er.berechneterBetrag)}</p>
+                                    <div className="flex justify-end mt-1">
+                                        <button
+                                            onClick={() => setZuordnungBearbeitenEr(er)}
+                                            className="inline-flex items-center gap-1 text-xs text-rose-600 hover:text-rose-700"
+                                            title="Zuordnung bearbeiten"
+                                        >
+                                            <Edit2 className="w-3 h-3" />
+                                            Bearbeiten
+                                        </button>
+                                    </div>
                                 </div>
                             ))}
                         </div>

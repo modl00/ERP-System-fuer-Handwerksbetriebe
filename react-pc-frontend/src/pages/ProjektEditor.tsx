@@ -2120,10 +2120,28 @@ const ProjektDetailView: React.FC<ProjektDetailViewProps> = ({ projekt, onBack, 
                         )}
                     </div>
 
-                    {/* Hinweis: Eingangsrechnungen-Summe fließt weiterhin in die Nachkalkulation ein (siehe gesamtMaterialkosten) */}
+                    {/* Zugeordnete Eingangsrechnungen (Lieferanten-Rechnungen) */}
                     {eingangsrechnungen.length > 0 && (
-                        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 text-sm text-amber-800">
-                            <span className="font-medium">Hinweis:</span> {eingangsrechnungen.length} Eingangsrechnung{eingangsrechnungen.length !== 1 ? 'en' : ''} ({formatCurrency(eingangsrechnungenSum)}) — siehe Reiter &quot;Geschäftsdokumente&quot;
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center">
+                                <h4 className="text-sm font-medium text-slate-500 uppercase tracking-wide">Aus Eingangsrechnungen</h4>
+                                <span className="text-sm font-semibold text-slate-700">{formatCurrency(eingangsrechnungenSum)}</span>
+                            </div>
+                            {eingangsrechnungen.map((er) => (
+                                <div key={er.id} className="flex items-center justify-between gap-3 p-3 bg-white rounded-lg border border-slate-100">
+                                    <div className="min-w-0 flex-1">
+                                        <p className="font-medium text-slate-900 break-words">
+                                            {er.lieferantName || er.dateiname}
+                                            {er.dokumentNummer && <span className="ml-2 text-xs text-slate-500">Nr. {er.dokumentNummer}</span>}
+                                        </p>
+                                        {er.beschreibung && <p className="text-xs text-slate-500 break-words">{er.beschreibung}</p>}
+                                        {er.prozent < 100 && (
+                                            <p className="text-xs text-slate-500">{er.prozent}% des Rechnungsbetrags ({formatCurrency(er.gesamtbetrag)})</p>
+                                        )}
+                                    </div>
+                                    <p className="font-semibold text-slate-900 shrink-0">{formatCurrency(er.berechneterBetrag)}</p>
+                                </div>
+                            ))}
                         </div>
                     )}
                 </div>

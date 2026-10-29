@@ -16,6 +16,7 @@ import ProjektEditor from './ProjektEditor';
 vi.mock('../components/ui/PdfCanvasViewer', () => ({
     PdfCanvasViewer: ({ url }: { url: string }) => <div data-testid="pdf-viewer" data-url={url} />,
 }));
+vi.mock('../auth/AuthContext', () => ({ useAuth: () => ({ isAdmin: false }), useOptionalAuth: () => null }));
 
 const PROJEKT_ID = 5;
 const ANGEBOT_ID = 701;
@@ -54,6 +55,7 @@ function mockFetch(abschliessendeRechnungNummer: string | null) {
             return antwort({ ...ANGEBOT, positionenJson: JSON.stringify({ blocks: [], globalRabatt: 0 }) });
         }
         if (pfad.endsWith('/freigabe-status') || pfad.startsWith('/api/last-accessed/')) return antwort({});
+        if (pfad.endsWith('/material-abrechnung')) return antwort({ positionen: [], rechnungen: [], offenAnzahl: 0, offenGeplant: 0, schwelleProzent: 10 });
         return antwort([]);
     });
 }

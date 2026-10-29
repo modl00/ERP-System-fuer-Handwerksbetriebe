@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Archive, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, Mail, Phone, MapPin, Building2, User, ArrowLeft, Edit2, ChevronLeft, ChevronRight, FileText, StickyNote, AlertTriangle, Package, Wallet } from "lucide-react";
+import { Archive, Loader2, Plus, RefreshCw, RotateCcw, Trash2, X, Mail, Phone, MapPin, Building2, User, ArrowLeft, Edit2, ChevronLeft, ChevronRight, FileText, StickyNote, AlertTriangle, Package, Wallet, GitMerge } from "lucide-react";
 import { useAuth } from "../auth/AuthContext";
 import { useConfirm } from "../components/ui/confirm-dialog";
 import { Button } from "../components/ui/button";
@@ -30,6 +30,7 @@ import { KontaktAnrufeTab } from "../features/telefon/KontaktAnrufeTab";
 import { WeitereRufnummern } from "../features/telefon/WeitereRufnummern";
 import { useKontaktAnrufAnzahl } from "../features/telefon/useKontaktAnrufAnzahl";
 import { useTelefonBerechtigung } from "../features/telefon/useTelefonBerechtigung";
+import { LieferantZusammenfuehrenDialog } from "../components/LieferantZusammenfuehrenDialog";
 
 const PAGE_SIZE = 12;
 
@@ -785,6 +786,7 @@ export default function LieferantenEditor() {
     }, [setSearchParams]);
 
     const [archivAktion, setArchivAktion] = useState(false);
+    const [zusammenfuehrenOffen, setZusammenfuehrenOffen] = useState(false);
 
     const archivieren = async () => {
         if (!selectedLieferant) return;
@@ -893,6 +895,12 @@ export default function LieferantenEditor() {
                             </Button>
                         )}
                         {selectedLieferant.archiviert && isAdmin && (
+                            <Button variant="outline" size="sm" className="border-slate-300 text-slate-600 hover:bg-slate-50"
+                                onClick={() => setZusammenfuehrenOffen(true)} disabled={archivAktion}>
+                                <GitMerge className="w-4 h-4 mr-2" /> Zusammenführen …
+                            </Button>
+                        )}
+                        {selectedLieferant.archiviert && isAdmin && (
                             <Button variant="outline" size="sm" className="border-rose-300 text-rose-700 hover:bg-rose-50"
                                 onClick={loeschenLieferant} disabled={archivAktion}>
                                 <Trash2 className="w-4 h-4 mr-2" /> Endgültig löschen
@@ -917,6 +925,17 @@ export default function LieferantenEditor() {
                         lieferant={editingLieferant}
                         onClose={() => setIsModalOpen(false)}
                         onSave={handleSave}
+                    />
+                )}
+                {zusammenfuehrenOffen && (
+                    <LieferantZusammenfuehrenDialog
+                        quell={selectedLieferant}
+                        onErfolgreich={() => {
+                            setZusammenfuehrenOffen(false);
+                            zurueckZurListe();
+                            neuLaden();
+                        }}
+                        onAbbrechen={() => setZusammenfuehrenOffen(false)}
                     />
                 )}
             </PageLayout>

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Boxes, Briefcase, CheckCheck, FileText, Gem, Loader2, Mail, PackagePlus, Paperclip, Phone, Save, ScanLine, Send, Trash2, X } from 'lucide-react';
+import { ArrowLeft, Boxes, Briefcase, CheckCheck, ChevronDown, ChevronUp, Eye, FileText, Gem, Loader2, Mail, PackagePlus, Paperclip, Phone, Save, ScanLine, Send, Trash2, X } from 'lucide-react';
 
 import { PageLayout } from '../components/layout/PageLayout';
 import { ProjectSelectModal } from '../components/ProjectSelectModal';
@@ -11,6 +11,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { useToast } from '../components/ui/toast';
 import { cn } from '../lib/utils';
 import { useDarf } from '../features/funktionsrechte/useFunktionsrechte';
+import type { ProjektDokument } from '../types';
 import { LagerArtikelWahl, type GewaehlterArtikel } from '../features/lager/LagerArtikelWahl';
 import { LieferscheinScanDialog } from '../features/lager/LieferscheinScanDialog';
 import { ladeOrte, type Lagerort } from '../features/lager/lagerApi';
@@ -80,9 +81,13 @@ const BestellungBearbeiten = () => {
     const [lagerOrte, setLagerOrte] = useState<Lagerort[]>([]);
     const [lieferscheinScanOffen, setLieferscheinScanOffen] = useState(false);
     const [lieferscheinVorabDatei, setLieferscheinVorabDatei] = useState<File | undefined>();
+    const [projektDokumente, setProjektDokumente] = useState<ProjektDokument[]>([]);
+    const [laedeZeichnungen, setLaedeZeichnungen] = useState(false);
+    const [zeichnungenAufgeklappt, setZeichnungenAufgeklappt] = useState(false);
     const zaehler = useRef(0);
 
     const istEntwurf = bestellung === null || bestellung.status === 'ENTWURF';
+    const projektId = bestellung?.positionen.find(p => p.projektId != null)?.projektId ?? null;
 
     const uebernimm = useCallback((b: Bestellung) => {
         setBestellung(b);
@@ -108,6 +113,24 @@ const BestellungBearbeiten = () => {
         ladeOrte().then(liste => { if (!abgebrochen) setLagerOrte(liste); }).catch(() => undefined);
         return () => { abgebrochen = true; };
     }, []);
+
+    useEffect(() => {
+        if (!projektId || istEntwurf) { setProjektDokumente([]); return; }
+        let abgebrochen = false;
+        setLaedeZeichnungen(true);
+        fetch(`/api/projekte/${projektId}`)
+            .then(r => r.ok ? r.json() as Promise<{ dokumente?: ProjektDokument[] }> : Promise.reject())
+            .then(data => {
+                if (!abgebrochen) {
+                    const docs = data.dokumente ?? [];
+                    setProjektDokumente(docs);
+                    setZeichnungenAufgeklappt(docs.length > 0);
+                }
+            })
+            .catch(() => { if (!abgebrochen) setProjektDokumente([]); })
+            .finally(() => { if (!abgebrochen) setLaedeZeichnungen(false); });
+        return () => { abgebrochen = true; };
+    }, [projektId, istEntwurf]);
 
     const summe = useMemo(() => zeilen.reduce((s, z) => {
         const m = alsZahl(z.menge);
@@ -444,6 +467,60 @@ const BestellungBearbeiten = () => {
                         </Card>
                     )
                 }
+
+                {/* ---- Projektzeichnungen ---- */}
+                {!istEntwurf && projektId != null && (
+                    <Card className="overflow-hidden p-0">
+                        <button
+                            type="button"
+                            onClick={() => setZeichnungenAufgeklappt(v => !v)}
+                            aria-expanded={zeichnungenAufgeklappt}
+                            className="flex w-full items-center justify-between gap-2 bg-amber-50 px-4 py-3 text-left transition-colors hover:bg-amber-100"
+                        >
+                            <span className="flex items-center gap-2 text-sm font-medium text-slate-700">
+                                <FileText className="h-4 w-4 shrink-0 text-amber-600" aria-hidden />
+                                Projektzeichnungen
+                                {!laedeZeichnungen && projektDokumente.length > 0 && (
+                                    <span className="rounded-full bg-amber-200 px-1.5 py-0.5 text-xs font-semibold text-amber-800">
+                                        {projektDokumente.length}
+                                    </span>
+                                )}
+                            </span>
+                            {zeichnungenAufgeklappt
+                                ? <ChevronUp className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />
+                                : <ChevronDown className="h-4 w-4 shrink-0 text-slate-500" aria-hidden />}
+                        </button>
+                        {zeichnungenAufgeklappt && (
+                            <div className="p-4">
+                                {laedeZeichnungen ? (
+                                    <p className="flex items-center gap-2 text-sm text-slate-500"><Loader2 className="h-4 w-4 animate-spin" /> Wird geladen …</p>
+                                ) : projektDokumente.length === 0 ? (
+                                    <p className="text-sm text-slate-500">Keine Dokumente im Projekt hinterlegt.</p>
+                                ) : (
+                                    <ul className="divide-y divide-slate-100">
+                                        {projektDokumente.map(dok => (
+                                            <li key={dok.id} className="flex items-center justify-between gap-3 py-2 first:pt-0 last:pb-0">
+                                                <span className="truncate text-sm text-slate-800" title={dok.originalDateiname}>
+                                                    {dok.originalDateiname}
+                                                </span>
+                                                <a
+                                                    href={dok.url}
+                                                    target="_blank"
+                                                    rel="noreferrer"
+                                                    aria-label={`${dok.originalDateiname} öffnen`}
+                                                    className="inline-flex shrink-0 items-center gap-1 text-xs text-rose-600 hover:text-rose-700"
+                                                >
+                                                    <Eye className="h-3.5 w-3.5" aria-hidden />
+                                                    Öffnen
+                                                </a>
+                                            </li>
+                                        ))}
+                                    </ul>
+                                )}
+                            </div>
+                        )}
+                    </Card>
+                )}
 
                 {/* ---- Lieferschein einbuchen ---- */}
                 {bestellung && bestellung.status === 'BESTELLT' && (

@@ -38,6 +38,8 @@ public class ArtikelDetailDto {
         private String lieferantName;
         /** Die Artikelnummer, unter der dieser Lieferant den Artikel fuehrt. */
         private String externeArtikelnummer;
+        /** Wie dieser Lieferant den Artikel bezeichnet (sein eigener Produktname). */
+        private String lieferantenBezeichnung;
         private BigDecimal preis;
         private Date preisDatum;
         private PreisQuelle quelle;

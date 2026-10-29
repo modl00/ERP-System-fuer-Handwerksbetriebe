@@ -48,6 +48,10 @@ public class LieferantenArtikelPreise {
     @Column(name = "externe_artikelnummer")
     private String externeArtikelnummer;
 
+    /** Wie dieser Lieferant den Artikel bezeichnet (sein eigener Produktname). */
+    @Column(name = "lieferanten_bezeichnung", length = 500)
+    private String lieferantenBezeichnung;
+
     /** Fachlicher Stand des Preises, z.B. das Datum der Angebots-Mail. */
     private Date preisAenderungsdatum;
 
@@ -103,6 +107,7 @@ public class LieferantenArtikelPreise {
         nachfolger.setArtikel(this.artikel);
         nachfolger.setLieferant(this.lieferant);
         nachfolger.setExterneArtikelnummer(this.externeArtikelnummer);
+        nachfolger.setLieferantenBezeichnung(this.lieferantenBezeichnung);
         nachfolger.setPreis(neuerPreis);
         nachfolger.setPreisAenderungsdatum(new Date());
         nachfolger.setQuelle(neueQuelle != null ? neueQuelle : PreisQuelle.UNBEKANNT);

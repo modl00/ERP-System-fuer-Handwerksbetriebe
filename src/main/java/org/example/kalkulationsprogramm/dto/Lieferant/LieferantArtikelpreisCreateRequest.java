@@ -8,6 +8,7 @@ import java.math.BigDecimal;
 public record LieferantArtikelpreisCreateRequest(
         @NotNull Long artikelId,
         @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal preis,
-        String externeArtikelnummer
+        String externeArtikelnummer,
+        String lieferantenBezeichnung
 ) {
 }

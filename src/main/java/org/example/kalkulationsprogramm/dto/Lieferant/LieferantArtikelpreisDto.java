@@ -14,6 +14,7 @@ public class LieferantArtikelpreisDto {
     private String produkttext;
     private String werkstoff;
     private String externeArtikelnummer;
+    private String lieferantenBezeichnung;
     private LocalDate preisAenderungsdatum;
     private BigDecimal preis;
 }

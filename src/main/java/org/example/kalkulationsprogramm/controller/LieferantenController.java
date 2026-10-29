@@ -473,7 +473,7 @@ public class LieferantenController {
     public ResponseEntity<LieferantArtikelpreisDto> updateArtikelpreis(@PathVariable Long id,
             @PathVariable Long artikelId,
             @Valid @RequestBody LieferantArtikelpreisUpdateRequest request) {
-        return artikelpreisService.aktualisiere(id, artikelId, request.preis(), request.externeArtikelnummer())
+        return artikelpreisService.aktualisiere(id, artikelId, request.preis(), request.externeArtikelnummer(), request.lieferantenBezeichnung())
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }
@@ -481,7 +481,7 @@ public class LieferantenController {
     @PostMapping("/{id}/artikelpreise")
     public ResponseEntity<LieferantArtikelpreisDto> createArtikelpreis(@PathVariable Long id,
             @Valid @RequestBody LieferantArtikelpreisCreateRequest request) {
-        return artikelpreisService.anlegen(id, request.artikelId(), request.preis(), request.externeArtikelnummer())
+        return artikelpreisService.anlegen(id, request.artikelId(), request.preis(), request.externeArtikelnummer(), request.lieferantenBezeichnung())
                 .map(ResponseEntity::ok)
                 .orElseGet(() -> ResponseEntity.notFound().build());
     }

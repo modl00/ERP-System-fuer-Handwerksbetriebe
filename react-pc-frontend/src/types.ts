@@ -473,6 +473,7 @@ export interface ArtikelLieferantEintrag {
   lieferantId: number;
   lieferantName: string;
   externeArtikelnummer?: string;
+  lieferantenBezeichnung?: string;
   preis?: number;
   preisDatum?: string;
   quelle?: Merkmal;

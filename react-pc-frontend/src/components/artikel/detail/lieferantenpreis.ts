@@ -5,6 +5,8 @@ export interface LieferantenpreisEintrag {
     preis: number;
     /** `null` = die bisherige Nummer beim Lieferanten bleibt stehen. */
     externeArtikelnummer: string | null;
+    /** `null` = die bisherige Bezeichnung beim Lieferanten bleibt stehen. */
+    lieferantenBezeichnung?: string | null;
 }
 
 /**

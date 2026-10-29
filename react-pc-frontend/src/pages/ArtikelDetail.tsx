@@ -1,10 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useLocation, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Euro, FileText, Images, LayoutDashboard, Package, RefreshCw, Ruler } from "lucide-react";
+import { ArrowLeft, Euro, FileText, Images, LayoutDashboard, Merge, Package, RefreshCw, Ruler } from "lucide-react";
 import { Button } from "../components/ui/button";
 import { PageLayout } from "../components/layout/PageLayout";
 import { Reiter, ReiterPanel, type ReiterEintrag } from "../components/ui/reiter";
 import { useToast } from "../components/ui/toast";
+import { useConfirm } from "../components/ui/confirm-dialog";
+import { ArtikelAuswahlDialog } from "../components/artikel/ArtikelAuswahlDialog";
 import { ArtikelDokumente } from "../components/artikel/ArtikelDokumente";
 import { UebersichtReiter, type ArtikelReiterId } from "../components/artikel/detail/UebersichtReiter";
 import { PreiseReiter } from "../components/artikel/detail/PreiseReiter";
@@ -232,6 +234,35 @@ export default function ArtikelDetail() {
         wechsleReiter("angaben");
     };
 
+    const confirm = useConfirm();
+    const [zusammenfuehrenOffen, setZusammenfuehrenOffen] = useState(false);
+    const [zusammenfuehrt, setZusammenfuehrt] = useState(false);
+
+    const zusammenfuehrenMit = async (quelleArtikelId: number, quelleName: string) => {
+        if (!id) return;
+        const bestaetigt = await confirm({
+            title: "Artikel zusammenführen",
+            message: `„${quelleName}" wird in diesen Artikel überführt: Lieferanten und Preise werden übernommen, der ausgewählte Artikel wird danach archiviert. Dieser Schritt kann nicht rückgängig gemacht werden.`,
+            confirmLabel: "Zusammenführen",
+            variant: "danger",
+        });
+        if (!bestaetigt) return;
+        setZusammenfuehrt(true);
+        try {
+            const res = await fetch(`/api/artikel/${encodeURIComponent(id)}/zusammenfuehren?quelleId=${encodeURIComponent(quelleArtikelId)}`, { method: "POST" });
+            if (!res.ok) {
+                const data = await res.json().catch(() => ({}));
+                throw new Error((data as { message?: string }).message ?? "Zusammenführen fehlgeschlagen.");
+            }
+            toast.success("Artikel wurden zusammengeführt. Lieferanten und Preise sind übernommen.");
+            await laden();
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Zusammenführen fehlgeschlagen.");
+        } finally {
+            setZusammenfuehrt(false);
+        }
+    };
+
     // Daten eines anderen Artikels (beim Wechsel von Artikel zu Artikel) zaehlen nicht.
     const istAktuell = !!artikel && datenFuer === id;
 
@@ -330,6 +361,14 @@ export default function ArtikelDetail() {
                         <RefreshCw className={cn("w-4 h-4 mr-2", laedt && "motion-safe:animate-spin")} aria-hidden="true" />
                         Aktualisieren
                     </Button>
+                    <Button variant="outline" size="sm"
+                        className="border-slate-300 text-slate-700 hover:bg-slate-50"
+                        disabled={zusammenfuehrt}
+                        title="Einen anderen Artikel in diesen zusammenführen"
+                        onClick={() => setZusammenfuehrenOffen(true)}>
+                        <Merge className="w-4 h-4 mr-2" aria-hidden="true" />
+                        Zusammenführen
+                    </Button>
                 </div>
             }
         >
@@ -352,6 +391,17 @@ export default function ArtikelDetail() {
                     </ReiterPanel>
                 );
             })}
+
+            <ArtikelAuswahlDialog
+                offen={zusammenfuehrenOffen}
+                onSchliessen={() => setZusammenfuehrenOffen(false)}
+                onUebernehmen={(auswahl) => {
+                    setZusammenfuehrenOffen(false);
+                    if (auswahl.length > 0) {
+                        void zusammenfuehrenMit(auswahl[0].artikelId, auswahl[0].titel);
+                    }
+                }}
+            />
         </PageLayout>
     );
 }

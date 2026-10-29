@@ -58,7 +58,7 @@ export function PreiseReiter({ daten, onGespeichert }: Props) {
     );
 }
 
-const LEER = { lieferantId: 0, lieferantName: "", externeArtikelnummer: "", preis: "" };
+const LEER = { lieferantId: 0, lieferantName: "", externeArtikelnummer: "", lieferantenBezeichnung: "", preis: "" };
 
 /**
  * Preis eines weiteren Lieferanten eintragen - etwa nach einem Telefonat,
@@ -112,11 +112,13 @@ function PreisNachtragen({ daten, onGespeichert }: Props) {
         const nummer = neuerPreis.externeArtikelnummer.trim();
         const neueNummer = nummer === "" || nummer === bisherigeNummer ? null : nummer;
         setSpeichert(true);
+        const bezeichnung = neuerPreis.lieferantenBezeichnung.trim() || null;
         try {
             await speichereLieferantenpreis(neuerPreis.lieferantId, {
                 artikelId: daten.artikel.id,
                 preis: betrag,
                 externeArtikelnummer: neueNummer,
+                lieferantenBezeichnung: bezeichnung,
             });
             toast.success("Preis gespeichert. Der bisherige Preis bleibt im Verlauf erhalten.");
             schliessen();
@@ -146,7 +148,7 @@ function PreisNachtragen({ daten, onGespeichert }: Props) {
             <h3 className="text-sm font-semibold text-slate-900 mb-3">
                 {bisherigeNummer !== null ? "Neuer Preis" : "Preis nachtragen"}
             </h3>
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-3 items-start">
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3 items-start">
                 <div>
                     <Label htmlFor="lieferant-wahl">Lieferant</Label>
                     <button
@@ -158,6 +160,14 @@ function PreisNachtragen({ daten, onGespeichert }: Props) {
                         <span className="truncate">{neuerPreis.lieferantName || "Lieferant auswählen"}</span>
                         <Search className="w-4 h-4 shrink-0 text-slate-400" aria-hidden="true" />
                     </button>
+                </div>
+                <div>
+                    <Label htmlFor="lieferant-bezeichnung">Bezeichnung beim Lieferanten</Label>
+                    <Input id="lieferant-bezeichnung" className="min-h-[44px]"
+                        value={neuerPreis.lieferantenBezeichnung}
+                        onChange={(e) => setNeuerPreis((p) => ({ ...p, lieferantenBezeichnung: e.target.value }))}
+                        placeholder="z. B. Flat bar 40×5 S235" />
+                    <p className="text-xs text-slate-500 mt-1">Optional.</p>
                 </div>
                 <div>
                     <Label htmlFor="externe-nr">Dessen Artikelnummer</Label>

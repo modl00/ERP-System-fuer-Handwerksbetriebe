@@ -58,14 +58,14 @@ public class LieferantArtikelpreisService {
      */
     @Transactional
     public Optional<LieferantArtikelpreisDto> aktualisiere(Long lieferantId, Long artikelId, BigDecimal preis,
-            String externeArtikelnummer) {
-        return schreibePreisstand(lieferantId, artikelId, preis, externeArtikelnummer, PreisQuelle.MANUELL, null);
+            String externeArtikelnummer, String lieferantenBezeichnung) {
+        return schreibePreisstand(lieferantId, artikelId, preis, externeArtikelnummer, lieferantenBezeichnung, PreisQuelle.MANUELL, null);
     }
 
     @Transactional
     public Optional<LieferantArtikelpreisDto> anlegen(Long lieferantId, Long artikelId, BigDecimal preis,
-            String externeArtikelnummer) {
-        return schreibePreisstand(lieferantId, artikelId, preis, externeArtikelnummer, PreisQuelle.MANUELL, null);
+            String externeArtikelnummer, String lieferantenBezeichnung) {
+        return schreibePreisstand(lieferantId, artikelId, preis, externeArtikelnummer, lieferantenBezeichnung, PreisQuelle.MANUELL, null);
     }
 
     /**
@@ -79,7 +79,7 @@ public class LieferantArtikelpreisService {
      */
     @Transactional
     public Optional<LieferantArtikelpreisDto> schreibePreisstand(Long lieferantId, Long artikelId, BigDecimal preis,
-            String externeArtikelnummer, PreisQuelle quelle, String notiz) {
+            String externeArtikelnummer, String lieferantenBezeichnung, PreisQuelle quelle, String notiz) {
         if (lieferantId == null || artikelId == null) {
             return Optional.empty();
         }
@@ -92,10 +92,17 @@ public class LieferantArtikelpreisService {
         if (nummer == null && bisher.isPresent()) {
             nummer = bisher.get().getExterneArtikelnummer();
         }
+        // Leere Bezeichnung = bisherige behalten (gleiche Logik wie Artikelnummer).
+        String bezeichnung = (lieferantenBezeichnung != null && !lieferantenBezeichnung.isBlank())
+                ? lieferantenBezeichnung.trim() : null;
+        if (bezeichnung == null && bisher.isPresent()) {
+            bezeichnung = bisher.get().getLieferantenBezeichnung();
+        }
 
         if (bisher.isPresent() && Objects.equals(normalisiert(bisher.get().getPreis()), normalisiert(preis))) {
             LieferantenArtikelPreise unveraendert = bisher.get();
             unveraendert.setExterneArtikelnummer(nummer);
+            unveraendert.setLieferantenBezeichnung(bezeichnung);
             return Optional.of(mapper.toDto(artikelPreiseRepository.save(unveraendert)));
         }
 
@@ -117,6 +124,7 @@ public class LieferantArtikelpreisService {
         neu.setLieferant(lieferant);
         neu.setPreis(preis);
         neu.setExterneArtikelnummer(nummer);
+        neu.setLieferantenBezeichnung(bezeichnung);
         neu.setPreisAenderungsdatum(new Date());
         neu.setQuelle(quelle != null ? quelle : PreisQuelle.MANUELL);
         neu.setNotiz(notiz);

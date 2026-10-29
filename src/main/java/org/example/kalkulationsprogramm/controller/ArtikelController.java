@@ -30,13 +30,14 @@ import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumentDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelDokumenttexteRequest;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelStammdatenRequest;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelResponseDto;
-import org.example.kalkulationsprogramm.dto.Artikel.ArtikelStammdatenRequest;
 import org.example.kalkulationsprogramm.dto.Artikel.ArtikelSearchResponseDto;
 import org.example.kalkulationsprogramm.dto.Artikel.ExterneNummerDto;
 import org.example.kalkulationsprogramm.dto.Artikel.LieferantPreisDto;
 import org.example.kalkulationsprogramm.dto.Artikel.NaechsteArtikelnummerDto;
 import org.example.kalkulationsprogramm.repository.LieferantenRepository;
 import org.example.kalkulationsprogramm.repository.WerkstoffRepository;
+import org.example.kalkulationsprogramm.repository.ArtikelRepository;
+import org.example.kalkulationsprogramm.repository.LieferantenArtikelPreiseRepository;
 import org.example.kalkulationsprogramm.service.ArtikelDokumentService;
 import org.example.kalkulationsprogramm.service.ArtikelFreitextSuche;
 import org.example.kalkulationsprogramm.service.ArtikelImportService;
@@ -54,6 +55,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.http.ResponseEntity;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.StringUtils;
@@ -106,6 +108,8 @@ public class ArtikelController {
     private final WerkstoffRepository werkstoffRepository;
     private final ArtikelPositionsPreisService artikelPositionsPreisService;
     private final ArtikelDokumentService artikelDokumentService;
+    private final ArtikelRepository artikelRepository;
+    private final LieferantenArtikelPreiseRepository lieferantenArtikelPreiseRepository;
 
     @PostMapping
     @Transactional
@@ -482,6 +486,7 @@ public class ArtikelController {
             eintrag.setLieferantId(p.getLieferant().getId());
             eintrag.setLieferantName(p.getLieferant().getLieferantenname());
             eintrag.setExterneArtikelnummer(p.getExterneArtikelnummer());
+            eintrag.setLieferantenBezeichnung(p.getLieferantenBezeichnung());
             eintrag.setPreis(p.getPreis());
             eintrag.setPreisDatum(p.getPreisAenderungsdatum());
             eintrag.setQuelle(p.getQuelle());
@@ -843,6 +848,62 @@ public class ArtikelController {
         }
         Collections.reverse(parts);
         return String.join(" > ", parts);
+    }
+
+    /**
+     * Fuehrt zwei Artikel zusammen: Lieferanten und Preise des Quell-Artikels werden
+     * auf den Hauptartikel uebertragen. Lieferanten, die beim Hauptartikel bereits
+     * hinterlegt sind, werden uebersprungen. Der Quell-Artikel wird danach archiviert.
+     */
+    @PostMapping("/{hauptId}/zusammenfuehren")
+    @Transactional
+    public ResponseEntity<Map<String, String>> zusammenfuehren(
+            @PathVariable Long hauptId,
+            @RequestParam Long quelleId) {
+        if (Objects.equals(hauptId, quelleId)) {
+            throw new ResponseStatusException(
+                    HttpStatus.BAD_REQUEST, "Hauptartikel und Quellartikel duerfen nicht identisch sein.");
+        }
+        Artikel haupt = artikelRepository.findById(hauptId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Hauptartikel nicht gefunden."));
+        Artikel quelle = artikelRepository.findById(quelleId)
+                .orElseThrow(() -> new ResponseStatusException(
+                        HttpStatus.NOT_FOUND, "Quellartikel nicht gefunden."));
+
+        // Lieferanten, die schon beim Hauptartikel hinterlegt sind, ueberspringen.
+        java.util.Set<Long> bereitsVorhanden = haupt.getArtikelpreis().stream()
+                .filter(LieferantenArtikelPreise::isAktuell)
+                .filter(p -> p.getLieferant() != null)
+                .map(p -> p.getLieferant().getId())
+                .collect(java.util.stream.Collectors.toSet());
+
+        List<LieferantenArtikelPreise> zuUebertragen = quelle.getArtikelpreis().stream()
+                .filter(LieferantenArtikelPreise::isAktuell)
+                .filter(p -> p.getLieferant() != null)
+                .filter(p -> !bereitsVorhanden.contains(p.getLieferant().getId()))
+                .toList();
+
+        for (LieferantenArtikelPreise p : zuUebertragen) {
+            LieferantenArtikelPreise neu = new LieferantenArtikelPreise();
+            neu.setArtikel(haupt);
+            neu.setLieferant(p.getLieferant());
+            neu.setPreis(p.getPreis());
+            neu.setExterneArtikelnummer(p.getExterneArtikelnummer());
+            neu.setLieferantenBezeichnung(p.getLieferantenBezeichnung());
+            neu.setPreisAenderungsdatum(p.getPreisAenderungsdatum());
+            neu.setQuelle(p.getQuelle());
+            neu.setNotiz(p.getNotiz());
+            neu.setAktuell(true);
+            lieferantenArtikelPreiseRepository.save(neu);
+        }
+
+        quelle.setArchiviert(true);
+        quelle.setArchiviertAm(java.time.LocalDateTime.now());
+        artikelRepository.save(quelle);
+
+        return ResponseEntity.ok(Map.of("message",
+                "Artikel zusammengefuehrt. " + zuUebertragen.size() + " Lieferant(en) uebernommen."));
     }
 
     @PostMapping("/{id}/archivieren")

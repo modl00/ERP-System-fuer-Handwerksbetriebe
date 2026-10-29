@@ -7,6 +7,7 @@ import java.math.BigDecimal;
 
 public record LieferantArtikelpreisUpdateRequest(
         @NotNull @DecimalMin(value = "0", inclusive = true) BigDecimal preis,
-        String externeArtikelnummer
+        String externeArtikelnummer,
+        String lieferantenBezeichnung
 ) {
 }

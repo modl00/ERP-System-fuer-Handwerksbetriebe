@@ -31,11 +31,12 @@ export function LieferantenPreise({ artikelId, lieferanten, onGespeichert, kompa
                 <caption className="sr-only">
                     {kompakt
                         ? "Lieferanten mit aktuellem Preis, günstigster zuerst"
-                        : "Lieferanten mit Artikelnummer und aktuellem Preis, günstigster zuerst"}
+                        : "Lieferanten mit Bezeichnung, Artikelnummer und aktuellem Preis, günstigster zuerst"}
                 </caption>
                 <thead>
                     <tr className="text-left text-slate-500 border-b border-slate-200">
                         <th scope="col" className="py-2 pr-4 font-medium">Lieferant</th>
+                        {!kompakt && <th scope="col" className="py-2 pr-4 font-medium">Bezeichnung beim Lieferanten</th>}
                         {!kompakt && <th scope="col" className="py-2 pr-4 font-medium">Dessen Artikelnummer</th>}
                         {/* Feste Breite: Beim Bearbeiten (Feld plus Haken und X) springen die Spalten nicht. */}
                         <th scope="col" className="py-2 pr-4 font-medium text-right w-56">Preis</th>
@@ -109,6 +110,24 @@ function PreisZeile({ eintrag: l, artikelId, onGespeichert, kompakt }: {
         }
     };
 
+    const bezeichnungSpeichern = async (entwurf: string): Promise<boolean> => {
+        const bez = entwurf.trim();
+        if (bez === (l.lieferantenBezeichnung ?? "")) return true;
+        if (l.preis == null) {
+            toast.error("Bitte zuerst einen Preis eintragen – die Bezeichnung wird zusammen mit dem Preis gespeichert.");
+            return false;
+        }
+        try {
+            await speichereLieferantenpreis(l.lieferantId, { artikelId, preis: l.preis, externeArtikelnummer: null, lieferantenBezeichnung: bez || null });
+            toast.success("Die Bezeichnung beim Lieferanten ist gespeichert.");
+            await onGespeichert();
+            return true;
+        } catch (err) {
+            toast.error(err instanceof Error ? err.message : "Die Bezeichnung konnte nicht gespeichert werden.");
+            return false;
+        }
+    };
+
     return (
         <tr className="border-b border-slate-100 last:border-0">
             <td className="py-2 pr-4">
@@ -122,6 +141,18 @@ function PreisZeile({ eintrag: l, artikelId, onGespeichert, kompakt }: {
                     </span>
                 )}
             </td>
+            {!kompakt && (
+                <td className="py-2 pr-4 text-slate-600">
+                    <DirektFeld
+                        was="Bezeichnung"
+                        anzeige={l.lieferantenBezeichnung || "—"}
+                        knopfLabel={`Bezeichnung ändern bei ${l.lieferantName}${l.lieferantenBezeichnung ? `, bisher ${l.lieferantenBezeichnung}` : ""}`}
+                        eingabeLabel={`Bezeichnung beim Lieferanten ${l.lieferantName}`}
+                        startwert={l.lieferantenBezeichnung ?? ""}
+                        onSpeichern={bezeichnungSpeichern}
+                    />
+                </td>
+            )}
             {!kompakt && (
                 <td className="py-2 pr-4 text-slate-600">
                     <DirektFeld

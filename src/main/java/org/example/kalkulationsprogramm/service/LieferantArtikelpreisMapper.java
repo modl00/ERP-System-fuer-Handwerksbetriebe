@@ -27,6 +27,7 @@ public class LieferantArtikelpreisMapper {
             }
         }
         dto.setExterneArtikelnummer(entity.getExterneArtikelnummer());
+        dto.setLieferantenBezeichnung(entity.getLieferantenBezeichnung());
         dto.setPreis(entity.getPreis());
         dto.setPreisAenderungsdatum(toLocalDate(entity.getPreisAenderungsdatum()));
         return dto;

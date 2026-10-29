@@ -404,6 +404,7 @@ export interface Artikel {
   archiviert?: boolean;
   handelseinheitBezeichnung?: string | null;
   handelseinheitMeter?: number | null;
+  handelseinheitVarianten?: string | null;
 
   // Guenstigster Preis - die Suche liefert eine Zeile je Artikel
   guenstigsterPreis?: number;

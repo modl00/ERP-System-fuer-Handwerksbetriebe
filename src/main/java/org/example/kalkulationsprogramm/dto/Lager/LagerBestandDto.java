@@ -24,7 +24,8 @@ public record LagerBestandDto(
         List<OrtBestand> orte,
         BigDecimal kgProMeter,
         String handelseinheitBezeichnung,
-        BigDecimal handelseinheitMeter) {
+        BigDecimal handelseinheitMeter,
+        String handelseinheitVarianten) {
 
     /** Bestand an einem Lagerort. */
     public record OrtBestand(Long lagerortId, String lagerortName, BigDecimal bestand) {

@@ -32,6 +32,7 @@ export interface ArtikelAuswahl {
     kgProMeter?: number | null;
     handelseinheitBezeichnung?: string | null;
     handelseinheitMeter?: number | null;
+    handelseinheitVarianten?: string | null;
 }
 
 /**
@@ -79,6 +80,7 @@ const zuAuswahl = (artikel: Artikel, menge: number): ArtikelAuswahl => ({
     kgProMeter: artikel.kgProMeter ?? null,
     handelseinheitBezeichnung: artikel.handelseinheitBezeichnung ?? null,
     handelseinheitMeter: artikel.handelseinheitMeter ?? null,
+    handelseinheitVarianten: artikel.handelseinheitVarianten ?? null,
 });
 
 export function ArtikelAuswahlDialog({ offen, onSchliessen, onUebernehmen }: ArtikelAuswahlDialogProps) {

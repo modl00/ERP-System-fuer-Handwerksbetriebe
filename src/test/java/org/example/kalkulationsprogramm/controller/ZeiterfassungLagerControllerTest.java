@@ -36,7 +36,7 @@ class ZeiterfassungLagerControllerTest {
 
     private static LagerBestandDto zeile() {
         return new LagerBestandDto(9L, "Schraube M8", "S-8", "Stk", new BigDecimal("40"), null, false, false,
-                List.of(new LagerBestandDto.OrtBestand(1L, "Werkstatt", new BigDecimal("40"))), null, null, null);
+                List.of(new LagerBestandDto.OrtBestand(1L, "Werkstatt", new BigDecimal("40"))), null, null, null, null);
     }
 
     @Test

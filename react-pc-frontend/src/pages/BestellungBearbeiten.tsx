@@ -43,6 +43,7 @@ interface Zeile {
     kgProMeter?: number | null;
     handelseinheitBezeichnung?: string | null;
     handelseinheitMeter?: number | null;
+    handelseinheitVarianten?: string | null;
 }
 
 const HERKUNFT_TEXT: Record<Herkunft, string> = { LAGER: 'Lager auffüllen', PROJEKT: 'Projekt', FREI: 'Frei bestellt' };
@@ -149,7 +150,7 @@ const BestellungBearbeiten = () => {
         setZeilen((z) => [...z, {
             key: ++zaehler.current, artikelId: a.id, bezeichnung: a.titel, artikelnummer: a.nummer, einheit: a.einheit.kurz, menge: mengeText(menge), einzelpreis: null,
             herkunft: 'FREI', projektId: null, projektName: null, artikelInProjektId: null, kommentar: null,
-            kgProMeter: a.kgProMeter ?? null, handelseinheitBezeichnung: a.handelseinheitBezeichnung ?? null, handelseinheitMeter: a.handelseinheitMeter ?? null,
+            kgProMeter: a.kgProMeter ?? null, handelseinheitBezeichnung: a.handelseinheitBezeichnung ?? null, handelseinheitMeter: a.handelseinheitMeter ?? null, handelseinheitVarianten: a.handelseinheitVarianten ?? null,
         }]);
     };
 
@@ -376,7 +377,7 @@ const BestellungBearbeiten = () => {
                                                     <span className="inline-flex items-start gap-1">
                                                         {z.kgProMeter && z.handelseinheitBezeichnung && z.handelseinheitMeter ? (
                                                             <HandelseinheitEingabe
-                                                                artikel={{ einheit: z.einheit, kgProMeter: z.kgProMeter, handelseinheitBezeichnung: z.handelseinheitBezeichnung, handelseinheitMeter: z.handelseinheitMeter }}
+                                                                artikel={{ einheit: z.einheit, kgProMeter: z.kgProMeter, handelseinheitBezeichnung: z.handelseinheitBezeichnung, handelseinheitMeter: z.handelseinheitMeter, handelseinheitVarianten: z.handelseinheitVarianten }}
                                                                 value={z.menge}
                                                                 onChange={(val) => setZeilen((l) => l.map((x) => x.key === z.key ? { ...x, menge: val } : x))}
                                                             />

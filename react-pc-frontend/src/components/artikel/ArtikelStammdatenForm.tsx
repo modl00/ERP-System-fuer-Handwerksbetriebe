@@ -122,6 +122,9 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
     const [basisNeu, setBasisNeu] = useState(true);
     const [formel, setFormel] = useState<ArtikelFormel>(() => ({ felder: artikel.formelFelder ?? [], gewicht: artikel.formelGewicht ?? "", flaeche: artikel.formelFlaeche ?? "" }));
     const [formelOffen, setFormelOffen] = useState(false);
+    const [handelseinheitBez, setHandelseinheitBez] = useState(artikel.handelseinheitBezeichnung ?? "");
+    const [handelseinheitM, setHandelseinheitM] = useState(zahlText(artikel.handelseinheitMeter));
+    const [handelseinheitVarianten, setHandelseinheitVarianten] = useState(artikel.handelseinheitVarianten ?? "");
     const hatFormel = formel.gewicht.trim() !== "" || formel.flaeche.trim() !== "";
     const [tabellenFormen, setTabellenFormen] = useState<string[]>([]);
     const [tabelle, setTabelle] = useState<ProfilEintrag[]>([]);
@@ -294,6 +297,9 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                     formelFlaeche: hatFormel ? formel.flaeche.trim() || null : null,
                     gewichtHerkunft: herkunft || null,
                     gewichtDichte: herkunft === "BERECHNET" ? dichte : null,
+                    handelseinheitBezeichnung: handelseinheitBez.trim() || null,
+                    handelseinheitMeter: handelseinheitM ? parseFloat(handelseinheitM.replace(',', '.')) || null : null,
+                    handelseinheitVarianten: handelseinheitVarianten.trim() || null,
                 }),
             });
             if (!res.ok) {
@@ -563,6 +569,45 @@ export function ArtikelStammdatenForm({ artikel, onGespeichert, onAbbrechen }: P
                         </p>
                     )}
                     <p className="text-xs text-slate-500">Alles lässt sich von Hand ändern. Leer heißt: keine Angabe; die Leistung meldet dann, was fehlt.</p>
+                </div>
+
+                {/* Handelseinheit */}
+                <div className="rounded-lg border border-slate-100 bg-slate-50 p-4 space-y-3">
+                    <div className="flex items-center gap-1">
+                        <h3 className="text-sm font-semibold text-slate-800">Einkaufseinheit (Handelseinheit)</h3>
+                        <InfoButton titel="Einkaufseinheit">
+                            <p className="font-medium text-slate-800">Was passiert im Hintergrund?</p>
+                            <p>Manche Artikel werden in einer anderen Einheit eingekauft als verkauft – z. B. Stahl in kg/m, aber die Bestellung läuft über ganze Stangen. Hier legen Sie den Namen und die Länge je Handelseinheit fest.</p>
+                            <p className="mt-2 font-medium text-slate-800">Was bewirkt das?</p>
+                            <p>In der Bestellung erscheint dann ein Umrechner: Anzahl × Länge → Kilogramm. Das ist eine Hilfe – die Menge können Sie immer von Hand überschreiben. Varianten (z. B. 6 m und 12 m) können Sie kommagetrennt angeben.</p>
+                        </InfoButton>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sd-he-bez">Bezeichnung</Label>
+                            <Input id="sd-he-bez" value={handelseinheitBez} maxLength={50}
+                                onChange={e => setHandelseinheitBez(e.target.value)}
+                                placeholder="z. B. Stange, Bund, Palette" />
+                            <p className="text-xs text-slate-500">Name der Einkaufseinheit</p>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sd-he-m">Länge je Einheit (m)</Label>
+                            <Input id="sd-he-m" value={handelseinheitM} inputMode="decimal"
+                                onChange={e => setHandelseinheitM(e.target.value)}
+                                placeholder="z. B. 6 oder 12" />
+                            <p className="text-xs text-slate-500">Standard- oder Einzellänge</p>
+                        </div>
+                        <div className="space-y-1.5">
+                            <Label htmlFor="sd-he-var">Weitere Längen (optional)</Label>
+                            <Input id="sd-he-var" value={handelseinheitVarianten}
+                                onChange={e => setHandelseinheitVarianten(e.target.value)}
+                                placeholder="z. B. 6.0,12.0" />
+                            <p className="text-xs text-slate-500">Kommagetrennt – zeigt Schnellwahl in der Bestellung</p>
+                        </div>
+                    </div>
+                    {handelseinheitBez.trim() && !handelseinheitM.trim() && (
+                        <p role="note" className="text-xs text-amber-700">Bitte auch die Länge je {handelseinheitBez.trim()} angeben.</p>
+                    )}
                 </div>
             </div>
 

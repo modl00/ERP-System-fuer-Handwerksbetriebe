@@ -388,6 +388,7 @@ public class ArtikelController {
         dto.setArchiviertAm(artikel.getArchiviertAm());
         dto.setHandelseinheitBezeichnung(artikel.getHandelseinheitBezeichnung());
         dto.setHandelseinheitMeter(artikel.getHandelseinheitMeter());
+        dto.setHandelseinheitVarianten(artikel.getHandelseinheitVarianten());
         return dto;
     }
 

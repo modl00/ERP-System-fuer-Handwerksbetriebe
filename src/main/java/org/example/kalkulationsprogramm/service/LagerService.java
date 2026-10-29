@@ -453,7 +453,7 @@ public class LagerService {
         boolean unter = mindest != null && summe.compareTo(mindest) < 0;
         BigDecimal kgProMeter = a instanceof ArtikelWerkstoffe aw ? aw.getMasse() : null;
         return new LagerBestandDto(a.getId(), bezeichnung(a), a.getArtikelnummer(), einheit(a), summe, mindest, unter, summe.signum() < 0, liste,
-                kgProMeter, a.getHandelseinheitBezeichnung(), a.getHandelseinheitMeter());
+                kgProMeter, a.getHandelseinheitBezeichnung(), a.getHandelseinheitMeter(), a.getHandelseinheitVarianten());
     }
 
     private void speichere(Artikel a, Lagerort o, LagerBuchung.Art art, BigDecimal signiert, Projekt projekt, Long positionId, String notiz) {

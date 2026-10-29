@@ -50,6 +50,8 @@ public class ArtikelStammdatenRequest {
     /** Handelseinheit: z.B. "Stange" mit 6,0 m – Anzeige und Berechnung überall wo Mengen eingegeben werden. */
     private String handelseinheitBezeichnung;
     private BigDecimal handelseinheitMeter;
+    /** Kommagetrennte weitere Längen-Varianten (z.B. "6.0,12.0"); leer = nur handelseinheitMeter. */
+    private String handelseinheitVarianten;
 
     /** Gewicht je Meter in kg/m und Oberfläche je Meter in m²/m (nur Halbzeug); leer = keine Angabe. */
     private BigDecimal kgProMeter;

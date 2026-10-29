@@ -14,6 +14,7 @@ export interface HandelseinheitArtikel {
     kgProMeter?: number | null;
     handelseinheitBezeichnung?: string | null;
     handelseinheitMeter?: number | null;
+    handelseinheitVarianten?: string | null;
 }
 
 interface Props {
@@ -33,12 +34,21 @@ export function hatHandelseinheit(a: HandelseinheitArtikel): boolean {
     );
 }
 
+/** Parst kommagetrennte Variantenliste; leeres Array = keine Varianten */
+function parseVarianten(v?: string | null): number[] {
+    if (!v) return [];
+    return v.split(',').map(s => parseFloat(s.trim())).filter(n => isFinite(n) && n > 0);
+}
+
 export function HandelseinheitEingabe({ artikel, value, onChange, label, min = 0.001, max }: Props) {
     const [stangenModus, setStangenModus] = useState(false);
     const [anzahl, setAnzahl] = useState('1');
-    const [laenge, setLaenge] = useState(String(artikel.handelseinheitMeter ?? 6));
+    const varianten = parseVarianten(artikel.handelseinheitVarianten);
+    const standardLaenge = artikel.handelseinheitMeter ?? 6;
+    const [laenge, setLaenge] = useState(String(varianten.length > 0 ? varianten[0] : standardLaenge));
 
     const hatHE = hatHandelseinheit(artikel);
+    const hatVarianten = varianten.length > 0;
 
     const berechneKg = (anz: string, laengeM: string): number | null => {
         if (!artikel.kgProMeter) return null;
@@ -62,9 +72,12 @@ export function HandelseinheitEingabe({ artikel, value, onChange, label, min = 0
                     <label className="block text-xs text-slate-600">{label ?? `Menge (${artikel.einheit})`}</label>
                     {hatHE && (
                         <InfoButton titel="Handelseinheit">
-                            Dieser Artikel wird in {artikel.handelseinheitBezeichnung} gehandelt (je {artikel.handelseinheitMeter} m).
-                            Über „in {artikel.handelseinheitBezeichnung}" können Sie die Anzahl und Länge direkt eingeben –
-                            das Gewicht wird dann automatisch aus Anzahl × Länge × {artikel.kgProMeter} kg/m berechnet.
+                            Dieser Artikel wird in {artikel.handelseinheitBezeichnung} gehandelt
+                            {hatVarianten
+                                ? ` (${varianten.map(v => `${v} m`).join(' oder ')}).`
+                                : ` (je ${standardLaenge} m).`}
+                            {' '}Über „in {artikel.handelseinheitBezeichnung}" können Sie die Anzahl und Länge direkt eingeben –
+                            das Gewicht wird dann automatisch berechnet.
                         </InfoButton>
                     )}
                 </div>
@@ -109,6 +122,28 @@ export function HandelseinheitEingabe({ artikel, value, onChange, label, min = 0
                     direkt in {artikel.einheit}
                 </button>
             </div>
+
+            {/* Schnellwahl für Varianten */}
+            {hatVarianten && (
+                <div className="flex gap-1 flex-wrap">
+                    <span className="text-xs text-slate-500 self-center">Länge:</span>
+                    {varianten.map(v => (
+                        <button
+                            key={v}
+                            type="button"
+                            onClick={() => { const s = String(v); setLaenge(s); stangenZuKg(anzahl, s); }}
+                            className={`text-xs px-2 py-0.5 rounded border transition-colors ${
+                                parseFloat(laenge.replace(',', '.')) === v
+                                    ? 'bg-rose-600 text-white border-rose-600'
+                                    : 'bg-white text-slate-600 border-slate-300 hover:border-rose-400'
+                            }`}
+                        >
+                            {v} m
+                        </button>
+                    ))}
+                </div>
+            )}
+
             <div className="grid grid-cols-2 gap-2">
                 <div>
                     <label className="block text-xs text-slate-500 mb-0.5">Anzahl {bez}</label>
@@ -116,7 +151,7 @@ export function HandelseinheitEingabe({ artikel, value, onChange, label, min = 0
                 </div>
                 <div>
                     <label className="block text-xs text-slate-500 mb-0.5">Länge je {bez} (m)</label>
-                    <DecimalInput value={laenge} onChange={v => { setLaenge(v); stangenZuKg(anzahl, v); }} min={0.001} placeholder={String(artikel.handelseinheitMeter ?? 6)} />
+                    <DecimalInput value={laenge} onChange={v => { setLaenge(v); stangenZuKg(anzahl, v); }} min={0.001} placeholder={String(standardLaenge)} />
                 </div>
             </div>
             {kg != null && (

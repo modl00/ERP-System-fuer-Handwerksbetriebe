@@ -14,6 +14,7 @@ export interface GewaehlterArtikel {
     kgProMeter?: number | null;
     handelseinheitBezeichnung?: string | null;
     handelseinheitMeter?: number | null;
+    handelseinheitVarianten?: string | null;
 }
 
 interface ArtikelTreffer {
@@ -26,6 +27,7 @@ interface ArtikelTreffer {
     kgProMeter?: number | null;
     handelseinheitBezeichnung?: string | null;
     handelseinheitMeter?: number | null;
+    handelseinheitVarianten?: string | null;
 }
 
 const titel = (a: ArtikelTreffer) =>
@@ -76,7 +78,7 @@ export function LagerArtikelWahl({ onWaehlen }: Props) {
                     return (
                         <button key={a.id} type="button" role="option" aria-selected={false} aria-label={`${titel(a)} auswählen`}
                             className={cn('w-full text-left px-3 py-2 border-b border-slate-100 last:border-0 hover:bg-rose-50 focus-visible:outline-none focus-visible:bg-rose-50 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-rose-300 cursor-pointer flex items-center justify-between gap-3')}
-                            onClick={() => onWaehlen({ id: a.id, titel: titel(a), nummer: a.artikelnummer ?? null, einheit, kgProMeter: a.kgProMeter ?? null, handelseinheitBezeichnung: a.handelseinheitBezeichnung ?? null, handelseinheitMeter: a.handelseinheitMeter ?? null })}>
+                            onClick={() => onWaehlen({ id: a.id, titel: titel(a), nummer: a.artikelnummer ?? null, einheit, kgProMeter: a.kgProMeter ?? null, handelseinheitBezeichnung: a.handelseinheitBezeichnung ?? null, handelseinheitMeter: a.handelseinheitMeter ?? null, handelseinheitVarianten: a.handelseinheitVarianten ?? null })}>
                             <span className="min-w-0">
                                 <span className="block text-sm text-slate-900 truncate">{titel(a)}</span>
                                 {a.artikelnummer && <span className="block text-xs text-slate-500">{a.artikelnummer}</span>}

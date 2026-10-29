@@ -400,6 +400,20 @@ public class ArtikelService implements ArtikelServiceContract {
             throw stammdatenUngueltig("Handelseinheit: Bezeichnung und Länge müssen gemeinsam angegeben oder beide leer sein.");
         artikel.setHandelseinheitBezeichnung(handelseinheitBez);
         artikel.setHandelseinheitMeter(handelseinheitM);
+        String varianten = stammdatenText(r.getHandelseinheitVarianten(), 500, "Die Handelseinheit-Varianten");
+        if (varianten != null) {
+            if (handelseinheitBez == null)
+                throw stammdatenUngueltig("Handelseinheit-Varianten können nur gesetzt werden, wenn auch Bezeichnung und Länge angegeben sind.");
+            for (String v : varianten.split(",")) {
+                try {
+                    java.math.BigDecimal val = new java.math.BigDecimal(v.trim());
+                    if (val.signum() <= 0) throw stammdatenUngueltig("Jede Längen-Variante muss größer als 0 sein.");
+                } catch (NumberFormatException e) {
+                    throw stammdatenUngueltig("Ungültige Längen-Variante: „" + v.trim() + "". Bitte Punkt als Dezimaltrennzeichen verwenden (z. B. 6.0,12.0).");
+                }
+            }
+        }
+        artikel.setHandelseinheitVarianten(varianten);
         if (artikel instanceof ArtikelWerkstoffe aw) {
             aw.setDurchmesser(stammdatenMass(r.getDurchmesser(), "Der Durchmesser"));
             aw.setHoehe(stammdatenMass(r.getHoehe(), "Die Höhe"));

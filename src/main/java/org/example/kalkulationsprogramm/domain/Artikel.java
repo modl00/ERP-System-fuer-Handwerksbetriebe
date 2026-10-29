@@ -276,6 +276,10 @@ public class Artikel
     @Column(name = "handelseinheit_meter", precision = 10, scale = 3)
     private java.math.BigDecimal handelseinheitMeter;
 
+    /** Kommagetrennte Liste weiterer Längen-Varianten (z.B. "6.0,12.0"); leer = nur handelseinheitMeter als Option. */
+    @Column(name = "handelseinheit_varianten", length = 500)
+    private String handelseinheitVarianten;
+
     /** Vorschaubild und Zusatzdokumente (Zulassungen, Zeichnungen, Datenblaetter, ...). */
     @OneToMany(mappedBy = "artikel", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<ArtikelDokument> dokumente = new ArrayList<>();

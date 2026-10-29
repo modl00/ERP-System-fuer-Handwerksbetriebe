@@ -31,6 +31,7 @@ export interface LagerBestand {
     kgProMeter?: number | null;
     handelseinheitBezeichnung?: string | null;
     handelseinheitMeter?: number | null;
+    handelseinheitVarianten?: string | null;
 }
 
 export interface LagerZusammenfassung {

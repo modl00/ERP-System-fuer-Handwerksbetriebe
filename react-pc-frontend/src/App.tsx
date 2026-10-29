@@ -49,7 +49,6 @@ const TerminKalender = lazy(() => import('./pages/TerminKalender'));
 const RechnungsuebersichtEditor = lazy(() => import('./pages/RechnungsuebersichtEditor'));
 const BelegeKasseEditor = lazy(() => import('./pages/BelegeKasseEditor'));
 const DokumentUebersichtEditor = lazy(() => import('./pages/DokumentUebersichtEditor'));
-const Eingangskorb = lazy(() => import('./pages/Eingangskorb'));
 const KostenrechnungPage = lazy(() => import('./pages/KostenrechnungPage'));
 const FremdleistungenPage = lazy(() => import('./pages/FremdleistungenPage'));
 const LagerEditor = lazy(() => import('./pages/LagerEditor'));
@@ -129,7 +128,6 @@ const router = createBrowserRouter(createRoutesFromElements(
                 <Route path="/rechnungsuebersicht" element={<ErrorBoundary><RechnungsuebersichtEditor /></ErrorBoundary>} />
                 <Route path="/belege-kasse" element={<ErrorBoundary><BelegeKasseEditor /></ErrorBoundary>} />
                 <Route path="/dokumentuebersicht" element={<ErrorBoundary><DokumentUebersichtEditor /></ErrorBoundary>} />
-                <Route path="/eingangskorb" element={<ErrorBoundary><Eingangskorb /></ErrorBoundary>} />
                 <Route path="/emails" element={<Navigate to="/emails/inbox" replace />} />
                 <Route path="/emails/:folder" element={<Seite><EmailCenter /></Seite>} />
                 <Route path="/emails/:folder/:emailId" element={<Seite><EmailCenter /></Seite>} />

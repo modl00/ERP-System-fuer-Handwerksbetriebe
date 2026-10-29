@@ -16,6 +16,8 @@ public interface BelegRepository extends JpaRepository<Beleg, Long> {
 
     List<Beleg> findByStatusOrderByUploadDatumDesc(BelegStatus status);
 
+    long countByLieferant_Id(Long lieferantId);
+
     @Query("SELECT b FROM Beleg b WHERE b.status = :status AND b.belegKategorie = :kategorie "
             + "ORDER BY b.belegDatum DESC NULLS LAST")
     List<Beleg> findByStatusAndBelegKategorieOrderByBelegDatumDesc(@Param("status") BelegStatus status,

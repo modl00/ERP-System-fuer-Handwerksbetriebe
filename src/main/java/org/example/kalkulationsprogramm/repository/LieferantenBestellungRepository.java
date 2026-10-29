@@ -13,4 +13,6 @@ public interface LieferantenBestellungRepository extends JpaRepository<Lieferant
     List<LieferantenBestellung> findAllByOrderByIdDesc();
 
     Optional<LieferantenBestellung> findByBestellnummer(String bestellnummer);
+
+    long countByLieferant_Id(Long lieferantId);
 }

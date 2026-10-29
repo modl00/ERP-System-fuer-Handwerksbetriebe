@@ -297,6 +297,7 @@ public class SecurityConfig {
                 // Stammdaten endgültig löschen ist eine irreversible Admin-Aktion (nur aus Archiv)
                 .requestMatchers(HttpMethod.DELETE, "/api/artikel/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/lieferanten/**").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.POST, "/api/lieferanten/*/zusammenfuehren").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/lager/orte/**").hasRole("ADMIN")
                 // Lieferantendokumente löschen ist eine irreversible Admin-Aktion
                 .requestMatchers(HttpMethod.DELETE, "/api/lieferant-dokumente/**").hasRole("ADMIN")

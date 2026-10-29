@@ -107,6 +107,7 @@ public class LieferantenController {
     private final org.example.kalkulationsprogramm.service.FrontendUserProfileService frontendUserProfileService;
     private final org.example.kalkulationsprogramm.service.EmailSignatureService emailSignatureService;
     private final org.example.kalkulationsprogramm.service.SystemSettingsService systemSettingsService;
+    private final org.example.kalkulationsprogramm.service.LieferantZusammenfuehrenService lieferantZusammenfuehrenService;
     private final org.springframework.context.ApplicationEventPublisher eventPublisher;
 
     @org.springframework.beans.factory.annotation.Value("${file.mail-attachment-dir}")
@@ -1264,6 +1265,14 @@ public class LieferantenController {
         lieferant.setArchiviert(false);
         lieferant.setArchiviertAm(null);
         return ResponseEntity.ok(lieferantMapper.toListItem(lieferantenRepository.save(lieferant)));
+    }
+
+    @PostMapping("/{quellId}/zusammenfuehren")
+    public ResponseEntity<Void> zusammenfuehren(
+            @PathVariable Long quellId,
+            @RequestParam Long zielId) {
+        lieferantZusammenfuehrenService.zusammenfuehren(quellId, zielId);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/{id}")

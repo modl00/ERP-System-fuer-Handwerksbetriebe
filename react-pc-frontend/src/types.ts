@@ -351,6 +351,7 @@ export interface Lieferant {
   vorauskasse?: boolean;
   /** Übliche Lieferzeit in Arbeitstagen ab Bestellung; leer = unbekannt. */
   standardLieferzeitTage?: number | null;
+  archiviert?: boolean;
 }
 
 /** Enum-Wert vom Backend: technischer Wert plus Klartext und Erklaerung. */

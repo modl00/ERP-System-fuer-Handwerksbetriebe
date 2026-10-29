@@ -9,5 +9,5 @@ import java.math.BigDecimal;
  * @param menge  bei Zugang und Abgang die bewegte Menge (größer 0), bei der Korrektur der <b>gezählte Bestand</b> (0 oder mehr)
  * @param projektId optional: für welches Projekt entnommen wird
  */
-public record LagerBuchungEingabe(String art, Long artikelId, Long lagerortId, BigDecimal menge, Long projektId, String notiz) {
+public record LagerBuchungEingabe(String art, Long artikelId, Long lagerortId, BigDecimal menge, Long projektId, String notiz, String chargennummer, Long werkstoffzeugnisId) {
 }

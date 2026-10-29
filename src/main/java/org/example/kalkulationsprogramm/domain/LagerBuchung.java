@@ -77,4 +77,12 @@ public class LagerBuchung {
 
     @Column(name = "benutzer", length = 120)
     private String benutzer;
+
+    @Column(name = "chargennummer", length = 100)
+    private String chargennummer;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "werkstoffzeugnis_id")
+    @OnDelete(action = OnDeleteAction.SET_NULL)
+    private LieferantDokument werkstoffzeugnis;
 }

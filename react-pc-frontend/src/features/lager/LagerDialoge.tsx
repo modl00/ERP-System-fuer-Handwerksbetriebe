@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
-import { ExternalLink, Loader2, Package, Save } from 'lucide-react';
+import { ExternalLink, FileText, Loader2, Package, Save } from 'lucide-react';
 import { Link } from 'react-router-dom';
 
 import { Button } from '../../components/ui/button';
 import { DecimalInput } from '../../components/ui/decimal-input';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '../../components/ui/dialog';
+import { InfoButton } from '../../components/ui/info-button';
 import { Input } from '../../components/ui/input';
 import { Label } from '../../components/ui/label';
 import { Select } from '../../components/ui/select-custom';
@@ -15,8 +16,8 @@ import { formatDecimalInput, validateDecimalInput } from '../../lib/numberInput'
 import { HandelseinheitEingabe } from '../../components/HandelseinheitEingabe';
 import { LagerArtikelWahl, type GewaehlterArtikel } from './LagerArtikelWahl';
 import {
-    aendereArtikel, buche, EINHEIT_AUSWAHL, einheitAusKuerzel, einheitSchluesselAusKuerzel, ladeVerlauf, mengeText, setzeMindestbestand, umbuche,
-    type Buchungsart, type LagerBestand, type LagerBuchung, type Lagerort,
+    aendereArtikel, buche, EINHEIT_AUSWAHL, einheitAusKuerzel, einheitSchluesselAusKuerzel, ladeChargen, ladeVerlauf, mengeText, setzeMindestbestand, umbuche,
+    type Buchungsart, type LagerBestand, type LagerBuchung, type LagerCharge, type Lagerort,
 } from './lagerApi';
 
 const MAX_MENGE = 10_000_000;
@@ -52,6 +53,7 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
     const [notiz, setNotiz] = useState('');
     const [projektId, setProjektId] = useState('');
     const [projekte, setProjekte] = useState<ProjektKurz[] | null>(null);
+    const [chargennummer, setChargennummer] = useState('');
     const [speichert, setSpeichert] = useState(false);
     const [fehler, setFehler] = useState('');
 
@@ -67,6 +69,7 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
         setMenge('');
         setNotiz('');
         setProjektId('');
+        setChargennummer('');
         setFehler('');
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [offen]);
@@ -106,6 +109,8 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
             const zeile = await buche({
                 art, artikelId: artikel.id, lagerortId: Number(ortId), menge: pruefung.value as number,
                 projektId: art === 'ABGANG' && projektId ? Number(projektId) : null, notiz: notiz.trim() || null,
+                chargennummer: art === 'ZUGANG' ? (chargennummer.trim() || null) : null,
+                werkstoffzeugnisId: null,
             });
             onGebucht(zeile, art);
             onSchliessen();
@@ -190,6 +195,19 @@ export function BuchungsDialog({ offen, art: startArt, artikel: startArtikel, or
                                         value: String(p.id),
                                         label: [p.auftragsnummer, p.bauvorhaben].filter(Boolean).join(' – ') || `Projekt ${p.id}`,
                                     }))} />
+                            </div>
+                        )}
+
+                        {art === 'ZUGANG' && (
+                            <div>
+                                <div className="flex items-center gap-1.5 mb-1">
+                                    <Label htmlFor="zugang-charge">Chargennummer <span className="text-slate-400 font-normal">(optional)</span></Label>
+                                    <InfoButton titel="Was ist die Chargennummer?">
+                                        <p>Eine Chargennummer ist eine eindeutige Kennung, die auf dem Material angebracht wird. Damit bleibt das Werkstoffzeugnis rückverfolgbar – auch wenn das Material später verbaut oder weiterverarbeitet wird.</p>
+                                    </InfoButton>
+                                </div>
+                                <Input id="zugang-charge" value={chargennummer} maxLength={100} onChange={e => setChargennummer(e.target.value)}
+                                    placeholder="z. B. CH-2026-0042" />
                             </div>
                         )}
 
@@ -286,12 +304,21 @@ export function VerlaufDialog({ artikel, onSchliessen }: VerlaufDialogProps) {
 
 function VerlaufInhalt({ artikel, onSchliessen }: { artikel: LagerBestand; onSchliessen: () => void }) {
     const [buchungen, setBuchungen] = useState<LagerBuchung[] | null>(null);
+    const [chargen, setChargen] = useState<LagerCharge[]>([]);
     const [fehler, setFehler] = useState('');
 
     useEffect(() => {
         let abgebrochen = false;
-        ladeVerlauf(artikel.artikelId)
-            .then(b => { if (!abgebrochen) setBuchungen(b); })
+        Promise.all([
+            ladeVerlauf(artikel.artikelId),
+            ladeChargen(artikel.artikelId),
+        ])
+            .then(([b, c]) => {
+                if (!abgebrochen) {
+                    setBuchungen(b);
+                    setChargen(c);
+                }
+            })
             .catch(e => { if (!abgebrochen) setFehler(e instanceof Error ? e.message : 'Der Verlauf konnte nicht geladen werden.'); });
         return () => { abgebrochen = true; };
     }, [artikel]);
@@ -303,6 +330,42 @@ function VerlaufInhalt({ artikel, onSchliessen }: { artikel: LagerBestand; onSch
                     <DialogTitle>Verlauf</DialogTitle>
                     <DialogDescription>{artikel.bezeichnung} — aktueller Bestand {mengeText(artikel.bestand, artikel.einheit)}</DialogDescription>
                 </DialogHeader>
+                {chargen.length > 0 && (
+                    <div className="rounded-lg border border-slate-200 bg-slate-50 p-3 space-y-2">
+                        <p className="text-xs font-semibold uppercase tracking-wide text-slate-500">Chargen</p>
+                        <div className="space-y-1.5">
+                            {chargen.map(c => (
+                                <div key={c.chargennummer} className="flex items-center justify-between gap-3 bg-white rounded-md border border-slate-100 px-3 py-2">
+                                    <div className="min-w-0">
+                                        <p className="font-mono text-sm font-medium text-slate-900">{c.chargennummer}</p>
+                                        <p className="text-xs text-slate-500">
+                                            {new Date(c.ersteBuchungAm).toLocaleDateString('de-DE')}
+                                            {c.zeugnisNummer ? ` · Zeugnis ${c.zeugnisNummer}` : c.zeugnisDateiname ? ` · ${c.zeugnisDateiname}` : ''}
+                                        </p>
+                                    </div>
+                                    <div className="flex items-center gap-2 shrink-0">
+                                        <span className="text-sm font-semibold text-slate-700">{mengeText(c.menge, artikel.einheit)}</span>
+                                        {c.zeugnisUrl && (
+                                            <a href={c.zeugnisUrl} target="_blank" rel="noreferrer"
+                                                className="inline-flex items-center gap-0.5 text-xs text-rose-600 hover:text-rose-700">
+                                                <FileText className="w-3 h-3" /> Zeugnis
+                                            </a>
+                                        )}
+                                        <button
+                                            type="button"
+                                            onClick={() => { try { navigator.clipboard.writeText(c.chargennummer); } catch { /* ignore */ } }}
+                                            title="Chargennummer kopieren"
+                                            aria-label="Chargennummer kopieren"
+                                            className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded transition-colors">
+                                            <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+                                        </button>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
                 {fehler ? (
                     <div role="alert" className="p-3 bg-rose-50 border border-rose-200 text-sm text-rose-800 rounded-lg">{fehler}</div>
                 ) : buchungen == null ? (
@@ -331,7 +394,20 @@ function VerlaufInhalt({ artikel, onSchliessen }: { artikel: LagerBestand; onSch
                                         </td>
                                         <td className="py-2 pr-3">{b.lagerortName}</td>
                                         <td className="py-2 pr-3 text-slate-600">
-                                            {[b.projekt ? `Projekt ${b.projekt}` : null, b.notiz, b.benutzer ? `(${b.benutzer})` : null].filter(Boolean).join(' · ')}
+                                            <div className="space-y-0.5">
+                                                <span>{[b.projekt ? `Projekt ${b.projekt}` : null, b.notiz, b.benutzer ? `(${b.benutzer})` : null].filter(Boolean).join(' · ')}</span>
+                                                {b.chargennummer && (
+                                                    <div className="flex items-center gap-1 text-xs">
+                                                        <span className="font-mono bg-slate-100 rounded px-1.5 py-0.5 text-slate-700">{b.chargennummer}</span>
+                                                        {b.zeugnisUrl && (
+                                                            <a href={b.zeugnisUrl} target="_blank" rel="noreferrer"
+                                                                className="inline-flex items-center gap-0.5 text-rose-600 hover:text-rose-700">
+                                                                <FileText className="w-3 h-3" /> Zeugnis
+                                                            </a>
+                                                        )}
+                                                    </div>
+                                                )}
+                                            </div>
                                         </td>
                                     </tr>
                                 ))}

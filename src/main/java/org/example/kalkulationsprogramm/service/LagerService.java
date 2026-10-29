@@ -18,8 +18,10 @@ import org.example.kalkulationsprogramm.domain.ArtikelWerkstoffe;
 import org.example.kalkulationsprogramm.domain.LagerArtikel;
 import org.example.kalkulationsprogramm.domain.LagerBuchung;
 import org.example.kalkulationsprogramm.domain.Lagerort;
+import org.example.kalkulationsprogramm.domain.LieferantDokument;
 import org.example.kalkulationsprogramm.domain.Projekt;
 import org.example.kalkulationsprogramm.domain.Verrechnungseinheit;
+import org.example.kalkulationsprogramm.dto.Lager.ChargeDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBestandDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBuchungDto;
 import org.example.kalkulationsprogramm.dto.Lager.ArtikelAenderungEingabe;
@@ -32,6 +34,7 @@ import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.example.kalkulationsprogramm.repository.LagerArtikelRepository;
 import org.example.kalkulationsprogramm.repository.LagerBuchungRepository;
 import org.example.kalkulationsprogramm.repository.LagerortRepository;
+import org.example.kalkulationsprogramm.repository.LieferantDokumentRepository;
 import org.example.kalkulationsprogramm.repository.ProjektRepository;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -68,6 +71,7 @@ public class LagerService {
     private final LagerArtikelRepository lagerArtikel;
     private final ArtikelRepository artikel;
     private final ProjektRepository projekte;
+    private final LieferantDokumentRepository lieferantDokumente;
 
     /** Optional: Ist das Lagermodul ausgeschaltet, bucht Projektmaterial "aus Lager" nichts mehr ab. */
     @org.springframework.beans.factory.annotation.Autowired(required = false)
@@ -188,10 +192,54 @@ public class LagerService {
     public List<LagerBuchungDto> verlauf(Long artikelId) {
         finde(artikelId);
         return buchungen.findByArtikelIdOrderByGebuchtAmDescIdDesc(artikelId, PageRequest.of(0, 200)).stream()
-                .map(b -> new LagerBuchungDto(b.getId(), b.getArt().name(), b.getMenge(), b.getLagerort().getId(), b.getLagerort().getName(),
-                        b.getGebuchtAm(), b.getProjekt() == null ? null : b.getProjekt().getId(), projektName(b.getProjekt()),
-                        b.getNotiz(), b.getBenutzer()))
+                .map(b -> {
+                    LieferantDokument z = b.getWerkstoffzeugnis();
+                    String zNummer = z == null ? null : (z.getGeschaeftsdaten() == null ? null : z.getGeschaeftsdaten().getDokumentNummer());
+                    String zUrl = z == null ? null : "/api/lieferant-dokumente/" + z.getId() + "/download";
+                    return new LagerBuchungDto(b.getId(), b.getArt().name(), b.getMenge(),
+                            b.getLagerort().getId(), b.getLagerort().getName(),
+                            b.getGebuchtAm(), b.getProjekt() == null ? null : b.getProjekt().getId(),
+                            projektName(b.getProjekt()), b.getNotiz(), b.getBenutzer(),
+                            b.getChargennummer(),
+                            z == null ? null : z.getId(),
+                            z == null ? null : z.getEffektiverDateiname(),
+                            zNummer, zUrl);
+                })
                 .toList();
+    }
+
+    /** Aggregierte Chargen eines Artikels (nur Buchungen mit gesetzter Chargennummer). */
+    @Transactional(readOnly = true)
+    public List<ChargeDto> chargen(Long artikelId) {
+        finde(artikelId);
+        List<LagerBuchung> alleChargenBuchungen = buchungen.findByArtikelIdOrderByGebuchtAmDescIdDesc(artikelId, PageRequest.of(0, 5000))
+                .stream()
+                .filter(b -> b.getChargennummer() != null && !b.getChargennummer().isBlank())
+                .toList();
+        if (alleChargenBuchungen.isEmpty()) {
+            return List.of();
+        }
+        record ChargeDaten(BigDecimal menge, LocalDateTime erste, LieferantDokument zeugnis) {}
+        Map<String, ChargeDaten> agg = new java.util.LinkedHashMap<>();
+        for (LagerBuchung b : alleChargenBuchungen) {
+            String nr = b.getChargennummer();
+            ChargeDaten vorher = agg.get(nr);
+            BigDecimal anteil = b.getMenge();
+            LocalDateTime erste = vorher == null ? b.getGebuchtAm() : (b.getGebuchtAm().isBefore(vorher.erste()) ? b.getGebuchtAm() : vorher.erste());
+            BigDecimal neueMenge = vorher == null ? anteil : vorher.menge().add(anteil);
+            LieferantDokument z = vorher != null && vorher.zeugnis() != null ? vorher.zeugnis() : b.getWerkstoffzeugnis();
+            agg.put(nr, new ChargeDaten(neueMenge, erste, z));
+        }
+        return agg.entrySet().stream().map(e -> {
+            ChargeDaten d = e.getValue();
+            LieferantDokument z = d.zeugnis();
+            String zNummer = z == null ? null : (z.getGeschaeftsdaten() == null ? null : z.getGeschaeftsdaten().getDokumentNummer());
+            String zUrl = z == null ? null : "/api/lieferant-dokumente/" + z.getId() + "/download";
+            return new ChargeDto(e.getKey(), d.menge(), d.erste(),
+                    z == null ? null : z.getId(),
+                    z == null ? null : z.getEffektiverDateiname(),
+                    zNummer, zUrl);
+        }).toList();
     }
 
     @Transactional
@@ -257,7 +305,12 @@ public class LagerService {
                 }
             }
         }
-        speichere(a, o, art, signiert, projekt, null, notiz, benutzer(benutzer));
+        LieferantDokument zeugnis = null;
+        if (art == LagerBuchung.Art.ZUGANG && e.werkstoffzeugnisId() != null) {
+            zeugnis = lieferantDokumente.findById(e.werkstoffzeugnisId()).orElse(null);
+        }
+        String charge = art == LagerBuchung.Art.ZUGANG ? chargennummer(e.chargennummer()) : null;
+        speichereZugang(a, o, art, signiert, projekt, null, notiz, benutzer(benutzer), charge, zeugnis);
         return zeile(a.getId());
     }
 
@@ -461,6 +514,10 @@ public class LagerService {
     }
 
     private void speichere(Artikel a, Lagerort o, LagerBuchung.Art art, BigDecimal signiert, Projekt projekt, Long positionId, String notiz, String benutzer) {
+        speichereZugang(a, o, art, signiert, projekt, positionId, notiz, benutzer, null, null);
+    }
+
+    private void speichereZugang(Artikel a, Lagerort o, LagerBuchung.Art art, BigDecimal signiert, Projekt projekt, Long positionId, String notiz, String benutzer, String chargennummer, LieferantDokument zeugnis) {
         LagerBuchung b = new LagerBuchung();
         b.setArtikel(a);
         b.setLagerort(o);
@@ -471,7 +528,21 @@ public class LagerService {
         b.setArtikelInProjektId(positionId);
         b.setNotiz(notiz);
         b.setBenutzer(benutzer);
+        if (chargennummer != null) {
+            b.setChargennummer(chargennummer);
+        }
+        if (zeugnis != null) {
+            b.setWerkstoffzeugnis(zeugnis);
+        }
         buchungen.save(b);
+    }
+
+    private static String chargennummer(String n) {
+        if (n == null || n.isBlank()) {
+            return null;
+        }
+        String s = n.strip();
+        return s.length() > 100 ? s.substring(0, 100) : s;
     }
 
     /** Der Lagerort für automatische Buchungen: der erste aktive, sonst wird "Hauptlager" angelegt oder wieder aktiviert. */

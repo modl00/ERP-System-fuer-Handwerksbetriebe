@@ -433,7 +433,7 @@ public class LieferscheinScanService {
                 if (artikelId == null) continue;
                 artikelpreisService.schreibePreisstand(
                         lieferantId, artikelId, pos.getEinzelpreis(),
-                        pos.getExterneArtikelnummer(), PreisQuelle.RECHNUNG, null);
+                        pos.getExterneArtikelnummer(), null, PreisQuelle.RECHNUNG, null);
             }
         }
 

@@ -513,9 +513,19 @@ export default function FeldeinsatzPage() {
 
                 {/* Nicht bearbeitbar */}
                 {!bearbeitbar && (
-                    <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500">
-                        <Wrench className="w-4 h-4 flex-shrink-0" />
-                        <span>Dieser Feldeinsatz ist {STATUS_LABEL[protokoll.status].toLowerCase()} und kann nicht mehr bearbeitet werden.</span>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-xl text-sm text-slate-500">
+                            <Wrench className="w-4 h-4 flex-shrink-0" />
+                            <span>Dieser Feldeinsatz ist {STATUS_LABEL[protokoll.status].toLowerCase()}.</span>
+                        </div>
+                        {protokoll.status === 'ABGESCHLOSSEN' && (
+                            <button
+                                type="button"
+                                onClick={() => void statusAendern('IN_BEARBEITUNG')}
+                                className="w-full py-3 rounded-xl font-medium text-sm bg-amber-500 hover:bg-amber-600 active:bg-amber-700 text-white transition-colors">
+                                Nochmal bearbeiten
+                            </button>
+                        )}
                     </div>
                 )}
             </div>

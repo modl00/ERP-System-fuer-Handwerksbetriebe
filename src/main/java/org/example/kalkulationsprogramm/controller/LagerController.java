@@ -4,6 +4,7 @@ import java.security.Principal;
 import java.util.List;
 import java.util.Map;
 
+import org.example.kalkulationsprogramm.dto.Lager.ChargeDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBestandDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerBuchungDto;
 import org.example.kalkulationsprogramm.dto.Lager.ArtikelAenderungEingabe;
@@ -82,6 +83,11 @@ public class LagerController {
     @GetMapping("/artikel/{artikelId}/buchungen")
     public List<LagerBuchungDto> verlauf(@PathVariable Long artikelId) {
         return lagerService.verlauf(artikelId);
+    }
+
+    @GetMapping("/artikel/{artikelId}/chargen")
+    public List<ChargeDto> chargen(@PathVariable Long artikelId) {
+        return lagerService.chargen(artikelId);
     }
 
     @PostMapping("/buchungen")

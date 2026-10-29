@@ -54,6 +54,21 @@ export interface LagerBuchung {
     projekt: string | null;
     notiz: string | null;
     benutzer: string | null;
+    chargennummer?: string | null;
+    zeugnisId?: number | null;
+    zeugnisDateiname?: string | null;
+    zeugnisNummer?: string | null;
+    zeugnisUrl?: string | null;
+}
+
+export interface LagerCharge {
+    chargennummer: string;
+    menge: number;
+    ersteBuchungAm: string;
+    zeugnisId?: number | null;
+    zeugnisDateiname?: string | null;
+    zeugnisNummer?: string | null;
+    zeugnisUrl?: string | null;
 }
 
 export interface BuchungEingabe {
@@ -63,6 +78,8 @@ export interface BuchungEingabe {
     menge: number;
     projektId: number | null;
     notiz: string | null;
+    chargennummer?: string | null;
+    werkstoffzeugnisId?: number | null;
 }
 
 async function anfrage<T>(url: string, init: RequestInit | undefined, fallback: string): Promise<T> {
@@ -184,3 +201,7 @@ export const aendereArtikel = (artikelId: number, bezeichnung: string, einheit: 
 /** Der Bestand eines einzelnen Artikels, auch wenn noch nichts gebucht wurde (dann 0). */
 export const ladeBestandVon = (artikelId: number) =>
     anfrage<LagerBestand>(`/api/lager/artikel/${encodeURIComponent(String(artikelId))}/bestand`, undefined, 'Der Lagerbestand konnte nicht geladen werden.');
+
+/** Aggregierte Chargen eines Artikels (nur Buchungen mit Chargennummer). */
+export const ladeChargen = (artikelId: number) =>
+    anfrage<LagerCharge[]>(`/api/lager/artikel/${encodeURIComponent(String(artikelId))}/chargen`, undefined, 'Die Chargen konnten nicht geladen werden.');

@@ -14,5 +14,10 @@ public record LagerBuchungDto(
         Long projektId,
         String projekt,
         String notiz,
-        String benutzer) {
+        String benutzer,
+        String chargennummer,
+        Long zeugnisId,
+        String zeugnisDateiname,
+        String zeugnisNummer,
+        String zeugnisUrl) {
 }

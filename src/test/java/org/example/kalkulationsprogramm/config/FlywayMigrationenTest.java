@@ -135,7 +135,7 @@ class FlywayMigrationenTest {
             Map.entry("V9063__lieferant_dokument_eingang_status.sql", 2048003073),
             Map.entry("V9064__artikel_handelseinheit_varianten.sql", 350367547),
             Map.entry("V9065__lieferant_artikel_bezeichnung.sql", -1849257290),
-            Map.entry("V9066__lager_buchung_charge_zeugnis.sql", -828931234),
+            Map.entry("V9066__lager_buchung_charge_zeugnis.sql", -1754759223),
             Map.entry("V428__zeit_hinweis_gesendet.sql", -727890757),
             Map.entry("V429__email_automatische_bestaetigung.sql", 854429120),
             Map.entry("V430__email_draft_besitzer.sql", 617604519),

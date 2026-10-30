@@ -26,7 +26,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.io.TempDir;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 /** PDF auslesen über einen anderen Anbieter als Gemini: Text aus dem PDF, nur Text an die KI; Scans ohne Textschicht gehen nirgends hin (#232). Nur Dummy-Daten. */
 class PdfAiExtractorTextWegTest {

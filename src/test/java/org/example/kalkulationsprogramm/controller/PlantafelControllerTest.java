@@ -28,9 +28,10 @@ class PlantafelControllerTest {
     private final org.example.kalkulationsprogramm.service.planung.PlanungsHistorie historie = mock(org.example.kalkulationsprogramm.service.planung.PlanungsHistorie.class);
     // wie im Programm: Datumswerte als 2026-11-30, nicht als Zahlenliste
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new PlantafelController(service, historie))
-            .setMessageConverters(new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter(
-                    com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules()
-                            .disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS).build()))
+            .setMessageConverters(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter(
+                    tools.jackson.databind.json.JsonMapper.builderWithJackson2Defaults()
+                            .disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                            .build()))
             .build();
 
     @Test

@@ -30,8 +30,8 @@ import org.example.kalkulationsprogramm.service.planung.PlanungsService.VorgangE
 import org.example.kalkulationsprogramm.service.planung.PlanungsZuweisung;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 
 /** Die früheren Demo-Daten entfernen: Nur was die Demo-Daten angelegt haben, alles andere bleibt. Nur Dummy-Daten. */
@@ -39,10 +39,12 @@ import org.springframework.context.annotation.Import;
 @Import({ DemoDatenService.class, PlanungsService.class, PlanKapazitaetQuelle.class, PlanungsIst.class, PlanungsHistorie.class, PlanungsEinstellungen.class, PlanungsZuweisung.class, PlanBelegung.class })
 class DemoDatenServiceTest {
 
-    @MockBean
+    @MockitoBean
     private AngebotsZeiten angebotsZeiten;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.TagesSollService tagesSollService;
+    @MockitoBean
+    private org.example.kalkulationsprogramm.service.FeiertagService feiertagService;
     @Autowired
     private DemoDatenService demo;
     @Autowired

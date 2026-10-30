@@ -18,8 +18,8 @@ import org.example.kalkulationsprogramm.service.RechnungPdfService.RechnungDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.parser.PdfTextExtractor;
+import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.parser.PdfTextExtractor;
 
 /** Die Standardvorlage muss sich wie eine im Editor gespeicherte Vorlage lesen lassen und im PDF die Firmendaten zeigen. */
 class StandardVorlagenPdfTest {

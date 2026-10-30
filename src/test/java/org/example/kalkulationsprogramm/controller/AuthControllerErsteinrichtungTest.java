@@ -46,7 +46,7 @@ class AuthControllerErsteinrichtungTest {
     @MockitoBean
     private SystemSettingsService settingsService;
 
-    @MockBean
+    @MockitoBean
     private KiAnbieterService kiAnbieterService;
 
     private static FrontendUserProfile profil(FrontendUserRole rolle) {

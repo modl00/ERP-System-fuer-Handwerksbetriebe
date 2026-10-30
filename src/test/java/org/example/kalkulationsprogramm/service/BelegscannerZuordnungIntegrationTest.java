@@ -90,6 +90,7 @@ class BelegscannerZuordnungIntegrationTest {
     @MockitoBean private BelegAuditService auditService;
     @MockitoBean private KassenbuchSchreibschutz schreibschutz;
     @MockitoBean private BelegVorschlagService vorschlagService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.ArtikelFertigungsunterlageService artikelFertigungsunterlageService;
 
     private TransactionTemplate tx;
 

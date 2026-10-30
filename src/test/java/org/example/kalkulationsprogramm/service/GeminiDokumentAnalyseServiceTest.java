@@ -88,7 +88,8 @@ class GeminiDokumentAnalyseServiceTest {
                 new LieferantDokumentDateiService(ablage.toString(), ablage.toString(),
                         ablage.resolve("attachments").toString(),
                         ablage.resolve("attachments").resolve("lieferanten").toString()),
-                kiAnbieterService
+                kiAnbieterService,
+                mock(org.example.kalkulationsprogramm.service.ki.MistralOcrService.class)
         );
     }
 
@@ -1058,7 +1059,8 @@ class GeminiDokumentAnalyseServiceTest {
                     new org.springframework.transaction.support.TransactionTemplate(
                             mock(org.springframework.transaction.PlatformTransactionManager.class)),
                     dateiService,
-                    kiAnbieterService);
+                    kiAnbieterService,
+                    mock(org.example.kalkulationsprogramm.service.ki.MistralOcrService.class));
             return neu;
         }
 

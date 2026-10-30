@@ -12,6 +12,7 @@ import org.example.kalkulationsprogramm.repository.BelegRepository;
 import org.example.kalkulationsprogramm.repository.SachkontoRepository;
 import org.example.kalkulationsprogramm.service.BelegService;
 import org.example.kalkulationsprogramm.service.BelegeKasseExportPdfService;
+import org.example.kalkulationsprogramm.service.SachkontoPflegeService;
 import org.springframework.core.io.UrlResource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -45,6 +46,7 @@ public class SachkontoController {
     private final BelegRepository belegRepository;
     private final BelegService belegService;
     private final BelegeKasseExportPdfService belegeKasseExportPdfService;
+    private final SachkontoPflegeService pflegeService;
 
     private Mitarbeiter resolveCaller(String token, Authentication auth) {
         return belegService.findCaller(token, auth);
@@ -66,7 +68,6 @@ public class SachkontoController {
     }
 
     @PostMapping("/sachkonten")
-    @Transactional
     public ResponseEntity<?> create(@RequestBody SachkontoDto.UpsertRequest req, Authentication auth) {
         Mitarbeiter caller = resolveCaller(null, auth);
         // Anlegen veraendert den Kontenrahmen (GoBD-relevant) — nur Validatoren (darfScannen),
@@ -74,17 +75,15 @@ public class SachkontoController {
         if (caller == null || !belegService.darfScannen(caller)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        if (req.getBezeichnung() == null || req.getBezeichnung().isBlank()) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Bezeichnung fehlt"));
+        try {
+            Sachkonto sk = pflegeService.anlegen(req);
+            return ResponseEntity.ok(toDto(sk));
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
-        Sachkonto sk = new Sachkonto();
-        applyUpsert(sk, req);
-        sachkontoRepository.save(sk);
-        return ResponseEntity.ok(toDto(sk));
     }
 
     @PutMapping("/sachkonten/{id}")
-    @Transactional
     public ResponseEntity<?> update(@PathVariable Long id,
                                     @RequestBody SachkontoDto.UpsertRequest req,
                                     Authentication auth) {
@@ -93,11 +92,14 @@ public class SachkontoController {
         if (caller == null || !belegService.darfScannen(caller)) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN).build();
         }
-        Sachkonto sk = sachkontoRepository.findById(id).orElse(null);
-        if (sk == null) return ResponseEntity.notFound().build();
-        applyUpsert(sk, req);
-        sachkontoRepository.save(sk);
-        return ResponseEntity.ok(toDto(sk));
+        try {
+            Sachkonto sk = pflegeService.aendern(id, req);
+            return ResponseEntity.ok(toDto(sk));
+        } catch (java.util.NoSuchElementException e) {
+            return ResponseEntity.notFound().build();
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+        }
     }
 
     @GetMapping("/auswertung")

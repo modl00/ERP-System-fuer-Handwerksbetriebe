@@ -130,6 +130,8 @@ class UnifiedEmailAntwortPostfachTest {
     @MockitoBean private SteuerberaterKontaktService steuerberaterKontaktService;
     @MockitoBean private LieferantDokumentZugriffService lieferantDokumentZugriffService;
     @MockitoBean private org.example.kalkulationsprogramm.service.WeiterleitungAnhaengeService weiterleitungAnhaengeService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.ImapSyncService imapSyncService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.EmailAnlageVorschlagService emailAnlageVorschlagService;
 
     @org.junit.jupiter.api.BeforeEach
     void gelesenWieBisher() {

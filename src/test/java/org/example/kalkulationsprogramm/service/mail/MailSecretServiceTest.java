@@ -20,7 +20,9 @@ class MailSecretServiceTest {
 
     @Test
     void verweigertSpeichernOhneSchluesselUndVerraetFehlerursacheNicht() {
-        MailSecretService service = new MailSecretService("", "uploads");
+        // "/" ist nicht beschreibbar, also schlaegt das Erzeugen der Schluesseldatei fehl
+        // und der Service hat keinen gueltigen Schluessel.
+        MailSecretService service = new MailSecretService("", "/");
 
         IllegalStateException error = assertThrows(IllegalStateException.class,
                 () -> service.encrypt("geheimes-passwort"));

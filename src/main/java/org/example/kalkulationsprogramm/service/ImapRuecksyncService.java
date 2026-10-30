@@ -140,10 +140,13 @@ public class ImapRuecksyncService {
             log.debug("[ImapRuecksync] Ordner '{}' nicht gefunden: {}", ordnerName, e.getMessage());
             return ids;
         }
-        if (!(genericFolder instanceof IMAPFolder folder) || !folder.exists()) {
+        if (!(genericFolder instanceof IMAPFolder folder)) {
             return ids;
         }
         try {
+            if (!folder.exists()) {
+                return ids;
+            }
             folder.open(Folder.READ_ONLY);
             Message[] nachrichten = folder.search(new ReceivedDateTerm(ComparisonTerm.GT, seit));
             for (Message msg : nachrichten) {

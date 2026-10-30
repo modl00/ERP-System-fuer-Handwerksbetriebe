@@ -71,7 +71,8 @@ class BestellungsUebersichtControllerBelegZuordnungTest {
                 mock(org.example.kalkulationsprogramm.service.LieferantDokumentService.class),
                 mock(org.example.kalkulationsprogramm.service.BestellungsUebersichtService.class),
                 mock(org.example.kalkulationsprogramm.service.LieferantDokumentZuordnungService.class),
-                zugriffService);
+                zugriffService,
+                mock(org.example.kalkulationsprogramm.service.ki.assistent.LieferscheinScanService.class));
     }
 
     @Test

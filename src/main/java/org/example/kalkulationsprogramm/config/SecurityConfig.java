@@ -168,7 +168,11 @@ public class SecurityConfig {
             "/dokument-editor", "/dokument-editor/**",
             "/login", "/login/**", "/onboarding", "/onboarding/**",
             "/error", "/error/**",
-            "/actuator/health"
+            "/actuator/health",
+            // OpenFile-Launcher: Update-Abfrage (installierts Programm) und Einmal-Link (Mac-Terminal)
+            // laufen außerhalb des Browsers und können keine Session mitschicken.
+            "/openfile-launcher/aktuell",
+            "/openfile-launcher/mac/**"
     };
 
     /**
@@ -257,7 +261,9 @@ public class SecurityConfig {
                         "/api/firma/logo",
                         "/api/firma/steuerberater",
                         "/api/firma/steuerberater/*").authenticated()
+                .requestMatchers("/api/wartung/admin/**").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.PUT, "/api/abteilungen/*/berechtigungen").hasRole("ADMIN")
+                .requestMatchers(HttpMethod.PUT, "/api/abteilungen/*").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.POST, "/api/abteilungen").hasRole("ADMIN")
                 .requestMatchers(HttpMethod.DELETE, "/api/abteilungen/*").hasRole("ADMIN")
                 // Feiertage anlegen, anpassen, löschen wirkt auf Soll und Lohn aller Mitarbeiter (Issue #222).

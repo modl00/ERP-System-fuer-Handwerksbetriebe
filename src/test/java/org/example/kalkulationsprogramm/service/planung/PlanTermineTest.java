@@ -11,8 +11,8 @@ import org.example.kalkulationsprogramm.domain.Mitarbeiter;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 
 /** Kalendertermin in der Plantafel verschieben (#323): nur Tag, Zeit und Teilnehmer ändern sich. Nur Dummy-Daten. */

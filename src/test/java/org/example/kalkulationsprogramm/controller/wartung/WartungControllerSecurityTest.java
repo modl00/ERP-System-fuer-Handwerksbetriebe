@@ -31,9 +31,9 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Import;
 import org.springframework.data.domain.Page;
@@ -68,29 +68,29 @@ class WartungControllerSecurityTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @MockBean
+    @MockitoBean
     private WartungKatalogService katalogService;
-    @MockBean
+    @MockitoBean
     private WartungObjektService objektService;
-    @MockBean
+    @MockitoBean
     private WartungProtokollService protokollService;
-    @MockBean
+    @MockitoBean
     private WartungProtokollPdfService pdfService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.wartung.WartungSammelberichtService sammelberichtService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.wartung.WartungModulAdminService modulAdminService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.wartung.WartungAnlageService anlageService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.wartung.WartungBerichtService berichtService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.wartung.WartungMitarbeiterUnterschriftService unterschriftService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.wartung.WartungBenutzerService benutzerService;
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.wartung.WartungModulSchalterService modulSchalter;
-    @MockBean
+    @MockitoBean
     private FrontendUserDetailsService frontendUserDetailsService;
 
     @org.junit.jupiter.api.BeforeEach

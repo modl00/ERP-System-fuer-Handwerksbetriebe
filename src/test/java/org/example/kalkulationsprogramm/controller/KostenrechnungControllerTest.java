@@ -17,9 +17,9 @@ import org.example.kalkulationsprogramm.service.KostensatzService.Zeile;
 import org.example.kalkulationsprogramm.service.SatzUebernahmeService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 @WebMvcTest(KostenrechnungController.class)
@@ -27,11 +27,11 @@ import org.springframework.test.web.servlet.MockMvc;
 class KostenrechnungControllerTest {
 
     @Autowired private MockMvc mvc;
-    @MockBean private KostensatzService service;
-    @MockBean private SatzUebernahmeService uebernahme;
-    @MockBean private org.example.kalkulationsprogramm.service.GemeinkostenSchaetzung schaetzung;
-    @MockBean private org.example.kalkulationsprogramm.service.KostenstelleService kostenstellen;
-    @MockBean private org.example.kalkulationsprogramm.service.KostenrechnungVorgaben vorgaben;
+    @MockitoBean private KostensatzService service;
+    @MockitoBean private SatzUebernahmeService uebernahme;
+    @MockitoBean private org.example.kalkulationsprogramm.service.GemeinkostenSchaetzung schaetzung;
+    @MockitoBean private org.example.kalkulationsprogramm.service.KostenstelleService kostenstellen;
+    @MockitoBean private org.example.kalkulationsprogramm.service.KostenrechnungVorgaben vorgaben;
 
     @Test
     void dieVorgabenWerdenGelesenUndGespeichertUndEinFehlerKommtAls400() throws Exception {

@@ -11,7 +11,7 @@ import org.example.kalkulationsprogramm.service.EntwicklungsWunschService;
 import org.example.kalkulationsprogramm.service.EntwicklungsWunschService.Aehnlich;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 /** Die KI sucht vor einem neuen Wunsch nach ähnlichen offenen Issues (#249). */
 class WuenscheSuchenWerkzeugTest {

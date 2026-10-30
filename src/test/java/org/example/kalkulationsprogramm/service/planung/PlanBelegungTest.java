@@ -21,9 +21,9 @@ import org.example.kalkulationsprogramm.service.planung.PlanungsZuweisung.Zuweis
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 
 /** Belegung der Plantafel (#323): Vorgänge, Termine und Abwesenheiten je Mitarbeiter und Ressource, mit Hinweisen. Nur Dummy-Daten. */
@@ -31,11 +31,13 @@ import org.springframework.context.annotation.Import;
 @Import({ PlanungsService.class, PlanKapazitaetQuelle.class, org.example.kalkulationsprogramm.service.planung.PlanungsIst.class, org.example.kalkulationsprogramm.service.planung.PlanungsHistorie.class, PlanungsEinstellungen.class, PlanungsZuweisung.class, PlanBelegung.class })
 class PlanBelegungTest {
 
-    @MockBean
+    @MockitoBean
     private AngebotsZeiten angebotsZeiten;
 
-    @MockBean
+    @MockitoBean
     private org.example.kalkulationsprogramm.service.TagesSollService tagesSollService;
+    @MockitoBean
+    private org.example.kalkulationsprogramm.service.FeiertagService feiertagService;
     @Autowired
     private PlanungsService planung;
     @Autowired

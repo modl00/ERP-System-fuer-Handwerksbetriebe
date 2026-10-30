@@ -82,6 +82,7 @@ class BestellungsUebersichtSecurityTest {
     @MockitoBean private org.example.kalkulationsprogramm.service.LieferantDokumentZuordnungService zuordnungService;
     @MockitoBean private org.example.kalkulationsprogramm.service.LieferantDokumentZugriffService zugriffService;
     @MockitoBean private FrontendUserDetailsService frontendUserDetailsService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.ki.assistent.LieferscheinScanService lieferscheinScanService;
 
     @org.junit.jupiter.api.BeforeEach
     void alleTypenSichtbar() {

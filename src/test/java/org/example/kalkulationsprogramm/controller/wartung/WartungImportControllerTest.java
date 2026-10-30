@@ -17,9 +17,9 @@ import org.example.kalkulationsprogramm.service.wartung.importer.WartungImportSe
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -30,8 +30,8 @@ import org.springframework.web.server.ResponseStatusException;
 class WartungImportControllerTest {
 
     @Autowired private MockMvc mvc;
-    @MockBean private WartungImportService service;
-    @MockBean private WartungImportAusfuehrer ausfuehrer;
+    @MockitoBean private WartungImportService service;
+    @MockitoBean private WartungImportAusfuehrer ausfuehrer;
 
     @Test
     @DisplayName("Die Vorschau nimmt die Exportdatei als JSON und liefert die Zusammenfassung")

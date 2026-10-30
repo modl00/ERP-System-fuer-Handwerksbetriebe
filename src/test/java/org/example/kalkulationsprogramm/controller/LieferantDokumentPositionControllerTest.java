@@ -68,7 +68,7 @@ class LieferantDokumentPositionControllerTest {
     @MockitoBean private LieferantDokumentZugriffService zugriffService;
     @MockitoBean private FrontendUserDetailsService frontendUserDetailsService;
 
-    /** @MockBean wird in @Nested-Klassen nicht zurückgesetzt – daher hier von Hand. */
+    /** @MockitoBean wird in @Nested-Klassen nicht zurückgesetzt – daher hier von Hand. */
     @AfterEach
     void mocksZuruecksetzen() {
         org.mockito.Mockito.reset(zuordnungService, analyseService, belegService, zugriffService);

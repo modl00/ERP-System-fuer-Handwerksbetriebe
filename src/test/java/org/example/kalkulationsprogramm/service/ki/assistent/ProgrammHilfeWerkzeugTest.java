@@ -9,7 +9,7 @@ import static org.mockito.Mockito.when;
 import org.example.kalkulationsprogramm.service.KiWissenService;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 class ProgrammHilfeWerkzeugTest {
 

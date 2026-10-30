@@ -20,7 +20,7 @@ class LeistungServicePreisschutzTest {
 
     LeistungRepository repo = mock(LeistungRepository.class);
     LeistungMapper mapper = mock(LeistungMapper.class);
-    LeistungService service = new LeistungService(repo, mapper);
+    LeistungService service = new LeistungService(repo, mapper, mock(org.example.kalkulationsprogramm.repository.ProduktkategorieRepository.class), mock(org.example.kalkulationsprogramm.repository.AusgangsGeschaeftsDokumentRepository.class));
     Leistung leistung = new Leistung();
 
     @BeforeEach

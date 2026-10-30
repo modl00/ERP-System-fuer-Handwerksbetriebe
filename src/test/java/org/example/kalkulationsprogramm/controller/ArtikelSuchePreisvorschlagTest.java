@@ -70,6 +70,12 @@ class ArtikelSuchePreisvorschlagTest {
     @MockitoBean
     private ArtikelDokumentService artikelDokumentService;
 
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.ArtikelRepository artikelRepository;
+
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.LieferantenArtikelPreiseRepository lieferantenArtikelPreiseRepository;
+
     /**
      * Haengt einen aktuellen Preis eines Lieferanten an den Artikel.
      *

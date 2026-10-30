@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.example.kalkulationsprogramm.repository.ArtikelRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 /** Die Abfragen für den Abgleich der Metallbau-Vorlagen laufen gegen die echte Datenbank-Abbildung (Start-Prüfung der @Query). */
 @DataJpaTest

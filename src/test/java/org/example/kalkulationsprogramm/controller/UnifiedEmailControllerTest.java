@@ -111,6 +111,8 @@ class UnifiedEmailControllerTest {
     @MockitoBean private org.example.kalkulationsprogramm.service.PostfachService postfachService;
     @MockitoBean private org.example.kalkulationsprogramm.service.PostfachVersandService postfachVersandService;
     @MockitoBean private org.example.kalkulationsprogramm.service.PostfachSichtbarkeitService postfachSichtbarkeitService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.ImapSyncService imapSyncService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.EmailAnlageVorschlagService emailAnlageVorschlagService;
 
     @org.junit.jupiter.api.BeforeEach
     void gelesenWieBisher() {

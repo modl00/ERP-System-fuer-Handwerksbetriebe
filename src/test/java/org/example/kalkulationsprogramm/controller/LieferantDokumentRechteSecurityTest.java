@@ -144,6 +144,9 @@ class LieferantDokumentRechteSecurityTest {
     @MockitoBean
     private org.example.kalkulationsprogramm.service.LieferantDateiablage dateiablage;
 
+    @MockitoBean
+    private org.example.kalkulationsprogramm.service.LieferantZusammenfuehrenService lieferantZusammenfuehrenService;
+
     // ---------------------------------------------------------------- Helfer
 
     /** Echte Dateisuche hinter dem Mock; die Ordner liegen unter {@code uploadDir} wie im Standard-Setup. */

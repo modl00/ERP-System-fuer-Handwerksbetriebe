@@ -23,8 +23,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
 import org.springframework.context.annotation.Import;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -36,6 +36,8 @@ class WartungAnlageServiceTest {
 
     @Autowired private TestEntityManager em;
     @Autowired private WartungAnlageService service;
+    @org.springframework.test.context.bean.override.mockito.MockitoBean
+    private WartungModulAuswahlPruefer wartungModulAuswahlPruefer;
 
     private Kunde kunde;
     private Kunde andererKunde;

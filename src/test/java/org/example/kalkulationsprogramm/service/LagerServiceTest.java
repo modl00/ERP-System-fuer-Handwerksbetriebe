@@ -24,7 +24,7 @@ import org.example.kalkulationsprogramm.repository.ProjektRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 import org.springframework.web.server.ResponseStatusException;
 
@@ -60,7 +60,7 @@ class LagerServiceTest {
     }
 
     private LagerBestandDto buche(String art, Artikel a, Long ort, String menge) {
-        return lager.buche(new LagerBuchungEingabe(art, a.getId(), ort, new BigDecimal(menge), null, null));
+        return lager.buche(new LagerBuchungEingabe(art, a.getId(), ort, new BigDecimal(menge), null, null, null, null));
     }
 
     private LagerBestandDto zeile(Artikel a) {
@@ -74,12 +74,12 @@ class LagerServiceTest {
         String erika = "Erika Mustermann (App)";
         buche("ZUGANG", pfosten, haupt, "100");
         for (int i = 0; i < 3; i++) {
-            lager.buche(new LagerBuchungEingabe("ABGANG", pfosten.getId(), haupt, new BigDecimal("1"), null, null), max);
+            lager.buche(new LagerBuchungEingabe("ABGANG", pfosten.getId(), haupt, new BigDecimal("1"), null, null, null, null), max);
         }
-        lager.buche(new LagerBuchungEingabe("ZUGANG", rohr.getId(), haupt, new BigDecimal("10"), null, null), erika);
-        lager.buche(new LagerBuchungEingabe("ABGANG", rohr.getId(), haupt, new BigDecimal("2"), null, null), erika);
+        lager.buche(new LagerBuchungEingabe("ZUGANG", rohr.getId(), haupt, new BigDecimal("10"), null, null, null, null), erika);
+        lager.buche(new LagerBuchungEingabe("ABGANG", rohr.getId(), haupt, new BigDecimal("2"), null, null, null, null), erika);
         // Eine Inventur zählt nicht als Benutzung
-        lager.buche(new LagerBuchungEingabe("KORREKTUR", kabel.getId(), haupt, new BigDecimal("5"), null, null), max);
+        lager.buche(new LagerBuchungEingabe("KORREKTUR", kabel.getId(), haupt, new BigDecimal("5"), null, null, null, null), max);
 
         // Max: seine eigenen zuerst (Pfosten), dann die anderen des Betriebs (Rohr); das Kabel hatte nur eine Inventur
         assertThat(lager.haeufigeArtikelIds(max, 8)).containsExactly(pfosten.getId(), rohr.getId());
@@ -201,21 +201,21 @@ class LagerServiceTest {
 
     @Test
     void ungueltigeBuchungenWerdenAbgelehnt() {
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ZERO, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ABGANG", pfosten.getId(), haupt, new BigDecimal("-1"), null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, new BigDecimal("10000001"), null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("KORREKTUR", pfosten.getId(), haupt, new BigDecimal("-1"), null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, null, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("UMBUCHUNG", pfosten.getId(), haupt, BigDecimal.ONE, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe(null, pfosten.getId(), haupt, BigDecimal.ONE, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", null, haupt, BigDecimal.ONE, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", 0L, haupt, BigDecimal.ONE, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", Long.MAX_VALUE, haupt, BigDecimal.ONE, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), null, BigDecimal.ONE, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), -5L, BigDecimal.ONE, null, null));
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, 1L, null));      // Projekt nur bei Entnahme
-        assertAbgelehnt(new LagerBuchungEingabe("ABGANG", pfosten.getId(), haupt, BigDecimal.ONE, 999999L, null)); // unbekanntes Projekt
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, "x".repeat(256)));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ZERO, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ABGANG", pfosten.getId(), haupt, new BigDecimal("-1"), null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, new BigDecimal("10000001"), null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("KORREKTUR", pfosten.getId(), haupt, new BigDecimal("-1"), null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, null, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("UMBUCHUNG", pfosten.getId(), haupt, BigDecimal.ONE, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe(null, pfosten.getId(), haupt, BigDecimal.ONE, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", null, haupt, BigDecimal.ONE, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", 0L, haupt, BigDecimal.ONE, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", Long.MAX_VALUE, haupt, BigDecimal.ONE, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), null, BigDecimal.ONE, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), -5L, BigDecimal.ONE, null, null, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, 1L, null, null, null));      // Projekt nur bei Entnahme
+        assertAbgelehnt(new LagerBuchungEingabe("ABGANG", pfosten.getId(), haupt, BigDecimal.ONE, 999999L, null, null, null)); // unbekanntes Projekt
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, "x".repeat(256), null, null));
         assertAbgelehnt(null);
         assertThat(lager.verlauf(pfosten.getId())).isEmpty();
     }
@@ -228,7 +228,7 @@ class LagerServiceTest {
     void notizMitSchadtextWirdAlsTextGespeichert() {
         String schad = "<script>alert(1)</script>'; DROP TABLE lager_buchung; --";
 
-        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, schad));
+        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, schad, null, null));
 
         assertThat(lager.verlauf(pfosten.getId()).get(0).notiz()).isEqualTo(schad);
         assertThat(zeile(pfosten).bestand()).isEqualByComparingTo("1");
@@ -247,7 +247,7 @@ class LagerServiceTest {
         assertThat(lager.orte()).extracting(LagerortDto::aktiv).containsExactly(true, false);
 
         // Auf einen deaktivierten Lagerort lässt sich nicht mehr buchen, der Bestand dort bleibt erhalten
-        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), fahrzeug, BigDecimal.ONE, null, null));
+        assertAbgelehnt(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), fahrzeug, BigDecimal.ONE, null, null, null, null));
         lager.ortAktiv(fahrzeug, true);
         buche("ZUGANG", pfosten, fahrzeug, "2");
         lager.ortAktiv(fahrzeug, false);
@@ -447,7 +447,7 @@ class LagerServiceTest {
 
     @Test
     void buchungenAusDerAppTragenDenNamenDesMitarbeiters() {
-        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, new BigDecimal("5"), null, null), "Max Mustermann (App)");
+        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, new BigDecimal("5"), null, null, null, null), "Max Mustermann (App)");
         lager.umbuche(new UmbuchungEingabe(pfosten.getId(), haupt, fahrzeug, new BigDecimal("2"), null), "Max Mustermann (App)");
 
         assertThat(lager.verlauf(pfosten.getId())).hasSize(3).allSatisfy(b -> assertThat(b.benutzer()).isEqualTo("Max Mustermann (App)"));
@@ -455,8 +455,8 @@ class LagerServiceTest {
 
     @Test
     void einLeererOderZuLangerBenutzernameWirdSauberGespeichert() {
-        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, null), "   ");
-        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, null), "x".repeat(300));
+        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, null, null, null), "   ");
+        lager.buche(new LagerBuchungEingabe("ZUGANG", pfosten.getId(), haupt, BigDecimal.ONE, null, null, null, null), "x".repeat(300));
 
         assertThat(lager.verlauf(pfosten.getId())).extracting(b -> b.benutzer() == null ? 0 : b.benutzer().length()).contains(0, 120);
     }

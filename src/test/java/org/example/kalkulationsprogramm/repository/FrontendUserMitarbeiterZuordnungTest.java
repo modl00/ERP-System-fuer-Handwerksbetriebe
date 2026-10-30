@@ -2,7 +2,7 @@ package org.example.kalkulationsprogramm.repository;
 
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 
 @DataJpaTest
 @Disabled("FrontendUserProfileService.saveOrUpdate Signatur und weitere Symbole nach Upstream-Merge geändert; Tests neu aufsetzen")

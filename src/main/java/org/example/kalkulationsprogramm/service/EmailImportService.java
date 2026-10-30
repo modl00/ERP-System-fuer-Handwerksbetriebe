@@ -281,7 +281,7 @@ public class EmailImportService {
     }
 
 
-    private int importFromFolder(Store store, String folderName, EmailDirection direction, Long postfachId) {
+    int importFromFolder(Store store, String folderName, EmailDirection direction, Long postfachId) {
         return importFromFolder(store, folderName, direction, postfachId, null);
     }
 

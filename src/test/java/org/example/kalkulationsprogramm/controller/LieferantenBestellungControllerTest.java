@@ -27,9 +27,9 @@ import org.example.kalkulationsprogramm.service.LieferantenBestellungService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -40,8 +40,10 @@ import org.springframework.web.server.ResponseStatusException;
 class LieferantenBestellungControllerTest {
 
     @Autowired private MockMvc mvc;
-    @MockBean private LieferantenBestellungService service;
-    @MockBean private LieferantenBestellungPdfService pdfService;
+    @MockitoBean private LieferantenBestellungService service;
+    @MockitoBean private LieferantenBestellungPdfService pdfService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.BestellPositionAnhangService bestellPositionAnhangService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.ArtikelFertigungsunterlageService artikelFertigungsunterlageService;
 
     private static BestellungDto dto(Long id, String nummer, BestellStatus status) {
         return new BestellungDto(id, nummer, status, status.name(), 3L, "Stahlhandel Muster", List.of(), null, LocalDateTime.of(2026, 10, 5, 8, 0), "admin", null,

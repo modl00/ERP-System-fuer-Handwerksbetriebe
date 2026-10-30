@@ -40,7 +40,10 @@ class LeistungKalkulationControllerTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new LeistungKalkulationController(service)).build();
+        mvc = MockMvcBuilders.standaloneSetup(new LeistungKalkulationController(service))
+                .setMessageConverters(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter(
+                        tools.jackson.databind.json.JsonMapper.builderWithJackson2Defaults().build()))
+                .build();
     }
 
     @Test

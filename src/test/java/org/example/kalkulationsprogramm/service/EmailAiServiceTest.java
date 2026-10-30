@@ -1,6 +1,6 @@
 //package org.example.kalkulationsprogramm.service;
 //
-//import com.fasterxml.jackson.databind.ObjectMapper;
+//import tools.jackson.databind.ObjectMapper;
 //import org.junit.jupiter.api.Test;
 //
 //import java.lang.reflect.InvocationTargetException;
@@ -11,7 +11,7 @@
 //public class EmailAiServiceTest {
 //
 //    private String callExtract(EmailAiService svc, String json) throws Exception {
-//        Method m = EmailAiService.class.getDeclaredMethod("extractContent", com.fasterxml.jackson.databind.JsonNode.class);
+//        Method m = EmailAiService.class.getDeclaredMethod("extractContent", tools.jackson.databind.JsonNode.class);
 //        m.setAccessible(true);
 //        return (String) m.invoke(svc, new ObjectMapper().readTree(json));
 //    }

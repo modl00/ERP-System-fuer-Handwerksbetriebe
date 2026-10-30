@@ -85,6 +85,7 @@ class VerrechnungslohnServiceTest {
     private BelegRepository belegRepository;
     private BelegKostenstellenAnteilRepository belegKostenstellenAnteilRepository;
     private LangzeitkrankmeldungPhaseRepository phaseRepository;
+    private org.example.kalkulationsprogramm.service.GemeinkostenSchaetzung gemeinkostenSchaetzung;
 
     private VerrechnungslohnService service;
 
@@ -109,6 +110,7 @@ class VerrechnungslohnServiceTest {
         belegKostenstellenAnteilRepository = mock(BelegKostenstellenAnteilRepository.class);
         when(belegKostenstellenAnteilRepository.findAll()).thenReturn(Collections.emptyList());
         phaseRepository = mock(LangzeitkrankmeldungPhaseRepository.class);
+        gemeinkostenSchaetzung = mock(org.example.kalkulationsprogramm.service.GemeinkostenSchaetzung.class);
 
         service = new VerrechnungslohnService(
                 mitarbeiterRepository,
@@ -126,10 +128,15 @@ class VerrechnungslohnServiceTest {
                 stundensatzRepository,
                 belegRepository,
                 belegKostenstellenAnteilRepository,
+                mock(org.example.kalkulationsprogramm.repository.KostenstelleRepository.class),
+                gemeinkostenSchaetzung,
                 phaseRepository
         );
 
         // Defaults: keine Personen, keine Anteile, keine Feiertage, kein BG-Satz.
+        when(gemeinkostenSchaetzung.waehle(anyInt(), any())).thenReturn(
+                new org.example.kalkulationsprogramm.service.GemeinkostenSchaetzung.Wahl(
+                        java.math.BigDecimal.ZERO, java.math.BigDecimal.ZERO, null, false));
         when(mitarbeiterRepository.findByAktivTrue()).thenReturn(Collections.emptyList());
         when(anteilRepository.findAll()).thenReturn(Collections.emptyList());
         when(abteilungRepository.findAll()).thenReturn(Collections.emptyList());

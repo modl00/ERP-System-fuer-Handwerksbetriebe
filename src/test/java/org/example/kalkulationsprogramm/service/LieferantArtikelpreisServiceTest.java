@@ -73,7 +73,7 @@ class LieferantArtikelpreisServiceTest {
         when(mapper.toDto(any(LieferantenArtikelPreise.class))).thenReturn(new LieferantArtikelpreisDto());
 
         Optional<LieferantArtikelpreisDto> ergebnis = service.anlegen(LIEFERANT_ID, ARTIKEL_ID,
-                new BigDecimal("12.50"), "ABC-123");
+                new BigDecimal("12.50"), "ABC-123", null);
 
         assertThat(ergebnis).isPresent();
         InOrder reihenfolge = inOrder(artikelPreiseRepository, lieferantenRepository, artikelRepository);
@@ -92,7 +92,7 @@ class LieferantArtikelpreisServiceTest {
                 .thenAnswer(aufruf -> aufruf.getArgument(0));
         when(mapper.toDto(any(LieferantenArtikelPreise.class))).thenReturn(new LieferantArtikelpreisDto());
 
-        service.anlegen(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), "  ABC-123  ");
+        service.anlegen(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), "  ABC-123  ", null);
 
         org.mockito.ArgumentCaptor<LieferantenArtikelPreise> gespeichert =
                 org.mockito.ArgumentCaptor.forClass(LieferantenArtikelPreise.class);
@@ -115,7 +115,7 @@ class LieferantArtikelpreisServiceTest {
         when(artikelPreiseRepository.save(bisher)).thenReturn(bisher);
         when(mapper.toDto(bisher)).thenReturn(new LieferantArtikelpreisDto());
 
-        service.aktualisiere(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), "ABC-123");
+        service.aktualisiere(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), "ABC-123", null);
 
         verify(artikelPreiseRepository, never()).markiereBisherigeAlsVeraltet(ARTIKEL_ID, LIEFERANT_ID);
         assertThat(bisher.getExterneArtikelnummer()).isEqualTo("ABC-123");
@@ -129,7 +129,7 @@ class LieferantArtikelpreisServiceTest {
         when(artikelRepository.findById(ARTIKEL_ID)).thenReturn(Optional.empty());
 
         Optional<LieferantArtikelpreisDto> ergebnis = service.anlegen(LIEFERANT_ID, ARTIKEL_ID,
-                new BigDecimal("12.50"), "ABC-123");
+                new BigDecimal("12.50"), "ABC-123", null);
 
         assertThat(ergebnis).isEmpty();
         verify(artikelPreiseRepository, never()).save(any(LieferantenArtikelPreise.class));
@@ -137,8 +137,8 @@ class LieferantArtikelpreisServiceTest {
 
     @Test
     void speichereNichtsOhneIds() {
-        assertThat(service.anlegen(null, ARTIKEL_ID, new BigDecimal("12.50"), "ABC-123")).isEmpty();
-        assertThat(service.anlegen(LIEFERANT_ID, null, new BigDecimal("12.50"), "ABC-123")).isEmpty();
+        assertThat(service.anlegen(null, ARTIKEL_ID, new BigDecimal("12.50"), "ABC-123", null)).isEmpty();
+        assertThat(service.anlegen(LIEFERANT_ID, null, new BigDecimal("12.50"), "ABC-123", null)).isEmpty();
         verify(artikelPreiseRepository, never()).save(any(LieferantenArtikelPreise.class));
     }
 
@@ -158,7 +158,7 @@ class LieferantArtikelpreisServiceTest {
                 .thenAnswer(aufruf -> aufruf.getArgument(0));
         when(mapper.toDto(any(LieferantenArtikelPreise.class))).thenReturn(new LieferantArtikelpreisDto());
 
-        service.anlegen(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("13.90"), "   ");
+        service.anlegen(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("13.90"), "   ", null);
 
         org.mockito.ArgumentCaptor<LieferantenArtikelPreise> gespeichert =
                 org.mockito.ArgumentCaptor.forClass(LieferantenArtikelPreise.class);
@@ -180,7 +180,7 @@ class LieferantArtikelpreisServiceTest {
         when(artikelPreiseRepository.save(bisher)).thenReturn(bisher);
         when(mapper.toDto(bisher)).thenReturn(new LieferantArtikelpreisDto());
 
-        service.aktualisiere(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), null);
+        service.aktualisiere(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), null, null);
 
         assertThat(bisher.getExterneArtikelnummer()).isEqualTo("ABC-123");
     }
@@ -196,7 +196,7 @@ class LieferantArtikelpreisServiceTest {
         when(artikelPreiseRepository.save(bisher)).thenReturn(bisher);
         when(mapper.toDto(bisher)).thenReturn(new LieferantArtikelpreisDto());
 
-        service.aktualisiere(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), "NEU-2");
+        service.aktualisiere(LIEFERANT_ID, ARTIKEL_ID, new BigDecimal("12.50"), "NEU-2", null);
 
         assertThat(bisher.getExterneArtikelnummer()).isEqualTo("NEU-2");
     }

@@ -71,6 +71,12 @@ class ArtikelControllerTest {
     @MockitoBean
     private ArtikelDokumentService artikelDokumentService;
 
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.ArtikelRepository artikelRepository;
+
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.LieferantenArtikelPreiseRepository lieferantenArtikelPreiseRepository;
+
     @BeforeEach
     void setUp() {
         when(kategorieService.findeKategorieUndUnterkategorieIds(any())).thenReturn(List.of());
@@ -196,7 +202,7 @@ class ArtikelControllerTest {
     @Test
     @DisplayName("Die Trefferliste reicht das Vorschaubild aus ArtikelDokumentService durch")
     void liefertVorschaubildUrlInDerTrefferliste() throws Exception {
-        // Regression: Ein @MockBean liefert ohne Stubbing per Mockito-Default
+        // Regression: Ein @MockitoBean liefert ohne Stubbing per Mockito-Default
         // eine leere Map - ein geloeschtes daten.forEach(...setVorschaubildUrl)
         // im Controller waere damit fuer JEDEN bestehenden Test unsichtbar
         // gruen geblieben. Dieser Test stubbt bewusst eine gefuellte Map.

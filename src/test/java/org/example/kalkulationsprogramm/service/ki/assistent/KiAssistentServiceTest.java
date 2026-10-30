@@ -37,8 +37,8 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
 
 /** Die Sicherheitsregeln des Assistenten: Änderungen nur nach Bestätigung, höchstens einmal, nur für den richtigen Benutzer, alles protokolliert. */
 class KiAssistentServiceTest {
@@ -545,7 +545,7 @@ class KiAssistentServiceTest {
             public boolean aendert() { return true; }
             public boolean verfuegbar(KiKontext k) { return true; }
             public JsonNode erweitere(JsonNode a, KiKontext k) {
-                com.fasterxml.jackson.databind.node.ObjectNode kopie = ((com.fasterxml.jackson.databind.node.ObjectNode) a).deepCopy();
+                tools.jackson.databind.node.ObjectNode kopie = ((tools.jackson.databind.node.ObjectNode) a).deepCopy();
                 kopie.remove("anhang");
                 if (k.fehler() != null) kopie.put("anhang", "SERVER-LOG: " + "z".repeat(900));
                 return kopie;

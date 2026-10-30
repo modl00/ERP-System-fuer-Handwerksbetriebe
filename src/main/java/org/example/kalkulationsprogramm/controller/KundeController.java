@@ -286,11 +286,10 @@ public class KundeController {
         kunde.setOrt(trimToNull(request.getOrt()));
         kunde.setTelefon(Telefonnummer.ohneReineVorwahl(request.getTelefon()));
         kunde.setMobiltelefon(Telefonnummer.ohneReineVorwahl(request.getMobiltelefon()));
-        kunde.setZahlungsziel(request.getZahlungsziel() != null ? request.getZahlungsziel() : 8);
-        kunde.setKundenEmails(new ArrayList<>(normalizeEmails(request.getKundenEmails())));
         if (request.getZahlungsziel() != null) {
             kunde.setZahlungsziel(request.getZahlungsziel());
         }
+        kunde.setKundenEmails(new ArrayList<>(normalizeEmails(request.getKundenEmails())));
     }
 
     private String trimToNull(String value) {

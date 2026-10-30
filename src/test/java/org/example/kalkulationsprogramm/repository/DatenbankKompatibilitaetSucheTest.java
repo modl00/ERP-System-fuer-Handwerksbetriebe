@@ -209,7 +209,7 @@ class DatenbankKompatibilitaetSucheTest {
                 pruefen(fehler, "Artikel sort=" + spalte + "&dir=" + richtung, () -> {
                     artikelAnlegen();
                     List<String> treffer = artikelSuche(k -> k.sucheArtikel("RUNDROHR " + kennung.toUpperCase(Locale.ROOT),
-                            null, null, null, null, false, null, null, null, null, null, 0, 50, spalte, richtung));
+                            null, null, null, null, false, null, null, null, null, null,false, 0, 50, spalte, richtung));
                     List<String> erwartet = erwartet(spalte.equals("produktname"), richtung, "Rundrohr A", "Rundrohr B");
                     if (spalte.equals("preis")) {
                         // Nach Preis sortiert der Controller die Seite selbst nach
@@ -222,7 +222,7 @@ class DatenbankKompatibilitaetSucheTest {
         pruefen(fehler, "Artikel mit allen Filtern", () -> {
             artikelAnlegen();
             List<String> treffer = artikelSuche(k -> k.sucheArtikel("rundrohr " + kennung, "WÜRTH " + kennung.toUpperCase(Locale.ROOT),
-                    "rohr", "s235jr " + kennung, null, true, null, null, null, false, false, 0, 50, "werkstoffName", "desc"));
+                    "rohr", "s235jr " + kennung, null, true, null, null, null, false, false,false, 0, 50, "werkstoffName", "desc"));
             return treffer.equals(List.of("Rundrohr A")) ? null : "gefunden " + treffer;
         });
         assertThat(fehler).as("Artikelsuchen, die auf dieser Datenbank scheitern oder anders sortieren").isEmpty();
@@ -242,12 +242,12 @@ class DatenbankKompatibilitaetSucheTest {
             em.flush();
             em.clear();
             List<String> treffer = artikelSuche(k -> k.sucheArtikel("FLACHSTAHL " + kennung.toUpperCase(Locale.ROOT) + " 20x10",
-                    null, null, null, null, false, null, null, null, null, null, 0, 50, "produktname", "asc"));
+                    null, null, null, null, false, null, null, null, null, null,false, 0, 50, "produktname", "asc"));
             List<String> komma = artikelSuche(k -> k.sucheArtikel("flachstahl " + kennung + " 20.5",
-                    null, null, null, null, false, null, null, null, null, null, 0, 50, "produktname", "asc"));
+                    null, null, null, null, false, null, null, null, null, null,false, 0, 50, "produktname", "asc"));
             // Hochkomma im Zahlenpfad: darf weder scheitern noch etwas finden
             List<String> hochkomma = artikelSuche(k -> k.sucheArtikel("flachstahl " + kennung + " 20' or '1'='1",
-                    null, null, null, null, false, null, null, null, null, null, 0, 50, "produktname", "asc"));
+                    null, null, null, null, false, null, null, null, null, null,false, 0, 50, "produktname", "asc"));
             return treffer.equals(List.of("Flachstahl 20 x 10")) && komma.equals(List.of("Flachstahl 20,5 x 10"))
                     && hochkomma.isEmpty()
                     ? null : "gefunden " + treffer + " / " + komma + " / " + hochkomma;

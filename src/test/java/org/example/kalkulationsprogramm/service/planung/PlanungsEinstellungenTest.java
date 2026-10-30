@@ -13,7 +13,7 @@ import org.example.kalkulationsprogramm.service.planung.PlanungsEinstellungen.Ur
 import org.example.kalkulationsprogramm.service.planung.PlanungsEinstellungen.Werte;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
 import org.springframework.context.annotation.Import;
 
 /** Planungs-Einstellungen gegen die echte Datenbank-Abbildung (H2): Vorgaben, Speichern, Prüfung, Arbeitstag. Nur Dummy-Daten. */

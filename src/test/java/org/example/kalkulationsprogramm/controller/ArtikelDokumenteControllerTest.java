@@ -69,6 +69,10 @@ class ArtikelDokumenteControllerTest {
     private ArtikelPositionsPreisService artikelPositionsPreisService;
     @MockitoBean
     private ArtikelDokumentService artikelDokumentService;
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.ArtikelRepository artikelRepository;
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.LieferantenArtikelPreiseRepository lieferantenArtikelPreiseRepository;
 
     /** Ein einfaches Multipart-Textfeld (kein Datei-Anhang) fuer @RequestPart-String-Bindings. */
     private static MockMultipartFile teilfeld(String name, String wert) {

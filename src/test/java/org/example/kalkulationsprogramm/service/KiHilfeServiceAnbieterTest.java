@@ -10,7 +10,7 @@ import org.example.kalkulationsprogramm.service.ki.KiFunktion;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 
 /**
  * Die KI-Hilfe über einen anderen Anbieter als Gemini (lokal, Claude, Mistral).

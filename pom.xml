@@ -250,6 +250,11 @@
             <artifactId>spring-boot-starter-data-jpa-test</artifactId>
             <scope>test</scope>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-jpa-test</artifactId>
+            <scope>test</scope>
+        </dependency>
         <!-- Echter IMAP-/SMTP-Server im Speicher fuer Integrationstests der Postfaecher
              (Abruf, Versand, Gesendet-Kopie) - ohne Internet und ohne echte Postfaecher -->
         <dependency>

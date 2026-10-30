@@ -37,9 +37,9 @@ import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /** Nur Dummy-Daten. Die Werkzeuge ändern nur als Vorschlag mit Bestätigung; geprüft werden Eingaben, Vorschau, Rechte und der richtige Aufruf der Dienste. */
 class KiSchreibWerkzeugeTest {
@@ -190,7 +190,7 @@ class KiSchreibWerkzeugeTest {
 
     private LagerBestandDto bestand(String imHauptlager) {
         BigDecimal b = new BigDecimal(imHauptlager);
-        return new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", b, null, false, false, List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", b)), null, null, null);
+        return new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", b, null, false, false, List.of(new LagerBestandDto.OrtBestand(1L, "Hauptlager", b)), null, null, null, null);
     }
 
     private ObjectNode zugang() {
@@ -255,14 +255,14 @@ class KiSchreibWerkzeugeTest {
     @DisplayName("Ausführen bucht über den Lagerdienst mit Artikel, Lagerort, Menge, Projekt und Notiz und meldet den neuen Bestand")
     void lagerAusfuehren() {
         lagerAufbauen();
-        when(lagerService.buche(any())).thenReturn(new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", new BigDecimal("32.5"), null, false, false, List.of(), null, null, null));
+        when(lagerService.buche(any())).thenReturn(new LagerBestandDto(5L, "Rundrohr 42,4", "R-1", "m", new BigDecimal("32.5"), null, false, false, List.of(), null, null, null, null));
 
         String text = lagerWerkzeug.ausfuehren(zugang().put("notiz", "Lieferung RE-77"), anna);
 
         assertThat(text).isEqualTo("Gebucht: Lagerzugang 12,5 m \"Rundrohr 42,4\" ins Lager \"Hauptlager\". Neuer Bestand von \"Rundrohr 42,4\": 32,5 m.");
         ArgumentCaptor<LagerBuchungEingabe> c = ArgumentCaptor.forClass(LagerBuchungEingabe.class);
         verify(lagerService).buche(c.capture());
-        assertThat(c.getValue()).isEqualTo(new LagerBuchungEingabe("ZUGANG", 5L, 1L, new BigDecimal("12.5"), null, "Lieferung RE-77"));
+        assertThat(c.getValue()).isEqualTo(new LagerBuchungEingabe("ZUGANG", 5L, 1L, new BigDecimal("12.5"), null, "Lieferung RE-77", null, null));
     }
 
     @Test

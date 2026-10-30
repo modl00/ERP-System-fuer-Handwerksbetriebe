@@ -83,6 +83,9 @@ class EmailControllerTest {
     @MockitoBean
     private EmailAbsenderService emailAbsenderService;
 
+    @MockitoBean
+    private org.example.kalkulationsprogramm.service.EmailAttachmentProcessingService emailAttachmentProcessingService;
+
     @Nested
     @DisplayName("POST /api/email/beautify")
     class Beautify {

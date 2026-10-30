@@ -23,9 +23,9 @@ import org.example.kalkulationsprogramm.service.SachkontoPflegeService;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -34,11 +34,11 @@ import org.springframework.test.web.servlet.MockMvc;
 class SachkontoControllerTest {
 
     @Autowired private MockMvc mvc;
-    @MockBean private SachkontoRepository sachkontoRepository;
-    @MockBean private BelegRepository belegRepository;
-    @MockBean private BelegService belegService;
-    @MockBean private BelegeKasseExportPdfService exportPdfService;
-    @MockBean private SachkontoPflegeService pflegeService;
+    @MockitoBean private SachkontoRepository sachkontoRepository;
+    @MockitoBean private BelegRepository belegRepository;
+    @MockitoBean private BelegService belegService;
+    @MockitoBean private BelegeKasseExportPdfService exportPdfService;
+    @MockitoBean private SachkontoPflegeService pflegeService;
 
     private void darfScannen(boolean ja) {
         Mitarbeiter m = new Mitarbeiter();

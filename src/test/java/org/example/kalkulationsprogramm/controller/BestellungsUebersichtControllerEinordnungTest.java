@@ -33,6 +33,7 @@ import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.lenient;
 import static org.mockito.Mockito.verifyNoInteractions;
 import static org.mockito.Mockito.when;
@@ -74,7 +75,8 @@ class BestellungsUebersichtControllerEinordnungTest {
                 new BestellungsUebersichtService(dokumentRepository, geschaeftsdokumentRepository,
                         projektAnteilRepository, vorschlagService, kettenVorschlagService),
                 null,
-                zugriffService);
+                zugriffService,
+                mock(org.example.kalkulationsprogramm.service.ki.assistent.LieferscheinScanService.class));
         lieferant = new Lieferanten();
         lieferant.setId(1L);
         lieferant.setLieferantenname("Max Mustermann GmbH");

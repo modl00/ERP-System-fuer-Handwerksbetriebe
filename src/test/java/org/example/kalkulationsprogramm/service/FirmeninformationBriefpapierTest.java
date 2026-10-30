@@ -30,9 +30,9 @@ import org.springframework.http.MediaType;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.util.ReflectionTestUtils;
 
-import com.lowagie.text.Document;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.PdfWriter;
+import org.openpdf.text.Document;
+import org.openpdf.text.Paragraph;
+import org.openpdf.text.pdf.PdfWriter;
 
 class FirmeninformationBriefpapierTest {
 
@@ -49,7 +49,7 @@ class FirmeninformationBriefpapierTest {
         when(repo.getOrCreate()).thenReturn(firma);
         when(repo.findFirmeninformation()).thenReturn(Optional.of(firma));
         when(repo.save(any(Firmeninformation.class))).thenAnswer(i -> i.getArgument(0));
-        service = new FirmeninformationService(repo, mock(GewerkRepository.class));
+        service = new FirmeninformationService(repo, mock(GewerkRepository.class), mock(org.example.kalkulationsprogramm.service.FeiertagService.class));
         ReflectionTestUtils.setField(service, "briefpapierUploadDir", tmp.resolve("bp").toString());
         ReflectionTestUtils.setField(service, "logoUploadDir", tmp.resolve("logo").toString());
     }

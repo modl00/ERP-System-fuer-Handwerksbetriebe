@@ -23,13 +23,13 @@ import org.example.kalkulationsprogramm.service.RechnungPdfService.KopfdatenDto;
 import org.example.kalkulationsprogramm.service.RechnungPdfService.RechnungDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import com.lowagie.text.Document;
-import com.lowagie.text.Image;
-import com.lowagie.text.Paragraph;
-import com.lowagie.text.pdf.PdfName;
-import com.lowagie.text.pdf.PdfReader;
-import com.lowagie.text.pdf.PdfWriter;
-import com.lowagie.text.pdf.parser.PdfTextExtractor;
+import org.openpdf.text.Document;
+import org.openpdf.text.Image;
+import org.openpdf.text.Paragraph;
+import org.openpdf.text.pdf.PdfName;
+import org.openpdf.text.pdf.PdfReader;
+import org.openpdf.text.pdf.PdfWriter;
+import org.openpdf.text.pdf.parser.PdfTextExtractor;
 
 /** Logo und Briefpapier im PDF der Standardvorlage. Nur Dummy-Daten (DSGVO). */
 class BriefpapierPdfTest {
@@ -168,7 +168,7 @@ class BriefpapierPdfTest {
     @Test
     void einPdfBriefpapierWirdAufA4SkaliertUndGezeichnet() throws Exception {
         ByteArrayOutputStream aus = new ByteArrayOutputStream();
-        Document d = new Document(new com.lowagie.text.Rectangle(300, 400));   // kleines Format, anderes Seitenverhältnis
+        Document d = new Document(new org.openpdf.text.Rectangle(300, 400));   // kleines Format, anderes Seitenverhältnis
         PdfWriter.getInstance(d, aus);
         d.open();
         d.add(new Paragraph("BRIEFKOPF AUS PDF"));

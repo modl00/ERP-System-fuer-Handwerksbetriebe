@@ -119,6 +119,10 @@ class ProjektControllerTest {
 
         @MockitoBean
         private LieferantDokumentZugriffService lieferantDokumentZugriffService;
+        @MockitoBean
+        private org.example.kalkulationsprogramm.service.ProjektMaterialService projektMaterialService;
+        @MockitoBean
+        private org.example.kalkulationsprogramm.service.ki.assistent.StuecklisteScanService stuecklisteScanService;
 
         @BeforeEach
         void alleDokumenttypenSichtbar() {

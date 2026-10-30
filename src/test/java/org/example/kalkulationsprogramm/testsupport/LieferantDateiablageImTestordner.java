@@ -11,7 +11,7 @@ import org.mockito.AdditionalAnswers;
 import org.mockito.stubbing.Answer;
 
 /**
- * Lässt einen Mock der {@link LieferantDateiablage} (aus {@code @MockBean} oder {@code @Mock}) in
+ * Lässt einen Mock der {@link LieferantDateiablage} (aus {@code @MockitoBean} oder {@code @Mock}) in
  * einen Testordner schreiben: Jeder Aufruf geht an eine echte Ablage mit diesem Ordner als
  * {@code upload.path}. So landen keine Testdateien im Arbeitsverzeichnis, und der Test prüft das
  * echte Speichern, Finden und Löschen. Die Weiterleitung ist {@code lenient}: Ein Test muss nicht

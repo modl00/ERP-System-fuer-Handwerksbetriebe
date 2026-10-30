@@ -29,8 +29,10 @@ class PlantafelAufnahmeControllerTest {
     private final PlanungsAufnahme aufnahme = mock(PlanungsAufnahme.class);
     private final PlanungsService planung = mock(PlanungsService.class);
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new PlantafelAufnahmeController(aufnahme, planung))
-            .setMessageConverters(new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter(
-                    com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().disable(com.fasterxml.jackson.databind.SerializationFeature.WRITE_DATES_AS_TIMESTAMPS).build()))
+            .setMessageConverters(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter(
+                    tools.jackson.databind.json.JsonMapper.builderWithJackson2Defaults()
+                            .disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                            .build()))
             .build();
 
     @Test

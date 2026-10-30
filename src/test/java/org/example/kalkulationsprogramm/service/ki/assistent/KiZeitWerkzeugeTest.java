@@ -38,8 +38,8 @@ import org.mockito.ArgumentCaptor;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ObjectNode;
 
 /** Nur Dummy-Daten. Zeit buchen ändert nur als Vorschlag mit Bestätigung und nur für den angemeldeten Benutzer. */
 class KiZeitWerkzeugeTest {

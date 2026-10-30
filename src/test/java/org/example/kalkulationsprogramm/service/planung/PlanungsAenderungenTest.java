@@ -15,9 +15,9 @@ import org.example.kalkulationsprogramm.service.planung.PlanungsService.VorgangE
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.autoconfigure.orm.jpa.TestEntityManager;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.boot.jpa.test.autoconfigure.TestEntityManager;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 
 /** Änderungsliste, Rückgängig, Schutz vor gleichzeitigem Bearbeiten und Vorschau „was ändert sich“ (#331, Stufe 4). Nur Dummy-Daten. */
@@ -25,10 +25,12 @@ import org.springframework.context.annotation.Import;
 @Import({ PlanungsService.class, PlanKapazitaetQuelle.class, org.example.kalkulationsprogramm.service.planung.PlanungsIst.class, PlanungsHistorie.class, PlanungsEinstellungen.class, PlanungsZuweisung.class })
 class PlanungsAenderungenTest {
 
-    @MockBean
+    @MockitoBean
     private AngebotsZeiten angebotsZeiten;
-    @MockBean
+    @MockitoBean
     private TagesSollService tagesSollService;
+    @MockitoBean
+    private org.example.kalkulationsprogramm.service.FeiertagService feiertagService;
     @Autowired
     private PlanungsService planung;
     @Autowired

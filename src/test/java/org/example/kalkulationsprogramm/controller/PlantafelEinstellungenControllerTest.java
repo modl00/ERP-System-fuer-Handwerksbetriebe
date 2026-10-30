@@ -24,7 +24,7 @@ import org.junit.jupiter.api.Test;
 import com.fasterxml.jackson.databind.SerializationFeature;
 import org.springframework.http.MediaType;
 import org.springframework.http.converter.json.Jackson2ObjectMapperBuilder;
-import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.http.converter.json.JacksonJsonHttpMessageConverter;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.setup.MockMvcBuilders;
 
@@ -35,7 +35,8 @@ class PlantafelEinstellungenControllerTest {
     private final PlanungsService planung = mock(PlanungsService.class);
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new PlantafelEinstellungenController(service, planung))
             // wie im laufenden Programm: Daten als Text (2026-08-03), nicht als Zahlenliste
-            .setMessageConverters(new MappingJackson2HttpMessageConverter(Jackson2ObjectMapperBuilder.json().featuresToDisable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS).build()))
+            .setMessageConverters(new JacksonJsonHttpMessageConverter(tools.jackson.databind.json.JsonMapper.builderWithJackson2Defaults()
+                    .disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS).build()))
             .build();
 
     @Test

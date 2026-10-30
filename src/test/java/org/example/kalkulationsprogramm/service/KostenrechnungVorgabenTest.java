@@ -13,8 +13,8 @@ import org.example.kalkulationsprogramm.dto.Verrechnungslohn.VerrechnungslohnErg
 import org.example.kalkulationsprogramm.dto.Verrechnungslohn.VerrechnungslohnErgebnisDto.MitarbeiterStundenZeile;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.orm.jpa.DataJpaTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.data.jpa.test.autoconfigure.DataJpaTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.context.annotation.Import;
 
 /** Gespeicherte Vorgaben der Kostenrechnung und die Schätzung der internen Zeit (#308). Nur Dummy-Daten. */
@@ -24,7 +24,7 @@ class KostenrechnungVorgabenTest {
 
     @Autowired
     private KostenrechnungVorgaben vorgaben;
-    @MockBean
+    @MockitoBean
     private VerrechnungslohnService verrechnungslohn;
 
     private static MitarbeiterStundenZeile zeile(String soll, String intern, String verkaeuflich) {

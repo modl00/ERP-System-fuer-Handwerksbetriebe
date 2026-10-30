@@ -62,7 +62,7 @@ public final class PortableSortierung {
     }
 
     static Order reihenfolge(Sort.Order order, Root<?> root, CriteriaBuilder cb) {
-        Expression<?> ausdruck = pfad(root, order.getProperty());
+        Expression<?> ausdruck = pfad(root, order.getProperty(), cb);
         if (order.isIgnoreCase() && String.class.equals(ausdruck.getJavaType())) {
             @SuppressWarnings("unchecked")
             Expression<String> text = (Expression<String>) ausdruck;
@@ -81,13 +81,41 @@ public final class PortableSortierung {
         };
     }
 
-    private static Expression<?> pfad(Root<?> root, String eigenschaft) {
+    private static Expression<?> pfad(Root<?> root, String eigenschaft, CriteriaBuilder cb) {
         String[] teile = eigenschaft.split("\\.");
         From<?, ?> von = root;
         for (int i = 0; i < teile.length - 1; i++) {
             von = verbinden(von, teile[i]);
         }
-        return von.get(teile[teile.length - 1]);
+        String attribut = teile[teile.length - 1];
+        try {
+            return von.get(attribut);
+        } catch (IllegalArgumentException e) {
+            // Hibernate 7: JOINED-inheritance subclass attributes need cb.treat()
+            return unterklasseAttribut(von, attribut, cb, e);
+        }
+    }
+
+    /**
+     * Hibernate 7 verbietet den direkten Zugriff auf Unterklassen-Attribute an der
+     * Basis-Root. Fallback: alle bekannten Untertypen durchsuchen und treat() nutzen.
+     */
+    @SuppressWarnings({"rawtypes", "unchecked"})
+    private static Expression<?> unterklasseAttribut(From<?, ?> von, String attribut,
+            CriteriaBuilder cb, IllegalArgumentException original) {
+        if (von instanceof Root<?> root &&
+                root.getModel() instanceof org.hibernate.metamodel.model.domain.EntityDomainType<?> entType) {
+            for (var sub : entType.getSubTypes()) {
+                if (sub instanceof org.hibernate.metamodel.model.domain.EntityDomainType<?> subEntity) {
+                    try {
+                        subEntity.getDeclaredAttribute(attribut);
+                        return cb.treat((Root) root, subEntity.getJavaType()).get(attribut);
+                    } catch (IllegalArgumentException ignored) {
+                    }
+                }
+            }
+        }
+        throw original;
     }
 
     /** Vorhandenen LEFT JOIN wiederverwenden (z. B. aus dem Filter), sonst neu anlegen. */

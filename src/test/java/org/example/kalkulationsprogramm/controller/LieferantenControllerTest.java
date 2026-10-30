@@ -118,6 +118,9 @@ class LieferantenControllerTest {
   @MockitoBean
   private LieferantDateiablage dateiablage;
 
+  @MockitoBean
+  private org.example.kalkulationsprogramm.service.LieferantZusammenfuehrenService lieferantZusammenfuehrenService;
+
   /** Echte Dateisuche hinter dem Mock; die Ordner liegen unter {@code uploadDir} wie im Standard-Setup. */
   private void dateisucheUnter(Path uploadDir) {
     var echt = new LieferantDokumentDateiService(uploadDir.toString(), uploadDir.toString(),

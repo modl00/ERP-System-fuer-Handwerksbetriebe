@@ -21,9 +21,9 @@ import org.example.kalkulationsprogramm.service.MaschineService;
 import org.example.kalkulationsprogramm.service.MaschinenKostenRechner.Aufstellung;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.web.server.ResponseStatusException;
@@ -34,7 +34,7 @@ import org.springframework.http.HttpStatus;
 class MaschineControllerTest {
 
     @Autowired private MockMvc mvc;
-    @MockBean private MaschineService service;
+    @MockitoBean private MaschineService service;
 
     private static MaschineDto maschine() {
         Aufstellung a = new Aufstellung(new BigDecimal("4.00"), new BigDecimal("1.10"), new BigDecimal("1.00"), new BigDecimal("0.50"), new BigDecimal("0.20"), new BigDecimal("3.00"), new BigDecimal("9.80"), null);

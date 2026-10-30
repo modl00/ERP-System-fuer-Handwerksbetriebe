@@ -92,6 +92,8 @@ class EmailThreadAdminSecurityTest {
     @MockitoBean private org.example.kalkulationsprogramm.service.PostfachService postfachService;
     @MockitoBean private org.example.kalkulationsprogramm.service.PostfachVersandService postfachVersandService;
     @MockitoBean private org.example.kalkulationsprogramm.service.AusgangsmailService ausgangsmailService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.ImapSyncService imapSyncService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.EmailAnlageVorschlagService emailAnlageVorschlagService;
 
     @org.junit.jupiter.api.BeforeEach
     void gelesenWieBisher() {

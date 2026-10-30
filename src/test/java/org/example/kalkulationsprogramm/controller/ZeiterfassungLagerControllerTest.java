@@ -19,9 +19,9 @@ import org.example.kalkulationsprogramm.service.LagerAppService.EanTreffer;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
@@ -32,7 +32,7 @@ import org.springframework.web.server.ResponseStatusException;
 class ZeiterfassungLagerControllerTest {
 
     @Autowired private MockMvc mvc;
-    @MockBean private LagerAppService service;
+    @MockitoBean private LagerAppService service;
 
     private static LagerBestandDto zeile() {
         return new LagerBestandDto(9L, "Schraube M8", "S-8", "Stk", new BigDecimal("40"), null, false, false,
@@ -72,7 +72,7 @@ class ZeiterfassungLagerControllerTest {
                         .content("{\"token\":\"tok\",\"art\":\"ABGANG\",\"artikelId\":9,\"lagerortId\":1,\"menge\":3,\"projektId\":77,\"notiz\":\"Baustelle Süd\"}"))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.artikelId").value(9));
 
-        org.mockito.Mockito.verify(service).buche("tok", new LagerBuchungEingabe("ABGANG", 9L, 1L, new BigDecimal("3"), 77L, "Baustelle Süd"));
+        org.mockito.Mockito.verify(service).buche("tok", new LagerBuchungEingabe("ABGANG", 9L, 1L, new BigDecimal("3"), 77L, "Baustelle Süd", null, null));
     }
 
     @Test

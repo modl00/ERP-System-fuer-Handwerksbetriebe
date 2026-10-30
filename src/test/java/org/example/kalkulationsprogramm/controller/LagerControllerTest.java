@@ -19,6 +19,7 @@ import org.example.kalkulationsprogramm.dto.Lager.LagerBuchungEingabe;
 import org.example.kalkulationsprogramm.dto.Lager.LagerZusammenfassungDto;
 import org.example.kalkulationsprogramm.dto.Lager.LagerortDto;
 import org.example.kalkulationsprogramm.service.LagerService;
+import org.example.kalkulationsprogramm.service.ki.assistent.LieferscheinScanService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -35,6 +36,7 @@ import org.springframework.web.server.ResponseStatusException;
 class LagerControllerTest {
 
     @Mock LagerService service;
+    @Mock LieferscheinScanService lieferscheinScanService;
     MockMvc mvc;
 
     private static LagerBestandDto zeile() {
@@ -44,7 +46,7 @@ class LagerControllerTest {
 
     @BeforeEach
     void setUp() {
-        mvc = MockMvcBuilders.standaloneSetup(new LagerController(service)).build();
+        mvc = MockMvcBuilders.standaloneSetup(new LagerController(service, lieferscheinScanService)).build();
     }
 
     @Test

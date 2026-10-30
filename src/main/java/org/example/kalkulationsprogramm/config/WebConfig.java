@@ -10,6 +10,7 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 import lombok.RequiredArgsConstructor;
 import org.example.kalkulationsprogramm.service.AktivitaetService;
+import org.example.kalkulationsprogramm.service.wartung.WartungModulSchalterService;
 import org.springframework.beans.factory.ObjectProvider;
 
 /**
@@ -33,6 +34,7 @@ public class WebConfig implements WebMvcConfigurer {
 
     private final ZeiterfassungZugriffInterceptor zeiterfassungZugriffInterceptor;
     private final ObjectProvider<AktivitaetService> aktivitaetDienst;
+    private final ObjectProvider<WartungModulSchalterService> wartungSchalter;
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
@@ -42,6 +44,8 @@ public class WebConfig implements WebMvcConfigurer {
         registry.addInterceptor(new AktivitaetInterceptor(aktivitaetDienst))
                 .addPathPatterns("/api/**")
                 .excludePathPatterns("/api/auth/**", "/api/zeiterfassung/**", "/api/kalender/mobile/**");
+        registry.addInterceptor(new WartungModulSperre(wartungSchalter))
+                .addPathPatterns("/api/wartung/**");
     }
 
     @Override

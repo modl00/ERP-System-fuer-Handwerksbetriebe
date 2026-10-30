@@ -60,7 +60,7 @@ class LagerAppServiceTest {
     }
 
     private static LagerBestandDto zeile(long id) {
-        return new LagerBestandDto(id, "Schraube M8", "S-8", "Stk", new BigDecimal("40"), null, false, false, List.of(), null, null, null);
+        return new LagerBestandDto(id, "Schraube M8", "S-8", "Stk", new BigDecimal("40"), null, false, false, List.of(), null, null, null, null);
     }
 
     @Test
@@ -103,7 +103,7 @@ class LagerAppServiceTest {
                 .willThrow(new ResponseStatusException(HttpStatus.FORBIDDEN, "Dafür fehlt die Berechtigung: Lager, Anlegen."));
 
         assertThatThrownBy(() -> service.orte("falsch")).hasMessageContaining("Zugang");
-        assertThatThrownBy(() -> service.buche("t", new LagerBuchungEingabe("ABGANG", 1L, 1L, BigDecimal.ONE, null, null))).hasMessageContaining("Berechtigung");
+        assertThatThrownBy(() -> service.buche("t", new LagerBuchungEingabe("ABGANG", 1L, 1L, BigDecimal.ONE, null, null, null, null))).hasMessageContaining("Berechtigung");
         verify(lager, never()).buche(any(), any());
     }
 
@@ -162,7 +162,7 @@ class LagerAppServiceTest {
     @Test
     @DisplayName("Entnahme und Zugang brauchen 'anlegen' und buchen unter dem Namen des Mitarbeiters mit dem Zusatz App")
     void entnahme() {
-        LagerBuchungEingabe e = new LagerBuchungEingabe("ABGANG", 9L, 1L, new BigDecimal("3"), 77L, null);
+        LagerBuchungEingabe e = new LagerBuchungEingabe("ABGANG", 9L, 1L, new BigDecimal("3"), 77L, null, null, null);
         given(lager.buche(e, "Max Mustermann (App)")).willReturn(zeile(9));
 
         assertThat(service.buche("t", e).artikelId()).isEqualTo(9L);
@@ -172,7 +172,7 @@ class LagerAppServiceTest {
     @Test
     @DisplayName("Inventur (Korrektur) und Umbuchung brauchen 'ändern'")
     void inventurUndUmbuchung() {
-        LagerBuchungEingabe zaehlung = new LagerBuchungEingabe("korrektur", 9L, 1L, new BigDecimal("12"), null, null);
+        LagerBuchungEingabe zaehlung = new LagerBuchungEingabe("korrektur", 9L, 1L, new BigDecimal("12"), null, null, null, null);
         UmbuchungEingabe um = new UmbuchungEingabe(9L, 1L, 2L, new BigDecimal("2"), null);
         given(lager.buche(zaehlung, "Max Mustermann (App)")).willReturn(zeile(9));
         given(lager.umbuche(um, "Max Mustermann (App)")).willReturn(zeile(9));
@@ -189,7 +189,7 @@ class LagerAppServiceTest {
         Mitarbeiter leer = new Mitarbeiter();
         leer.setId(8L);
         given(rechte.verlangeFuerToken("t", Funktion.LAGER, FunktionsAktion.ANLEGEN)).willReturn(leer);
-        LagerBuchungEingabe e = new LagerBuchungEingabe("ZUGANG", 9L, 1L, BigDecimal.TEN, null, null);
+        LagerBuchungEingabe e = new LagerBuchungEingabe("ZUGANG", 9L, 1L, BigDecimal.TEN, null, null, null, null);
         given(lager.buche(e, "Mitarbeiter 8 (App)")).willReturn(zeile(9));
 
         assertThat(service.buche("t", e)).isNotNull();

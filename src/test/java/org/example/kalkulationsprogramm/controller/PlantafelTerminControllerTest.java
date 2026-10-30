@@ -21,8 +21,10 @@ class PlantafelTerminControllerTest {
 
     private final PlanTermine service = mock(PlanTermine.class);
     private final MockMvc mvc = MockMvcBuilders.standaloneSetup(new PlantafelTerminController(service))
-            .setMessageConverters(new org.springframework.http.converter.json.MappingJackson2HttpMessageConverter(
-                    com.fasterxml.jackson.databind.json.JsonMapper.builder().findAndAddModules().build()))
+            .setMessageConverters(new org.springframework.http.converter.json.JacksonJsonHttpMessageConverter(
+                    tools.jackson.databind.json.JsonMapper.builderWithJackson2Defaults()
+                            .disable(tools.jackson.databind.cfg.DateTimeFeature.WRITE_DATES_AS_TIMESTAMPS)
+                            .build()))
             .build();
 
     @Test

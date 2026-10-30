@@ -65,6 +65,10 @@ class ArtikelStammdatenControllerTest {
 
     @MockitoBean
     private ArtikelDokumentService artikelDokumentService;
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.ArtikelRepository artikelRepository;
+    @MockitoBean
+    private org.example.kalkulationsprogramm.repository.LieferantenArtikelPreiseRepository lieferantenArtikelPreiseRepository;
 
     @BeforeEach
     void setUp() {

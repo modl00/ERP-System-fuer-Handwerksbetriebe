@@ -95,6 +95,7 @@ class RechnungLieferscheinZuordnungIntegrationTest {
     @MockitoBean private BelegService belegService;
     @MockitoBean private LieferantDokumentZugriffService zugriffService;
     @MockitoBean private LieferantDokumentService lieferantDokumentService;
+    @MockitoBean private org.example.kalkulationsprogramm.service.ki.KiAnbieterService kiAnbieterService;
 
     private Lieferanten lieferant;
 

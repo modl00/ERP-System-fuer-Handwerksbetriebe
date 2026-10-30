@@ -147,6 +147,7 @@ public class FirmeninformationService {
             fi.setGewerk(null);
         }
         fi.setBgSatzOverride(dto.getBgSatzOverride());
+        fi.setBriefpapierEnthaeltKopf(dto.isBriefpapierEnthaeltKopf());
 
         fi = repository.save(fi);
         if (!fi.getBundesland().equals(bisherigesBundesland)) {
@@ -326,7 +327,11 @@ public class FirmeninformationService {
 
         byte[] zuSpeichern;
         if (MediaType.APPLICATION_PDF_VALUE.equals(contentType)) {
-            zuSpeichern = datei.getBytes();
+            byte[] pdfBytes = datei.getBytes();
+            if (pdfBytes.length < 4 || pdfBytes[0] != '%' || pdfBytes[1] != 'P' || pdfBytes[2] != 'D' || pdfBytes[3] != 'F') {
+                throw new IllegalArgumentException("Die Datei ist kein gültiges PDF.");
+            }
+            zuSpeichern = pdfBytes;
         } else {
             BriefpapierBild.Ergebnis aufbereitet = BriefpapierBild.aufbereiten(datei.getBytes(), endung);
             zuSpeichern = aufbereitet.bytes();

@@ -36,7 +36,8 @@ final class StandardVorlagenInhalt {
                             Dokumenttyp.SCHLUSSRECHNUNG, Dokumenttyp.STORNORECHNUNG, Dokumenttyp.GUTSCHRIFT)),
             new Familie("Standard Mahnung",
                     List.of(Dokumenttyp.ZAHLUNGSERINNERUNG, Dokumenttyp.ERSTE_MAHNUNG, Dokumenttyp.ZWEITE_MAHNUNG)),
-            new Familie("Standard Lieferschein", List.of(Dokumenttyp.LIEFERSCHEIN), VorlagenEinstellungen.lieferschein()));
+            new Familie("Standard Lieferschein", List.of(Dokumenttyp.LIEFERSCHEIN), VorlagenEinstellungen.lieferschein()),
+            new Familie("Standard Bestellformular", List.of(Dokumenttyp.BESTELLFORMULAR)));
 
     /** Standardtexte eines Dokumenttyps. */
     record Texte(String vortext, String nachtext) {
@@ -99,7 +100,10 @@ final class StandardVorlagenInhalt {
                     ANREDE + "<p>die unten genannte Rechnung ist trotz unserer bisherigen Schreiben weiterhin nicht bezahlt.</p>",
                     "<p>Wir fordern Sie auf, den offenen Betrag bis zum {{ZAHLUNGSZIEL}} zu überweisen. "
                             + "Andernfalls müssen wir weitere Schritte einleiten. Bitte sprechen Sie uns an, wenn Sie Hilfe bei der Zahlung brauchen.</p>"
-                            + GRUSS)));
+                            + GRUSS)),
+            Map.entry(Dokumenttyp.BESTELLFORMULAR, new Texte(
+                    ANREDE + "<p>hiermit bestellen wir die nachfolgend aufgeführten Positionen:</p>",
+                    "<p>Bitte bestätigen Sie diese Bestellung und nennen uns den voraussichtlichen Liefertermin.</p>" + GRUSS)));
 
     private StandardVorlagenInhalt() {
     }

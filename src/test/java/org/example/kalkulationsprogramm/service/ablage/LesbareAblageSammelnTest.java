@@ -97,7 +97,7 @@ class LesbareAblageSammelnTest {
         Ergebnis e = service.aufbauen(false);
 
         assertThat(e.dateien()).isEqualTo(1);
-        Path erwartet = service.zielordner().resolve("Projekte/2026/Max Mustermann GmbH/2026-014 - Anbau Halle - Süd/Geschaeftsdokumente/Rechnung RE-2026-031.pdf");
+        Path erwartet = service.zielordner().resolve("Max Mustermann GmbH/2026/Projekte/2026-014 - Anbau Halle - Süd/Geschaeftsdokumente/Rechnung RE-2026-031.pdf");
         assertThat(Files.readString(erwartet)).isEqualTo("RECHNUNG");
         assertThat(Files.isSameFile(erwartet, uploads.resolve("9c1e-uuid.pdf"))).isTrue();
     }
@@ -183,7 +183,7 @@ class LesbareAblageSammelnTest {
         Ergebnis e = service.aufbauen(false);
 
         assertThat(e.dateien()).isEqualTo(2);
-        Path basis = service.zielordner().resolve("Projekte/2026/Max Mustermann GmbH/2026-014 - Anbau Halle - Süd/Ausgangsdokumente");
+        Path basis = service.zielordner().resolve("Max Mustermann GmbH/2026/Projekte/2026-014 - Anbau Halle - Süd/Ausgangsdokumente");
         assertThat(Files.readString(basis.resolve("Rechnung RE-2026-031.pdf"))).isEqualTo("RECHNUNG");
         assertThat(Files.readString(basis.resolve("STORNIERT Angebot AN-2026-007.pdf"))).isEqualTo("ANGEBOT");
     }
@@ -204,7 +204,7 @@ class LesbareAblageSammelnTest {
         Ergebnis e = service.aufbauen(false);
 
         assertThat(e.dateien()).isEqualTo(1);
-        assertThat(Files.exists(service.zielordner().resolve("Projekte/2026/Max Mustermann GmbH/2026-014 - Anbau Halle - Süd/Geschaeftsdokumente/RE-2026-031.pdf"))).isTrue();
+        assertThat(Files.exists(service.zielordner().resolve("Max Mustermann GmbH/2026/Projekte/2026-014 - Anbau Halle - Süd/Geschaeftsdokumente/RE-2026-031.pdf"))).isTrue();
     }
 
     @Test
@@ -268,7 +268,7 @@ class LesbareAblageSammelnTest {
 
         service.aufbauen(false);
 
-        Path ziel = service.zielordner().resolve("Projekte/2026/Max Mustermann GmbH/2026-014 - Anbau Halle - Süd/Planungsdokumente");
+        Path ziel = service.zielordner().resolve("Max Mustermann GmbH/2026/Projekte/2026-014 - Anbau Halle - Süd/Planungsdokumente");
         try (var dateien = Files.list(ziel)) {
             assertThat(dateien.map(x -> x.getFileName().toString())).containsExactlyInAnyOrder("Plan.pdf", "Plan (2).pdf", "Plan (3).pdf");
         }
@@ -319,7 +319,7 @@ class LesbareAblageSammelnTest {
         Ergebnis e = service.aufbauen(false);
 
         assertThat(e.dateien()).isEqualTo(2);
-        Path bilder = service.zielordner().resolve("Projekte/2026/Max Mustermann GmbH/2026-014 - Anbau Halle - Süd/Bilder");
+        Path bilder = service.zielordner().resolve("Max Mustermann GmbH/2026/Projekte/2026-014 - Anbau Halle - Süd/Bilder");
         assertThat(Files.readString(bilder.resolve("IMG_0042.jpg"))).isEqualTo("FOTO1");
         assertThat(Files.readString(bilder.resolve("Foto " + ohneName.getId() + ".png"))).as("ohne Originalnamen: Foto <Nummer> mit der Endung der Datei").isEqualTo("FOTO2");
     }

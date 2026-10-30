@@ -383,7 +383,11 @@ public class ArtikelService implements ArtikelServiceContract {
         artikel.setVerpackungseinheit(r.getVerpackungseinheit());
         artikel.setPreiseinheit(stammdatenText(r.getPreiseinheit(), 255, "Die Preiseinheit"));
         artikel.setVerrechnungseinheit(r.getVerrechnungseinheit());
-        artikel.setKategorie(r.getKategorieId() == null ? null : kategorieRepository.findById(Math.toIntExact(r.getKategorieId())).orElseThrow(() -> stammdatenUngueltig("Die gewählte Kategorie gibt es nicht.")));
+        if (r.getKategorieId() != null) {
+            int katId;
+            try { katId = Math.toIntExact(r.getKategorieId()); } catch (ArithmeticException e) { throw stammdatenUngueltig("Die gewählte Kategorie gibt es nicht."); }
+            artikel.setKategorie(kategorieRepository.findById(katId).orElseThrow(() -> stammdatenUngueltig("Die gewählte Kategorie gibt es nicht.")));
+        }
         artikel.setWerkstoff(r.getWerkstoffId() == null ? null : werkstoffRepository.findById(r.getWerkstoffId()).orElseThrow(() -> stammdatenUngueltig("Der gewählte Werkstoff gibt es nicht.")));
         artikel.setProfilform(r.getProfilform());
         artikel.setHerstellverfahren(r.getHerstellverfahren());

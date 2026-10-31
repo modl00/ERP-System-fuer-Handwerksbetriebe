@@ -170,10 +170,10 @@ function Inhalt({ terminId, vorgabe, eintragHinweis, onSchliessen, onGeaendert }
             const startCheck = validateTimeInput(startZeit, { label: 'Beginn', required: true });
             const endeCheck = validateTimeInput(endeZeit, { label: 'Ende', required: true });
             if (!startCheck.valid || !endeCheck.valid) {
-                toast.error(!startCheck.valid ? startCheck.message : endeCheck.message ?? 'Uhrzeiten prüfen.');
+                toast.error(!startCheck.valid ? startCheck.message : !endeCheck.valid ? endeCheck.message : 'Uhrzeiten prüfen.');
                 return;
             }
-            if (endeVorBeginn(startCheck.value, endeCheck.value)) {
+            if (endeVorBeginn(startCheck.value ?? '', endeCheck.value ?? '')) {
                 toast.error('Das Ende liegt vor dem Beginn. Bitte die Uhrzeiten prüfen.');
                 return;
             }

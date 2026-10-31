@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import {
     Briefcase, Calendar, CalendarClock, CalendarDays, ChevronLeft, ChevronRight,
-    Clock, LayoutGrid, List, Plus, RefreshCw, AlertTriangle, Truck, Users,
+    Clock, LayoutGrid, List, Loader2, Plus, RefreshCw, AlertTriangle, Truck, User, Users,
 } from 'lucide-react';
 import { Button } from '../components/ui/button';
 import { useToast } from '../components/ui/toast';

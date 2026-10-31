@@ -1,0 +1,99 @@
+# =============================================================================
+# ERP Handwerk - Testumgebung (parallel zum Produktiv-Stack)
+# =============================================================================
+# Startet einen zweiten ERP-Stack auf anderen Ports, ohne den laufenden
+# Produktiv-Stack zu stören.
+#
+# Ports (Standard):
+#   8081  - ERP-Oberfläche  (Produktiv: 8080)
+#   5433  - PostgreSQL      (Produktiv: kein externer Port)
+#
+# Starten:
+#   docker compose up -d
+#
+# Umgebungsvariablen (optional, in .env oder Portainer):
+#   APP_PORT=8081          ERP-Port (Standard 8081)
+#   PG_PORT=5433           PostgreSQL-Port nach außen (Standard 5433)
+#   DB_ROOT_PASSWORD=...   Postgres-Superuser-Passwort
+#   DB_USER=erp_user       App-Datenbankbenutzer
+#   DB_PASSWORD=...        App-Datenbankpasswort
+#   ERP_IMAGE=...          Docker-Image (Standard: unser handwerk-extended)
+# =============================================================================
+
+name: erp-test
+
+services:
+
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_DB: kalkulationsprogramm_db
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:-test_root_pw}
+      ERP_DB_USER: ${DB_USER:-erp_user}
+      ERP_DB_PASSWORD: ${DB_PASSWORD:-test_db_pw}
+      POSTGRES_INITDB_ARGS: --encoding=UTF8
+      TZ: Europe/Berlin
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ../docker-server/postgres-init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${PG_PORT:-5433}:5432"
+    command: >
+      postgres
+      -c tcp_keepalives_idle=60
+      -c idle_in_transaction_session_timeout=10min
+    networks: [intern]
+    cap_drop: [ALL]
+    cap_add: [CHOWN, DAC_OVERRIDE, FOWNER, SETGID, SETUID]
+    security_opt: [no-new-privileges:true]
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U \"$$POSTGRES_USER\" -d \"$$POSTGRES_DB\""]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 30s
+    restart: unless-stopped
+
+  app:
+    image: ${ERP_IMAGE:-ghcr.io/modl00/erp-system-fuer-handwerksbetriebe:handwerk-extended}
+    pull_policy: always
+    ports:
+      - "${APP_PORT:-8081}:8080"
+    env_file:
+      - path: ./app.env
+        required: false
+    environment:
+      SPRING_PROFILES_ACTIVE: docker,postgres
+      APP_DB_USER: ${DB_USER:-erp_user}
+      APP_DB_PASS: ${DB_PASSWORD:-test_db_pw}
+      APP_ADMIN_USER: ${APP_ADMIN_USER:-}
+      APP_ADMIN_PASS: ${APP_ADMIN_PASS:-}
+      ZEITERFASSUNG_URL: ${ZEITERFASSUNG_URL:-http://localhost:8081}
+      TZ: Europe/Berlin
+    volumes:
+      - app_uploads:/app/uploads
+      - app_logs:/app/logs
+    networks: [intern, extern]
+    read_only: true
+    tmpfs:
+      - /tmp:size=2g,mode=1777,exec
+    cap_drop: [ALL]
+    cap_add: [CHOWN, SETUID, SETGID]
+    security_opt: [no-new-privileges:true]
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+networks:
+  intern:
+    internal: true
+  extern:
+    driver_opts:
+      com.docker.network.bridge.name: erp-test-extern
+
+volumes:
+  postgres_data:
+  app_uploads:
+  app_logs:

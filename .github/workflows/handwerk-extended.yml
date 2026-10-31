@@ -1,0 +1,43 @@
+name: Docker-Image handwerk-extended
+
+on:
+  push:
+    branches: [handwerk-extended]
+  workflow_dispatch:
+
+permissions: {}
+
+jobs:
+  image:
+    name: Bauen und veröffentlichen
+    if: github.server_url == 'https://github.com'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    timeout-minutes: 60
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Docker Buildx einrichten
+        uses: docker/setup-buildx-action@v3
+
+      - name: Bei der Container Registry anmelden
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Image bauen und veröffentlichen
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ghcr.io/modl00/erp-system-fuer-handwerksbetriebe:handwerk-extended
+            ghcr.io/modl00/erp-system-fuer-handwerksbetriebe:sha-${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

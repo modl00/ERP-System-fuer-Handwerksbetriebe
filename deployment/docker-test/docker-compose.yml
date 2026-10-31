@@ -28,15 +28,14 @@ services:
     image: postgres:16
     environment:
       POSTGRES_DB: kalkulationsprogramm_db
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: ${DB_ROOT_PASSWORD:-test_root_pw}
-      ERP_DB_USER: ${DB_USER:-erp_user}
-      ERP_DB_PASSWORD: ${DB_PASSWORD:-test_db_pw}
+      # Im Test-Stack ist der App-Nutzer gleichzeitig der Datenbankbesitzer –
+      # kein separates Init-Skript noetig.
+      POSTGRES_USER: ${DB_USER:-erp_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-test_db_pw}
       POSTGRES_INITDB_ARGS: --encoding=UTF8
       TZ: Europe/Berlin
     volumes:
       - postgres_data:/var/lib/postgresql/data
-      - ../docker-server/postgres-init:/docker-entrypoint-initdb.d:ro
     ports:
       - "${PG_PORT:-5433}:5432"
     command: >
